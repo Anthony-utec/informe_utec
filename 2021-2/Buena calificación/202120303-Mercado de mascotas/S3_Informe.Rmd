@@ -1,0 +1,1713 @@
+---
+title: <center>Análisis del mercado peruano de mascotas antes y durante la pandemia<center>
+date: "14/12/2021"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true 
+    theme: cosmo
+   
+    
+---
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+lista.paquetes <- c("readr","dplyr","knitr","knitr","prettydoc","funModeling","printr","RSocrata","lattice","survival","Formula","ggplot2","descr","vcd","lmtest","car") 
+nuevos.paquetes <- lista.paquetes[!(lista.paquetes %in% installed.packages()[,"Package"])]
+if(length(nuevos.paquetes)) install.packages(nuevos.paquetes) 
+
+library(readr)
+library(dplyr)
+library(knitr)
+library(prettydoc)
+library(funModeling)
+library(printr)
+library(RSocrata)
+library(lattice)
+library(survival)
+library(Formula)
+library(ggplot2)
+library(descr) 
+library(vcd)
+library(lmtest)
+library(car)
+
+DF <- read_csv("RESPUESTAS.csv")
+VA <- read_csv("VariablesAleatorias.csv")
+```
+
+
+# <span style="color:cornflowerblue">**1. Introducción**</span> 
+## <span style="color:#2297E6"> 1.1. Importancia </span>
+<span style="color:gray16" size="10">  Para el 2019 "el 60% de peruanos tenía al menos una mascota en casa" según el [*CPI*](https://www.ue.edu.pe/mails/2021/ue/img/8-De-pelos-y-patas-la-industria-mantiene-una-tendencia-creciente-que-ha-abierto-las-puertas-a-servicios-y-productos-que-hace-10-a%C3%B1os.pdf). Sin embargo, al llegar la pandemia muchos negocios tuvieron grandes perdidas o cerraron a excepción de algunos  que encontraron la manera de sacarle provecho a la situación. Es en este contexto de incertidumbre que nos interesa saber qué paso con el negocio de las mascotas. El cual, previo a la pandemia venía con una tendencia creciente.</span>
+
+## <span style="color:#2297E6"> 1.2. Justificación </span> 
+ 
+<span style="color:gray16" size="10"> Es factible pues la recolección de datos se da mediante encuestas a través de Google forms y con preguntas orientadas a los objetivos. Asimismo, con respecto a la originalidad el proyecto esta hecho desde la recolección de datos por nosotros. </span>
+
+
+# <span style="color:cornflowerblue">**2. Objetivos**</span> 
+
+## <span style="color:#2297E6"> 2.1. Objetivo General </span>
+<span style="color:gray16" size="10">  Analizar el comportamiento del mercado peruano de mascotas y los cambios provocados por la pandemia </span>
+
+## <span style="color:#2297E6"> 2.2. Objetivos específicos </span>
+
+
+1. <span style="color:gray16"> Describir el crecimiento del mercado de mascotas.</span>
+2. <span style="color:gray16"> Identificar los sectores del mercado de mascotas en el que los dueños gastan más.</span>
+3. <span style="color:gray16"> Establecer los sectores del mercado en el que los dueños gastan menos.</span>
+4. <span style="color:gray16"> Identificar las marcas con mayor posición en el mercado.</span>
+5. <span style="color:gray16"> Determinar la relación entre el nivel de dedicación y tiempo con el dinero invertido en las mascotas.</span>
+
+# <span style="color:cornflowerblue">**3. Marco Teórico**</span> 
+
+* <span style="color:gray16"> **Tema delimitado:** Análisis del mercado peruano de mascotas antes y durante la pandemia [2019-2021]</span>
+
+* <span style="color:gray16"> **Población objetivo:** Personas peruanas con al menos una mascota </span>
+
+* <span style="color:gray16"> **Tipo de muestreo:** Muestreo Aleatorio Simple (MAS) </span>
+
+* <span style="color:gray16"> **Sesgo:**  Sesgo de pertenencia y prevalencia </span>
+
+* <span style="color:gray16"> **Unidades muestrales:** 151 </span>
+
+* <span style="color:gray16"> **Interesados:**</span>
+
+    + <span style="color:gray16" size="10"> Empresas de mascotas </span>
+    + <span style="color:gray16" size="10"> Público interesado en saber el comportamiento del mercado de mascotas </span>
+
+<span style="color:gray16" size="10"> Observaciones: Dado que se ha optado por elegir como ingreso de la data a la encuesta, toda nuestra población objetiva tiene la misma probabilidad de ser parte de la investigación. Por lo cual se da un muestreo aleatorio simple, sin embargo es posible que a la hora de recolectar los datos se den el sesgo de pertenencia y prevalencia. El primero porque al ser nosotros los que compartimos las encuestas a nuestros contactos la mayor parte de las respuestas van a tender a ser parte del grupo los estudiantes de UTEC; lo que podría darles una mayor representatividad. El segundo sesgo se puede dar debido a que el formulario solo registra las encuestas una vez que todas las preguntas sean respondidas, pero pueden haber participantes que no llegaron a responder todas las preguntas y se retiraron. </span>
+
+
+# <span style="color:cornflowerblue">**4. Limpieza de datos**</span> 
+<span style="color:gray16" size="10"> Las consideraciones para la eliminación de datos fueron: </span>
+
+* <span style="color:gray16"> Información sin sentido </span>
+
+* <span style="color:gray16"> Falta de claridad de la información </span>
+
+* <span style="color:gray16"> Información contradictoria </span>
+
+## <span style="color:#2297E6"> 4.1. Asignación de variables </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+colnames(DF)[1:37]<-c("MarcTem","CorreoElec","Punt","AP_ESTADO","AP_NUM","AP_TIP_MASQ","AP_SEC_COST","AP_COST_ALI","AP_COST_VET","AP_COST_JYA","AP_COST_LIM","AP_COST_MED","AP_MARCA_ALI","AP_MARCA_J","AP_MARCA_LIM","AP_MARCA_MED","AP_HORAS_MASQ","AP_DIF_PRYSRV","AP_MOT_DIF","DP_ADOP_COM","DP_CANT_MASQ","DP_NUM_MASQ","DP_MASQ_AHORA","DP_TIP_MASQ","DP_SEC_COST","DP_COST_ALI","DP_COST_VET","DP_COST_JYA","DP_COST_LIM","DP_COST_MED","DP_MARCA_ALI","DP_MARCA_J","DP_MARCA_LIM","DP_MARCA_MED","DP_HORAS_MASQ","DP_DIF_PRYSRV","DP_MOT_DIF")
+colnames(DF)
+```
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#CORRECCION DE DATOS DE AP_NUM
+DF$AP_NUM[DF$AP_NUM %in% c("dos","2")]<-2
+DF$AP_NUM[DF$AP_NUM %in% c("1 mascota","1")]<-1
+DF$AP_NUM[DF$AP_NUM %in% c("3")]<-3
+#CORRECCION DE DATOS DE AP_COST_ALI
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("Nose","Era de mis padres","Alimentos de casa (se contaba como un miembro más)")]<-NA
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("Como era cachorro slrededor de 20 soles","20 soles")]<-20
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("50 soles","50 soles apróx")]<-50
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("150 soles")]<-150
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("79 soles")]<-79
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("60 soles")]<-60
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("55 soles")]<-55
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("200 soles")]<-200
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("100 soles")]<-100
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("15 soles")]<-15
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("30 soles")]<-30
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("250 soles")]<-250
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("36 dólares")]<-144.33
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("De 90 a 100 soles")]<-95
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("250-300")]<-275
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("100-260 soles")]<-180
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("300-400 soles")]<-350
+DF$AP_COST_ALI[DF$AP_COST_ALI %in% c("300 más o menos")]<-300
+#CORRECCION DE DATOS  DE AP_COST_VET
+DF$AP_COST_VET<-gsub(" soles","",DF$AP_COST_VET)
+DF$AP_COST_VET[DF$AP_COST_VET %in% c("?","40 pero solo fue un mes q se enfermo. Normalmente no llevo a mis masotas al veterinario","Al veterinario solo para dus or6nets vacunas","0","Nada","No lo llevo al veterinario","un exceso (más de 1000)")]<-NA
+DF$AP_COST_VET[DF$AP_COST_VET %in% c("100 a menos")]<-100
+DF$AP_COST_VET[DF$AP_COST_VET %in% c("S/.120","120so")]<-120
+DF$AP_COST_VET[DF$AP_COST_VET %in% c("200 seoles")]<-200
+DF$AP_COST_VET[DF$AP_COST_VET %in% c("50soles")]<-50
+DF$AP_COST_VET[DF$AP_COST_VET %in% c("Gastaban aprox 35")]<-35
+DF$AP_COST_VET[DF$AP_COST_VET %in% c("100-150")]<-125
+#CORRECCION DE DATOS  DE AP_COST_JYA
+DF$AP_COST_JYA<-gsub(" soles","",DF$AP_COST_JYA)
+DF$AP_COST_JYA[DF$AP_COST_JYA %in% c("?","0","Compramos lo necesario","mis gatos odian los juguetes y las camas","Tenia mebis de quince dias en casa")]<-NA
+DF$AP_COST_JYA[DF$AP_COST_JYA %in% c("100soles")]<-100
+DF$AP_COST_JYA[DF$AP_COST_JYA %in% c("12 dólares")]<-48.11
+DF$AP_COST_JYA[DF$AP_COST_JYA %in% c("S/.10")]<-10
+DF$AP_COST_JYA[DF$AP_COST_JYA %in% c("170 o 180")]<-175
+DF$AP_COST_JYA[DF$AP_COST_JYA %in% c("60 creo")]<-60
+#CORRECCION DE DATOS  DE AP_COST_LIM
+DF$AP_COST_LIM<-gsub(" soles","",DF$AP_COST_LIM)
+DF$AP_COST_LIM<-gsub("soles","",DF$AP_COST_LIM)
+DF$AP_COST_LIM[DF$AP_COST_LIM %in% c("?","1 ves por semana 15","Solo tenis un mes antes de pandemia","los baño en mi casa")]<-NA
+DF$AP_COST_LIM[DF$AP_COST_LIM %in% c("100-150")]<-125
+DF$AP_COST_LIM[DF$AP_COST_LIM %in% c("30 o 25so")]<-27.5
+DF$AP_COST_LIM[DF$AP_COST_LIM %in% c("S/.70")]<-70
+DF$AP_COST_LIM[DF$AP_COST_LIM %in% c("35 a 45")]<-40
+DF$AP_COST_LIM[DF$AP_COST_LIM %in% c("25 dólares")]<-100.23
+#CORRECCION DE DATOS  DE AP_COST_MED
+DF$AP_COST_MED<-gsub(" soles","",DF$AP_COST_MED)
+DF$AP_COST_MED<-gsub("soles","",DF$AP_COST_MED)
+DF$AP_COST_MED[DF$AP_COST_MED %in% c("?","145 pero solo compre el medicamento 1 vez. No le compro medicamentos todos los meses, solo cuando se enferma","No")]<-NA
+#CORRECCION DE DATOS  DE AP_MARCA_ALI
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Alimentos de casa","Le preparamos su comida con pollo, fideos y zanahoria")]<-NA
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Ricocan, No tengo una marca en específico")]<-NA
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Comida Casera")]<-NA
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Dog Chow")]<-"Dog chow"
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Dogchow")]<-"Dog chow"
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Pro plan")]<-"Pro Plan"
+DF$AP_MARCA_LIM[DF$AP_MARCA_LIM %in% c("amigo")]<-NA
+DF$AP_MARCA_LIM[DF$AP_MARCA_LIM %in% c("Servicio de empresas")]<-NA
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Compro por kilos en la tienda, no se que marca me venden")]<-NA
+DF$AP_MARCA_ALI[DF$AP_MARCA_ALI %in% c("Kambo","Canvo","Canbo","Cambo")]<-"Canbo"
+#CORRECCION DE DATOS  DE AP_MARCA_J
+DF$AP_MARCA_J[DF$AP_MARCA_J %in% c("no les gustan los juguetes")]<-NA
+#CORRECCION DE DATOS  DE AP_MARCA_LIM
+DF$AP_MARCA_LIM[DF$AP_MARCA_LIM %in% c("Vetinex (Shampoo medicado)")]<-"Vetinex"
+#CORRECCION DE DATOS  DE AP_HORAS_MASQ
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("1 hora","1 horq","1hora")]<-1
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("12 horas")]<-12
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("2 horas","2 horas al día","2 horas, aunque me acompañaba a todos lados.","2horas")]<-2
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("3 a 5","4 horas al día")]<-4
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("5 horas","5 horas max.","5h")]<-5
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("Más de 4",
+"pues no mucho , mis gatos se paseanba solitos por la casa","Todos los días")]<-NA
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("todo el dia")]<-24
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("3 horas")]<-3
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("6 horas días aprox")]<-6
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("5 o 6 horas al día")]<-5.5
+DF$AP_HORAS_MASQ[DF$AP_HORAS_MASQ %in% c("7 horas")]<-7
+#CORRECCION DE DATOS  DE DP_MASQ_AHORA
+DF$DP_MASQ_AHORA[DF$DP_MASQ_AHORA %in% c("dos","2")]<-2
+DF$DP_MASQ_AHORA[DF$DP_MASQ_AHORA %in% c("1 mascota","1")]<-1
+#CORRECCION DE DATOS  DE DP_COST_ALI
+DF$DP_COST_ALI<-gsub(" soles","",DF$DP_COST_ALI)
+DF$DP_COST_ALI<-gsub("soles","",DF$DP_COST_ALI)
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("90 a 100","90-100")]<-95
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("100-150")]<-125
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("300-400")]<-350
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("40 aprox")]<-40
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("300 más o menos")]<-300
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("40 dólares")]<-160.37
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("$80")]<-320.74
+DF$DP_COST_ALI[DF$DP_COST_ALI %in% c("Alimentos de casa.","Nose")]<-NA  
+#CORRECCION DE DATOS  DE DP_COST_VET
+DF$DP_COST_VET<-gsub(" soles","",DF$DP_COST_VET)
+DF$DP_COST_VET<-gsub("soles","",DF$DP_COST_VET)
+DF$DP_COST_VET[DF$DP_COST_VET %in% c("antes gastaba 300 por las vacunas de cachorro, pero ahora solo 100 a 150","Más de 1000","solo cuando se enferma","Solo he recurrido al veterinario por vacunas","?")]<-NA
+DF$DP_COST_VET[DF$DP_COST_VET %in% c("S/.120","120 pero no mensualmente")]<-120
+DF$DP_COST_VET[DF$DP_COST_VET %in% c("20 dólares")]<-80.18
+DF$DP_COST_VET[DF$DP_COST_VET %in% c("$70")]<-280.64
+#CORRECCION DE DATOS  DE DP_COST_JYA
+DF$DP_COST_JYA<-gsub(" soles","",DF$DP_COST_JYA)
+DF$DP_COST_JYA<-gsub("soles","",DF$DP_COST_JYA)
+DF$DP_COST_JYA[DF$DP_COST_JYA %in% c("6 dólares")]<-24.06
+DF$DP_COST_JYA[DF$DP_COST_JYA %in% c("Aún no cumple su año aquí","No usan juguetes","?")]<-NA
+DF$DP_COST_JYA[DF$DP_COST_JYA %in% c("$30")]<-120.28
+DF$DP_COST_JYA[DF$DP_COST_JYA %in% c("S/.10")]<-10
+#CORRECCION DE DATOS  DE DP_COST_LIM
+DF$DP_COST_LIM<-gsub(" soles","",DF$DP_COST_LIM)
+DF$DP_COST_LIM<-gsub("soles","",DF$DP_COST_LIM)
+DF$DP_COST_LIM[DF$DP_COST_LIM %in% c("30 o 35")]<-32.5
+DF$DP_COST_LIM[DF$DP_COST_LIM %in% c("?")]<-NA
+DF$DP_COST_LIM[DF$DP_COST_LIM %in% c("30 dolarss")]<-120.28
+DF$DP_COST_LIM[DF$DP_COST_LIM %in% c("$50")]<-200.46
+DF$DP_COST_LIM[DF$DP_COST_LIM %in% c("100-250")]<-175
+DF$DP_COST_LIM[DF$DP_COST_LIM %in% c("50 solws")]<-50
+DF$DP_COST_LIM[DF$DP_COST_LIM %in% c("S/.70")]<-70
+#CORRECCION DE DATOS  DE DP_COST_MED
+DF$DP_COST_MED<-gsub(" soles","",DF$DP_COST_MED)
+DF$DP_COST_MED<-gsub("soles","",DF$DP_COST_MED)
+DF$DP_COST_MED[DF$DP_COST_MED %in% c("50 la desparacitacion")]<-50
+DF$DP_COST_MED[DF$DP_COST_MED %in% c("?","Los que necesitan")]<-NA
+DF$DP_COST_MED[DF$DP_COST_MED %in% c("12 dólares")]<-48.11
+DF$DP_COST_MED[DF$DP_COST_MED %in% c("$50")]<-200.46
+#CORRECCION DE DATOS  DE DP_MARCA_ALI
+DF$DP_MARCA_ALI[DF$DP_MARCA_ALI %in% c("Alimentos del hogar","Se la preparamos","pollo")]<-NA
+DF$DP_MARCA_ALI[DF$DP_MARCA_ALI %in% c("No tengo una marca en específico, ProPlan")]<-"No tengo una marca en específico, Pro Plan"
+
+#CORRECCION DE DATOS  DE DP_MARCA_J
+DF$DP_MARCA_J[DF$DP_MARCA_J %in% c("La de los chinos")]<-NA
+#CORRECCION DE DATOS  DE DP_MARCA_MED
+DF$DP_MARCA_MED[DF$DP_MARCA_MED %in% c("Los que me receten")]<-NA
+#CORRECCION DE DATOS  DE DP_MARCA_LIM
+DF$DP_MARCA_LIM[DF$DP_MARCA_LIM %in% c("Vetinex (shampoo medicado)")]<-"Vetinex"
+#CORRECCION DE DATOS  DE DP_HORAS_MASQ
+DF$DP_HORAS_MASQ<-gsub(" horas","",DF$DP_HORAS_MASQ)
+DF$DP_HORAS_MASQ[DF$DP_HORAS_MASQ %in% c("10 horas promedio")]<-10
+DF$DP_HORAS_MASQ[DF$DP_HORAS_MASQ %in% c("Todo el día","todo el dia")]<-24
+DF$DP_HORAS_MASQ[DF$DP_HORAS_MASQ %in% c("Dos de ellas han decidido hacer campamento en mi cuarto","casi siempre","casi todo el dia","podria decir que las 24 horas, excepto por ciertos dias que salgo a realizar compras","pues se pasae solito")]<-NA
+DF$DP_HORAS_MASQ[DF$DP_HORAS_MASQ %in% c("30 minutos","Media hora, tengo muchas tareas :(")]<-0.5
+DF$DP_HORAS_MASQ[DF$DP_HORAS_MASQ %in% c("2-3")]<-2.5
+DF$DP_HORAS_MASQ[DF$DP_HORAS_MASQ %in% c("8 o 9")]<-8.5
+DF$DP_HORAS_MASQ[DF$DP_HORAS_MASQ %in% c("Alrededor de 6 a lo largo del día")]<-6
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#Más de una opción
+
+#AP_TIP_MASQ
+a<-as.character(DF$AP_TIP_MASQ)
+
+a[a %in% c("Perro","Canario","Peces","Gato")]<-NA
+a[a %in% c("Perro, Gato")]<-"Perro"
+a[a %in% c("Perro, Cuyes")]<-"Perro"
+a[a %in% c("Perro, Loro")]<-"Perro"
+a[a %in% c("Perro, Canario")]<-"Perro"
+a[a %in% c("Perro, Peces")]<-"Perro"
+a[a %in% c("Gato, Canario")]<-"Gato"
+a[a %in% c("Perro, Araña/ Tarántula")]<-"Perro"
+
+a1<-as.character(DF$AP_TIP_MASQ)
+a1[a1 %in% c("Perro, Gato")]<-"Gato"
+a1[a1 %in% c("Perro, Cuyes")]<-"Cuyes"
+a1[a1 %in% c("Perro, Loro")]<-"Loro"
+a1[a1 %in% c("Perro, Canario")]<-"Canario"
+a1[a1 %in% c("Perro, Peces")]<-"Peces"
+a1[a1 %in% c("Gato, Canario")]<-"Canario"
+a1[a1 %in% c("Perro, Araña/ Tarántula")]<-"Araña/ Tarántula"
+c_AP_TIP_MASQ<- cbind(a1,a)
+
+
+
+#DP_TIP_MASQ
+b<-as.character(DF$DP_TIP_MASQ)
+
+b[b %in% c("Perro","Canario","Peces","Gato")]<-NA
+b[b %in% c("Perro, Gato")]<-"Perro"
+b[b %in% c("Perro, Cuyes")]<-"Perro"
+b[b %in% c("Perro, Loro")]<-"Perro"
+b[b %in% c("Perro, Canario")]<-"Perro"
+b[b %in% c("Perro, Peces")]<-"Perro"
+b[b %in% c("Gato, Canario")]<-"Gato"
+b[b %in% c("Perro, Araña/ Tarántula")]<-"Perro"
+
+b1<-as.character(DF$AP_TIP_MASQ)
+b1[b1 %in% c("Perro, Gato")]<-"Gato"
+b1[b1 %in% c("Perro, Cuyes")]<-"Cuyes"
+b1[b1 %in% c("Perro, Loro")]<-"Loro"
+b1[b1 %in% c("Perro, Canario")]<-"Canario"
+b1[b1 %in% c("Perro, Peces")]<-"Peces"
+b1[b1 %in% c("Gato, Canario")]<-"Canario"
+b1[b1 %in% c("Perro, Araña/ Tarántula")]<-"Araña/ Tarántula"
+c_DP_TIP_MASQ<- cbind(b1,b)
+
+
+
+#AP_DIF_PRYSRV
+c<-as.character(DF$AP_DIF_PRYSRV)
+
+c[c %in% c("Limpieza","Alimentos","Medicina","Veterinario","Juguetes y accesorios","No tuve dificultades")]<-NA
+c[c %in% c("Alimentos, Veterinario")]<-"Alimentos"
+c[c %in% c("Medicina, Limpieza")]<-"Medicina"
+c[c %in% c("No tuve dificultades, Limpieza")]<-"No tuve dificultades"
+c[c %in% c("Veterinario, Medicina")]<-"Veterinario"
+c[c %in% c("Alimentos, Veterinario, Medicina, Limpieza")]<-"Alimentos"
+
+
+c1<-as.character(DF$AP_DIF_PRYSRV)
+c1[c1 %in% c("Alimentos, Veterinario")]<-"Veterinario"
+c1[c1 %in% c("Medicina, Limpieza")]<-"Limpieza"
+c1[c1 %in% c("No tuve dificultades, Limpieza")]<-"Limpieza"
+c1[c1 %in% c("Veterinario, Medicina")]<-"Medicina"
+c1[c1 %in% c("Alimentos, Veterinario, Medicina, Limpieza")]<-"Veterinario"
+
+c2<-as.character(DF$AP_DIF_PRYSRV)
+c2[c2 %in% c("Limpieza","Alimentos","Medicina","Veterinario","Juguetes y accesorios","No tuve dificultades","Alimentos, Veterinario","Medicina, Limpieza","No tuve dificultades, Limpieza","Veterinario, Medicina")]<-NA
+c2[c2 %in% c("Alimentos, Veterinario, Medicina, Limpieza")]<-"Medicina"
+
+c3<-as.character(DF$AP_DIF_PRYSRV)
+c3[c3 %in% c("Limpieza","Alimentos","Medicina","Veterinario","Juguetes y accesorios","No tuve dificultades","Alimentos, Veterinario","Medicina, Limpieza","No tuve dificultades, Limpieza","Veterinario, Medicina")]<-NA
+c3[c3 %in% c("Alimentos, Veterinario, Medicina, Limpieza")]<-"Limpieza"
+
+c_AP_DIF_PRYSRV<- cbind(c1,c,c2,c3)
+
+
+
+#DP_DIF_PRYSRV
+d<-as.character(DF$DP_DIF_PRYSRV)
+d<-gsub("Alimentos, ","",d)
+d<-gsub("Medicina, ","",d)
+d<-gsub("Veterinario, ","",d)
+d<-gsub("Juguetes y accesorios, ","",d)
+d<-gsub("No tengo dificultades, ","",d)
+
+
+
+d1<-as.character(DF$DP_DIF_PRYSRV)
+d1[a1 %in% c("Limpieza","Alimentos","Medicina","Veterinario","Juguetes y accesorios","No tengo dificultades")]<-NA
+d1<-gsub(", Limpieza","",d1)
+d1<-gsub(", Medicina","",d1)
+d1<-gsub(", Veterinario","",d1)
+d1<-gsub(", Juguetes y accesorios","",d1)
+d1<-gsub(", No tengo dificultades","",d1)
+
+
+c_DP_DIF_PRYSRV<-cbind(d,d1)
+
+
+
+#AP_MARCA_ALI
+e<-as.character(DF$AP_MARCA_ALI)
+e[e %in% c("Purina Dog chow")]<-"Purina, Dog Chow"
+e[e %in% c("Thor y michicat")]<-"Thor, michicat"
+e<-gsub("Dog Chow, ","",e)
+e<-gsub("Mimaskot, ","",e)
+e<-gsub("Ricocan, ","",e)
+e<-gsub("Canbo, ","",e)
+e<-gsub("Ricocat, ", "",e)
+e<-gsub("Purina, ", "",e)
+e<-gsub("Thor, ", "",e)
+e[e %in% c("dog chow","Dog chow","Dogchow")]<-"Dog Chow"
+e[e %in% c("Ricocan.")]<-"Ricocan"
+e[e %in% c("Pro plan")]<-"Pro Plan"
+
+
+e1<-as.character(DF$AP_MARCA_ALI)
+e1[e1 %in% c("Pro plan")]<-"Pro Plan"
+e1[e1 %in% c("Thor y michicat")]<-"Thor, michicat"
+e1[e1 %in% c("Acana","Canbo","Comida Casera","Ducca","CatChow","Dog Chow","Sera","Thor","michicat","Britt Care","Hill's","Mio Cane","Nutram","Mimaskot","Pro Plan","Ricocan","Ricocat")]<-NA
+e1[e1 %in% c("Purina Dog chow")]<-"Purina, Dog Chow" 
+e1<-gsub(", Dog Chow","",e1)
+e1<-gsub(", Dog chow","",e1)
+e1<-gsub(", Dogchow","",e1)
+e1<-gsub(", Mimaskot","",e1)
+e1<-gsub(", Ricocan","",e1)
+e1<-gsub(", Canbo","",e1)
+e1<-gsub(", Ricocat", "",e1)
+e1<-gsub(", CatChow", "",e1)
+e1<-gsub(", Nutram", "",e1)
+e1<-gsub(", Whiskas", "",e1)
+e1<-gsub(", michicat", "",e1)
+e1<-gsub(", No tengo una marca en específico", "",e1)
+e1[e1 %in% c("dog chow","Dog chow","Dogchow","Dog Chow.")]<-"Dog Chow"
+
+
+c_AP_MARCA_ALI<-cbind(e,e1)
+
+#DP_MARCA_ALI
+f<-as.character(DF$DP_MARCA_ALI)
+f[f %in% c("Canbo y dog chow")]<-"Canbo, Dog Chow"
+f[f %in% c("Pro Pac, Vet Life")]<-"Pro Plan, Vet Life"
+f[f %in% c("Ducca, Knino")]<-"Ducca, Kanino"
+f[f %in% c("No tengo una marca en específico, ProPlan")]<-"No tengo una marca en específico, Pro Plan"
+f[f %in% c("Ricocan, RicoCat")]<-"Ricocan, Ricocat"
+f[f %in% c("Kambo")]<-"Canbo"
+f[f %in% c("Purina Dog chow","purina dog chow")]<-"Purina, Dog Chow"
+f[f %in% c("Thor y michicat")]<-"Thor, michicat"
+f<-gsub("Dog Chow, ","",f)
+f<-gsub("Mimaskot, ","",f)
+f<-gsub("Ricocan, ","",f)
+f<-gsub("Canbo, ","",f)
+f<-gsub("Ricocat, ", "",f)
+f<-gsub("Purina, ", "",f)
+f<-gsub("Thor, ", "",f)
+f<-gsub("CatChow, ", "",f)
+f<-gsub("Nutram, ", "",f)
+f<-gsub("Whiskas, ", "",f)
+f<-gsub("michicat, ", "",f)
+f<-gsub("Hill's, ", "",f)
+f<-gsub("Ducca, ", "",f)
+f<-gsub("Pro Plan, ", "",f)
+f<-gsub("No tengo una marca en específico, ", "",f)
+f[f %in% c("dog chow","Dog chow","Dogchow","DogChow")]<-"Dog Chow"
+f[f %in% c("Ricocan.")]<-"Ricocan"
+f[f %in% c("Pro plan")]<-"Pro Plan"
+
+
+f1<-as.character(DF$DP_MARCA_ALI)
+f1[f1 %in% c("Kambo")]<-"Canbo"
+f1[f1 %in% c("Ricocan, RicoCat")]<-"Ricocan, Ricocat"
+f1[f1 %in% c("Canbo y dog chow")]<-"Canbo, Dog Chow"
+f1[f1 %in% c("Pro Pac, Vet Life")]<-"Pro Plan, Vet Life"
+f1[f1 %in% c("Ducca, Knino")]<-"Ducca, Kanino"
+f1[f1 %in% c("No tengo una marca en específico, ProPlan")]<-"No tengo una marca en específico, Pro Plan"
+f1[f1 %in% c("Purina Dog chow","purina dog chow")]<-"Purina, Dog Chow"
+f1[f1 %in% c("Pro plan")]<-"Pro Plan"
+f1[f1 %in% c("Thor y michicat")]<-"Thor, michicat"
+f1[f1 %in% c("Acana","Canbo","Comida Casera","Ducca","CatChow","Dog Chow","Sera","Thor","michicat","Britt Care","Hill's","Mio Cane","Nutram","Mimaskot","Pro Plan","Ricocan","Ricocat","Comida Barf","Brit","pollo","dog chow","Dog chow","Dogchow","Dog Chow.","DogChow")]<-NA
+f1[f1 %in% c("Purina Dog chow")]<-"Purina, Dog Chow"
+f1<-gsub(", Dog Chow","",f1)
+f1<-gsub(", Dog chow","",f1)
+f1<-gsub(", Dogchow","",f1)
+f1<-gsub(", Mimaskot","",f1)
+f1<-gsub(", Ricocan","",f1)
+f1<-gsub(", Ricocat","",f1)
+f1<-gsub(", Canbo","",f1)
+f1<-gsub(", Ricocat", "",f1)
+f1<-gsub(", CatChow", "",f1)
+f1<-gsub(", Nutram", "",f1)
+f1<-gsub(", Whiskas", "",f1)
+f1<-gsub(", michicat", "",f1)
+f1<-gsub(", Kanino", "",f1)
+f1<-gsub(", Brit", "",f1)
+f1<-gsub(", Miocane", "",f1)
+f1<-gsub(", Hill's", "",f1)
+f1<-gsub(", Pro Plan", "",f1)
+f1<-gsub(", Vet Life", "",f1)
+
+f1<-gsub(", No tengo una marca en específico", "",f1)
+f1[f1 %in% c("dog chow","Dog chow","Dogchow","Dog Chow.","DogChow")]<-"Dog Chow"
+
+
+c_DP_MARCA_ALI<-cbind(f,f1)
+
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#Tipo
+DF$AP_COST_ALI<-as.numeric(DF$AP_COST_ALI)
+DF$AP_NUM<-as.numeric(DF$AP_NUM)
+DF$AP_COST_VET<-as.numeric(DF$AP_COST_VET)
+DF$AP_COST_JYA<-as.numeric(DF$AP_COST_JYA)
+DF$AP_COST_LIM<-as.numeric(DF$AP_COST_LIM)
+DF$AP_COST_MED<-as.numeric(DF$AP_COST_MED)
+DF$AP_HORAS_MASQ<-as.numeric(DF$AP_HORAS_MASQ)
+
+DF$DP_COST_ALI<-as.numeric(DF$DP_COST_ALI)
+DF$DP_CANT_MASQ<-as.numeric(DF$DP_CANT_MASQ)
+DF$DP_MASQ_AHORA<-as.numeric(DF$DP_MASQ_AHORA)
+DF$DP_COST_VET<-as.numeric(DF$DP_COST_VET)
+DF$DP_COST_JYA<-as.numeric(DF$DP_COST_JYA)
+DF$DP_COST_LIM<-as.numeric(DF$DP_COST_LIM)
+DF$DP_COST_MED<-as.numeric(DF$DP_COST_MED)
+DF$DP_HORAS_MASQ<-as.numeric(DF$DP_HORAS_MASQ)
+DF$AP_ESTADO<-as.factor(DF$AP_ESTADO)
+DF$AP_TIP_MASQ<-as.factor(DF$AP_TIP_MASQ)
+DF$AP_SEC_COST<-as.factor(DF$AP_SEC_COST)
+DF$AP_MARCA_ALI<-as.factor(DF$AP_MARCA_ALI)
+DF$AP_MARCA_J<-as.factor(DF$AP_MARCA_J)
+DF$AP_MARCA_LIM<-as.factor(DF$AP_MARCA_LIM)
+DF$AP_MARCA_MED<-as.factor(DF$AP_MARCA_MED)
+DF$AP_DIF_PRYSRV<-as.factor(DF$AP_DIF_PRYSRV)
+DF$AP_MOT_DIF<-as.factor(DF$AP_MOT_DIF)
+
+DF$DP_ADOP_COM<-as.factor(DF$DP_ADOP_COM)
+DF$DP_NUM_MASQ<-as.factor(DF$DP_NUM_MASQ)
+DF$DP_TIP_MASQ<-as.factor(DF$DP_TIP_MASQ)
+DF$DP_SEC_COST<-as.factor(DF$DP_SEC_COST)
+DF$DP_MARCA_ALI<-as.factor(DF$DP_MARCA_ALI)
+DF$DP_MARCA_J<-as.factor(DF$DP_MARCA_J)
+DF$DP_MARCA_LIM<-as.factor(DF$DP_MARCA_LIM)
+DF$DP_MARCA_MED<-as.factor(DF$DP_MARCA_MED)
+DF$DP_DIF_PRYSRV<-as.factor(DF$DP_DIF_PRYSRV)
+DF$DP_MOT_DIF<-as.factor(DF$DP_MOT_DIF)
+```
+
+## <span style="color:#2297E6"> 4.2. Error de precisión </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+errorpreci <- function(confianza,DE,N){
+  return((qnorm((1-confianza)/2,lower.tail = F)*DE)/sqrt(N))
+}
+
+numeromuestra <- function(confianza,desvia,erro){
+  return ((qnorm((1-confianza)/2,lower.tail = F))*desvia/erro)^2
+}
+```
+
+```{r}
+desvia<-sd(DF$AP_NUM, na.rm = T)
+```
+
+```{r}
+errorpreci(0.95,desvia,150)
+```
+
+```{r}
+cantmuestra<-c(1:200)
+ejeb<-c(0.01:0.20)
+```
+
+```{r}
+ErrordePrecision <- errorpreci(0.95,desvia,1:200)
+```
+
+```{r}
+plot(cantmuestra,ErrordePrecision)
+```
+
+<span style="color:gray16" size="10"> Podemos concluir a través de la gráfica anterior que a medida que el Error de Precisión es más pequeño, la cantidad necesaria para cumplir con el mínimo de personas encuestadas es mayor.</span>
+
+
+# <span style="color:cornflowerblue">**5. Variables**</span>
+
+<span style="color:purple" size="20"> **Tabla de clasificación de Variables** </span>
+
+
+<span style="text-align: justify"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+APC <- read_csv("APCdV.csv")
+APC[,]
+
+```
+
+
+<span style="text-align: justify"> *Durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+DPC <- read_csv("DPCdV.csv")
+DPC [,]
+```
+
+# <span style="color:cornflowerblue">**6. Intervalos de confianza**</span>
+<span style="color:gray16" size="10"> En el caso de nuestra base de datos, establecemos que los parámetros para los intervalos de confianza para las medias de las variables numéricas continuas a considerar son los siguientes:</span>
+
+* <span style="color:gray16"> **Nivel de confianza:** 95% </span>
+
+* <span style="color:gray16"> **Significancia:**  α=0.05 </span>
+
+* <span style="color:gray16"> **Tamaño de la muestra:** 151 </span>
+
+<span style="color:gray16" size="10"> Además, considerando que nuestro número de muestra es mayor a 30 y poseemos una desviación estándar desconocida. Podemos usar una distribución normal.</span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#Nivel de confianza que se tomara en todos los gráficos = 95%
+z <- 1.96
+```
+
+
+# <span style="color:cornflowerblue">**7. Descriptores numéricos y gráficos**</span>
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#Separar la Data Frame en 2, Antes y Durante la pandemia, para luego obtener ambas con los datos completos. Además, se crea una columna extra con los gastos mensuales promedio al sumar los de Alimentación, Veterinario y Limpieza
+Antes <- DF[,c(2, 4:19)]
+AntesCompletos <- Antes[Antes$AP_ESTADO=="Sí",]
+AntesCompletos$GastosMensualesPromedio = rowSums(AntesCompletos[ , 6:9])
+Durante <- DF[,c(2, 20:37)]
+DuranteCompletos <- Durante[Durante$DP_NUM_MASQ=="Sí",]
+DuranteCompletos$GastosMensualesPromedio = rowSums(DuranteCompletos[ , 8:11])
+```
+
+## <span style="color:#2297E6"> 7.1. Describir el crecimiento del mercado de mascotas </span>
+
+
+<span style="color:gray16" size="10"> Analizar como varían el número de dueños y el total de mascotas. </span>
+
+<span style="color:gray16" size="10"> Personas con mascotas antes y durante la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+length(unique(AntesCompletos$CorreoElec))
+length(unique(DuranteCompletos$CorreoElec))
+```
+
+<span style="color:gray16" size="10"> Cantidad de mascotas antes y durante la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+sum(AntesCompletos$AP_NUM,na.rm = T)
+sum(DuranteCompletos$DP_MASQ_AHORA,na.rm = T)
+```
+
+<span style="color:gray16" size="10"> Media aritmética de la cantidad de mascotas antes y durante la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+mean(AntesCompletos$AP_NUM,na.rm = T)
+mean(DuranteCompletos$DP_MASQ_AHORA,na.rm = T)
+```
+<span style="color:gray16" size="10"> Mediana de la cantidad de mascotas antes y durante la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+median(AntesCompletos$AP_NUM,na.rm = T)
+median(DuranteCompletos$DP_MASQ_AHORA,na.rm = T)
+```
+
+<span style="color:gray16" size="10"> Cantidad de personas con cierto numero de mascotas antes de la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(AntesCompletos$AP_NUM)
+```
+
+<span style="color:gray16" size="10"> Cantidad de personas con cierto numero de mascotas durante la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DuranteCompletos$DP_MASQ_AHORA)
+```
+
+<span style="color:gray16" size="10"> Observaciones:</span>
+
+* <span style="color:gray16" size="10"> El número de personas con mascotas aumentó en 7 de 100 a 107. </span>
+
+* <span style="color:gray16" size="10"> A pesar de que solo hubo 7 nuevos dueños de mascotas, la cantidad de mascotas aumentó en 36 (de 202 a 238) lo que quiere decir que varias personas con mascotas, adoptaron/compraron bastante durante pandemia. </span>
+
+* <span style="color:gray16" size="10"> A pesar de que la media y mediana del número de mascotas aumentan durante la pandemia, en comparación a antes, la cantidad de dueños con 1, 2 y 3 mascotas se mantiene bastante similar. Sin embargo, aparece un nuevo dato de un dueño con 30 mascotas, lo que modifica bastante los valores promedios. </span>
+
+
+
+<span style="color:gray16" size="10"> **Variación de los gastos totales mensuales** </span>
+
+<span style="color:gray16" size="10"> Utilizaremos el gráfico de cajas y bigotes para comparar los gastos totales antes y durante la pandemia </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+DF$GMAP<- (DF$AP_COST_VET + DF$AP_COST_ALI + DF$AP_COST_JYA + DF$AP_COST_LIM + DF$AP_COST_MED)
+
+DF$GMDP<- (DF$DP_COST_VET + DF$DP_COST_ALI + DF$DP_COST_JYA + DF$DP_COST_LIM + DF$DP_COST_MED)
+
+boxplot(DF$GMAP , DF$GMDP , main="GASTOS TOTALES MENSUALES AP Y DP", xlab="MEDIANA DE LA SUMA DE COSTOS DE MASCOTAS AP Y DP",varwidth = TRUE,na.rm=TRUE, ylab="GASTOS EN SOLES", col = 7:8)
+legend(x = "topright",       
+       legend = c("AP","DP"),
+       fill=7:8    )
+```
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+i <- c("Antes de Pandemia","Después de Pandemia")
+mediaG1 <- round(c(mean(DF$GMAP, na.rm = T), mean(DF$GMDP, na.rm = T)),2)
+nG1 <- c(length(which(!is.na(DF$GMAP))),length(which(!is.na(DF$GMDP))))
+desviG1 <- c(sd(DF$GMAP, na.rm = T), sd(DF$GMDP, na.rm = T))
+errorstG1 <- c(desviG1[1]/sqrt(nG1[1]), desviG1[2]/sqrt(nG1[2]))
+lim_infG1 <- round(c(mediaG1[1] - (z*errorstG1[1]), mediaG1[2] - (z*errorstG1[2])),2)
+lim_supG1 <- round(c(mediaG1[1] + (z*errorstG1[1]), mediaG1[2] + (z*errorstG1[2])),2)
+intervaloG1 <- data.frame(i,lim_infG1,mediaG1,lim_supG1)
+intervaloG1
+```
+
+<span style="color:gray16" size="10"> Observaciones: La concentración de datos sobre los gastos AP (antes de la pandemia) y DP (durante la pandemia) no cambiaron en gran medida, esto podría tratarse del aumento de algunos gastos y la disminución de otros. </span>
+
+## <span style="color:#2297E6"> 7.2. Identificar los sectores del mercado de mascotas donde las personas gastan más dinero </span>
+<span style="color:gray16" size="10"> Antes de la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(AntesCompletos$AP_SEC_COST)
+
+```
+
+<span style="color:gray16" size="10"> Durante la pandemia </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DuranteCompletos$DP_SEC_COST)
+```
+
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+S1 <- table(DF$AP_SEC_COST)
+barplot(S1, xlab="Sectores", ylab="Consumidores", main="Sector en el que el consumidor gasta más antes de la pandemia", col="purple")
+
+```
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza del gráfico anterior: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+SectoresAP <- c("Alimentación","Juguetes y accesorios","Limpieza","Medicina","Veterinario")
+mediaG2 <- round(c(mean(DF$AP_COST_ALI, na.rm = T), mean(DF$AP_COST_JYA, na.rm = T), mean(DF$AP_COST_LIM, na.rm = T),  mean(DF$AP_COST_MED, na.rm = T),  mean(DF$AP_COST_VET, na.rm = T)),2)
+nG2 <- c(length(which(!is.na(DF$AP_COST_ALI))),length(which(!is.na(DF$AP_COST_JYA))),length(which(!is.na(DF$AP_COST_LIM))),length(which(!is.na(DF$AP_COST_MED))),length(which(!is.na(DF$AP_COST_VET))))
+desviG2 <- round(c(sd(DF$AP_COST_ALI, na.rm = T),sd(DF$AP_COST_JYA, na.rm = T),sd(DF$AP_COST_LIM, na.rm = T),sd(DF$AP_COST_MED, na.rm = T), sd(DF$AP_COST_VET, na.rm = T)),2)
+errorstG2 <- c(desviG2[1]/sqrt(nG2[1]),desviG2[2]/sqrt(nG2[2]),desviG2[3]/sqrt(nG2[3]),desviG2[4]/sqrt(nG2[4]),desviG2[5]/sqrt(nG2[5]))
+lim_infG2 <- round(c(mediaG2[1] - (z*errorstG2[1]),mediaG2[2] - (z*errorstG2[2]),mediaG2[3] - (z*errorstG2[3]),mediaG2[4] - (z*errorstG2[4]),mediaG2[5] - (z*errorstG2[5])),2)
+lim_supG2 <- round(c(mediaG2[1] + (z*errorstG2[1]),mediaG2[2] + (z*errorstG2[2]),mediaG2[3] + (z*errorstG2[3]),mediaG2[4] + (z*errorstG2[4]),mediaG2[5] + (z*errorstG2[5])),2)
+intervaloG2 <- data.frame(SectoresAP,lim_infG2,mediaG2,lim_supG2)
+intervaloG2
+```
+
+
+<span style="color:gray16" size="10"> *Durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+S2 <- table(DF$DP_SEC_COST)
+barplot(S2, xlab="Sectores", ylab="Consumidores", main="Sector en el que el consumidor gasta más durante la pandemia",col="lightblue")
+```
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza del gráfico anterior: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+SectoresDP <- c("Alimentación","Juguetes y accesorios","Limpieza","Medicina","Veterinario")
+mediaG3<- round(c(mean(DF$DP_COST_ALI, na.rm = T), mean(DF$DP_COST_JYA, na.rm = T), mean(DF$DP_COST_LIM, na.rm = T),  mean(DF$DP_COST_MED, na.rm = T),  mean(DF$DP_COST_VET, na.rm = T)),2)
+nG3 <- c(length(which(!is.na(DF$DP_COST_ALI))),length(which(!is.na(DF$DP_COST_JYA))),length(which(!is.na(DF$DP_COST_LIM))),length(which(!is.na(DF$DP_COST_MED))), length(which(!is.na(DF$DP_COST_VET))))
+desviG3 <- round(c(sd(DF$DP_COST_ALI, na.rm = T),sd(DF$DP_COST_JYA, na.rm = T),sd(DF$DP_COST_LIM, na.rm = T),sd(DF$DP_COST_MED, na.rm = T), sd(DF$DP_COST_VET, na.rm = T)),2)
+errorstG3 <- c(desviG3[1]/sqrt(nG3[1]),desviG3[2]/sqrt(nG3[2]),desviG3[3]/sqrt(nG3[3]),desviG3[4]/sqrt(nG3[4]),desviG3[5]/sqrt(nG3[5]))
+lim_infG3 <- round(c(mediaG3[1] - (z*errorstG3[1]),mediaG3[2] - (z*errorstG3[2]),mediaG3[3] - (z*errorstG3[3]),mediaG3[4] - (z*errorstG3[4]),mediaG3[5] - (z*errorstG3[5])),2)
+lim_supG3 <- round(c(mediaG3[1] + (z*errorstG3[1]),mediaG3[2] + (z*errorstG3[2]),mediaG3[3] + (z*errorstG3[3]),mediaG3[4] + (z*errorstG3[4]),mediaG3[5] + (z*errorstG3[5])),2)
+intervaloG3 <- data.frame(SectoresDP,lim_infG3,mediaG3,lim_supG3)
+intervaloG3
+```
+
+
+
+
+<span style="color:gray16" size="10"> Observaciones: Los 2 sectores principales donde se gasta más dinero tanto antes como durante la pandemia son Alimentación y Veterinario, siendo por mucho el de alimentación el de mayor gasto. Sin embargo, durante la pandemia los resultados dan a observar que han bajado el gasto en Veterinario y han aumentado el de Alimentación. Los sectores de limpieza, medicina y juguetes y accesorios no son sectores en el que la mayoría de los encuestados gaste más. El sector de juguetes y accesorios se mantuvo constante mientras que los sectores de Limpieza y medicina no tuvieron cambios relevantes. </span>
+
+   
+<span style="color:gray16" size="10"> Utilizaremos el gráfico de cajas y bigotes para comparar los dos sectores con más ingresos antes y durante la pandemia. </span>
+
+<span style="color:gray16" size="10"> **Veterinario** </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+boxplot(DF$AP_COST_VET, DF$DP_COST_VET,main="GASTOS DE UNA MASCOTA EN VETERINARIOS AP Y DP",xlab="MEDIANA DE LOS GASTOS DE UNA MASCOTA EN VETERINARIOS",ylab="GASTOS EN SOLES", varwidth = TRUE,na.rm=TRUE, col=2:3)
+legend(x = "topright",       
+       legend = c("AP","DP"),
+       fill=2:3    )
+```
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza para el sector veterinario: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+mediaG4 <- round(c(mean(DF$AP_COST_VET, na.rm = T), mean(DF$DP_COST_VET, na.rm = T)),2)
+nG4 <- c(length(which(!is.na(DF$AP_COST_VET))),length(which(!is.na(DF$DP_COST_VET))))
+desviG4 <- c(sd(DF$AP_COST_VET, na.rm = T), sd(DF$DP_COST_VET, na.rm = T))
+errorstG4 <- c(desviG4[1]/sqrt(nG4[1]), desviG4[2]/sqrt(nG4[2]))
+lim_infG4 <- round(c(mediaG4[1] - (z*errorstG4[1]), mediaG4[2] - (z*errorstG4[2])),2)
+lim_supG4 <- round(c(mediaG4[1] + (z*errorstG4[1]), mediaG4[2] + (z*errorstG4[2])),2)
+intervaloG4 <- data.frame(i,lim_infG4,mediaG4,lim_supG4)
+intervaloG4
+```
+
+
+
+<span style="color:gray16" size="10"> **Alimentación** </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+boxplot(DF$AP_COST_ALI,DF$DP_COST_ALI,main="GASTOS DE UNA MASCOTA EN ALIMENTACION AP Y DP",xlab="MEDIANA DE LOS GASTOS DE UNA MASCOTA EN ALIMENTACION", ylab="GASTOS EN SOLES", varwidth = TRUE,na.rm=TRUE, col=4:5)
+legend(x = "topright",       
+       legend = c("AP","DP"),
+       fill=4:5    )
+```
+
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza para el sector alimenticio: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+mediaG5 <- round(c(mean(DF$AP_COST_ALI, na.rm = T), mean(DF$DP_COST_ALI, na.rm = T)),2)
+nG5 <- c(length(which(!is.na(DF$AP_COST_ALI))),length(which(!is.na(DF$DP_COST_ALI))))
+desviG5 <- c(sd(DF$AP_COST_ALI, na.rm = T), sd(DF$DP_COST_ALI, na.rm = T))
+errorstG5 <- c(desviG5[1]/sqrt(nG5[1]), desviG5[2]/sqrt(nG5[2]))
+lim_infG5 <- round(c(mediaG5[1] - (z*errorstG5[1]), mediaG5[2] - (z*errorstG5[2])),2)
+lim_supG5 <- round(c(mediaG5[1] + (z*errorstG5[1]), mediaG5[2] + (z*errorstG5[2])),2)
+intervaloG5 <- data.frame(i,lim_infG5,mediaG5,lim_supG5)
+intervaloG5
+```
+
+
+<span style="color:gray16" size="10"> Observaciones: </span>
+
+* <span style="color:gray16" size="10"> Comparando los gráficos de antes y después de la pandemia: En ambos gráficos el rango intercuartil tiene un ancho similar por lo que podemos asumir que la concentración de datos no varía demasiado. Asimismo, vemos que ambas gráficas presentan valores atípicos. </span>
+
+* <span style="color:gray16" size="10"> Gracias a estos dos boxplots notamos que no son todas proporciones directas, la mediana de los gastos en el veterinario disminuyo ligeramente, en cambio, la de la alimentación se mantuvo. </span>
+
+
+## <span style="color:#2297E6"> 7.3. Identificar las marcas con mayor posición en el mercado </span>
+
+<span style="color:gray16" size="10"> **Antes de la pandemia** </span>
+
+<span style="color:gray16" size="10"> Alimentos </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#A<-table(DF$AP_MARCA_ALI)
+A<-table(c_AP_MARCA_ALI)
+A[1:9]
+A[10:19]
+```
+
+
+<span style="color:gray16" size="10"> Juguetes </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DF$AP_MARCA_J)
+```
+
+<span style="color:gray16" size="10"> Limpieza </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DF$AP_MARCA_LIM)
+```
+
+<span style="color:gray16" size="10"> Medicamentos </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DF$AP_MARCA_MED)
+```
+
+
+<span style="color:gray16" size="10"> **Durante la pandemia**</span>
+
+<span style="color:gray16" size="10"> Alimentos </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#D<-table(DuranteCompletos$DP_MARCA_ALI)
+D<-table(c_DP_MARCA_ALI)
+
+D[1:9]
+D[10:17]
+D[18:25]
+```
+
+
+
+<span style="color:gray16" size="10"> Juguetes </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DuranteCompletos$DP_MARCA_J)
+```
+
+<span style="color:gray16" size="10"> Limpieza </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DuranteCompletos$DP_MARCA_LIM)
+```
+
+<span style="color:gray16" size="10">Medicamentos</span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(DuranteCompletos$DP_MARCA_MED)
+```
+
+<span style="color:gray16" size="10"> Observaciones: Antes de la pandemia, en el caso de alimentación, se nota una tendencia de preferir  Ricocan, las marcas Mimaskot,Canbo y Hills también sobresalen pero en menor medida. Mientras que para juguetes, limpieza y medicina, la marca es indiferente. Durante la pandemia, las tendencias se mantienen, aparentemente esta situación no afectó directamente el consumo de las marcas de los alimentos de las mascotas. A partir de esto plantemos la  hipótesis de que las marcas sobresalientes han bajado sus precios o los han mantenido durante la pandemia, por esto la preferencia y acogida. </span>
+
+
+
+
+## <span style="color:#2297E6"> 7.4. Establecer los sectores del mercado con mayor dificultad para brindar sus servicios y/o productos </span>
+
+<span style="color:gray16" size="10"> Antes de la pandemia </span>
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+table(c_AP_DIF_PRYSRV)
+
+```
+
+<span style="color:gray16" size="10"> Durante la pandemia </span>
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(c_DP_DIF_PRYSRV)
+```
+
+<span style="color:gray16" size="10"> Observaciones: Tanto antes como durante la pandemia, la mayoría de dueños no ven dificultad para conseguir servicios y/o productos. Y dentro de los que sí encuentran, no hay algún área que sobre salga entre las demás. </span>
+
+
+
+
+
+
+
+# <span style="color:cornflowerblue">**8.Relación entre variables**</span>
+## <span style="color:#2297E6"> 8.1. Describir el crecimiento del mercado de mascotas </span>
+
+
+<span style="color:gray16" size="10"> **Relación entre gastos y cantidad de mascotas** </span>
+
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+DF$x<- (DF$AP_COST_VET + DF$AP_COST_ALI + DF$AP_COST_JYA + DF$AP_COST_LIM + DF$AP_COST_MED)
+smoothScatter(DF$AP_NUM,DF$x, main="RELACION ENTRE GASTOS AP Y NUMERO DE MASCOTAS",xlab = "Cantidad de Mascotas",ylab = "Cantidad de Soles (S/.) invertidos")
+abline(lm(DF$x ~ DF$AP_NUM))
+```
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+ejes <- c("Cantidad de Mascotas","Cantidad de Soles (S/.) invertidos")
+mediaG6 <- round(c(trunc(mean(DF$AP_NUM, na.rm = T)), mean(DF$x, na.rm = T)),2)
+nG6 <- c(length(which(!is.na(DF$AP_NUM))),length(which(!is.na(DF$x))))
+desviG6 <- c(sd(DF$AP_NUM, na.rm = T), sd(DF$x, na.rm = T))
+errorstG6 <- c(desviG6[1]/sqrt(nG6[1]), desviG6[2]/sqrt(nG6[2]))
+lim_infG6 <- c(trunc(mediaG6[1] - (z*errorstG6[1])),round( mediaG6[2] - (z*errorstG6[2]),2))
+lim_supG6 <- c(ceiling(mediaG6[1] + (z*errorstG6[1])),round(mediaG6[2] + (z*errorstG6[2]),2))
+intervaloG6 <- data.frame(ejes,lim_infG6,mediaG6,lim_supG6)
+intervaloG6
+```
+
+<span style="color:gray16" size="10"> *Durante de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+DF$xx<- (DF$DP_COST_VET + DF$DP_COST_ALI + DF$DP_COST_JYA + DF$DP_COST_LIM + DF$DP_COST_MED)
+smoothScatter(DF$DP_MASQ_AHORA,DF$xx,main="RELACION ENTRE GASTOS DP Y NUMERO DE MASCOTAS",xlab = "Cantidad de Mascotas",ylab = "Cantidad de Soles (S/.) invertidos")
+abline(lm(DF$xx ~ DF$DP_MASQ_AHORA))
+```  
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+mediaG7 <- round(c(trunc(mean(DF$DP_MASQ_AHORA, na.rm = T)), mean(DF$xx, na.rm = T)),2)
+nG7 <- c(length(which(!is.na(DF$DP_MASQ_AHORA))),length(which(!is.na(DF$xx))))
+desviG7 <- c(sd(DF$DP_MASQ_AHORA, na.rm = T), sd(DF$xx, na.rm = T))
+errorstG7 <- c(desviG7[1]/sqrt(nG7[1]), desviG7[2]/sqrt(nG7[2]))
+lim_infG7 <- round(c(trunc(mediaG7[1] - (z*errorstG7[1])), mediaG7[2] - (z*errorstG7[2])),2)
+lim_supG7 <- round(c(ceiling(mediaG7[1] + (z*errorstG7[1])), mediaG7[2] + (z*errorstG7[2])),2)
+intervaloG7 <- data.frame(ejes,lim_infG7,mediaG7,lim_supG7)
+intervaloG7
+```
+
+<span style="color:gray16" size="10"> Observaciones: </span>
+
+* <span style="color:gray16" size="10"> Como se ha visto en la "P1", antes y durante la pandemia, se puede observar que le número de mascotas y el costo total tiene un comportamiento directamente proporcional positivo. Sin embargo, al llegar a la cantidad de 151 encuestados el comportamiento de las gráficas es ligeramente negativo, es decir, ligeramente inversamente proporcional. Es por ello, que la hipótesis sería que a mayor cantidad de mascotas que los costos para mantenerlos pueden ser menores al solo tener una cantidad reducida. Esto podría darse debido a la compra de objetos al por mayor o de objetos más asequibles/económicos. </span>
+
+* <span style="color:gray16" size="10"> Cabe resaltar que se observan valores atípicos. </span>
+
+## <span style="color:#2297E6"> 8.2. Determinar la relación entre tiempo dedicado a la mascota con el dinero invertido en ellas </span>
+
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+DF$xxx<- ifelse(DF$AP_HORAS_MASQ>4,"Mayor de 4 AP","Menor de 4 AP")
+prop.table(table(DF$xxx))*100
+```
+
+<span style="color:gray16" size="10"> *Durante de la pandemia* </span>
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+DF$xxxx<- ifelse(DF$DP_HORAS_MASQ>4,"Mayor de 4 DP","Menor de 4 DP")
+prop.table(table(DF$xxxx))*100
+
+```
+<span style="color:gray16" size="8"> Observaciones: El porcentaje de personas que pasa más de 4 horas con su mascota aumento. </span>
+
+
+
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+plot(AntesCompletos$AP_HORAS_MASQ,AntesCompletos$GastosMensualesPromedio,main="Horas vs. Gastos dedicados a las mascotas AP",xlab ="Cantidad de Horas con la Mascota",ylab="Gastos Mensuales Promedio")
+```
+
+<span style="color:gray16" size="8"> correlacion </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+cor(AntesCompletos$AP_HORAS_MASQ,AntesCompletos$GastosMensualesPromedio,use='complete.obs')
+```  
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+ejesG8 <- c("Cantidad de Horas con la Mascota","Gastos Mensuales Promedio")
+mediaG8 <- round(c(mean(AntesCompletos$AP_HORAS_MASQ, na.rm = T), mean(AntesCompletos$GastosMensualesPromedio, na.rm = T)),2)
+nG8 <- c(length(which(!is.na(AntesCompletos$AP_HORAS_MASQ))),length(which(!is.na(AntesCompletos$GastosMensualesPromedio))))
+desviG8 <- c(sd(AntesCompletos$AP_HORAS_MASQ, na.rm = T), sd(AntesCompletos$GastosMensualesPromedio, na.rm = T))
+errorstG8 <- c(desviG8[1]/sqrt(nG8[1]), desviG8[2]/sqrt(nG8[2]))
+lim_infG8 <- round(c(mediaG8[1] - (z*errorstG8[1]), mediaG8[2] - (z*errorstG8[2])),2)
+lim_supG8 <- round(c(mediaG8[1] + (z*errorstG8[1]), mediaG8[2] + (z*errorstG8[2])),2)
+intervaloG8 <- data.frame(ejesG8,lim_infG8,mediaG8,lim_supG8)
+intervaloG8
+``` 
+
+
+<span style="color:gray16" size="10"> *Durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+plot(DuranteCompletos$DP_HORAS_MASQ,DuranteCompletos$GastosMensualesPromedio,main="Horas vs. Gastos dedicados a las mascotas DP",xlab ="Cantidad de Horas con la Mascota",ylab="Gastos Mensuales Promedio")
+```
+
+<span style="color:gray16" size="8"> correlacion </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+cor(DuranteCompletos$DP_HORAS_MASQ,DuranteCompletos$GastosMensualesPromedio,use='complete.obs')
+```
+
+<span style="color:gray16" size="10"> Calculamos los ejes de los intervalos de confianza: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+mediaG9 <- round(c(mean(DuranteCompletos$DP_HORAS_MASQ, na.rm = T), mean(DuranteCompletos$GastosMensualesPromedio, na.rm = T)),2)
+nG9 <- c(length(which(!is.na(DuranteCompletos$DP_HORAS_MASQ))),length(which(!is.na(DuranteCompletos$GastosMensualesPromedio))))
+desviG9 <- c(sd(DuranteCompletos$DP_HORAS_MASQ, na.rm = T), sd(DuranteCompletos$GastosMensualesPromedio, na.rm = T))
+errorstG9 <- c(desviG9[1]/sqrt(nG9[1]), desviG9[2]/sqrt(nG9[2]))
+lim_infG9 <- round(c(mediaG9[1] - (z*errorstG9[1]), mediaG9[2] - (z*errorstG9[2])),2)
+lim_supG9 <- round(c(mediaG9[1] + (z*errorstG9[1]), mediaG9[2] + (z*errorstG9[2])),2)
+intervaloG9 <- data.frame(ejesG8,lim_infG9,mediaG9,lim_supG9)
+intervaloG9
+```
+
+<span style="color:gray16" size="10"> Observaciones: Como podemos ver la correlacion de la gráfica “Antes de la pandemia” es negativa, lo que significa que la relación entre estas variables es inversa, pero por su modulo la relación entre las dos es baja. Esto se puede justificar a que antes las actividades diarias se realizaban fuera de la casa, por lo que pasar tiempo con tu mascota era algo limitado. Asimismo, la siguiente gráfica de “Después de la pandemia” posee una correlacion positiva, pero con una magnitud baja, lo que justifica la dispersión de los puntos. Además, el cambio signo se puede justificar con que la pandemia limito su libre tránsito a la mayoría de los encuestados provocando que se queden en sus casas y disfruten el tiempo con sus mascotas.Por lo que la hipótesis sería que cuando se vuelva a la nueva normalidad, la correlacion vuelva a tener una tendencia negativa, porque ya no se pasa tanto tiempo en casa, aunque las nuevas modalidades como el teletrabajo va a influir en la magnitud de la nueva correlacion </span>
+
+
+# <span style="color:cornflowerblue">**9. Probabilidades**</span>
+<span style="color:gray16" size="10"> Observaciones: Asumimos que las siguientes variables a utilizar se crearon aleatoriamente.</span>
+## <span style="color:#2297E6"> 9.1. Probabilidad de tener mascota </span>
+
+<span style="color:gray16" size="10"> Podemos modelar estas variables con Bernoulli donde sí tiene mascota(s) en un éxito y donde no tiene mascota(s) es un fracaso </span>
+
+<span style="color:gray16" size="10"> *Probabilidad de tener mascotas antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(table(DF$AP_ESTADO)/nrow(DF),4)
+
+```
+
+<span style="color:gray16" size="10"> *Probabilidad de tener mascotas durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+round(table(DF$DP_NUM_MASQ)/nrow(DF),4)
+```
+ 
+
+<span style="color:gray16" size="10"> Observaciones: Tomando en cuenta la tablas de probabilidades para la variables AP_ESTADO y DP_NUM_MASQ, si escogemos al azar una persona los más probable es que tenga mascota tanto antes de la pandemia como ahora. Asimismo es aún más probable que tenga mascota ahora. </span>
+
+<span style="color:gray16" size="10"> *Probabilidad de tener mascota* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(table(DF$AP_ESTADO,DF$DP_NUM_MASQ)/nrow(DF),4)
+
+
+```
+
+<span style="color:gray16" size="10"> *Probabilidad de que tenga mascotas antes y ahora* </span>
+
+$$
+P(Sí_A\cap Sí_D)=0.5855
+$$
+
+<span style="color:gray16" size="10"> *Probabilidad de que tenga mascotas solo ahora* </span>
+
+$$
+P(Sí_D)-P(Sí_A\cap Sí_D)=0.7039-0.5855=0.1192
+$$
+
+<span style="color:gray16" size="10"> *Probabilidad de que tenga mascotas solo antes* </span>
+
+$$
+P(Sí_A)-P(Sí_A\cap Sí_D)=0.6579-0.5855=0.0724
+$$
+
+<span style="color:gray16" size="10"> Observamos que la probabilidad de adquirir una mascota durante la pandemia es mayor que adquirir la mascota antes de la pandemia </span>
+
+
+## <span style="color:#2297E6"> 9.2. Probabilidad del sector con mayor gasto </span>
+
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#Total de personas con mascotas antes de la pandemia=100
+round(table(DF$AP_SEC_COST)/100,4)
+
+```
+
+<span style="color:gray16" size="10"> *Durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#Total de personas con mascotas durante la pandemia=107
+
+round(table(DF$DP_SEC_COST)/107,4)
+```
+
+
+## <span style="color:#2297E6"> 9.3. Probabilidad del tipo de mascota </span>
+
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(prop.table(table(c_AP_TIP_MASQ)),4)
+
+```
+
+<span style="color:gray16" size="10"> *Durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(prop.table(table(c_DP_TIP_MASQ)),4)
+
+```
+
+
+## <span style="color:#2297E6"> 9.4. Probabilidad del sector con mayores problemas para brindar productos y/o servicios </span>
+
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(prop.table(table(c_AP_DIF_PRYSRV)),4)
+
+
+```
+<span style="color:gray16" size="10"> *Durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(prop.table(table(c_DP_DIF_PRYSRV)),4)
+
+```
+## <span style="color:#2297E6"> 9.5. Gastos mayores al promedio </span>
+
+<span style="color:gray16" size="10"> "Los peruanos se preocupan cada vez más por sus mascotas, lo que suma en mayor medida su canasta familiar, gastando entre S/ 200 y S/ 300 por mes en promedio en el cuidado de su mascota."según el mentor de la Incubadora Innova ESAN, [*Guillermo Vargas*](https://lacamara.pe/cuanto-gastan-los-peruanos-en-el-cuidado-de-sus-mascotas/). </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#Probabilidad mayor que el promedio para gastos mensuales
+prob_gastos<-sum( (DF$AP_COST_ALI+DF$AP_COST_VET+(DF$AP_COST_JYA)+DF$AP_COST_LIM+DF$AP_COST_MED) >= 300, na.rm = T) / nrow(DF)
+round(prob_gastos,4)
+```
+
+ 
+# <span style="color:cornflowerblue">**10. Variables Aleatorias Discretas**</span>
+<span style="color:gray16" size="10"> Asumimos que las siguientes variables se crearon aleatoriamente.</span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+VA
+```
+
+## <span style="color:#2297E6"> 10.1. Ejemplos del empleo de los modelos </span>
+ 
+<span style="color:gray16" size="10"> A partir del modelo de Bernoulli calculamos la Varianza poblacional de dueños de mascotas para antes y durante la pandemia </span>
+$$
+Var(X)=p(1−p)
+$$
+
+<span style="color:gray16" size="10"> Antes de la pandemia </span>
+$$
+p=0.6579
+$$
+$$
+Var(Sí_A)=0.6579∗(1−0.6579)=0.3158
+$$
+<span style="color:gray16" size="10"> Durante la pandemia </span>
+$$
+p=0.7039 
+$$
+$$
+Var(Sí_D)=0.7039∗(1−0.7039)=0.4078
+$$
+
+ 
+
+<span style="color:gray16" size="10"> **Sector en el que gastan más** </span>
+<span style="color:gray16" size="10"> Sabiendo que el éxito es que gasten más en el sector de alimentación. La probabilidad de que el éxito ocurra menos de 100 veces en un ensayo que ocurre 151 veces es </span>
+<span style="color:gray16" size="10"> *Antes de la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(pbinom(100,size = 151, prob = 0.66),4)
+
+```
+<span style="color:gray16" size="10"> *Durante la pandemia* </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+round(pbinom(100,size = 151, prob = 0.757),4)
+```
+
+<span style="color:gray16" size="10"> Observación sobre ambos ejemplos: Asumimos que la encuesta y el ensayo del ejemplo se dan bajo las mismas condiciones de probabilidad.</span>
+
+
+
+# <span style="color:cornflowerblue">**11. Pruebas de hipótesis**</span>
+
+<span style="color:gray16" size="10"> Observaciones: Las variables sobre los gastos, es decir, el dinero invertido en las mascotas con respecto a los sectores del mercado (Alimentación, Veterinario, Medicina, entre otros) es una variable continua pues los gastos están representados en soles con decimales. Asimismo, la variable que expresa las horas dedicadas a las mascotas es continua pues los dueños no van a pasar horas exactas con sus mascotas necesariamente. </span>
+
+## <span style="color:#2297E6"> 11.1. Hipótesis 1 </span>
+
+
+<span style="color:gray16" size="10"> **Realizamos la prueba de hipótesis:** </span>
+
+ 
+<span style="color:gray16" size="10"> Para esta hipótesis se evaluará la diferencia del dinero invertido en la alimentación de las mascotas antes y durante la pandemia. </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+lm5 <- lm(DF$DP_COST_ALI ~ DF$AP_COST_ALI)
+smoothScatter(jitter(DF$AP_COST_ALI), jitter(DF$DP_COST_ALI), main="Costo de alimentación antes y durante la pandemia", ylab = "Costo durante", xlab="Costo antes")
+abline(lm5, col = "red")
+```
+
+
+<span style="color:gray16" size="10"> En esta gráfica se puede apreciar la relación existente entre el costo mensual de alimentación de las mascotas antes y durante la pandemia. Dado que el intercepto de la función es aproximadamente 25, se puede inferir que este sería el valor promedio para el cambio del costo mensual. A su vez, la pendiente de la recta es positiva, por lo que esperamos que el cambio antes y durante la pandemia sea en aumento. A partir de esto se plantean las siguientes hipótesis: </span>
+
+* <span style="color:gray16"> **H0:** El aumento en soles de los gastos en alimentación de una mascota es menor igual que 25 soles mensuales </span>
+
+H0: $\mu <= 25$
+
+* <span style="color:gray16"> **Ha:** El aumento en soles de los gastos en alimentación de una mascota es mayor que 25 soles mensuales </span>
+
+Ha: $\mu > 25$
+
+<span style="color:gray16" size="10"> **Hallamos los intervalos de rechazo:** </span>
+
+<span style="color:gray16" size="10"> Calculamos los límites por la izquierda y derecha, respectivamente. </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+dif1 <- DF$DP_COST_ALI - DF$AP_COST_ALI  
+  
+media1 <- mean(dif1,na.rm = TRUE)
+
+
+desv1 <- sd(dif1, na.rm = TRUE)
+
+Zc1 <- qnorm(0.05, lower.tail = F)
+
+
+ID <- media1 + Zc1*desv1/sqrt(length(dif1)) #Límite por la derecha
+ID
+
+
+```
+
+
+<span style="color:gray16" size="10"> Por lo tanto, el intervalo de nuestra región de rechazo es: </span>
+$$
+[26.78,+∞[
+$$
+
+<span style="color:gray16" size="10"> Debido a que 25 se no se encuentra dentro de la región de rechazo no se rechaza H0 pues encontramos suficiente evidencia a su favor con una significancia del 0.05. </span>
+
+<span style="color:gray16" size="10"> **Realizamos la prueba de hipótesis unilateral:** </span>
+
+<span style="color:gray16" size="10"> Hallamos el valor crítico: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+qt(0.05,df = sum(!is.na(dif1))-1,lower.tail = F)
+```
+
+<span style="color:gray16" size="10"> Hallamos el valor estadístico: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+(media1-25)/(desv1/sqrt(sum(!is.na(dif1))))
+
+```
+<span style="color:gray16" size="10"> Hallamos el p-valor: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+pt((media1-25)/(desv1/sqrt(sum(!is.na(dif1)))), df = sum(!is.na(dif1)), lower.tail=F)
+```
+<span style="color:gray16" size="10"> Obtenemos: </span>
+
+* <span style="color:gray16"> **valor crítico (tc):** 1.663 </span>
+
+* <span style="color:gray16"> **valor estadístico (t):** -1.041 </span>
+
+* <span style="color:gray16"> **p-value:** 0.8497 </span>
+
+<span style="color:gray16" size="10"> Utilizando la función t.test() para corroborar nuestros datos, tenemos: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+t.test(dif1, mu = 25, conf.level = 0.95, alternative = "greater")
+```
+
+<span style="color:gray16" size="10"> Tenemos una cola hacia la derecha y nuestro valor crítico es mayor que el valor estadístico por lo que no rechazamos la hipótesis nula. El p-value nos muestra que tan probable es que ocurra nuestra hipótesis, por lo que nos servirá de complemento a nuestra conclusión. Nuestro p-value es mayor que la significancia por lo que corrobora que es más probable el no rechazo de la H0. </span>
+
+
+## <span style="color:#2297E6"> 11.2. Hipótesis 2 </span>
+
+<span style="color:gray16" size="10"> Para esta hipótesis se evaluará la diferencia de los gastos mensuales en las mascotas antes y durante la pandemia. </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+print("Antes de la pandemia")
+summary(DF$GMAP)
+print("Durante la pandemia")
+summary(DF$GMDP)
+```
+<span style="color:gray16" size="10"> En las tablas mostradas observamos los datos sobre los gastos mensuales antes y durante la pandemia, se puede apreciar que hay ligeros cambios. En este caso, la mediana aumenta y la media disminuye esto puede ser debido a los datos atípicos. En base a las ligeras variaciones mostradas en la tabla planteamos: </span> 
+
+
+* <span style="color:gray16"> **H0:** El aumento entre los gastos mensuales de una mascota antes y durante la pandemia es menor o igual a 20 soles</span>
+
+H0: $\mu <= 20$
+
+* <span style="color:gray16"> **Ha:** El aumento entre los gastos mensuales de una mascota antes y durante la pandemia es mayor a 20 soles </span>
+
+Ha: $\mu > 20$
+
+<span style="color:gray16" size="10"> **Hallamos los intervalos de rechazo:** </span>
+
+
+<span style="color:gray16" size="10"> Calculamos los límites por la izquierda y derecha, respectivamente. </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+dif2 <- DF$GMDP - DF$GMAP
+  
+media2 <- mean(dif2,na.rm = TRUE)
+
+desv2 <- sd(dif2, na.rm = TRUE)
+
+Zc2 <- qnorm(0.05, lower.tail = FALSE)
+
+
+II <- media2 + Zc2*desv2/sqrt(length(dif2)) #Límite por la derecha
+II
+```
+
+
+<span style="color:gray16" size="10"> Por lo tanto, el intervalo de nuestra región de rechazo es: </span>
+
+$$
+[45.73,+∞[
+$$
+<span style="color:gray16" size="10"> Debido a que de 20 no se encuentra dentro de la región de rechazo no se rechaza H0 pues encontramos suficiente evidencia con una significancia del 0.05. </span>
+
+
+<span style="color:gray16" size="10"> **Realizamos la prueba de hipótesis unilateral:** </span>
+
+<span style="color:gray16" size="10"> Hallamos el valor crítico: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+qt(0.05,df = sum(!is.na(dif2))-1,lower.tail = F)
+```
+
+<span style="color:gray16" size="10"> Hallamos el valor estadístico: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+(media2-20)/(desv2/sqrt(sum(!is.na(dif2))))
+
+```
+<span style="color:gray16" size="10"> Hallamos el p-valor: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+pt((media2-20)/(desv2/sqrt(sum(!is.na(dif2)))), df = sum(!is.na(dif2)), lower.tail=F)
+```
+<span style="color:gray16" size="10"> Obtenemos: </span>
+
+* <span style="color:gray16"> **valor crítico (tc):** 1.669 </span>
+
+* <span style="color:gray16"> **valor estadístico (t):** -0.619 </span>
+
+* <span style="color:gray16"> **p-value:** 0.731 </span>
+
+
+
+<span style="color:gray16" size="10"> Utilizando la función t.test() para corroborar nuestros datos, tenemos: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+t.test(dif2, alternative = "greater", mu = 20, conf.level = 0.95)
+```
+
+
+<span style="color:gray16" size="10"> Tenemos una cola hacia la derecha y nuestro valor crítico es mayor que el valor estadístico por lo que no rechazamos la hipótesis nula. El p-value nos muestra que tan probable es que ocurra nuestra hipótesis, por lo que nos servirá de complemento a nuestra conclusión. Nuestro p-value es mayor que la significancia por lo que corrobora que es más probable el no rechazo de la H0. </span>
+
+
+
+
+
+## <span style="color:#2297E6"> 11.3. Hipótesis 3 </span>
+
+<span style="color:gray16" size="10"> Para esta hipótesis se evaluará la diferencia de las horas dedicadas a las mascotas antes y durante la pandemia </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+lm1 <- lm(Durante$DP_HORAS_MASQ ~ Antes$AP_HORAS_MASQ)
+smoothScatter(jitter(Antes$AP_HORAS_MASQ), jitter(Durante$DP_HORAS_MASQ), main="Horas que comparte con su mascota antes y durante la pandemia", xlab="Horas antes", ylab = "Horas durante")
+abline(lm1, col = "red")
+```
+
+<span style="color:gray16" size="10"> En esta gráfica se puede apreciar la relación existente entre las horas que pasan los dueños de las mascotas con las mismas antes y durante la pandemia. Dado que el intercepto de la función es aproximadamente 3, se puede inferir que este sería el valor promedio para el cambio de horas diarias. A su vez, la pendiente de la recta es positiva, por lo que esperamos que el cambio entre antes y durante la pandemia vaya en aumento. A partir de esto se plantean las siguientes hipótesis: </span> 
+
+
+* <span style="color:gray16"> **H0:** El aumento en horas es menor o igual 3 horas diarias </span>
+
+H0: $\mu <= 3$
+
+* <span style="color:gray16"> **Ha:** El aumento en horas no es mayor 3 horas diarias</span>
+
+Ha: $\mu > 3$
+
+<span style="color:gray16" size="10"> **Hallamos los intervalos de rechazo:** </span>
+
+<span style="color:gray16" size="10"> Calculamos los límites por la izquierda y derecha, respectivamente. </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+dif3 <- Durante$DP_HORAS_MASQ - Antes$AP_HORAS_MASQ
+
+media3 <- mean(dif3, na.rm = TRUE)
+
+desv3 <- sd(dif3, na.rm = TRUE)
+
+Zc3 <- qnorm(0.05, lower.tail = FALSE)
+
+
+LD <- media3 + Zc3*desv3/sqrt(length(dif3)) #Límite por la derecha
+LD
+```
+
+<span style="color:gray16" size="10"> Por lo tanto, el intervalo de nuestra región de rechazo es: </span>
+
+$$
+[4.83, ∞+[
+$$
+
+<span style="color:gray16" size="10"> En la cual encontramos que 3 no se encuentra dentro de la zona de rechazo, por lo que se puede considerar como un no rechazo a nuestra hipótesis nula. Entonces, de 3 horas a menos es un valor razonable para decir que representa el cambio de horas diarias que pasan los dueños con sus mascotas. </span>
+
+
+<span style="color:gray16" size="10"> Hallamos el valor crítico: </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+qt(0.05,df = sum(!is.na(dif3))-1,lower.tail = F)
+```
+
+<span style="color:gray16" size="10"> **Realizamos la prueba de hipótesis bilateral:** </span>
+
+
+<span style="color:gray16" size="10"> Hallamos el valor estadístico: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+(media3-3)/(desv3/sqrt(sum(!is.na(dif3))))
+
+```
+<span style="color:gray16" size="10"> Hallamos el p-valor: </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+pt((media3-3)/(desv3/sqrt(sum(!is.na(dif3)))), df = sum(!is.na(dif3)), lower.tail=F)
+```
+
+<span style="color:gray16" size="10"> Obtenemos: </span>
+
+* <span style="color:gray16"> **valor crítico (tc):** 1.665 </span>
+
+* <span style="color:gray16"> **valor estadístico (t):** 1.495 </span>
+
+* <span style="color:gray16"> **p-value:** 0.069 </span>
+
+
+
+<span style="color:gray16" size="10"> Utilizando la función t.test() para corroborar nuestros datos, tenemos: </span>
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+t.test(dif3, alternative = "greater", mu = 3, conf.level = 0.95)
+```
+
+<span style="color:gray16" size="10"> Tenemos una cola hacia la derecha y nuestro valor crítico es mayor que el valor estadístico por lo que no rechazamos la hipótesis nula. El p-value nos muestra que tan probable es que ocurra nuestra hipótesis, por lo que nos servirá de complemento a nuestra conclusión. Nuestro p-value es mayor que la significancia por lo que corrobora que es más probable el no rechazo de la H0. </span>
+
+
+
+# <span style="color:cornflowerblue">**12. Regresión**</span>
+
+
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+ErrSinOut<-function(x,y){
+regresionDF <- lm(y ~ x, data = DF)
+rest= data.frame(regresionDF$fitted.values, regresionDF$residuals)
+colnames(rest) = c("estimadores","residuos")
+q1 = quantile(rest$residuos,0.25)
+q3 = quantile(rest$residuos,0.75)
+rang_inte = q3-q1
+
+errores_sin_out = dplyr::filter(rest, rest$residuos >= q1-1.5*rang_inte & rest$residuos <= q3-1.5*rang_inte)
+
+# Aplicamos el test
+
+print("P-value de la evaluación de Shapiro-Wilk Sin outliers")
+print(shapiro.test(errores_sin_out$residuos)$p.value)
+print("P-value de la evaluación de Shapiro-Wilk Con outliers")
+print(shapiro.test(rest$residuos)$p.value)
+
+}
+
+analisistabla<-function(x,y){
+regresionDF <- lm(y ~ x, data = DF)
+
+rest= data.frame(regresionDF$fitted.values, regresionDF$residuals)
+colnames(rest) = c("estimadores","residuos")
+
+print(paste("P-value de Homocedasticidad: ", bptest(regresionDF)$p.value)) 
+print(paste("P-value de Correlación De Residuos: ",dwtest(regresionDF)$p.value))
+
+print(paste("Coeficiente de Pearson: ",cor(y,x,use='complete.obs')))
+print(paste("Coeficiente de determinacion: ",cor(y,x,use='complete.obs')^2))
+print(paste("P-value de la evaluación de Shapiro-Wilk Con outliers: ",shapiro.test(rest$residuos)$p.value))
+
+}
+
+analisisresiduos<-function(x,y){
+regresionDF <- lm(y ~ x, data = DF)
+# creamos la base para evaluar los errores
+rest= data.frame(regresionDF$fitted.values, regresionDF$residuals)
+colnames(rest) = c("estimadores","residuos")
+
+# Dibujamos
+ggplot(data =rest, aes(x = estimadores, y = residuos)) +
+  geom_point(aes(color = residuos)) +
+  scale_color_gradient2(low = "blue3", mid = "grey", high = "red") +
+  geom_hline(yintercept = 0) +
+  geom_segment(aes(xend = estimadores, yend = 0), alpha = 0.2) +
+  labs(title = "Distribución de los residuos", x = "Predicción modelo",
+       y = "Residuo") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+}
+SinPtsInflu<-function(x,y,titulo1,titulo2){
+
+rest= data.frame(x, y)
+colnames(rest) = c("x","y")
+regresionDF <- lm(y ~ x, data = rest)
+ptos_inf = influencePlot(model = regresionDF)
+
+ind_inf = c()
+for (i in rownames(ptos_inf)){
+  ind_inf = append(ind_inf,i)
+}
+ind_inf = as.numeric(ind_inf)
+
+regresionsininf <- lm(y ~ x, data = rest[-ind_inf,])
+print(paste("y=",round(regresionsininf$coefficients[1],2)," + ",round(regresionsininf$coefficients[2],2),"x"))
+print(paste("Coeficiente de determinacion sin puntos de influencia: ",summary(regresionsininf)$r.squared))
+
+
+ggplot(data = rest, mapping = aes(x = x, y = y)) +
+  geom_point(color = rgb(0,100,0,50,maxColorValue=255), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+ 
+  geom_point(data = rest[ind_inf,], color = "red", size = 2) +
+  #se añade la nueva recta de mínimos cuadrados
+  geom_smooth(data = rest[-ind_inf,], method = "lm", se = FALSE, color = "green") +
+  labs(title  =  'Diagrama de dispersión', x=titulo1, y=titulo2) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+
+
+}                                                                                                                                                                                                                                                               
+```
+
+## <span style="color:#2297E6"> 12.1.  Relación entre horas y gastos en mascotas </span>
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+M<-DF$AP_COST_VET + DF$AP_COST_ALI + DF$AP_COST_JYA + DF$AP_COST_LIM + DF$AP_COST_MED
+N<-DF$DP_COST_VET + DF$DP_COST_ALI + DF$DP_COST_JYA + DF$DP_COST_LIM + DF$DP_COST_MED
+
+plot(DF$AP_HORAS_MASQ,M, main="Relacion entre Horas y Gastos en Mascotas AP",col=rgb(0,100,0,50,maxColorValue=255), pch=19, ylab = "Gastos Mascotas", xlab = "Horas Mascotas")
+
+
+```
+
+<span style="color:gray16" size="10"> Descartamos la primera gráfica por su aspecto rápidamente</span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+plot(DF$DP_HORAS_MASQ,N, main="Relacion entre Horas y Gastos en Mascotas DP",col=rgb(0,100,0,50,maxColorValue=255), pch=19, ylab = "Gastos Mascotas", xlab = "Horas Mascotas")
+regresion<-lm(N~DF$DP_HORAS_MASQ)
+abline(regresion, col='blue')
+summary(regresion)
+plot(regresion)
+analisistabla(DF$DP_HORAS_MASQ,N)
+#
+```
+
+<span style="color:gray16" size="10"> Summary nos da a entender que existe correlación siempre cuando la significancia sea mayor a 2%, nos da un coeficiente de determinación muy cercana a 0 por lo que asumimos que esta relación entre variables es baja. Su intercepto es de 372.12 aproximadamente lo que nos indican que aún cuando pasan 0 horas juntos, gastan 372 soles en promedio en su mascota todos los meses, además la constante de la variable explicativa es 11.26 lo cual nos indica que por cada hora que pasemos con nuestra mascota aumentaremos en 11 soles el gasto que tendremos en ella.</span>
+
+<span style="color:gray16" size="10"> De acuerdo a los test solo pasaría el test de Durbin-Watson (rechazando la hipótesis nula “Hay relación entre los residuos”) por lo que concluimos que es una relación de linealidad estadística de poca fiabilidad pues rechazamos que los errores tienen diferente varianza con el test de Breush-Pagan y rechazamos que sea una distribución normal con el test Shapiro-Willk, aunque esto último se puede deber a outliers. La distribución está afectada por outliers lo cual se puede ver en la normal qq.</span>
+
+
+
+
+
+
+
+
+
+
+
+
+## <span style="color:#2297E6"> 12.2. Relación entre el gasto de alimentos antes y durante la pandemia </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+z<-ifelse(DF$DP_COST_ALI==0 | DF$AP_COST_ALI==0 ,NA,DF$DP_COST_ALI)
+
+f<-ifelse(DF$DP_COST_ALI==0 | DF$AP_COST_ALI ==0 ,NA,DF$AP_COST_ALI)
+
+plot(f,z, main="Relacion de gastos en alimentacion",col=rgb(0,100,0,50,maxColorValue=255), pch=16, ylab = "Gastos en Alimentación de Mascotas DP", xlab = "Gastos en Alimentación de Mascotas AP")
+regresionDF <- lm(z ~ f, data = DF)
+abline(regresionDF, col='blue')
+analisisresiduos(z,f)
+plot(regresionDF)
+analisistabla(f,z)
+summary(regresionDF)
+SinPtsInflu(f,z,"Gastos en Alimentacion AP","Gastos en Alimentacion DP")
+#ErrSinOut(f,z)
+#print(paste("y=",round(regresionDF$coefficients[1],2)," + ",round(regresion_simple_bw$coefficients[2],2),"x"))
+```
+
+<span style="color:gray16" size="10">Podemos ver gracias a la función summary que nuestro intercepto rechaza la hipótesis nula de "este valor es 0", aun así debemos recordar que hemos dejado apartados los valores "0" por lo que podemos decir que el intercepto, por si solo, no explica nada. Otro a p-value a destacar es el de la regresión en sí, rechaza fuertemente la hipótesis nula "No existe relación lineal entre las variables" por lo que procedemos a aceptar la relación. </span>
+
+<span style="color:gray16" size="10">**Miramos las gráficas**</span>
+
+<span style="color:gray16" size="10"> En el  gráfico de distribución de residuos, observamos que los errores están ubicados de manera aleatoria, aunque existe la presencia de outliers. Entonces, aceptamos la linealidad del modelo.</span>
+
+<span style="color:gray16" size="10"> Tenemos gráficos de Homocedasticidad que indican pequeños rastros de problemas en la distribución de los datos. </span>
+
+<span style="color:gray16" size="10"> Los puntos de influencia están presente, haciendo un efecto palanca en nuestro modelo, más adelante graficamos para ver la veracidad de esto.</span>
+
+
+<span style="color:gray16" size="10">En la gráfica qq podemos ver la influencia de los outliers en la relación de estas variables, se asume que son outliers pues los datos que se salen de la gráfica son los extremos y no forma una S tan curvada. Por otro lado, esta gráfica nos adelanta el rechazo de la distribución normal.</span>
+
+<span style="color:gray16" size="10"> La interpretación del p-value de Homocedasticidad de los residuos dada por la prueba Breush-Pagan nos da que la hipótesis nula se rechaza (p-value<0.05), aunque por poco, por lo que asumiremos que no hay heterocedasticidad. Esto nos quiere decir que nuestros errores no son constantes a lo largo de la relación de estas variables pero por lo visto gráficamente, asumimos que no es Heteroscidad, ya que existe relación entre los residuos . </span>
+
+<span style="color:gray16" size="10"> La interpretación del p-value de correlación de los residuos dada por la prueba Durbin y Watson nos da que la hipótesis nula no se rechaza pues p-value es mayor que 0.05, por lo que asumiremos que no hay relación entre estos. </span> 
+
+
+ <span style="color:gray16" size="10"> El coeficiente de Pearson nos indica que estas variables se encuentran entre una relación positiva moderada. </span>
+ 
+ <span style="color:gray16" size="10"> Graficamos las dos regresiones, sin puntos de influencia y con puntos de influencia, nos damos cuenta que si influyen mucho y que pueden llegar a cambiar la correlacion. </span>
+ 
+<span style="color:gray16" size="10"> Por la presencia de algunos outliers y puntos de influencia no hallamos una distribución normal pero tampoco hallamos una correlacion entre los residuos por lo que concluimos que esta relación puede ajustarse mediante un ajuste lineal estadístico dado un nivel de significancia del 5%. </span>
+
+
+
+## <span style="color:#2297E6"> 12.3. Relación entre el gasto de limpieza antes y durante la pandemia </span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#<- sería entonces que esta relación se da cuando los dueños,de las mascotas, gastan en este sector
+#<- quitamos valores atípicos obvios como 500 y 800 soles por limpieza.
+z<-ifelse(DF$AP_COST_LIM==0.0 | DF$DP_COST_LIM==0.0| DF$DP_COST_LIM>=450| DF$AP_COST_LIM==800,NA,DF$AP_COST_LIM)
+
+f<-ifelse(DF$AP_COST_LIM==0.0 | DF$DP_COST_LIM==0.0| DF$DP_COST_LIM>=450| DF$AP_COST_LIM==800,NA,DF$DP_COST_LIM)
+
+plot(z,f, main="Relacion en Gastos de Limpieza en Mascotas",col=rgb(0,100,0,50,maxColorValue=255), pch=19, ylab = "Gastos de Limpieza en Mascotas DP", xlab = "Gastos de Limpieza en Mascotas AP")
+regresionDF <- lm(f ~ z, data = DF)
+abline(regresionDF, col='blue')
+analisisresiduos(z,f)
+analisistabla(z,f)
+summary(regresionDF)
+plot(regresionDF)
+SinPtsInflu(z,f,"Gastos de Limpieza AP","Gastos de Limpieza DP")
+#ErrSinOut(z,f)
+#print(paste("y=",round(regresionDF$coefficients[1],2)," + ",round(regresion_simple_bw$coefficients[2],2),"x"))
+```
+
+
+<span style="color:gray16" size="10">Al trabajar con sisgnificancia del 5% la funcion summary no rechaza la hipótesis nula del intercepto "este valor es 0" pero debemos recordar que hemos dejado apartados los valores "0" por lo que podemos decir que el intercepto, por si solo, no explica nada. Otro a p-value a destacar es el de la regresión en sí, rechaza fuertemente la hipótesis nula "No existe relación lineal entre las variables" por lo que procedemos a aceptar la relación.</span> 
+
+
+<span style="color:gray16" size="10">**Miramos los gráficos**</span>
+
+<span style="color:gray16" size="10"> En el gráfico de distribución de residuos, observamos que los errores no presentan una estructura, es aleatoria, aunque nos preocupa la presencia de los puntos en la parte media inferior izquierda del gráfico. Aceptamos la linealidad del modelo. </span>
+
+<span style="color:gray16" size="10"> Tenemos gráficos de Homocedasticidad que indican indicios de problemas en la distribución de los datos. </span>
+
+<span style="color:gray16" size="10"> Los puntos de influencia estan presente, haciendo un efecto palanca en nuestro modelo, más adelante graficamos para ver la veracidad de esto.</span>
+
+<span style="color:gray16" size="10">En la gráfica qq podemos ver la influencia de los outlier en la relación de estas variables, se asume que son outliers pues los datos que se salen de la gráfica son los extremos y no forma una S tan curvada. Por otro lado, esta gráfica nos adelanta el rechazo de la distribucion normal.</span>
+
+<span style="color:gray16" size="10"> La interpretación del p-value de Homocedasticidad de los residuos dada por la prueba Breush-Pagan nos da que la hipótesis nula se rechaza (p-value<0.05), aunque por poco, por lo que asumiremos que no hay heterocedasticidad. </span>
+
+<span style="color:gray16" size="10"> La interpretación del p-value de correlacion de los residuos dada por la prueba Durbin y Watson nos da que la hipótesis nula no se rechaza pues p-value es mayor que 0.05, por lo que asumiremos que no hay relación entre estos. </span> 
+
+<span style="color:gray16" size="10"> Nuestra ultima gráfica compara las regresiones con puntos de influencia y sin ellos, vemos que es significativo e importante. </span> 
+
+
+<span style="color:gray16" size="10"> Determinamos el coeficiente de Pearson y nos damos con una correlacion de 0.77 por lo que diremos que este ajuste lineal es medianamente fiable con poca homocedasticidad y sus residuos no están distribuidos de forma constante. Presenta una correlacion positiva fuerte teniendo como coeficiente que acompaña a la variable explicativa "1.2" con 0.1 de error.</span>
+
+
+
+
+# <span style="color:cornflowerblue">**13.Conclusiones**</span>
+
+* <span style="color:gray16"> Con respecto al primer objetivo el número de dueños aumento con la pandemia al igual que el número de mascotas. Dentro de los nuevos dueños una gran cantidad adopto o compro más de una mascota. </span>
+
+* <span style="color:gray16"> Con respecto al segundo objetivo a partir de lo analizado con los descriptores gráficos, tanto antes como durante la pandemia, se puede llegar a la conclusión que el sector en el que los dueños de mascotas gastan más es el de "Alimentación".</span>
+
+* <span style="color:gray16"> Con respecto al tercer objetivo los dueños gastaron menos en el sector de Medicina y Juguetes y accesorios. Durante la pandemia solo el sector de Medicina aumento sus ingresos.</span>
+
+* <span style="color:gray16"> Con respecto al cuarto objetivo las marcas no son muy relevantes para los encuestados a la hora de conseguir bienes para sus mascotas, excepto por el sector alimenticio. En este sector la marcas favoritas de los consumidores son Ricocan, la cual es la más sobresaliente con una amplia diferencia y  le siguen  Mimaskot y Canbo con una menor relevancia.</span>
+
+* <span style="color:gray16"> Con respecto al quinto objetivo a partir de la regresión lineal establezco para la relación entre horas y gastos en mascotas durante la pandemia el modelo y=372.120+11.263x y este explica el 5.64%. Asimismo, como pudimos observar en las gráficas de comparación, no había relación de las horas que pasan las personas con sus mascotas con el dinero que gastan en ellos antes de pandemia, sin embargo, durante pandemia la relación tuvo una correlación baja pues el coeficiente de Pearson solo era de 0.2 y en una escala de -1 a 1 eso, es cercano a 0, que indicaría que no explica nada.</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
