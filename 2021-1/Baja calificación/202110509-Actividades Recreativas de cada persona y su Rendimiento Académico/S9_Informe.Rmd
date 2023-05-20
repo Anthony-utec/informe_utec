@@ -1,0 +1,706 @@
+---
+title: '<span style="color:darkcyan">Actividades Recreativas de cada persona y su Rendimiento Académico</span>'
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r echo=FALSE, message=FALSE}
+install.packages("modeest")
+install.packages("car")
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library("readr")
+library("dplyr")
+library("modeest")
+library("car")
+```
+
+## <span style="color:darkcyan">*Importancia del Tema*</span>{.build}
+
+- Como **objetivo principal**, nuestro grupo busca determinar si las actividades recreativas, así como el tiempo empleado en ellas, influyen directamente a las personas en el ámbito académico. Consideramos que este estudio es sumamente importante, pues de corroborar que el impacto en los estudiantes es positivo, se podría concientizar a la población de la importancia del espacio de recreación y, paulatinamente, ver mejoras en este sector.
+
+- Para lograr este objetivo, desarrollaremos otros puntos importantes, como lo son: reconocer las variables significativas de las muestras recolectadas, definirlas e indicar los patrones visibles entre estas.
+
+
+## <span style="color:darkcyan">*Muestra representativa confiable*</span>{.build}
+
+Para conseguir una muestra representativa confiable, definimos como nuestra población a todos los alumnos de UTEC, esto porque queremos evaluar la relación entre las actividades recreativas y los estudios en la comunidad utecsina; como unidad muestral, nos enfocamos más a los alumnos que hayan ingresado a la universidad hasta el pasado ciclo regular, es decir, el ciclo 2020-2. Esto debido a que una de nuestras variables significativas es el promedio ponderado de cada alumno encuestado, por lo que si evaluamos a los alumnos ingresados en el presente ciclo, no nos servirán de mucho, ya que no cuentan con este dato.
+
+Después de todo lo mencionado anteriormente, hemos concluido que el tipo de muestreo es muestreo por conveniencia, debido a que usaremos cada dato según lo que vamos a querer evaluar, además podremos encontrar comportamientos que tienen en común cada uno de los individuos y la relación que guardan entre sí.
+
+## <span style="color:darkcyan">*Base de Datos*</span>{.build}
+
+Nuestra base de datos cuenta con 112 observaciones antes de la filtración de datos.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+DF <- read_csv("Estadistica.csv")
+```
+
+*Criterios para la filtración de base de datos:*
+
+- Eliminamos observaciones con código 2021, esto debido a que no cuentan con la variable "promedio ponderado", la cual es de suma importancia para nuestro estudio, pues es una variable significativa.
+- Eliminamos variables que no eran necesarias para el estudio, como la variable marca temporal (que se creó al descargar los datos) , los correos institucionales y la variable “otro”.
+- Cambiamos algunos datos faltantes por datos de igual significado. Ejemplo: Pusimos como variable la cantidad de horas que trabajan los encuestados por semana, esto solo nos serviría si marcan la opción de que trabajan, quienes no lo hacen, se les considera como si trabajaran 0 horas.
+- Cambiamos el nombre de las variables para una mejor lectura de datos. Ejemplo: Edad (años) = Edad (Ejemplo: 18)
+
+```{r eval=TRUE, echo = FALSE, message=FALSE, warning=FALSE}
+#Filtrar datos
+
+#Cambiamos los NA's con opciones del mismo significado según nuestras variables
+DF$`Otro:`[is.na(DF$`Otro:`)] <- "Ningun otro"
+a<- which(DF$`Otro:`== ".....")
+DF$`Otro:`[a] <- "Ningun otro"
+
+#Eliminar observaciones de alumnos con código 2021
+c <- which(DF$`Código de alumno`>=202100000)
+DF <- DF[-c,]
+
+#Variables no necesarias para el estudio
+DF <- DF[,-1]
+DF <- DF[,-1]
+DF <- DF[,-7]
+
+#Las NA's los cambiamos por datos de igual significancia
+DF$`En caso trabajes, ¿Cuántas horas trabajas por semana?`[is.na(DF$`En caso trabajes, ¿Cuántas horas trabajas por semana?`)] <- 0
+DF$`Si tu respuesta anterior fue sí, ¿en qué crees que te ayudan?`[is.na(DF$`Si tu respuesta anterior fue sí, ¿en qué crees que te ayudan?`)] <- "No considero"
+```
+
+```{r echo = TRUE, message=FALSE, warning=FALSE}
+#Cambiar nombre a las variables
+DF %>% rename('Edad (años)'='Edad (Ejemplo: 18)', 'Promedio ponderado'='Promedio Ponderado (Ejemplo: 15.82)', 'Actividad recreativa'='Actividades recreativas que más realizas en tus tiempos libres', 'Cantidad de cursos en el semestre'='Número de cursos matriculados en el semestre 2021-1 (Ejemplo: 6)', 'Cantidad de horas de clases a la semana'='Cantidad de horas de clase por semana (Ejemplo: 22)', 'Cantidad de horas dedicadas al estudio a la semana'='Promedio de horas semanales dedicadas a estudiar (Externo al horario de clases)', 'Cantidad de horas dedicadas a las actividades recreativas'='Promedio de horas semanales dedicadas a tus actividades recreativas', 'Trabaja'='¿Trabajas?', 'Horas de trabajo'='En caso trabajes, ¿Cuántas horas trabajas por semana?', 'Importancia de realizar A.R.'='¿Cuán importante consideras realizar actividades recreativas?', 'Consideración de realizar A.R.'='¿Consideras que realizar actividades recreativas ayuda en tu rendimiento académico?', 'Ayuda por parte de las A.R.'='Si tu respuesta anterior fue sí, ¿en qué crees que te ayudan?')->DF
+```
+
+```{r echo = TRUE, message=FALSE, warning=FALSE}
+
+b<- which(DF$`Cantidad de horas dedicadas a las actividades recreativas` == "3 horas")
+DF$`Cantidad de horas dedicadas a las actividades recreativas`[b] <- 3
+
+# Se pone el promedio de ambos valores que considerábamos como rangos
+d<- which(DF$`Cantidad de horas dedicadas a las actividades recreativas` == "4-6")
+DF$`Cantidad de horas dedicadas a las actividades recreativas`[d] <- 5
+
+# Convertir la variable en númerica
+DF$`Cantidad de horas dedicadas a las actividades recreativas` <- as.numeric(DF$`Cantidad de horas dedicadas a las actividades recreativas`)
+
+# filtrar o limpiar datos mal ingresados
+e<- which(DF$`Cantidad de horas de clases a la semana` == "14-18")
+DF$`Cantidad de horas de clases a la semana`[e] <- 16
+
+# Convertir la variable en númerica
+DF$`Cantidad de horas de clases a la semana` <- as.numeric(DF$`Cantidad de horas de clases a la semana`)
+```
+
+En resumen con estos códigos hemos podido filtrar datos, eliminar variables u observaciones que no van con el estudio y convertir datos de las variables en numéricas.
+
+Nuestra nueva data presenta:
+
+Cantidad de datos faltantes:  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sum(is.na(DF))
+```
+
+Observaciones completas:  
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sum(complete.cases(DF))
+```
+
+## <span style="color:darkcyan">*Variables*:</span>{.build}
+| Cantidad de variables  | Cantidad de variables numéricas  |  Cantidad de variables categóricas | Significativas |
+|:----------------------:|:--------------------------------:|:----------------------------------:|:--------------:|
+|           15           |                 7                |                   8                |        11      |
+
+**Variables no significativas:**
+
+-Código de alumno => Categórica ordinal  
+-Edad(años) => Numérica discreta  
+-Carrera de la UTEC => Categórica nominal  
+-Importancia de realizar A.R. => Categórica nominal
+
+**Variables significativas:**
+
+-Orden de mérito => Categórica ordinal  
+-Actividad recreativa => Categórica nominal  
+-Consideración de realizar A.R. => Categórica nominal  
+-Ayuda por parte de las A.R. => Categórica nominal  
+-Trabaja => Categórica nominal  
+
+-Cantidad de cursos en el semestre => Numérica discreta  
+-Promedio ponderado => Numérica continua  
+-Cantidad de horas de clases a la semana => Numérica continua  
+-Cantidad de horas dedicadas al estudio a la semana => Numérica continua  
+-Cantidad de horas dedicadas a las actividades recreativas => Numérica continua  
+-Horas de trabajo => Numérica continua  
+
+
+## <span style="color:darkcyan">*Análisis descriptivo*</span>{.build}
+
+Para este análisis, hemos decidio usar algunas de nuestras variables más significativas, pues son variables que nos serán de mucha ayuda más adelante durante la realización del análisis inferencial y predictivo.
+
+### <span style="color:darkcyan">Promedio Ponderado:</span>{.build}
+
+* **Media:** Es usado para poder tener una idea clara sobre donde se encontraría el equilibrio de notas de nuestra muestra, este descriptor nos será muy útil durante nuestras pruebas de hipótesis.
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+round(mean(DF$`Promedio ponderado`, na.rm = TRUE), 2) #promedio
+```
+
+* **Mediana:** La mediana en este caso nos da en donde se encuentra la tendencia central de los promedios ponderados reales.
+
+```{r echo=FALSE, message=FALSE}
+round(median(DF$`Promedio ponderado`, na.rm = TRUE), 2) #mediana
+```
+
+* **Desviación estándar:** Nos permite saber que tan alejados se encuentran los datos reales de la media de los promedios ponderados.
+
+```{r echo=FALSE, message=FALSE}
+round(sd(DF$`Promedio ponderado`, na.rm = TRUE), 2) #desviación estándar
+```
+
+### <span style="color:darkcyan">Histograma del promedio ponderado: distribución normal</span>{.build}
+
+```{r echo=FALSE, message=FALSE}
+histg <- hist(DF$`Promedio ponderado`, main="Promedio Ponderado", ylab="", xlab="", col="light blue" , ylim=c(0, 25), xlim=c(10, 20))
+abline(v=mean(DF$`Promedio ponderado`, na.rm = TRUE),col="red",lwd=3)
+abline(v=median(DF$`Promedio ponderado`, na.rm = TRUE),col="blue",lwd=2,lty=2)
+text(histg$mids,histg$counts,labels=histg$counts, adj=c(0.5, -0.5))
+legend(x="topright", legend = c("Media", "Mediana"), fill= c("red","blue"))
+```
+
+Al analizar el respectivo histograma de promedios ponderados, podemos observar que la mayor cantidad de personas tienen un promedio mayor a 15, además se distinguen tanto la media como la mediana de dicha variable, cuyas ubicaciones en la gráfica son coherentes con los descriptores numéricos hallados anteriormente, pues la media es ligeramente mayor a la mediana.
+
+### <span style="color:darkcyan">Cantidad de Cursos en el semestre:</span>{.build}
+
+* **Media:** Es la cantidad promedio de cursos que llevan las personas encuestadas para nuestro estudio.
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+round(mean(DF$`Cantidad de cursos en el semestre`, na.rm = TRUE), 2) #promedio
+```
+
+* **Mediana:** Indica la tendencia central de los cursos que nuestra muestra lleva durante el ciclo, esta variable es de suma importancia debido a que es una de las escogidas para realizar nuestro análisis inferencial.
+
+```{r echo=FALSE, message=FALSE}
+round(median(DF$`Cantidad de cursos en el semestre`, na.rm = TRUE), 2) #mediana
+```
+
+* **Moda:** La cantidad de cursos que la mayoría de nuestros encuestados decidió llevar durante el semestre.
+
+```{r echo=FALSE, message=FALSE}
+mfv(DF$`Cantidad de cursos en el semestre`, na_rm = TRUE) #moda
+```
+
+### <span style="color:darkcyan">Caja de bigotes del número de cursos</span>{.build}
+
+```{r echo=FALSE, message=FALSE}
+boxplot(DF$`Cantidad de cursos en el semestre`,main="Número de cursos",xlab="Número de Cursos en el Semestre",col=c("gold2","lightgreen","tomato","lightblue","orange3"))
+abline(h=mean(DF$`Cantidad de cursos en el semestre`),col="red",lwd=2,lty=3)
+abline(h=median(DF$`Cantidad de cursos en el semestre`),col="blue",lwd=2,lty=3)
+legend(6.13,82.2,c("media","mediana"),col=c("red","blue"),lwd=2)
+```
+
+Se observa que los alumnos de nuestra muestra tienden a llevar entre 5 y 6 cursos durante el ciclo, lo cual se puede ver debido a la concentración de observaciones en este rango. Por otro lado, se observan algunos datos atípicos, uno de ellos representa la carga excesiva de cursos que lleva un alummno, cuyo número de materias es 8, por el contrario, se muestran 3 datos atípicos que indican la poca cantidad de cursos llevados durante el ciclo, los cuales van desde 1 a 3 cursos.
+
+### <span style="color:darkcyan">Cantidad de horas dedicadas al estudio a la semana:</span>{.build}
+
+* **Media:** Nos da la información necesaria para saber la cantidad de horas promedio dedicadas a estudiar semanalmente de nuestra muestra.
+
+```{r echo=FALSE, message=FALSE}
+round(mean(DF$`Cantidad de horas dedicadas al estudio a la semana` , na.rm = TRUE), 2) #promedio
+```
+
+* **Mediana:** Nos muestra en cuanto está la tendencia central de horas dedicadas a los estudios por semana.
+
+```{r echo=FALSE, message=FALSE}
+round(median(DF$`Cantidad de horas dedicadas al estudio a la semana`, na.rm = TRUE), 2) #mediana
+```
+
+* **Moda:** Brinda la cantidad de horas de estudio semanal más frecuente.
+
+```{r echo=FALSE, message=FALSE}
+mfv(DF$`Cantidad de horas dedicadas al estudio a la semana`, na_rm = TRUE) #moda
+```
+
+### <span style="color:darkcyan">Caja de bigotes de cantidad de horas dedicadas al estudio a la semana</span>{.build}
+
+```{r echo=FALSE, message=FALSE}
+boxplot(DF$`Cantidad de horas dedicadas al estudio a la semana`, horizontal = TRUE,main="Distribución de la cantidad de horas dedicadas al estudio a la semana", xlab="Cantidad de horas dedicadas al estudio a la semana",col="orange")
+abline(v=mean(DF$`Cantidad de horas dedicadas al estudio a la semana`,na.rm=TRUE),col="darkblue",lwd=3,lty=4)
+```
+
+Esta caja de bigotes nos muestra que la mayoría de alumnos no suele estudiar más allá de 10 horas externas a sus clases, además, se muestran algunos datos atípicos, los cuales representan la enorme cantidad de horas que estos le dedican a reforzar temas aprendidos en clase.
+
+### <span style="color:darkcyan">Cantidad de horas dedicadas a las actividades recreativas:</span>{.build}
+
+* **Media:** Nos da la información necesaria para poder saber un aproximado de cuanto es la cantidad de horas promedio para que usan nuestros encuestados para recrearse.
+
+```{r echo=FALSE, message=FALSE}
+round(mean(DF$`Cantidad de horas dedicadas a las actividades recreativas` , na.rm = TRUE), 2) #promedio
+```
+
+* **Mediana:** Nos muestra en que valor se encuentra la mayor tendrencia de horas dedicadas a la recreación de nuestra muestra.
+
+```{r echo=FALSE, message=FALSE}
+round(median(DF$`Cantidad de horas dedicadas a las actividades recreativas`, na.rm = TRUE), 2) #mediana
+```
+
+* **Moda:** Brinda cuantas horas es más frecuente dedicar a actividades recreativas.
+
+```{r echo=FALSE, message=FALSE}
+mfv(DF$`Cantidad de horas dedicadas a las actividades recreativas`, na_rm = TRUE) #moda
+```
+
+### <span style="color:darkcyan">Histograma de cantidad de horas dedicadas a las actividades recreativas: distribución geométrica</span>{.build}
+
+```{r echo=FALSE, message=FALSE}
+histg <- hist(DF$`Cantidad de horas dedicadas a las actividades recreativas`, main="Cantidad de horas dedicadas a las actividades recreativas", ylab="Alumnos", xlab="Horas", col="green" , breaks = 15, ylim=c(0, 50))
+abline(v=mean(DF$`Cantidad de horas dedicadas a las actividades recreativas`, na.rm = TRUE),col="red",lwd=3)
+abline(v=median(DF$`Cantidad de horas dedicadas a las actividades recreativas`, na.rm = TRUE),col="blue",lwd=2,lty=2)
+text(histg$mids,histg$counts,labels=histg$counts, adj=c(0.5, -0.5))
+legend(x="topright", legend = c("Media", "Mediana"), fill= c("red","blue"))
+```
+
+Podemos notar que hay un gran cúmulo de datos en la parte izquierda de nuestra gráfica, lo cual indica un sesgo hacia la derecha. Mediante esta gráfica podemos interpretar que la mayor cantidad de alumnos le dedica menos de 10 horas a recrearse o distraerse, lo cual según nuestro estudio, creemos que prodría darles algunas complicaciones, esto debido a la carga en sus estudios y el no tener mucho tiempo de relajo o distracción. 
+
+
+
+## <span style="color:darkcyan">*Análisis Inferencial*</span>{.build}
+
+### <span style="color:darkcyan">Parámetros de estudio</span>{.build}
+
+  + Nivel de Confianza: *90%*
+  
+  + Significancia: *10%*
+  
+  + Tamaño de muestra:
+  
+```{r echo=FALSE, message=FALSE}
+nrow(DF)
+```
+
+  + Media del Promedio Ponderado:
+  
+```{r echo=FALSE, message=FALSE}
+round(mean(DF$`Promedio ponderado`, na.rm = TRUE),2)
+```
+
+- En nuestro estudio, utilizaremos un intervalo de confianza del 90% debido a que, al contar con una muestra relativamente pequeña, la consideramos insuficiente para encontrar buenas correlaciones. Por lo mismo que mencionamos anteriormente, el tamaño de nuestra muestra no nos garantiza mucho éxito, por lo que la significancia usada es del 10%, es decir, habrá un 10% de probabilidades de rechazar la hipótesis nula planteada en nuestra pruebas. Además nuestra proyecto es muy subjetivo, por lo que no creemos que pueda haber una correlación fuerte y directa entre algunas de nuestras variables. Por eso mismo, creemos que un intervalo de confianza menor, nos ayudaría a encontrar indicios de tendencias que únicamente se presentarían de tener una muestra más grande, con la cual si podríamos usar un mayor nivel de confianza.
+
+- Para nuestras pruebas de hipótesis, usaremos la media del promedio ponderado como $μ$, pues es nuestra variable más significativa, debido a que es la representación del rendimiento académico de nuestros encuestados, por lo cual, su estudio y comportamiento respecto a las demás variables será muy interesante de analizar. 
+
+### <span style="color:darkcyan">Primera prueba de Hipótesis: </span>{.build}
+
+$H_0:$ *Las personas que le dedican menos de 10 horas a sus actividades recreativas, tienen un promedio ponderado menor al de nuestra media muestral*
+
+$H_1:$ *Las personas que le dedican menos de 10 horas a sus actividades recreativas, tienen un promedio ponderado mayor al de nuestra media muestral*
+
+**Justificación: **
+
+Se escogió esta prueba de hipótesis debido a que, necesitamos verificar si el tiempo que demandan nuestros encuestados en realizar sus actividades recreativas puede o no afectar a su rendimiento académico, pues creemos que mientras menos tiempo le dediquen a esto, podrían tener menos tiempo de relajar su mente, lo cual ocasionaría una baja en sus notas. Escogimos el promedio ponderado menor al de la media muestral, porque consideramos que es un número delimitador y lo tomaremos como punto de referencia para nuestro estudio.
+
+
+**Desarrollo: **
+
+- Datos Iniciales:
+
+```{r}
+a<-which(DF$`Cantidad de horas dedicadas a las actividades recreativas`<=10)
+datos3<-DF[a,]
+n<-nrow(datos3)
+media<-mean(datos3$"Promedio ponderado", na.rm=TRUE ) #media muestral
+valor<-mean(DF$`Promedio ponderado`, na.rm = TRUE)
+sigma<-sd(datos3$"Promedio ponderado", na.rm = TRUE) #desv estandar muestral
+```
+
+- "Z Crítico"
+```{r echo=FALSE, message=FALSE}
+IC<-0.90
+alfa<-1-IC
+z<-qt(alfa/2,df=n-1,lower.tail = FALSE) #no conozco a la población (Unilateral derecha)
+z
+```
+
+- Límite Inferior y Superior
+```{r echo=FALSE, message=FALSE}
+sup3<-media-(z*(sigma/sqrt(n)))
+inf3<-media+(z*(sigma/sqrt(n)))
+round(inf3,4)
+round(sup3,4)
+```
+
+- Prueba de hipótesis:
+```{r echo=FALSE, message=FALSE}
+zobservado <- (media-valor)/(sigma/sqrt(n))
+round(zobservado,4)
+pvalue<-pt(zobservado,df=n-1,lower.tail = FALSE)
+round(pvalue,4)
+```
+
+*Gráfica (Unilateral derecha):*
+
+```{r echo=FALSE, message=FALSE}
+X <- seq(-5, 5, by = 0.1)
+plot(X, dt(X,df=n-1), type = "l",ylab="Densidad de Normal")
+abline(v=c(z,zobservado), lty = c(1,2), col = c("red", "blue"))
+abline(h = 0, col = "gray")
+legend(2.5,0.4,c("zcrit","zobservado"),col=c("red","blue"), lty = c(1,2))
+```
+
+**Conclusión: **
+Como se puede observar en la gráfica, el "z observado" recae en la zona de no rechazo; por lo tanto, la hipótesis cuya premisa es que los estudiantes que dedican menos de 10 horas a sus actividades recreativas, tienen un promedio menor o igual a 15, no se rechaza.
+
+
+### <span style="color:darkcyan">Segunda prueba de Hipótesis: </span>{.build}
+
+$H_0:$ *Las personas que trabajan, tienen un promedio ponderado menor al de la media muestral*
+
+$H_1:$ *Las personas que trabajan, tienen un promedio ponderado menor al de la media muestral*
+
+**Justificación:**
+
+Esta prueba de hipótesis fue elegida gracias a que el hecho de trabajar requiere mucho tiempo, por lo que se pueden descuidar los estudios e incluso las actividades recreativas. Gracias a nuestras correlaciones nos damos cuenta de que el promedio ponderado depende en gran parte de tener una cantidad de horas de estudio, las cuales ayuden a reforzar conocimientos. Escogemos nuevamente como punto de partida la media muestral del promedio ponderado, ya que nos indica en que valor se equilibraría dicha variable.
+
+**Desarrollo:**
+- Datos iniciales:
+```{r}
+trab<-which(DF$`Horas de trabajo`>0)
+dtrab<-DF[trab,]
+n<-nrow(dtrab)
+prom<-mean(dtrab$`Promedio ponderado`, na.rm=TRUE) #Media muestral
+valor<-mean(DF$`Promedio ponderado`, na.rm = TRUE)
+sigma<-sd(dtrab$`Promedio ponderado`, na.rm=TRUE) #Desviación estándar
+```
+
+- "Z Crítico":
+```{r echo=FALSE, message=FALSE}
+IC<-0.90
+alfa<-1-IC
+z<-qt(alfa/2,df=n-1,lower.tail = TRUE) #Unilitarel izquierda
+z
+```
+
+- Límites:
+```{r echo=FALSE, message=FALSE}
+inf2<-prom+(z*(sigma/sqrt(n)))
+round(inf2,4)
+
+sup2<-prom-(z*(sigma/sqrt(n)))
+round(sup2,4)
+```
+
+- Prueba de hipótesis:
+```{r echo=FALSE, message=FALSE}
+zobs<-(prom-valor)/(sigma/sqrt(n))
+round(zobs,4)
+pvalue<-pt(zobs, df=n-1, lower.tail = TRUE)
+round(pvalue,4)
+```
+
+-*Gráfica(Unilateral izquierda):*
+
+```{r echo=FALSE, message=FALSE}
+x<-seq(-5,5,by=0.1)
+plot(x, dt(x,df=n-1),type="l",ylab="Densidad de Normal")
+abline(v=c(z, zobs), lty = c(1,2), col = c("red", "blue"))
+abline(h=0, col="gray")
+legend(2.5, 0.4, c("Zcrítico","Zobservada"), col = c("red","blue"), lty = c(1,2))
+```
+
+**Conclusión:**
+Gracias a la gráfica, nos damos cuenta de que el "z observado" pertenece a la zona de no rechazo; por lo que nuestra hipótesis planteada no se rechaza, con lo cual concluimos que el hecho de trabajar les quita gran parte de su tiempo, el cual podrían dedicarlo a relajar su mente y alejarse de la carga de los estudios.
+
+
+### <span style="color:darkcyan">Tercera prueba de Hipótesis: </span>{.build}
+
+$H_0:$ *Las personas que llevan menos de 6 cursos en el semestre, tienen un promedio ponderado mayor al de la media muestral*
+
+$H_1:$ *Las personas que llevan menos de 6 cursos en el semestre, tienen un promedio ponderado menor al de la media muestral*
+
+**Justificación:**
+
+La siguiente prueba de hipótesis esta basada en el hecho de que al llevar menos cantidad de cursos, las personas son capaces de dedicar más tiempo a estudiar y a actividades recreativas, los cuales son dos factores capaces de lograr hacer que el promedio ponderado de los estudiante sea mayor. Escogemos que sea menor a 6 cursos debido a que es un aproximado al valor de la mediana conseguido en los descriptores numéricos. De forma similar a las pruebas anteriores, escogeremos como valor del promedio ponderado, el dado por la media muestral, debido a que compararemos los resultados con este.
+
+**Desarrollo:**
+- Datos iniciales:
+```{r echo=FALSE, message=FALSE}
+cursos<-which(DF$`Cantidad de cursos en el semestre`<=6)
+dcursos<-DF[cursos,]
+n<-nrow(dcursos)
+promcur<-mean(dcursos$`Promedio ponderado`, na.rm=TRUE) #Media muestral
+valor<-mean(DF$`Promedio ponderado`, na.rm = TRUE)
+sigma<-sd(dcursos$`Promedio ponderado`, na.rm=TRUE) #Desviación estándar
+```
+
+- "Z Crítico":
+```{r echo=FALSE, message=FALSE}
+IC<-0.90
+alfa<-1-IC
+z<-qt(alfa/2,df=n-1,lower.tail = TRUE) #Unilitarel izqquierda
+z
+```
+
+- Límites:
+```{r echo=FALSE, message=FALSE}
+inf1<-promcur+(z*(sigma/sqrt(n)))
+sup1<-promcur-(z*(sigma/sqrt(n)))
+
+round(inf1,4)
+round(sup1,4)
+```
+
+- Prueba de hipótesis:
+```{r echo=FALSE, message=FALSE}
+zobs<-(promcur-valor)/(sigma/sqrt(n))
+round(zobs,4)
+pvalue<-pt(zobs, df=n-1, lower.tail = TRUE)
+round(pvalue,4)
+```
+
+*Gráfica(Unilateral derecha):*
+
+```{r echo=FALSE, message=FALSE}
+x<-seq(-5,5,by=0.1)
+plot(x, dt(x,df=n-1),type="l",ylab="Densidad de Normal")
+abline(v=c(z, zobs), lty = c(1,2), col = c("red", "blue"))
+abline(h=0, col="gray")
+legend(2.5, 0.4, c("Zcrítico","Zobservada"), col = c("red","blue"), lty = c(1,2))
+```
+
+**Conclusión:**
+Como se puede observar en la gráfica, nuestra hipótesis no pertenece a la zona de rechazo. Gracias a esto podemos concluir en que la hipótesis de que las personas que llevan menos de 6 cursos en el semestre, tienen un promedio ponderado mayor a 16, lo cual es conveniente para nuestro estudio.
+
+
+
+## <span style="color:darkcyan">*Análisis Predictivo*</span>{.build}
+
+### <span style="color:darkcyan">Regresión #1 </span>{.build}
+
+```{r echo=FALSE, message=FALSE}
+regresion <- lm(DF$`Cantidad de horas de clases a la semana` ~ DF$`Cantidad de cursos en el semestre`)
+summary(regresion)
+
+plot(y= DF$`Cantidad de horas de clases a la semana`,x=  DF$`Cantidad de cursos en el semestre`, xlab='# Cursos', ylab='# Horas de clases a la semana')
+abline(regresion)
+```
+
+Para determinar la ecuación correspondiente a esta regresión, primero debemos interpretar nuestas variables dependientes e independientes:
+
+$$Variable\ dependiente: Horas\ de \ clases\ a \ la \ semana  $$ 
+$$Variable\ independiente: Cantidad \ de \ Cursos$$
+Respecto a dichas variables y los datos encontrados en nuestro summary, podemos llegar a la siguiente ecuación:
+
+* Horas de clase a la semana $\approx$ 3.2525* cursos en el semestre + 4.7680
+
+#### <span style="color:darkcyan">Análisis: </span>{.build}
+
+* *Coeficientes*:
+
+  + Intercepto: Para una significancia de 0.1, la cual fue escogida para estos análisis, el intercepto toma el valor de 4.7680, esto     indica el corte con el eje de ordenadas, lo cual hace que se rechace la $H0$ de que $b=0$. Esto representa que a la cantidad de 0     cursos, llevarían     4.7680 horas de clase, lo cual teóricamente no debería ser así, sin embargo, al estar nuestros datos muy       dispersos y presentar un     $R^2$ relativamente bajo, indican la poca relación que tienen dichas variables y el error que           presenta.
+  
+  + Pendiente: Para una significancia de 0.1, nos sale que el valor de la pendiente es 3.2525, lo cual hace que se rechace la $H0$ de     que $m=0$. Esto representa que llevando diferente cantidad de cursos, las horas de clase varían, pues cada curso tiene una           duración establecida, lo cual hace razonable dicha prueba.
+
+  + $R^2$: Para este caso, el coeficiente de determinación nos da un valor de 0.3989, lo cual representa la poca correlación de           nuestras variables.
+
+  + Pvalor: Para una significancia de 0.1, con una valor de $1.39e-13$ se rechaza la $H0$ de que el modelo no explica nada, lo cual    indica que nuestra regresión intenta encontrar alguna explicación sobre el por qué de la relación (mínima) de dichas variables.
+  
+#### <span style="color:darkcyan">Predicción: </span>{.build}
+
+Para corroborar el ajuste hecho, utilizaremos los datos del alumno identificado con código: 202010209, el cual no participó en el estudio.
+
+$$Número\ de\ cursos\ matriculados:\ 6$$
+$$Hora\ de\ clases\ reales: \ 24$$
+$$Horas\ de\ clases\ con\ la \ predicción:$$
+```{r echo=FALSE, message=FALSE}
+cursos=6
+horasClase=3.2525* cursos + 4.7680
+round(horasClase)
+```
+
+De acuerdo al modelo de regresión el valor de la cantidad de horas de clase a la semana debería ser 24, por lo que cumple con el ajuste propuesto inicialmente. Esto se debe a que, pese a su baja correlación, la cantidad de cursos es un aproximado de la mediana, al igual que la cantidad de horas de clase, lo cual está dentro de la tendencia central de nuestra variable.
+  
+  
+#### <span style="color:darkcyan">Requisitos de la linealidad: </span>{.build}
+
++ Linealidad
+
+```{r echo=FALSE, message=FALSE}
+plot(regresion,1)
+```
+
+
+
+Gracias a la gráfica podemos ver que no cumple con la linealidad, esto debido a que la linea roja no se encuentra a la altura de la linea punteada. Del mismo modo, usando el test de correlación, nos damos cuenta que el pvalor es de $6.016e-13$, con lo cual podemos confirmar de que nuestro modelo no es lineal.
+
+
++ Normalidad de residuos
+
+```{r echo=FALSE, message=FALSE}
+plot(regresion,2)
+```
+
+Debido a que nuestra gráfica presenta datos fuera de la linea, podemos suponer que no tiene una distribución normal. Usando el test de Shapiro, teniendo un pvalor de $2.194e-06$ confirmamos que no cumple con una distribución normal.
+
+
++ Homocedasticidad
+
+```{r echo=FALSE, message=FALSE}
+plot(regresion,3)
+```
+
+Debido a que en el gráfico no se distingue la linea horizontal, podemos concluir de que el modelo es heterocedástico. Teniendo un pvalor de $0.00025737$ con el test de Breusch Pagan, podemos corroborar que es un modelo heterocedástico.
+
+
+
+### <span style="color:darkcyan">Regresión #2:</span>{.build}
+
+```{r echo=FALSE, message=FALSE}
+Prom1 <- which(DF$`Promedio ponderado`<=17.5)
+Datos3 <-DF[Prom1,]
+regresion3 <- lm(Datos3$`Promedio ponderado` ~ Datos3$`Cantidad de horas dedicadas a las actividades recreativas`)
+summary(regresion3)
+```
+
+
+```{r echo=FALSE, message=FALSE}
+plot(y= Datos3$`Promedio ponderado`,x=  Datos3$`Cantidad de horas dedicadas a las actividades recreativas`, xlab='# horas dedicadas a las actividades recreativas', ylab='# Promedio ponderado')
+abline(regresion3)
+```
+
+Para determinar la ecuación correspondiente a esta regresión, primero debemos interpretar nuestas variables dependientes e independientes:
+
+$$Variable\ dependiente: Promedio \ Ponderado  $$
+$$Variable\ independiente: Horas\ dedicadas\ a\ las\ actividades\ recreativas  $$
+
+Gracias a la identificación de dichas variables, pudimos llegar a la siguiente ecuación:
+
+* Promedio ponderado $\approx$ - 0.02664* Cantidad de horas dedicadas a las actividades recreativas + 15.29706
+
+#### <span style="color:darkcyan">Análisis: </span>{.build}
+
+
+* *Coeficientes*:
+
+  + Intercepto: Para una significancia de 0.1, el intercepto toma el valor de 15.29706, lo cual indica el valor de $Y$ cuando       $x=0$, con esto concluimos que se rechaza la $H0$ de que $b=0$, lo cual indica que al no dedicar tiempo a las actividades       recreativas, el promedio ponderado sería $15.29706$, el cual es un valor cercano al de la media.
+  
+  + Pendiente: Para una significancia de 0.1, la pendiente presenta el valor de -0.02664, con los cual se rechaza la $H0$ de que     $m=0$. Esto nos indica que el promedio no se mantiene constante en los alumnos dependiendo de las horas que se dedican a sus     actividades recreativas, mas bien presentan una pendiente negativa, lo cual indica que mientras más tiempo se recreen o         distraigan, su promedio irá bajando, lo cual nos haría replantear la importancia de estas.
+
+  + $R^2$: El coeficiente de determinación obtenido de esta regresión, obtiene el valor de $0.03741$, lo cual indica una poca       correlación entre ambas variables.
+  
+  + Pvalor: Para una significancia de 0.1, nuestro valor toma el valor de $0.06321$, con el cual se rechaza la $H0$ de que el       modelo no explica nada. Lo que nuestro modelo trataría de explicar sería la variación negativa del promedio ponderado, lo       cual es perjudicial en los alumnos.
+  
+#### <span style="color:darkcyan">Requisitos de la linealidad: </span>{.build}
+
++  Linealidad:
+
+```{r echo=FALSE, message=FALSE}
+plot(regresion3,1)
+```
+
+
+Gracias a la gráfica notar que no se cumple con la linealidad requerida, esto debido a que la linea roja no se encuentra a la altura de la linea punteada. Del mismo modo, usando el test de correlación, nos damos cuenta que el pvalor es de $0.3513$, con lo cual podemos confirmar de que nuestro modelo no es lineal.
+
++ Normalidad de residuos:
+
+```{r echo=FALSE, message=FALSE}
+plot(regresion3,2)
+```
+
+Debido a que tiene algunos datos dispersos (fuera de la linea) podemos suponer que no tiene una distribución normal. Realizando un test de Shapiro, tenemos un pvalor de $0.02972$ que nos muestra que los residuales no tiene una distribución normal.
+
+
++ Homocedasticidad:
+
+```{r echo=FALSE, message=FALSE}
+plot(regresion3,3)
+```
+
+Debido a que en el gráfico no se distingue la linea horizontal, podemos concluir de que el modelo es heterocedástico. Al mismo tiempo los datos no están concentrados alrededor de la recta, reforzando la idea mencionada anteriormente.
+
+### <span style="color:darkcyan">Regresión #3:</span>{.build}
+
+
+```{r echo=FALSE, message=FALSE}
+lm5<- lm(Datos3$`Promedio ponderado` ~ Datos3$`Cantidad de horas dedicadas a las actividades recreativas` + Datos3$`Importancia de realizar A.R.`)
+lm55<- lm(Datos3$`Promedio ponderado`[Datos3$`Importancia de realizar A.R.`==5] ~ Datos3$`Cantidad de horas dedicadas a las actividades recreativas`[Datos3$`Importancia de realizar A.R.`==5])
+lm54<- lm(Datos3$`Promedio ponderado`[Datos3$`Importancia de realizar A.R.`==4 | 3 |2|1] ~ Datos3$`Cantidad de horas dedicadas a las actividades recreativas`[Datos3$`Importancia de realizar A.R.`==4 | 3 |2|1])
+
+summary(lm5)
+```
+
+
+```{r echo=FALSE, message=FALSE}
+plot(Datos3$`Cantidad de horas dedicadas a las actividades recreativas`, Datos3$`Promedio ponderado`, col=ifelse(Datos3$`Importancia de realizar A.R.`==5, "green","red"), pch=20, xlab="horas dedicadas a las actividades recreativas", ylab="Promedio ponderado", main="Cor entre ponderado y horas de actividades recreativas + importante realizar A.R.")
+abline(lm5$coefficients[1], lm5$coefficients[2], col="red")
+abline(lm5$coefficients[1] + lm5$coefficients[3], lm5$coefficients[2], col="green")
+
+legend(x="topright",c("5","I<=4"),col = c("green","red"), lwd = c(2,2))
+```
+
+
+Luego de extraer algunas datos del $summar$ pudimos encontrar una variable dependiente y dos independientes:
+
+$$Variable\ dependiente: Promedio \ Ponderado  $$
+$$Variable\ independiente: Importancia\ de\ realizar\ actividades\ recreativas$$
+$$Variable\ independiente: Horas\ dedicadas\ a\ las\ actividades\ recreativas$$
+
+Luego de identificar estos datos, encontramos la siguiente acuación:
+
+* Promedio ponderado $\approx$- 0.02846* Cantidad de horas dedicadas a las actividades recreativas + 14.30727
+
+
+La fórmula para determinar el promedio ponderado es:
+
+* Promedio ponderado $\approx$ - 0.02846* Cantidad de horas dedicadas a las actividades recreativas + *0.23089(Importancia de realizar A.R.) + 14.30727
+
+
+#### <span style="color:darkcyan">Análisis: </span>{.build}
+
+* *Coeficientes*:
+
+  + Intercepto: Para una significancia de 0.1, el corte con el eje $Y$ es 14.30727, con lo cual se rechaza la $H0$ de que $b=0$,     lo cual indica que cuando no se dedica tiempo a las actividades recreativas, y por ende, no darle importancia a estas,          tendrán un promedio ponderado de 14.30727, el cual es un valor bajo, comparado con el de la media.
+  
+  + Pendiente de la variable Cantidad de horas dedicadas a las actividades recreativas:  Para una significancia de 0.1, la          pendiente de dicha variable toma un valor de $-0.02846$, mediante este dato, se rechaza la $H0$ de que $m=0$. Esto nos          indica que mientras mas horas se dediquen a recrearse, el promedio disminuirá, tal y como mencionamos en la primera             regresión, la cual de de tipo simple.
+  
+  + Pendiente de la variable Importancia de realizar A.R.: Para una significancia de 0.1, el valor de esta pediente es positiva,     tomando el valor de 0.23089, con lo cual se rechaza la $H0$ de que $m2=0$.
+
+  + $R^2$: El coeficiente de determinación de esta regresión, toma el valor de $0.05461$, el cual indica muy poca correlacipon      entre las variables.
+  
+  + Pvalor: Para una significancia de 0.1, cuyo valor es $0.0336$, se rechaza la $H0$ de que el modelo no explica nada, por lo      tanto, trata de demostrar la variación del promedio ponderado, respecto a la cantida de horas dedicadas al estudio y su         importancia.
+  
+## <span style="color:darkcyan">*Conclusiones y Reflexiones*:</span>{.build}
+
+ + Luego de nuestro estudio acerca de la influencia que tienen las actividades recreativas sobre el rendimiento académico, hemos    conluido gracias a nuestro análisis inferencial y predicitivo, principalmente en la primera prueba de hipótesis y la segunda    regresión hecha, que mientras mayor sea la cantidad de horas en las que los alumnos se enfocan en sus actividades               recreativas, el promedio ponderado irá bajando, por lo que su rendimiento académico será perjudicado. Esto ya que al            dedicarle menos tiempo a recrearse, tendrán más tiempo a estudiar, por lo que el promedio empezaría muy cercano al de la        media, sin embargo, conforme aumente las horas alejados del estudio, este valor ira decreciendo en pequeñas proporciones. 
+ 
+ + Podemos concientizar a los demás alumnos que pueden darse un tiempo para dichas actividades, pero no abusar de él, pues         nuestro estudio comprobó que les podría ir mal al descuidar sus notas. Recomendamos que tengan sus horas equilibradas, de tal    modo que puedan relajar su mente y alejarla de todo estrés causado por las tareas y trabajos, pero que también dediquen gran    tiempo reforzado todo lo aprendido, para no pasar apuros ni nada parecido.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1785 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r echo=FALSE}
+rotate_x <- function(tabl, labels_vec, rot_angle) {
+    plt <- barplot(tabl, col=c("cyan","blue"), xaxt="n")
+    text(plt, par("usr")[3], labels = labels_vec, srt = rot_angle, adj = c(1.1,1.1), xpd = TRUE, cex=0.6) 
+}
+```
+
+
+
+```{r echo=FALSE, message=FALSE}
+#Esto se usó para limpear datos, mas que todo se cambio las columnas y algunos espacios y palabras extras. Además se cambio el tipo de dato de ciertas variables (Ej: Edad estaba antes como char)
+
+library(dplyr)
+library(readr)
+library(stringr)
+library(modeest)
+library(Rlab)
+
+
+DF<-read_csv("encuestas.csv")
+
+
+DF<- DF %>% rename(Periodo="Periodo de ingreso",HS="Horas de sueño diarias",SS="Servicios de streaming",AA="Actividades artísticas",
+                   NC="¿Cuántos cursos llevas normalmente?",Becado="¿Beca o crédito educativo?",HE="Horas de estudio fuera de la clase",RS="Redes sociales",HA="Horas académicas semanales")
+```
+
+
+```{r echo=FALSE, message=FALSE}
+DF <- DF %>% mutate(Periodo=str_replace_all(Periodo,"\\s|-","."))
+```
+
+
+```{r echo=FALSE}
+DF <- DF %>% mutate(Periodo=str_replace_all(Periodo,"201920022","2019.2"))
+DF <- DF %>% mutate(Periodo=str_replace_all(Periodo,"202010613","2020.1"))
+DF <- DF %>% mutate(Periodo=str_replace_all(Periodo,"20211472","2021.1"))
+
+
+```
+
+
+
+```{r echo=FALSE}
+DF <- DF %>% arrange(Periodo)
+
+DF <- DF %>% mutate(Edad=str_replace_all(Edad," años",""))  
+
+DF <- DF %>% mutate(HS=str_replace_all(HS," horaa| horas|-6|-7|h a 7h| horas",""))  
+
+
+DF <- DF %>% mutate(HA= str_replace_all(HA," horas| horas y media| y media",""))
+
+DF <- DF %>% mutate(HA= str_replace_all(HA,"-27",""))
+
+
+DF <- DF %>% mutate(HA=as.integer(HA),Edad=as.integer(Edad),HS=as.integer(HS))
+
+
+
+```
+
+
+```{r echo=FALSE}
+DF1<- DF %>% slice(which(Carrera=="Ing. Mecánica"),which(Carrera=="Ing. De la Energía"),which(Carrera=="Ing. Química"),which(Carrera=="Ing. Mecatrónica"))
+
+DF2<- DF %>% slice(which(Carrera=="Ciencia de la Computación"),which(Carrera=="Ing. Industrial"),which(Carrera=="Ing. Civil"))
+
+DF3<- DF %>% slice(which(Carrera=="Ing. Electrónica"),which(Carrera=="Ing. Ambiental"),which(Carrera=="Bioingenieria"))
+
+ DFHS<- DF %>% mutate(intervalo_horas_sueno = case_when(
+    (DF$HS<=3) ~ "entre 0 y 3 horas",
+    (DF$HS<=7) ~ "entre 4 y 7 horas",
+    (DF$HS<=10) ~ "entre 8 y 10 horas",
+    
+  ))
+ DFHA<- DF %>% mutate(intervalo_horas_a = case_when(
+    (DF$HA<=18) ~ "entre 0 y 18 horas",
+    (DF$HA<=26) ~ "entre 19 y 26 horas",
+    (DF$HA<=36) ~ "entre 27 y 36 horas",
+    
+  )) %>% mutate(intervalo_horas_estudio = case_when(
+    (DF$HE<=3) ~ "entre 1 y 3 horas",
+    (DF$HE<=7) ~ "entre 4 y 7 horas",
+    (DF$HE<=12) ~ "entre 8 y 12 horas",
+    
+  ))
+ 
+ 
+  DFTL <- DF %>% mutate(TL = Deporte + Videojuegos + SS + AA + RS) %>% slice(which(Carrera != "Ciencia de la Computación" & Carrera != "Administración y negocios digitales"))
+```
+
+
+```{r echo=FALSE}
+
+#Datos a tomar en cuenta
+#edad = edad
+#hs= horas de sueño diaras
+#deporte= horas semanales deporte
+#videojuegos=horas semanales videojuegos
+#ss=horas semanales servicios de streaming (netflix , prime, spotify)
+#aa=horas semanales actividades artisticas
+#rs=horas semanales	redes sociales
+#nc= número de cursos matriculados
+#he= horas estudio diaria fuera de clase
+#ha=	horas academicas semanales
+
+```
+
+
+## *Distribución del tiempo (título corto)*
+
+
+## Introducción
+
+Este estudio brinda un panorama general de cómo el estudiante equilibra su tiempo entre estudio y entretenimiento. Con estos datos podríamos sacar conclusiones interesantes. Ejemplo, ¿las horas de sueño del estudiante dependen de su carrera?
+
+## Objetivo y preguntas
+
+Encontrar relaciones interesantes entre los atributos de los estudiantes y la cantidad de horas dedicadas a cierta actividad, con el propósito de mostrar conclusiones relevantes al final de nuestra investigación. 
+
+
+Objetivos específicos:  
+
+- Verificar si la condición de becado implica esforzarte más 
+- Analizar el tiempo de los estudiantes de ingeniería dedicado a su estudio o ciertas actividades - Analizar el tiempo de los estudiantes de UTEC dedicado a su estudio o ciertas actividades
+
+Preguntas: 
+
+- ¿Los estudiantes con asistencia financiera se esfuerzan más que los que no la tienen?
+- ¿Los estudiantes con asistencia financiera duermen más que los que no la tienen?
+- ¿Los estudiantes de ingeniería de la UTEC tienen tiempo libre?
+- ¿Los estudiantes de ingeniería llevan un estilo de vida sedentario?
+- ¿Cuál es la relación de la carrera del estudiante y la cantidad de horas de (x actividad)?.
+- ¿Se podrá encontrar dentro de los estudiantes algún modelo "ideal"? ¿cuál sería la probabilidad según la muestra de ser ese modelo?
+- ¿Será que el sexo influye en las horas de sueño en la muestra hecha de la comunidad de estudiantes UTEC?
+- ¿El tiempo libre define a las horas de sueño?
+- ¿Las horas de estudio definen al tiempo libre?
+- ¿La edad define a las horas dedicadas a los videojuegos?
+
+
+## Marco Teórico
+
+- **Población objetiva**: Alumnos de pregrado de UTEC que se encuentran cursando, cursos de los dos primeros años, en el ciclo 2021.1 
+
+- **Unidad muestral**: Alumno encuestado de pregrado de UTEC que se encuentra cursando, cursos de los dos primeros años, en el ciclo 2021.1
+
+- **Muestreo**: 
+
+Se usó una idea de muestreo aleatorio. Para ello la encuesta fue difundida por grupos de WhatsApp y Telegram que involucran estudiantes de las diferentes carreras de UTEC. Por ejemplo, uno de estos grupos fue el chat grupal de Matemáticas 3 en WhatsApp. Sin embargo, la técnica cuenta cierto sesgo debido a que está limitada a los estudiantes que tienen la voluntad de llenar la encuesta. Cabe destacar que no es aleatoria como tal porque no encuestamos al azar a individuos seleccionados con un previo marco muestral. Dejamos la encuesta para quien la quiera responder.
+
+
+- **Limpieza de datos**:
+
+Antes de empezar a explicar la limpieza de datos tenemos que explicar la fase de la encuesta. Estas se dividen en dos. En la primera fase, la encuesta tenía libertad de escribir cualquier valor para la mayoría de variables. En la segunda fase, se quitó esta opción para datos no deseados. En ella solo se podía poner los valores dados. Por ejemplo, para preguntar la edad pusimos que seleccionen un valor entre 15 años hasta 60 años.
+
+Ahora sí, pasando a explicar la limpieza de datos tenemos mencionar que se hizo la limpieza solo para la primera fase de la encuesta. En esta se habían recolectado más o menos 100 observaciones, lo que significó limpiar un gran número de datos. 
+
+Al cargar el archivo “.csv” renombramos a las columnas que tenían espacios en su nombre a un acrónimo o una simplificación. Por ejemplo, “Horas de sueño” se cambió a “HS” y “Asistencia Financiera” se cambió a “Becados”. Este renombramiento se dio para acceder de forma más cómoda a las columnas. **La explicación de cómo se llama cada variable en el dataframe está en la misma descripción de las variables con un paréntesis**.
+
+Por la parte de periodos nosotros queríamos uniformizar todo a “año.ciclo”. Entonces todos los datos del tipo “2020-2” se cambiaron a “2020.2”. También hubo personas que pusieron su código envés del periodo de ingreso. Ejemplo, “202010461”. Acá lo que hicimos fue tomar en cuenta el año y periodo del mismo código, donde el periodo sería “2020.1”. 
+
+Por la parte de variables numéricas hubo muchos datos con texto adicional. Cuando se pidieron las horas, ponían datos como “3 horas y media” o “6-7”. En este caso no nos interesaba el “y media” o el “-7” porque buscábamos números enteros, entonces redondeamos el valor hacia abajo. Para todas las variables numéricas con texto adicional tuvimos que quitar este texto y cambiar toda la columna de string a int. 
+
+- **Análisis de variables**:
+
+Si queremos saber la distribución de tiempo del alumno sería pertinente tener variables que definan las horas de actividades extracurriculares y horas relacionadas con sus estudios. Además, variables de identificación como el sexo o periodo. También sería conveniente tener la cantidad de cursos matriculados y si es becado o no. Por todo lo mencionado consideramos las siguientes variables útiles en cuanto a cumplir los objetivos planteados:
+
+Variables cualitativas|Tipo|Restricciones
+-|-|- 
+Periodo de ingreso (Periodo)|Ordinal|Hasta el periodo 2021.1
+Sexo|Nominal|Hombre o mujer 
+Carrera|Nominal|Cualquiera de las 12 carreras de UTEC
+Asistencia financiera (Becado)|Nominal|Becado, crédito o ninguna
+
+
+Variables cuantitativas|Tipo|Restricciones
+-|-|- 
+Edad|Discreta|15 a 60 años
+Horas de sueño (HS)|Discreta|1 a 14 horas
+Horas semanales en deporte (Deporte)|Discreta|0 a 10 horas
+Horas semanales en videojuegos (Videojuegos)|Discreta|0 a 10 horas
+Horas semanales en servicio streaming (SS)|Discreta|0 a 10 horas
+Horas semanales en actividades artísticas (AA)|Discreta|0 a 10 horas
+Horas semanales en redes sociales (RS)|Discreta|0 a 10 horas
+Horas diarias de estudio fuera de la clase (HE)|Discreta|0 a 16 horas
+Horas académicas semanales (HA)|Discreta|0 a 40 horas
+Número de cursos matriculados (NC)|Discreta|3 a 9 cursos  
+
+#### **Representatividad de la muestra**
+
+- Proporción de estudiantes por carreras (población):
+
+RMT= 480/3099 = 0.15 (mecatrónica)
+
+RB= 337/3099 = 0.11  (bioingeniería)
+
+RC= 267/3099 = 0.09  (civil)
+
+RCS= 447/3099 = 0.14 (ciencia de la computación)
+ 
+RA= 162/3099 = 0.052 (ambiental)
+
+
+
+- Proporción de estudiantes por carreras (muestra):
+
+gMT= 35/153 = 0.23 (mecatrónica)  
+
+gB= 24/153  = 0.16 (bioingeniería)   
+
+gC= 17/153  = 0.11 (civil)
+
+gCS= 24/153 = 0.16  (ciencia de la computación)
+
+gA= 7/153   = 0.05  (ambiental)
+
+Para comprobar la representatividad de la muestra obtenida realizamos un cálculo simple de proporción de carreras con respecto a nuestros datos y comparamos estos resultados con las proporciones obtenidas de los datos reales de alumnos durante el ciclo 2021-1 de la UTEC. Para este contraste escogimos en particular 5 carreras y establecimos un error aceptable de 5%. Podemos observar una proporción muy parecida en alguna de dichas carreras, está el ejemplo de Ciencias de la computación donde el porcentaje de error es alrededor de 1% o de Ingeniería civil donde nuevamente el error es muy bajo colocándose por debajo del 3%.  Los casos restantes no son tan exitosos en cuanto a error aceptable, Mecatrónica no es exacta con la muestra real por un 8% y Bioingeniería se acerca con casi 5% de error, este último aún se puede considerar representativo. No fue incluido en la muestra, pero cabe destacar, que, en el caso de la carrera de Administración y Negocios digitales no contamos con suficientes datos como para poder determinar una representatividad. Concluimos entonces que nuestra muestra en lo general tiene un error absoluto bajo, y, por la parte de proporción de carreras, puede ser considerada como representativa. Claramente, aún faltaría comparar con la proporción de sexos, etc.  
+
+## Descripción de variables
+
+#### *Sexo*
+
+```{r Tarta, echo=FALSE, fig.align= 'left'}
+proporciones <- table(DF$Sexo) 
+etiquetas <- c("Mujer", "Hombre") 
+pct <- round(proporciones/sum(proporciones)*100)
+etiquetas <- paste(etiquetas, pct) 
+etiquetas <- paste(etiquetas,"%",sep="") 
+
+pie(proporciones,labels = etiquetas,
+    col=rainbow(length(etiquetas)),
+    main="Sexos")
+
+```
+
+
+
+```{r sexo, echo= FALSE}
+mfv(DF$Sexo)
+
+
+```
+
+Como solo hay dos sexos, una buena forma de representar la proporción es este pie. Además, podemos observar la relación clara que hay con la moda. El sexo más frecuente es el masculino, entonces este sexo va a ocupar una mayor proporción en el pie. 
+
+
+#### *Periodo*
+
+
+
+```{r}
+
+mfv(DF$Periodo)
+
+```
+
+Aquí el periodo más frecuente es el 2020.1, esto tiene sentido porque la mayoría de personas que se encuentran cursando cursos del primer y segundo año deberían ser estas, de acuerdo a la metodología de encuestas.
+
+```{r echo=FALSE}
+barplot(table(DF$Sexo,DF$Periodo),beside=TRUE,col=c("cyan","blue"),xlab="Periodo",
+        ylab="Frecuencias",main="Distribución de sexos por periodos")
+nombres<-c("Hombres","Mujeres")
+legend("topright", legend = nombres, fill=c("blue","cyan"))
+```
+
+
+
+
+```{r echo=FALSE}
+barplot(table(DF$Carrera,DF$Periodo),col=c(1,2,3,4,5,6,7,8,"white","yellow"),xlab="Periodo",
+        ylab="Frecuencias",main="Distribución de carreras por periódos")
+nombres<-c("Quimica","Bio","CS","Ambiental","Civil", "De la Energía","Electrónica","Industrial","Mecanica","Mecatrónica")
+
+legend("topright", legend = nombres, fill=c(1,2,3,4,5,6,7,8,"white","yellow"),cex = 0.75)
+
+```
+
+Aquí podemos observar la distribución de las carreras por periodo. Encontramos que la mayor parte de la población se concentra en el periodo 2020.1 y dentro de este segmento la carrera más frecuente es Mecatrónica. esto coincide con la moda de las carreras en la muestra como veremos a continuación.
+
+#### *Carrera*
+
+```{r echo=FALSE, fig.aling="center"}
+rotate_x(table(DF$Sexo,DF$Carrera),colnames(table(DF$Sexo,DF$Carrera)),45)
+nombres<-c("Hombres","Mujeres")
+legend("topright", legend = nombres, fill=c("blue","cyan"))
+
+```
+
+Como volvemos a ver las mujeres son minoría en las carreras, incluso algunas carreras no tienen mujeres (Ing. De la Energía). Curiosamente, encontramos carreras balanceadas como Ing. Ambiental, donde incluso las mujeres son mayoría por poco. Otro dato es que en Ing. Mecatrónica hay una gran proporción de hombres en comparación de mujeres. 
+
+
+```{r echo=FALSE}
+mfv(DF$Carrera)
+```
+
+
+Como moda encontramos a Mecatrónica. Al parecer es la carrera más atractiva en la UTEC, seguido de Bioingeniería y Ciencia de la Computación.
+
+#### *Becado*
+
+
+
+```{r Tarta4, echo=FALSE, fig.align= 'left'}
+proporciones <- table(DF$Becado) 
+etiquetas <- c("Becado","Credito","Ninguno") 
+pct <- round(proporciones/sum(proporciones)*100)
+etiquetas <- paste(etiquetas, pct) 
+etiquetas <- paste(etiquetas,"%",sep="") 
+
+pie(proporciones,labels = etiquetas,
+    col=c("blue","red","black"),
+    main="Becados")
+
+```
+
+
+
+Este dato es interesante, puesto a que la proporción de estudiantes con asistencia financiera (becados o con crédito) no es pequeña. Más adelante veremos alguna relación entre la beca y el esfuerzo académico. 
+
+La moda es ninguno, Esto lo podemos sacar por la proporción del pie, que refleja claramente lo predominante de dicha categoría respecto a las otras dos, pero para comprobar:
+
+
+```{r}
+mfv(DF$Becado)
+```
+
+
+#### *Edad*:
+Mediana:
+
+```{r, echo= FALSE}
+round(median(DF$Edad))
+```
+
+Media:
+```{r, echo= FALSE}
+round(mean(DF$Edad), 2)
+```
+
+La mitad de las edades están sobre los 19 años y la otra por debajo. Además, la media es útil pues evidencia que los datos están ligeramente sesgados a la derecha. Pero para analizar la homogeneidad de los datos es conveniente usar la moda complementada con un gráfico de barras.
+
+
+
+```{r, echo= FALSE}
+mfv(DF$Edad)
+```
+
+A pesar de lo mencionado el dato más repetitivo es 18 años, pero el segundo más frecuente es 19 por lo que se puede afirmar que los datos están relativamente centrados. Indica que los datos por debajo de 19 años están más centrados que por arriba.
+
+```{r, echo= FALSE}
+barplot(table(DF$Edad), xlab='Edad', ylab='Frecuencia', main='Distribución de edad ',col="blue")
+
+```
+
+
+Este gráfico de barras se complementa con lo deducido por la moda pues las edades
+menores a la mediana están más concentrados en comparación a las edades superiores a
+esta. La razón por la que la mediana fue 19 en vez de 18 se puede explica con un gráfico de caja.
+
+
+```{r, echo= FALSE}
+
+boxplot(DF$Edad,main="Edad", ylab='Años',horizontal= TRUE,col="blue")
+abline(v=mean(DF$Edad), col = "red")
+```
+
+
+Se observa mayor cantidad de datos atípicos y variación de edades sobre los 19 que
+debajo. Esto se debe a que normalmente la edad más común al entrar a la universidad es
+usualmente 16 años y nuestra muestra se basa en los estudiantes de cursos de los dos primeros años. Por ello, los datos estarían más dispersos en torno a edades superiores a la mediana. Entonces, tiene sentido que el grueso de la población esté entre los 18 y 20 años. Aunque haya valores atípicos, se puede afirmar que los datos no están muy dispersos. Este dato será problemático para futuros análisis.
+
+#### *Horas semanales usadas en videojuegos*:
+Cuartiles:
+```{r}
+quantile(DF$Videojuegos)
+
+
+```
+
+Podemos observar que el rango intercuartil es de 5, lo que significa que hay una gran variedad en la cantidad de horas dedicadas a jugar videojuegos. Es decir, no es una actividad que le dedicas o muchas horas o pocas horas.
+
+Moda:
+```{r, echo= FALSE}
+mfv(DF$Videojuegos)
+
+```
+
+Aun así, la mayoría de personas no juegan videojuegos.
+
+```{r, echo= FALSE}
+boxplot(DF$Videojuegos, main='Horas semanales de videojuegos',horizontal= TRUE,col="cyan")
+abline(v=mean(DF$Videojuegos), col = "red")
+```
+
+Aquí podemos ver la variedad de datos, mostrando un diagrama de barras se vería mejor: 
+
+```{r echo=FALSE,fig.align="center",fig.width=8,fig.height=8}
+
+barplot(table(DF$Videojuegos),main="Distribución de horas en videojuegos",col="red",xlab="Horas")
+
+```
+   
+   
+Tomando en cuenta la variable sexo con el número de horas usadas den videojuegos se puede notar una cosa interesante.
+
+```{r echo=FALSE}
+barblot<- DF %>% slice(which(Videojuegos>1 & Videojuegos<6 )) %>% select(Videojuegos,Sexo) %>% table()
+
+
+barplot(barblot,col=c(1,2,3,4))
+etiquetas<-c("2 horas","3 horas","4 horas","5 horas")
+legend("topright", legend = etiquetas, fill=c(1,2,3,4))
+
+
+
+```
+
+La variedad en el número de horas dedicadas en videojuegos existe gracias a los hombres.
+
+#### *Horas semanales dedicadas al deporte*:
+##### Mediana:
+
+```{r, echo= FALSE}
+round(median(DF$Deporte))
+```
+
+Para describir esta variable es conveniente usar la mediana pues muestra cómo de distribuyen los datos. En este caso revela que la mitad de estudiantes practica deporte más de 1 horas semanales, y la otra mitad menos que eso. Este dato es preocupante porque una gran parte de nuestra muestra no se preocupa mucho por hacer deporte. Entonces no se preocupa por su salud.
+
+```{r echo=FALSE}
+mfv(DF$Deporte)
+
+```
+
+Sumando, la moda nos muestra más explícitamente que la mayoría de personas no hace nada de deporte a la semana.
+
+```{r, echo= FALSE}
+
+barplot(table(DFHS$intervalo_horas_sueno,DF$Deporte), xlab='Numero de horas', ylab='Frecuencia', main='Horas
+semanales usadas en deporte',col=c(1))
+
+
+
+```
+
+Visualmente, podemos encontrar que la moda se ve como 0 horas semanales. Además, la mediana coincide con el segundo dato más frecuente. 
+
+```{r echo=FALSE, fig.align='center'}
+boxplot(DF$Deporte,main="Deporte",col="cyan",horizontal=TRUE )
+abline(v=mean(DF$Deporte),col="red")
+```
+
+Este boxplot nos muestra datos un poco variados, con la presencia de dos valores atípicos. Aparte de un sesgo notable a la derecha.    
+
+
+#### *Horas de sueño y de estudio diarias*  
+
+Horas de estudio (media, mediana y moda)
+```{r echo= FALSE}
+
+summary(DF$HE)
+mfv(DF$HE)
+
+```
+
+Encontramos que las 3 medidas de tendencia central están muy cercanas, esto puede significar que el sesgo es bajo. 
+
+
+Horas de sueño (media, mediana y moda)
+```{r echo= FALSE}
+summary(DF$HS)
+mfv(DF$HS)
+```
+
+Prácticamente lo mismo, acá las 3 medidas se encuentran muy cercanas. Esto puede implicar que nuestros resultados de comparaciones pueden ser más precisos.  
+
+
+
+```{r echo=FALSE}
+
+barplot(table(DFHS$intervalo_horas_sueno),xlab='Horas de sueño', ylab='Frecuencia', main='Distribución de horas de sueño',col="cyan")
+ 
+```
+
+Como observamos, la mayoría de personas duermen entre 4 a 7 horas.
+
+
+```{r echo=FALSE, fig.align="center"}
+
+boxplot(DF$HE,horizontal=TRUE,col="green", main="Boxplot para las horas de estudio")
+abline(v=mean(DF$HE), col = "red")
+
+```
+
+Vemos un rango intercuartil más o menos bajo (3), por lo tanto, las horas de estudios no están tan alejadas entre estudiante y estudiante. Una gran parte de los estudiantes estudian de 3 a 6 horas.
+
+#### *Número de cursos y horas académicas*
+
+Número de cursos (media, mediana y moda):
+```{r echo= FALSE}
+summary(DF$NC)
+mfv(DF$NC)
+```
+
+Además, con un cálculo simple sabemos que el rango intercuartil es de 2, por ello los datos no son muy dispersos (incluso menos que las horas de estudio). Esto también revela que la cantidad de cursos que llevan los estudiantes esta centrada entre 5 y 7 cursos.
+
+
+```{r, echo= FALSE}
+barplot(table(DF$NC), xlab='Número cursos', ylab='Frecuencia', main='Cursos ',col="cyan")
+
+```
+
+De la gráfica resalta que la moda es de 7 cursos, lo que se explica debido a que la mayoría de alumnos se guía por la malla curricular. Si queremos comprobar la moda:
+
+```{r}
+mfv(DF$NC)
+
+```
+
+
+Horas académicas (media, mediana y moda)
+
+```{r echo= FALSE}
+summary(DF$HA)
+mfv(DF$HA)
+
+```
+
+Si nos guiamos por la moda de la cantidad de cursos, podríamos decir que los de 7 cursos tienen de 20 a 26 horas académicas. Para comprobarlo hay que ver el siguiente gráfico:
+
+```{r echo=FALSE, fig.width=7,fig.height=7,fig.align="center"}
+
+barplot(table(DFHA$NC,DFHA$intervalo_horas_a),col=c(1,2,3,4,5,6),main="Horas académicas según el número de cursos")
+
+etiquetas<-row.names(table(DFHA$NC,DFHA$intervalo_horas_a))
+legend("topright", legend = etiquetas, fill=c(1,2,3,4,5,6),title="N° Cursos")
+
+```
+
+A partir de esto podemos decir que la mayoría de estudiantes que llevan de 5 a 7 cursos están en el rango medio de 18 a 26 horas académicas. Claramente, como es el rango "medio de cursos", tiene sentido que esté en el rango medio de las horas académicas (de 20 a 26).
+
+#### *Horas semanales en servicios de streaming*:
+
+Mediana: 
+
+```{r, echo= FALSE}
+
+round(median(DF$SS))
+
+```
+
+Media
+```{r, echo= FALSE}
+
+round(mean(DF$SS), 2)
+```
+
+El cálculo de la mediana permite apreciar que el 50% de los valores de  horas semanales usadas en servicios de streaming están por debajo de las 2 horas. El cálculo de la media es un valor próximo al de la mediana, indicándonos una posible concentración. Sin embargo revela cierto sesgo hacia la derecha. Ambos descriptores numéricos nos muestran que hay poca tendencia a gastar tiempo en esta actividad.
+
+Moda:
+```{r, echo= FALSE}
+mfv(DF$SS)
+
+```
+
+En relación con lo indicado con la media y la mediana, el dato más repetitivo en las horas semanales de servicios de streaming es de 0 horas. El valor de esta moda se aleja ligeramente de la media y mediana, pero nos da información importante de cómo se comportan las observaciones recolectadas.
+
+```{r, echo= FALSE}
+barplot(table(DF$SS), main='Horas semanales de Servicios de streaming', ylab='Frecuencia en Observaciones',xlab='Horas de SS',col="green")
+
+```
+
+Finalmente, el barplot nos muestra resultados similares al de algunas variables anteriores. Una distribución sesgada a la derecha, donde gráficamente se observa gráficamente cuál es la moda determinada (0 horas).
+
+#### *Horas semanales en actividades artísticas*:
+
+Mediana:
+
+```{r, echo= FALSE}
+round(median(DF$AA))
+
+```
+
+A partir de la mediana se puede deducir que un 50% de los encuestados realizan menos de 1 hora en actividades artísticas y el otro 50% de 1 a más horas semanales en estas actividades. Esta mediana a simple vista da a entender que hay un bajo interés por actividades de este tipo.
+
+Media:
+```{r, echo= FALSE}
+
+round(mean(DF$AA), 2)
+
+```
+
+El cálculo de la media, nos indica que el promedio de las horas semanales en la variable es de 1.59 horas. Valor que no solo sobrepasa la mediana, sino que comprueba la tendencia de alumnos a practicar pocas horas semanales de actividades artísticas. 
+
+Moda:
+```{r, echo= FALSE}
+mfv(DF$AA)
+
+```
+
+El cálculo de la moda de la variable es 0 y se encuentra por debajo de la media y la mediana. Según estos datos obtenidos podemos decir que existe un sesgo a la derecha.
+
+```{r, echo= FALSE}
+boxplot(DF$AA,main="Horas semanales de actividades artisticas", horizontal = TRUE,col="cyan")
+abline(v=mean(DF$AA), col = "red")
+```
+
+A través del gráfico de cajas se puede apreciar que los datos obtenidos se encuentran asimétricamente sesgados hacia la derecha. Además, hay 4 datos atípicos, que son responsables de la diferencia considerable entre media mediana y moda. 
+
+#### *Horas semanales en redes sociales*:
+
+##### Mediana: 
+```{r, echo= FALSE}
+round(median(DF$RS))
+
+```
+Esto indica que la mitad de los entrevistados dedican menos de 4 horas semanales a las redes sociales y la otra mitad dedica más de 4 horas a la semana. Siendo la actividad más frecuente de nuestra muestra
+
+#### Media:
+```{r, echo= FALSE}
+
+round(mean(DF$RS), 2)
+
+```
+
+La mayoría de nuestra población muestral realiza esta actividad por un promedio de  4.89 horas semanales, recalcando que está es la actividad más frecuente en los encuestados.
+
+#### Moda:
+```{r, echo= FALSE}
+mfv(DF$RS)
+
+```
+
+La moda obtenida en la variable es de 2 horas semanales, la mayoría de los encuestados realizan esta actividad por debajo de la cantidad de horas obtenidas en la mediana. Con estos 3 datos se puede afirmar que los datos se encuentran sesgados a hacia la derecha.
+
+```{r, echo= FALSE}
+boxplot(DF$RS,main="Horas semanales de redes sociales", horizontal = TRUE,col="cyan")
+abline(v=mean(DF$RS), col = "red")
+text(0, 5, "Media")
+
+```
+
+En el gráfico se muestra que la media se encuentra entre el segundo y tercer cuartil y que los datos presentan un sesgo hacia la derecha. No se presentan datos atípicos en la variable, dando una idea de confiabilidad hacia la variable. También, en base al rango intercuartil, esta es la variable con más variabilidad del estudio.
+
+
+```{r echo=FALSE,fig.align="center",fig.width=8,fig.height=8}
+
+barplot(table(DF$RS),main="Distribución de horas en redes sociales",col="orange")
+
+```
+ 
+El rango de la cantidad de horas dedicadas a las redes sociales es bien amplio. No es que se dediquen a 0 horas o muchas horas. La muestra dedica, de forma variada, de 1 a 10 horas dedicadas a las redes sociales semanalmente.
+<br>
+<br>
+
+## Tendencias:
+
+##### Tendencia de sueño por rangos
+
+Como parte de los objetivos de la investigación se evaluará la manera en que los estudiantes distribuyen sus horas de sueño. Para ello se usará un gráfico de pie que muestre las proporciones de estudiantes de acuerdo a rangos de horas de sueño. Se escogió este gráfico pues se plantea evaluar que tan grande es una categoría respecto de las otras.
+
+```{r echo=FALSE,fig.align="center"}
+aux11=DF %>% mutate(Habitos_de_sueno = case_when(
+   (DF$HS<=3) ~ "entre 0 y 3 horas",
+    (DF$HS<=7) ~ "entre 4 y 7 horas",
+    (DF$HS<=10) ~ "entre 8 y 10 horas"
+  ))%>% select(Habitos_de_sueno)
+
+proporciones1 <- table(aux11) 
+etiquetas <- c("0 a 3 horas","4 a 7 horas", "8 a 10 horas") 
+pct <- round(proporciones1/sum(proporciones1)*100)
+etiquetas1 <- paste(etiquetas, pct, "%") 
+ 
+pie(proporciones1,labels = etiquetas1,
+    col=c(1,4,"red"),
+    main="Habitos de sueño general")
+
+```
+
+
+Se observa que gran parte de la comunidad estudiantil (81%) duerme de 4 a 7 horas, lo que puede indicar relativa falta de sueño debido a sobrecarga curricular. Sin embargo, resalta el 1% de población que duerme de 0 a 3 horas, lo que evidencia una clara falta de organización, pero este dato no es tan representativo pues se trata de un valor atípico. Por otro lado, el 18% tiene buena distribución de horas de sueño. Para las pruebas de hipótesis veremos de nuevo este resultado.
+
+El análisis anterior giró en torno de la población estudiantil en general. Sin embargo, sería interesante evaluar si el sexo de los estudiantes tiene influencia sobre sus hábitos de sueño. Por ello se plantea la siguiente pregunta:
+
+Pregunta: ¿Será que el sexo influye en las horas de sueño en la muestra hecha de la comunidad de estudiantes UTEC?
+
+Hipótesis: El sexo no debería influir en las horas de sueño.
+
+A primera vista, el sexo no debería ser determinante sobre los hábitos de sueño de los estudiantes. Para ello se evaluará dicha hipótesis con dos gráficos.
+
+
+```{r echo=FALSE,fig.align="center"}
+aux11=DF %>% mutate(Habitos_de_sueno = case_when(
+    (DF$HS<=3) ~ "entre 0 y 3 horas",
+    (DF$HS<=7) ~ "entre 4 y 7 horas",
+    (DF$HS<=10) ~ "entre 8 y 10 horas",
+    
+  ))%>% filter(Sexo=="Masculino")%>% select(Habitos_de_sueno)
+
+proporciones1 <- table(aux11) 
+etiquetas <- c("0 a 3 horas","4 a 7 horas", "8 a 10 horas" ) 
+pct <- round(proporciones1/sum(proporciones1)*100)
+etiquetas1 <- paste(etiquetas, pct, "%") 
+ 
+
+pie(proporciones1,labels = etiquetas1,
+    col=rainbow(length(etiquetas1)),
+    main="Habitos de sueño en Hombres")
+
+```
+
+El descriptor gráfico muestra que de manera similar a la muestra, en general, la mayor parte de la población duerme de 4 a 7 horas. Aún así,la proporción que tiene buenos hábitos de sueño (8 a 10 horas) es mayor con 21%. Se destaca que el caso menos común de 0 a 3 horas pertenece a los varones.
+
+
+```{r echo=FALSE,fig.align="center"}
+aux11=DF %>% mutate(Habitos_de_sueno = case_when(
+    (DF$HS<=3) ~ "entre 0 y 3 horas",
+    (DF$HS<=7) ~ "entre 4 y 7 horas",
+    (DF$HS<=10) ~ "entre 8 y 10 horas",
+    
+  ))%>% filter(Sexo=="Femenino")%>% select(Habitos_de_sueno)
+
+proporciones1 <- table(aux11) 
+etiquetas <- c("4 a 7 horas", "8 a 10 horas") 
+pct <- round(proporciones1/sum(proporciones1)*100)
+etiquetas1 <- paste(etiquetas, pct, "%") 
+ 
+
+pie(proporciones1,labels = etiquetas1,
+    col=rainbow(length(etiquetas1)),
+    main="Habitos de sueño en Mujeres")
+
+
+
+
+```
+
+En el caso de las mujeres no hay valores poco comunes, pero el 90% de ellas duerme de 4 a 7 horas. En comparación con las mujeres, los varones tienen más observaciones que duermen de 8 a 10 horas en comparación. Lo que descarta la hipótesis planteada y evidencia que los hombres podrían tener mejor distribución de sus labores o que les dan mayor importancia a sus horas de sueño respecto otras actividades.
+
+<h5>Tendencia de horas de estudio por carreras</h5>
+
+En esta sección se plantea evaluar la relación entre la carrera de los estudiantes y la distribución de horas de estudio. Esto es relevante pues da luces acerca de los posibles motivos que llevan a los estudiantes a invertir más tiempo en actividades académicas respecto a las recreativas. Para ello se plantea la siguiente pregunta: 
+
+Pregunta: ¿Será que hay carreras que requieran más horas de estudio que otras?
+
+Hipótesis: Sí, Cada carrera tiene su grado de dificultad. 
+
+Para determinar la validez de la hipótesis se presentará el siguiente gráfico:
+
+```{r echo=FALSE,fig.align="center"}
+barplot(table(DF$Carrera,DF$HE),col=c(1,2,3,4,5,6,7,8,"white","yellow"),xlab="Horas de Estudio",
+        ylab="Frecuencias",main="Distribución de Horas de estudio por carreras ")
+nombres<-c("Quimica","Bio","CS","Ambiental","Civil", "De la Energía","Electrónica","Industrial","Mecanica","Mecatrónica")
+
+legend("topright", legend = nombres, fill=c(1,2,3,4,5,6,7,8,"white","yellow"),cex = 0.75)
+```
+
+
+Podemos observar a las frecuencia de horas de estudio segmentadas por carrera, por ejemplo, la mayor parte de la población usa cuatro horas para dicha actividad. Dentro de esta clase la carrera con mayor frecuencia es industrial. A simple vista tiene una proporción similar para las horas de estudio dedicadas. Para corroborar esta idea se evaluará un gráfico con los promedios de horas de estudio por carrera.
+
+```{r echo=FALSE, fig.height=8,fig.width=8,fig.align="center"}
+
+ prueba<-(DF %>% select(Carrera,HE) %>% group_by(Carrera) %>% summarise(suma=sum(HE)) %>% mutate(prom= suma/table(DF$Carrera)))
+
+plt <- barplot(prueba$prom, col="blue", xaxt="n")
+text(plt, par("usr")[3], labels = prueba$Carrera, srt = 45, adj = c(1.1,1.1), xpd = TRUE, cex=0.6) 
+
+```
+
+Se corrobora que todas las carreras estudian de 4 a 5 horas, es decir de forma similar. Sin embargo, la carrera con menos horas es Administración de negocios digitales. Esto se debe a que en nuestra muestra solo una observación es de esa carrera. Entonces, la hipótesis inicial se rechaza pues la carrera no influenciaría en las horas de estudio de los alumnos.
+
+## *Variables aleatorias*:
+
+- V.A 1:
+
+Universo (omega): Todas las observaciones de la muestra  <br><br>
+Definición: Se define éxito(1) cuando duerme 8 horas a más y fracaso (0) cuando no duerme 8 horas
+
+
+- V.A 2: 
+
+Universo (omega): Observaciones de la carrera x de la muestra (esta variable aleatoria depende de la carrera usada)  <br>  
+Definición: Número de horas de sueño de la carrera x (x puede ser cualquiera de las 11 carreras)
+
+- V.A 3:   
+
+Universo (omega): Observaciones de la carrera x de la muestra (esta variable aleatoria depende de la carrera usada)  <br>  
+Definición: Número de horas de videojuegos de la carrera x (x puede ser cualquiera de las 11 carreras)
+
+
+##### *Distribución de bernoulli para V.A 1*:
+
+```{r}
+
+x=c(1,0)
+p=DF%>% filter(HS>7)%>%nrow(.)/nrow(DF) #probabilidad de dormir mas de 7 horas 
+barplot(dbern(x, p),names.arg=c("Exito","Fracaso"),main="Dist. Bernoulli",col=c("green","red"))
+```
+
+Probabilidades (Éxito y fracaso):
+```{r echo=FALSE}
+
+x=c(1,0)
+p=DF%>% filter(HS>7)%>%nrow(.)/nrow(DF) #probabilidad de dormir mas de 7 horas 
+dbern(x, p)
+```
+Para nuestra muestra, la probabilidad de dormir más de 7 horas es del 18%. 
+
+##### Función de probabilidad (V.A 2)
+
+
+```{r echo=FALSE}
+f2 <- function(carrera,horas_sueno){
+  temp<- DF %>% filter(Carrera==carrera)
+  
+  temp %>% filter(HS==horas_sueno)%>%nrow(.)/nrow(temp)
+  
+}
+
+
+```
+
+
+##### Ejemplos:
+
+Para nuestra muestra, la probabilidad de ser Ing. mecatrónico y dormir 7 horas es:
+
+```{r}
+f2("Ing. Mecatrónica",7)
+
+
+```
+
+Para nuestra muestra, la probabilidad de ser de Ciencia de la computación y dormir 8 horas es:
+
+```{r}
+f2("Ciencia de la Computación",8)
+
+```
+
+Para nuestra muestra, la probabilidad de ser de Bioingeniería y dormir 6 horas es:
+
+```{r}
+
+f2("Bioingenieria",6)
+```
+
+
+
+##### Función de probabilidad (V.A 3)
+
+```{r }
+f3 <- function(carrera,horas_videojuegos){
+  temp<- DF %>% filter(Carrera==carrera)
+  
+  temp %>% filter(Videojuegos==horas_videojuegos)%>%nrow(.)/nrow(temp)
+  
+}
+
+
+```
+
+##### Ejemplos:
+
+Para nuestra muestra, la probabilidad de ser Ing. mecatrónico y jugar 4 horas semanales de videojuegos es:
+```{r}
+f3("Ing. Mecatrónica",4)
+
+
+```
+
+Para nuestra muestra, la probabilidad de ser de Ciencia de la computación y jugar 6 horas semanales de videojuegos es: 
+```{r}
+f3("Ciencia de la Computación",6)
+```
+
+Para nuestra muestra, la probabilidad de ser de Bioingeniería y jugar 2 horas semanales de videojuegos es: 
+
+```{r}
+f3("Bioingenieria",2)
+```
+
+
+## Intervalos de confianza
+
+Para responder las preguntas planteada en el inicio usaremos las siguientes variables aleatorias que definen a la población (estamos redefiniendo X1,X2,X3): 
+
+- X1: Horas de sueño de un estudiante de UTEC
+- X2: Horas de estudio de un estudiante de UTEC
+- X3: Horas de tiempo libres de un estudiante de UTEC (nueva variable)
+- X4: Horas dedicadas al deporte de un estudiante de UTEC
+- X5: Horas dedicadas a las redes sociales de un estudiante de UTEC
+
+Sacaremos intervalos de confianza a **las muestras** que se ven definidas con estas variables aleatorias (el nivel de confianza usado para cada confianza será el mismo que usaremos para las pruebas de hipótesis). 
+
+Antes de empezar tenemos que definir un criterio elegir el nivel de confianza. Para cada muestra: 
+
+- Si el coeficiente de variación*100 es menor a 20, se usará un nivel de confianza del 88%. 
+- Si es mayor a 20 pero menor a 25, del 90%. 
+- Si es mayor a 25 pero menor a 30 del 95%. 
+- Para valores mayores, será del 99%.
+
+##### ***Horas de sueño (Muestra de la población definida por X1)***
+
+
+Tamaño: 153 (toda nuestra muestra está involucrada)
+
+Coeficiente de variación*100:
+
+```{r echo= FALSE}
+
+coef.variacion <- sd(DF$HS)/mean(DF$HS)
+round(coef.variacion*100,2)
+
+
+```
+
+Por lo tanto, nuestro nivel de confianza será del 88%. Usando el teorema del límite central, el intervalo de confianza es:
+
+```{r echo= F}
+
+alpha <- 1-0.88
+error.estandar <- sd(DF$HS)/153
+
+zc <- qnorm(alpha/2,lower.tail= F)
+
+xprom <- mean(DF$HS) 
+
+inferior <- xprom - zc*error.estandar
+superior <- xprom + zc*error.estandar
+
+```
+
+```{r}
+inferior
+superior
+
+
+```
+
+Entonces, podemos afirmar lo siguiente: 
+
+$$IC_{HS}: [ 6.47 < \mu < 6.50]  \\ precisión: \pm 0.01 $$
+
+Es muy corto el intervalo, pero el rango va de 3 a 9, asi que tiene sentido). La precisión es muy pequeña al 88% de confianza, entonces, se podría subir un poco el nivel de confianza y no afectaría mucho. Nosotros no haremos eso por el criterio que usamos.
+
+##### ***Horas de estudio (Muestra de la población definida por X2)***
+
+Tamaño: 153 (toda nuestra muestra está involucrada)
+
+Coeficiente de variación*100:
+
+```{r echo = F}
+#Horas de estudio
+DF_HE<-DF$HE
+#cf=sd/media *100
+media_HE=mean(DF_HE)
+
+CF_HE<-sd(DF_HE)/media_HE
+round(CF_HE*100,2)
+
+```
+
+Por lo tanto, nuestro nivel de confianza será del 99%. Usando el teorema del límite central, el intervalo de confianza es:
+
+```{r echo = F}
+
+
+
+Z_HE= qnorm(0.1/2,0,1,lower.tail = F)
+CF_HE<-sd(DF_HE)/sqrt(length(DF_HE))
+
+margen_errorE=CF_HE*Z_HE
+
+# intervalo de confianza = media_RS +/- margen_error
+inferior= media_HE - margen_errorE
+
+superior= media_HE + margen_errorE
+
+```
+
+
+```{r}
+inferior
+superior
+```
+
+Entonces, podemos afirmar lo siguiente:
+
+$$IC_{HE}: [ 4.10 < \mu < 5.13] \\ precisión: \pm 0.51$$
+Si bajamos el nivel de confianza al 95%, la precisión se vuelve 0.13. Pero por la alta variabilidad de los datos y nuestro criterio, decidimos no hacer eso. 
+
+##### ***Horas de tiempo libres (Muestra de la población definida por X3)***
+
+Tamaño: 153 (toda nuestra muestra está involucrada)
+
+Coeficiente de variación*100:
+
+```{r echo = F}
+
+media <- mean(DFTL$TL)
+s <- sd(DFTL$TL)
+Cv <- s/media*100
+round(Cv,2)
+```
+
+Por lo tanto, nuestro nivel de confianza será del 99%. Usando el teorema del límite central, el intervalo de confianza es:
+
+```{r echo = F}
+
+
+n <-length(DFTL$TL)
+
+
+a = 0.01
+inferior <- media - qnorm(1-a/2)*s/sqrt(n)
+superior <-  media + qnorm(1-a/2)*s/sqrt(n)
+
+```
+
+```{r}
+inferior
+superior
+```
+
+Entonces, podemos afirmar lo siguiente:
+
+$$IC_{TL}: [ 11.69 < \mu < 15.11] \\ precisión: \pm 1.71$$
+Acá si bajamos el nivel de confianza a 95% la precisión se vuelve 1.30. Mas o menos, el aumento de ambos valores de precisión cuando se disminuye la confianza es de 0.4. Pero, la seguiremos dejando como 99%.
+
+<h5><strong><i>Horas de deporte (Muestra de la población definida por X4)</i></strong></h5>
+
+Tamaño: 153 (toda nuestra muestra está involucrada)
+
+Coeficiente de variación*100:
+
+```{r  echo=FALSE}
+round(100*(sd(DF$Deporte))/ mean(DF$Deporte),2)
+```
+
+Por lo tanto, nuestro nivel de confianza será del 99%. Usando el teorema del límite central, el intervalo de confianza es:
+
+```{r  echo=FALSE}
+n=length(DF$Deporte)   
+x= mean(DF$Deporte)  
+sigma= sd(DF$Deporte)  
+
+
+
+alpha=0.01
+#intervalo de confianza
+z=qnorm(1-alpha/2)
+inferior <- x - z*sigma/sqrt(n)
+superior <- x+ z*sigma/sqrt(n)
+
+
+ 
+  
+```
+
+
+```{r}
+inferior
+superior
+```
+
+Entonces, podemos afirmar lo siguiente:
+
+$$IC_{Deporte}: [ 1.35 < \mu < 2.36] \\ precisición: \pm 0.50$$
+
+Si bajamos el nivel de confianza a 95%, la precisión baja (0.38). Esto puede ser porque la variabilidad es demasiado alta, mayor al 100%. Por eso, consideramos mejor decidimos dejar el nivel de confianza al 99%.
+
+
+
+
+<h5><strong><i>Horas dedicadas a las redes sociales (Muestra de la población definida por X5)</i></strong></h5>
+
+Tamaño: 153 (toda nuestra muestra está involucrada)
+
+Coeficiente de variación*100:
+
+```{r echo = F}
+#Horas de redes sociales
+DF_RS<-DF$RS
+#cf=sd/media *100
+media_RS=mean(DF_RS)
+
+CF_RS<-sd(DF_RS)/media_RS
+round(CF_RS*100,2)
+# coeficiente de variación >35% => nivel de confianza=99%
+```
+
+Por lo tanto, nuestro nivel de confianza será del 99%. Usando el teorema del límite central, el intervalo de confianza es:
+
+```{r echo = F}
+
+
+
+Z_RS= qnorm(0.05/2,0,1,lower.tail = F)
+
+CF_RS<-sd(DF_RS)/sqrt(length(DF_RS))
+margen_error=CF_RS*Z_RS
+
+# intervalo de confianza = media_RS +/- margen_error
+inferior= media_RS - margen_error
+
+superior= media_RS + margen_error
+
+```
+
+
+```{r}
+inferior
+superior
+```
+
+Entonces, podemos afirmar lo siguiente:
+
+$$IC_{RS}: [ 4.28 < \mu < 5.50] \\ precisión:  \pm 0.60 $$
+Al bajar el nivel de confianza a 95%, la precisión se vuelve 0.46. Como no afecta mucho y el coef. de variación está en el último caso de nuestro criterio, usaremos 99%.
+
+<h2>Pruebas de hipótesis</h2>
+
+Antes de empezar tenemos que avisar que cuando nos referimos a "estudiantes de ingenieria" no se cuenta a la carrera CS y Administración y negocios digitales. Además, para las variables involucradas en las pruebas de hipótesis se hará uso del nivel de confianza aplicado en sus IC.
+
+
+##### ***¿Los estudiantes con asistencia financiera duermen más que los que no la tienen?***
+
+Dormir más, o menos, de 8 horas no es recomendable para la salud de un estudiante. El dormir más de ocho horas tiene como consecuencia la probabilidad de sufrir enfermedades cardiovasculares y afecta la concentración. El dormir menos afecta al cerebro y genera estrés.
+
+Para esta pregunta haremos dos pruebas con los siguientes grupos:
+
+- Los estudiantes con asistencia financiera
+- Los estudiantes sin asistencia financiera. 
+
+Donde : <br>
+
+<li> Tamaño de muestra para el primer grupo = 66 (asistencia financiera)  </li> 
+<li> Tamaño de muestra para el segundo grupo = 87 (sin asistencia financiera) </li><br>
+
+<h5>Para el primer grupo de estudiantes la hipótesis es la siguiente:</h5>
+
+<li>H0=Los con asistencia financiera duermen 8 horas diarias </li>
+<li>H1=Los con asistencia financiera no duermen 8 horas diarias </li>
+<br>
+
+
+
+```{r echo = F}
+DT<-filter(DF,  Becado== "Beca" | Becado== "Crédito educativo" )
+
+HSB<-DT$HS #HSB= horas de sueños de "becados"
+
+```
+
+
+```{r echo = F}
+#INTERVALO DE CONFIANZA= DESVIACIÓN ESTANDAR/RAIZ CUADRADA DE TAMAÑO DE LA MUESTRA
+IC_HSB<-sd(HSB)/sqrt(66)
+
+```
+
+
+```{r echo = F}
+#COEFICIENTE DE VARIACIÓN DE LA VARIABLE
+
+#cf=sd/media*100
+
+CF_B<-sd(HSB)/mean(HSB) *100 #CF_B = coeficiente de varición de HSB
+
+
+media<-mean(HSB) 
+```
+
+
+Z's críticos y estadístico de prueba, usando un nivel de confianza del 88% (la razón se encuentra en la sección anterior): 
+```{r echo = F}
+z = (media - 8)/(sd(HSB)/sqrt(66))
+
+alfa<-(0.12)
+
+round(-qnorm((alfa/2),0,1),2)
+round(qnorm((alfa/2),0,1),2)
+round(z,2)
+
+
+
+
+```
+
+De manera gráfica:
+
+```{r echo=FALSE, fig.align = "center"}
+Var_interes_2<-DT$HS
+parametro = 8
+desvi= sd(Var_interes_2)
+n = length(Var_interes_2)
+estadistico = mean(Var_interes_2)
+alpha=0.12
+
+z <- (estadistico-parametro)*sqrt(n)/desvi
+Pc_inf=qnorm(alpha/2,0,1)
+Pc_sup=qnorm(1-alpha/2,0,1)
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-15, to=15, xlim=c(-15, 13), col=3, lwd=4, main="Asistencia financiera")
+abline(v=Pc_inf, col="Red") 
+abline(v=Pc_sup, col="Red")
+
+abline(v=z, col=7)  
+
+```
+
+
+Luego de comparar ambos resultados finales, llegamos a la conclusión de que la hipótesis nula del grupo de estudiantes con asistencia financiera se llega a rechazar.
+
+
+
+Dicho esto pasemos al segundo grupo de estudiantes. Para esta segunda hipótesis tenemos lo siguiente:
+
+
+- H0=Los estudiantes sin asistencia financiera duermen 8 horas diarias.  
+- H1=Los estudiantes sin asistencia financiera no duermen 8 horas diarias.
+
+```{r echo = F}
+DT_NB<-filter(DF, Becado != "Beca" & Becado!= "Crédito educativo")
+
+HS_NB<-DT_NB$HS #HS_NB = horas de sueño de no "becados"
+
+```
+
+```{r echo = F}
+#INTERVALO DE CONFIANZA= DESVIACIÓN ESTANDAR/RAIZ CUADRADA DE TAMAÑO DE LA MUESTRA
+
+IC_HSNB<-sd(HS_NB)/sqrt(153)
+
+```
+
+
+```{r echo = F}
+#COEFICIENTE DE VARIACIÓN DE LA VARIABLE
+#cf=sd/media*100
+
+CF_NB<-sd(HS_NB)/mean(HS_NB) *100 #CF_NB= coeficiente de variación de HS_NB
+
+mediaNB<-mean(HS_NB)
+```
+
+Z's críticos y estadístico de prueba, usando un nivel de confianza del 88%:
+```{r echo = F}
+zNB = (mediaNB - 8)*sqrt(153)/sd(HS_NB)
+
+alfaNB<-0.12
+round(qnorm(alfaNB/2,0,1),2)
+round(-qnorm(alfaNB/2,0,1),2)
+round(zNB,2)
+
+```
+
+De manera gráfica: 
+```{r echo=FALSE ,fig.align = "center"}
+Var_interes_2<-DT_NB$HS
+parametro = 8
+desvi= sd(Var_interes_2)
+n = length(Var_interes_2)
+estadistico = mean(Var_interes_2)
+alpha=0.12
+z <- (estadistico-parametro)*sqrt(n)/desvi
+
+Pc_inf=qnorm(alpha/2,0,1)
+Pc_sup=qnorm(1-alpha/2,0,1)
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-15, to=15, xlim=c(-15, 13), col=3, lwd=4, main="Sin Asistencia financiera")
+abline(v=Pc_inf, col="Red") # Punto Critico inf
+abline(v=Pc_sup, col="Red")# Punto Critico
+
+abline(v=z, col=7)  
+
+```
+
+Al observar estos resultados vemos que este grupo tampoco duerme 8 horas diarias, por lo tanto, la hipótesis nula es rechazada.
+
+Contrastando ambos resultados, ninguno de los dos grupos duerme 8 horas diarias. Esto implica podrían llegar a tener algunos de los problemas de salud, ya mencionados, que impiden dar un correcto rendimiento académico. 
+
+##### ***¿Los estudiantes con asistencia financiera("becados") se esfuerzan más que los que no la tienen?***
+
+Antes de hacer la prueba de hipótesis tenemos que definir "esfuerzo". Esta característica la mediremos con la variable HE (Horas de estudio). 
+
+Como vamos a comparar si cierto grupo de estudiantes estudia más que otro grupo, usaremos dos dataframes. Uno para los que no tienen asistencia y otro para los que sí. Compararemos las medias de su variable HE.
+
+Entonces, haremos una prueba de resta de medias. Donde:
+
+<li>H0: La resta de medias es mayor o igual a 0 (x - y)</li>
+<li>H1: La resta de medias es menor 0</li>
+
+Donde : <br>
+<li> Tamaño de muestra x = 66 (asistencia financiera)    </li> 
+<li> Tamaño de muestra y = 87 (sin asistencia financiera) </li><br>
+
+
+Estadístico de prueba y z crítico, usando un nivel de confianza del 99%:
+
+```{r echo = F}
+DT<-filter(DF,  Becado== "Beca"  | Becado== "Crédito educativo" ) #"becados"
+DT_NB<-filter(DF, Becado != "Beca" & Becado!= "Crédito educativo") #no "becados"
+
+x <- mean(DT$HE)
+y <- mean(DT_NB$HE)
+sdx <- sd(DT$HE) 
+sdy <- sd(DT_NB$HE) 
+
+nx<- nrow(DT)
+ny <- nrow(DT_NB)
+
+uo <- 0 
+divisor <- sqrt((sdx^2)/nx + (sdy^2)/ny)
+z <- ((x - y)- uo)/divisor
+
+
+round(z,2) #estadístico de prueba
+
+
+round(qnorm(0.01),2) #zcritico (final de la zona de rechazo)
+
+
+
+
+```
+
+De manera gráfica: 
+
+```{r, fig.align= "center", echo = F}
+
+x <- mean(DT$HE)
+y <- mean(DT_NB$HE)
+sdx <- sd(DT$HE) 
+sdy <- sd(DT_NB$HE) 
+
+nx<- nrow(DT)
+ny <- nrow(DT_NB)
+
+uo <- 0 
+divisor <- sqrt((sdx^2)/nx + (sdy^2)/ny)
+z <- ((x - y)- uo)/divisor
+
+alpha=0.01
+
+Pc_inf=qnorm(alpha,0,1)
+
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-15, to=15, xlim=c(-15, 13), col=3, lwd=4, main="Prueba esfuerzo asist. finan. vs sin asist. finan.")
+abline(v=Pc_inf, col="Red") # Punto Critico inf
+
+
+abline(v=z, col=7)  
+
+
+```
+
+
+La zona de rechazo termina en -2.33, y nuestro estadístico de prueba no cae en esa zona. Por lo tanto, no se rechaza la hipótesis nula. Eso quiere decir que efectivamente los becados estudian más que los no becados, y, entonces, se esfuerzan más.
+
+Se corrobora el intervalo de confianza de horas de sueño pues la primera prueba de hipótesis cuya H0 aseguraba que los becados dormían 8 horas fue rechaza y el IC de dicha variable no ha de [6.47, 6.50] es decir no incluye a 8. 
+
+
+
+##### ***¿Los estudiantes de ingeniería de la UTEC tienen tiempo libre?***
+
+De acuerdo con la pregunta sugerida realizamos una prueba de hipótesis, donde analizaremos 
+una nueva variable agregada a nuestro dataframe llamada tiempo libre (TL). Esta es resultado de la suma de todas las horas consideradas actividades fuera de estudio para cada observación. 
+
+- H0: La media de tiempo libre es mayor o igual a 14 horas (la elección de este tiempo se explica mas adelante)  
+- H1: La media es menor a 14 horas
+
+Donde: <br> 
+
+<li> Tamaño de muestra = 128 (sin contar a CS y Admin. y Negocios Digitales)</li><br>
+
+Estadístico de prueba y z crítico, usando un nivel de confianza del 99%:
+
+```{r echo=FALSE}
+
+DFTL <- DF %>% mutate(TL = Deporte + Videojuegos + SS + AA + RS) %>% slice(which(Carrera != "Ciencia de la Computación" & Carrera != "Administración y negocios digitales")) #Los estudiantes aquí solo son de ingeniería
+
+media<- mean(DFTL$TL)
+
+
+n <-length(DFTL$TL)
+
+
+sd <- sd(DFTL$TL)
+
+
+z <- (media-14)*sqrt(n)/sd  #estadístico de prueba
+round(z ,2)
+
+round(qnorm(0.01),2) #zcritico (final de la zona de rechazo)
+
+
+```
+
+De manera gráfica: 
+
+```{r, fig.align= "center", echo = F}
+
+media<- mean(DFTL$TL)
+
+
+n <-length(DFTL$TL)
+
+
+sd <- sd(DFTL$TL)
+
+
+z <- (media-14)*sqrt(n)/sd 
+
+alpha=0.01
+
+Pc_inf=qnorm(alpha,0,1)
+
+#Pc_sup=qnorm(1-alpha,0,1)
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-15, to=15, xlim=c(-15, 13), col=3, lwd=4, main="Prueba tiempo libre")
+abline(v=Pc_inf, col="Red") # Punto Critico inf
+#abline(v=Pc_sup, col="Red")
+
+abline(v=z, col=7)  
+```
+
+Concluimos con el estadístico de prueba que nos encontramos por debajo de la zona de rechazo, por lo tanto, la hipótesis no se rechaza. 
+
+Hemos decidido que $\mu_o$ sea 14 por lo siguiente. Estas horas libres libres se podrían distribuir*, de manera uniforme, a cada día de la semana. Eso quiere decir que los estudiantes podrían tener en promedio 2 horas diarias de tiempo libre. Mostrando cómo los estudiantes de ingeniería no necesariamente pasan todo el día estudiando. Sin embargo, una respuesta aún más concluyente sería hacer una misma prueba para otras universidades. Esto explicaría si realmente los estudiantes de ingeniería de UTEC tienen tiempo libre.
+
+*No estamos hablando de la distribución uniforme.
+
+ 
+
+##### ***¿Los estudiantes de ingeniería llevan un estilo de vida sedentario?***
+
+De la misma manera que con la pregunta del esfuerzo, haremos una resta de medias. Las muestras a utilizar son:
+
+
+- Horas de redes sociales de los estudiantes de ingeniería
+- Horas de deporte de los estudiantes de ingeniería
+
+
+Queremos comprobar si los estudiantes de ingeniería hacen más deporte o pasan el tiempo en redes sociales. La elección de redes sociales es porque es la actividad que más se hace sin contar al deporte (esto también lo mencionamos en la parte descriptiva):
+
+```{r}
+Promedios <- c(mean(DFTL$Videojuegos), mean(DFTL$SS), mean(DFTL$AA), mean(DFTL$RS))
+
+max(Promedios)
+
+
+```
+
+```{r}
+mean(DFTL$RS) #Solo se cuentan a estudiantes de ingenieria
+
+```
+
+Después de ello pasaremos a mencionar las hipótesis:
+
+
+- H0: La resta de medias es menor igual a 0 (x - y)
+- H1: La resta de medias es mayor a 0 
+
+Donde:  
+- Tamaño de muestra x = 128 (redes sociales)  
+- Tamaño de muestra y = 128 (deporte)
+
+Estadístico de prueba y z crítico, usando un nivel de confianza del 99%:
+```{r echo = F}
+Promedios <- c(mean(DFTL$Videojuegos), mean(DFTL$SS), mean(DFTL$AA), mean(DFTL$RS))
+
+Desviaciones <- c(sd(DFTL$Videojuegos), sd(DFTL$SS), sd(DFTL$AA), sd(DFTL$RS))
+Xm = max(Promedios)
+#Si hacemos Xm ==  mean(DFTL$RS), saldría 1. Eso quiere decir que RS es la mas frecuente, sin contar a deporte.
+
+Ym = mean(DFTL$Deporte)
+
+n <-length(DFTL$TL)
+
+sdx <- sd(DFTL$RS) 
+sdy <- sd(DFTL$Deporte) 
+
+
+uo <- 0 
+divisor <- sqrt((sdx^2)/n + (sdy^2)/n)
+z <- ((Xm - Ym)- uo)/divisor
+
+
+round(z,2) #estadístico de prueba
+
+
+
+
+
+```
+
+
+
+```{r echo = F}
+round(qnorm(0.01,lower.tail = F),2) #zcritico (inicio de la zona de rechazo)
+```
+
+De manera gráfica: 
+```{r echo = F, fig.align = "center"}
+
+
+
+
+z <- ((Xm - Ym)- uo)/divisor
+
+alpha=0.01
+
+
+
+Pc_sup=qnorm(1-alpha)
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-15, to=15, xlim=c(-15, 13), col=3, lwd=4, main="Prueba estilo de vida sedentario")
+
+abline(v=Pc_sup, col="Red")
+
+abline(v=z, col=7)  
+
+```
+
+Por lo tanto, la H0 se rechaza. Eso quiere decir que los estudiantes de ingeniería son más sedentarios que atletas.
+
+Esto tiene sentido si vemos los IC de cada variable. Para horas de sueño se tiene [1.35 , 2.36] y para redes sociales [3.36, 6.42]. Aun tomando el valor más grande la primera y el más pequeño de la segunda la resta seguirá siendo positiva.
+
+
+
+
+
+## **Regresión**
+
+
+### ¿El tiempo libre define a las horas de sueño?
+Consideramos que de alguna manera tener tiempo libre afectaría a las horas de sueño. Se analizá:  
+X = Tiempo libre    
+Y = Horas de sueño  
+```{r echo=FALSE}
+TL <- DF %>% mutate(TL = Deporte + Videojuegos + SS + AA + RS) 
+```
+
+```{r echo=FALSE}
+x = TL$TL
+y = DF$HS
+data = data.frame(cbind(y,x))
+
+
+regresion <- lm(y ~ x, data = data)
+
+```
+
+
+
+##### Supuestos:
+
+
+Distribución normal de los errores:
+
+```{r echo =FALSE}
+xfit <- seq(min(regresion$residuals),max(regresion$residuals),length=40)
+yfit <- dnorm(xfit)
+plot(xfit,yfit)
+
+
+```
+
+
+Media de los errores:
+```{r}
+mean(regresion$residuals)
+
+
+```
+
+A partir de esto consideramos que podríamos hacer la regresión lineal.
+
+
+
+
+##### Modelo propuesto
+
+```{r}
+summary(regresion)
+```
+
+
+$$\text{Y = 6.09 + 0.03X} $$
+
+##### Prueba de hipotesis para el Intercepto (ßo)
+
+Ho: ßo = 0   
+H1: ßo ≠ 0  
+
+Se obtiene un p-valor = 2e-16 menor a α = 0.05, se rechaza H0, entonces ßo no es cero. 
+
+##### Prueba de hipotesis para el coeficiente de edad (ß1)
+
+Ho: ß1 = 0   
+H1: ß1 ≠ 0  
+
+Se obtiene un p-valor = 0.0166 menor a α = 0.05, se rechaza H0, entonces ß1 no es cero.
+
+###### R cuadrado
+El R-cuadrado cercano a cero indica que el modelo no explica en gran medida la relación de las variables. 
+
+##### R correlación
+```{r echo=FALSE}
+cor(data)
+```
+La correlación calculada indica que las variables están débilmente relacionadas.
+
+##### Gráfica
+
+```{r echo=FALSE}
+plot(x,y, xlab = "Tiempo libre", ylab = "Horas de sueño")
+abline(regresion, col = "black")
+Et=c("Y = 6.09 + 0.03X")
+legend("topright", legend = Et , fill=c("blue","cyan"))
+```
+
+##### Predicción de valores
+
+```{r}
+nuevos.x <- data.frame(x = c(36,38,40,41,42,43))
+predict(regresion,nuevos.x)
+```
+
+Mientras más horas de tiempo libre tengas, duermes un poco más. Pero, esta cantidad que aumenta no es muy significativa que digamos.
+
+#### ¿Las horas de estudio definen al tiempo libre?
+
+Consideramos que mientras más horas de estudio, menos tiempo libre. Se analizará:  
+X= Horas de estudio    
+Y= Tiempo libre    
+```{r echo=FALSE}
+TL <- DF %>% mutate(TL = Deporte + Videojuegos + SS + AA + RS) 
+```
+
+```{r echo=FALSE}
+x = DF$HE
+y = TL$TL
+data = data.frame(cbind(y,x))
+```
+
+```{r echo=FALSE}
+regresion <- lm(y ~ x, data = data)
+
+```
+
+##### Supuestos:
+
+
+Distribución normal de los errores:
+
+```{r echo =FALSE}
+xfit <- seq(min(regresion$residuals),max(regresion$residuals),length=40)
+yfit <- dnorm(xfit)
+plot(xfit,yfit)
+
+
+```
+
+
+Media de los errores:
+```{r}
+mean(regresion$residuals)
+
+
+```
+
+La distribución normal de los errores no se cumple. Por lo tanto, no tiene sentido seguir haciendo la regresión.
+
+### ¿La edad define a las horas dedicadas a los videojuegos? 
+Queremos comprobar si la edad influye realmente en el interés de videojuegos. Se analizará.  
+X: Edad  
+Y: Horas de videojuegos  
+
+```{r echo=FALSE}
+x = DF$Edad
+y = DF$Videojuegos
+data = data.frame(cbind(y,x))
+```
+
+
+
+```{r echo=FALSE}
+regresion <- lm(y ~ x, data = data)
+
+```
+
+##### Supuestos:
+
+
+Distribución normal de los errores:
+
+```{r echo =FALSE}
+xfit <- seq(min(regresion$residuals),max(regresion$residuals),length=40)
+yfit <- dnorm(xfit)
+plot(xfit,yfit)
+
+
+```
+
+
+Media de los errores:
+```{r}
+mean(regresion$residuals)
+
+
+```
+
+A partir de esto consideramos que podríamos hacer la regresión lineal.
+
+
+##### Modelo propuesto
+
+```{r}
+summary(regresion)
+```
+
+
+$$\text{Y = 4.79 - 0.098X} $$
+
+##### Prueba de hipotesis para el Intercepto (ßo)
+
+Ho: ßo = 0   
+H1: ßo ≠ 0
+
+Se obtiene un p-valor = 0.0575 mayor a α = 0.05, se acepta H0, entonces ßo es cero, y no existirá intercepto para el modelo. 
+
+##### Prueba de hipotesis para el coeficiente de edad (ß1)
+
+Ho: ß1 = 0   
+H1: ß1 ≠ 0  
+
+Se obtiene un p-valor = 0.4535 mayor a α = 0.05, se acepta H0, entonces ß1 es cero, entonces las variables no están relacionadas. 
+
+##### R cuadrado
+El R-cuadrado cercano a cero indica que el modelo no explica en gran medida la relación de las variables. 
+
+##### R correlación
+```{r echo=FALSE}
+cor(data)
+```
+La correlación calculada indica que las variables están débilmente relacionadas.
+
+Después de analizar lo anterior, se afirma que no existe un modelo que pueda explicar la dependencia entre la edad y horas usadas en videojuegos, pues la variable no están relacionadas.
+
+
+##### Gráfica y predicción de valores 
+
+No tiene sentido hacer una gráfica ni una predicción de valores. Las hipótesis para el $B_0$ y $B_1$ no rechazan, eso quiere decir que nuestro modelo es igual a una constante (0).
+
+
+## Conclusiones y reflexiones
+
+
+Este estudio por la parte descriptiva y la inferencial llego a los siguientes resultados:
+
+- Los estudiantes de UTEC no juegan mucho a los videojuegos. Usando la variable aleatoria que habla de horas de videojuegos y carreras, encontramos que hay carreras que juegan más que otras.
+
+- Viendo los gráficos encontramos que la actividad más realizada es redes sociales. Eso quiere decir que si lo comparamos con el deporte los estudiantes usan más las redes sociales. También se demostró esto usando una prueba de hipótesis de resta de medias. Donde se rechazó la hipótesis nula que decía que se dedicaba más tiempo al deporte que a las redes sociales. Esto es preocupante, la salud de los estudiantes de UTEC no se cuida mucho.
+
+- Viendo los gráficos encontramos que la mayoría de personas (81%) duermen entre 4 y 7 horas. Al separar a los estudiantes en grupos con asistencia financiera y sin asistencia financiera y realizarle una prueba de hipótesis a su media de horas de sueño, descubrimos lo mismo. No importa el grupo al que pertenezcas (becado o no), la media de horas de sueño va a ser diferente de 8. 
+
+- Se puede decir que los estudiantes de ingeniería tienen 2 horas promedio diarias de tiempo libre. Este dato habría compararlo con las horas de tiempo libre en otras universidades.
+
+- Tratamos de modelar 3 modelos: el tiempo libre vs horas de sueño, horas de estudio vs tiempo libre, edad vs horas dedicadas a los videojuegos. El único modelo que resulto exitoso fue el tiempo libre vs horas de sueño. En la muestra, mientras más tiempo libre tengas más dormirás.
+
+- Sería interesante realizar una reencuesta de nuestros datos, con otro enfoque. Donde buscaríamos encontrar las diferencias entre los estudiantes de ingeniería de UTEC de sexo femenino y los estudiantes de ingeniería de UTEC de sexo masculino. En esta reencuesta sería necesario buscar variables numéricas continuas, para hacer una regresión satisfactoria. Apartado que no se vio mucho en nuestro trabajo.
+
+
+
+
+
+
+
+
