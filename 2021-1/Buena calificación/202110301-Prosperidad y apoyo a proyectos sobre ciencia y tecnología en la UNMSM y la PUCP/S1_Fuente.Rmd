@@ -1,0 +1,607 @@
+---
+title: "Prosperidad y apoyo a proyectos sobre ciencia y tecnología en la UNMSM y la PUCP - Entrega P4"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+
+<div style="text-align: justify">
+
+# Relevancia
+Gregory Mankiw, economista de la universidad de Princeton, en su libro "Principios de la economía" hace notar que la productividad de un país esta estrechamente vinculado a la calidad de vida de sus habitantes. Asimismo, en este mismo libro, el economista explica los factores que influyen en la productividad, entre los cuales resalta la educación y el conocimiento, el cual se puede expresar en investigación y proyectos.
+
+Creemos que la investigación sobre las ciencias y tecnología es un indicador de progreso para el país debido a que genera mayores tasas de productividad a futuro y por ello puede incrementar el PBI del Perú. Si pensamos en cualquier país con una economía y desarrollo grande podemos darnos cuenta que también tienen un desarrollo científico y tecnológico grande. Además, si se empiezan a desarrollar más proyectos de ciencia y tecnología, se pueden encontrar soluciones a problemas de la vida cotidiana lo que lleva a un país mejor desarrollado desde el aspecto social. Este estudio nos ayudará a descubrir qué factores(económicos y temáticos principalmente) influyen para lograr desarrollar un proyecto de ciencias y/o tecnología de manera exitosa en universidades que representan distintas realidades; la Universidad Nacional Mayor de San Marcos y la Pontificia Universidad Católica del Perú. 
+
+
+
+# Objetivo
+- Hallar las proporciones de financiación de los 3 principales entes financiadores tales como Universidad, Privados y CONCYTEC
+- Evaluar el apoyo económico que se da a los proyectos a través de los años.
+- Evaluar la representatividad de nuestra muestra a través de pruebas de hipótesis.
+- Encontrar relaciones de dependencia entre las variables de nuestra base de datos.
+
+
+# Marco Teórico
+- Población Objetivo: Proyectos universitarios sobre ciencia y tecnología de la PUCP y UNMSM.
+- Unidades muestrales: 150 proyectos de las dos universidades.
+- Variables de clasificación:
+
+Variable| Tipo de variable | 
+-----------|----------|----------|
+Nombre de proyecto|Categórica|Nominal|
+Universidad|Categórica|Nominal|
+Profesor responsable|Categórica|Nominal|
+Área de aplicación|Categórica|Nominal|
+Numero de carreras involucradas|Numérica|Discreta|
+Año de inicio|Numérica|Discreta|
+En desarrollo o culminado|Categórica|Nominal|
+Financiado por CONCYTEC/FONDYTEC|Categórica|Nominal|
+Cantidad financiada por parte de CONCYTEC/FONDYTEC|Numérica|Continua|
+Financiado por privados|Categórica|Nominal|
+Cantidad de financiación por privados|Numérica|Continua|
+Financiado por universidad|Categórica|Nominal|
+Cantidad financiada por universidad|Numérica|Continua|
+Total financiado|Numérica|Continua|
+Objetivo cumplido|Categórica|Nominal|
+1-4 qué tanto se cumplieron los objetivos|Categórica|Ordinal
+Área de aplicación 1|Categórica|Nominal
+Área de aplicación 2|Categórica|Nominal
+Área de aplicación 3|Categórica|Nominal
+Área de aplicación 4|Categórica|Nominal
+Área de aplicación 5|Categórica|Nominal
+CANTIDAD DE AREAS RELACIONADAS|Numérica|Discreta|
+
+
+
+- Obtención de datos y tipo de muestreo: Base de datos y encuestas. Muestreo por conveniencia.
+
+# Código
+```{r}
+library(readr)
+library(dplyr)
+library(modeest)
+DF <- read_csv("P4.csv")
+DFPUCP<- DF %>% filter(Universidad=="PUCP")
+DFUNMSM<- DF %>% filter(Universidad=="UNMSM")
+```
+## Parámetros del estudio
+
+### Número de observaciones
+
+```{r}
+nrow(DF)
+```
+### Número de variables
+```{r}
+ncol(DF)
+```
+### Número de muestra de los proyectos totales de la UNMSM y la PUCP
+```{r}
+nSM<-nrow(DFUNMSM)
+nPUCP<-nrow(DFPUCP)
+nSM
+nPUCP
+```
+
+### Número de muestra de los proyectos de cada área de aplicación
+```{r}
+unique(DF$`Área de aplicación`)
+DFING<- DF %>% filter(`Área de aplicación`=="Ingeniería")
+DFCIENCIAS<- DF %>% filter(`Área de aplicación`=="Ciencias")
+DFMED<- DF %>% filter(`Área de aplicación`=="Medicina")
+
+
+nING<-nrow(DFING)
+nCIENCIAS<-nrow(DFCIENCIAS)
+nMED<-nrow(DFMED)
+
+nING
+nCIENCIAS
+nMED
+```
+
+### Nivel de confianza
+Se utilizará un nivel de confianza de 95%. Si bien este nivel de confianza nos da intervalos algo grandes, si queremos tener intervalos más pequeños, necesitamos bajar mucho el nivel de confianza, lo que generaría que los resultados que obtengamos no sean confiables; en otras palabras, preferimos una alta confianza con un intervalo grande a una baja confianza con un intervalo más pequeño.
+
+
+## Descriptores numéricos
+### Media de financiamiento por distintos sectores
+#### Media de financiamiento por CONCYTEC
+
+Es importante debido a que nos permite tener una idea general de que tanto apoya CONCYTEC económicamente a las dos universidades independientemente.
+
+```{r}
+mediaCONCYTECPUCP<-mean(DFPUCP$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`,na.rm = TRUE)
+mediaCONCYTECUNMSM<-mean(DFUNMSM$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`,na.rm=TRUE)
+mediaCONCYTECPUCP
+mediaCONCYTECUNMSM
+
+```
+
+Intervalos de confianza:
+```{r}
+alpha<- 1 - 0.95
+z<-qnorm(alpha/2,lower.tail=F)
+sigmaUNMSM<-sd(DFUNMSM$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`,na.rm=TRUE)
+izqSM<-mediaCONCYTECUNMSM-z*sigmaUNMSM/sqrt(nSM)
+derSM<-mediaCONCYTECUNMSM+z*sigmaUNMSM/sqrt(nSM)
+
+sigmaPUCP<-sd(DFPUCP$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`)
+izqPUCP<-mediaCONCYTECPUCP-z*sigmaPUCP/sqrt(nPUCP)
+derPUCP<-mediaCONCYTECPUCP+z*sigmaPUCP/sqrt(nPUCP)
+
+cat("Media financiada por Concytec a la UNMSM está entre (",izqSM,",",derSM,")\n")
+cat("Media financiada por Concytec a la PUCP está entre (",izqPUCP,",",derPUCP,")")
+
+```
+
+
+Con un 95% de confianza, podemos decir que la media real del financiamiento por parte de CONCYTEC/FONDYTEC para realizar un proyecto en la PUCP esta en el intervalo ( 122988.3 , 234736.9 ) soles.
+
+Para el caso de UNMSM, la media real de financiamiento por parte de CONCYTEC/FONDYTEC esta en el intervalo ( 112106 , 257416.4 ) soles.
+
+
+
+#### Media de financiamiento por privados
+Es importante debido a que nos puede mostrar que universidad elabora proyectos más atractivos para empresas, grupos privados. Esto puede ser de interés para la prosperidad de un proyecto hoy en día debido a que son las empresas quienes terminan utilizando las soluciones de algunos proyectos.
+```{r}
+mediaPrivPUCP<-mean(DFPUCP$`Cantidad de financiacion por privados`,na.rm=TRUE)
+mediaPrivSM<-mean(DFUNMSM$`Cantidad de financiacion por privados`,na.rm=T)
+
+mediaPrivSM
+mediaPrivPUCP
+
+```
+
+Intervalos de confianza:
+
+```{r}
+alpha<- 1-0.95
+z<-qnorm(alpha/2,lower.tail=F)
+sigmaUNMSM1<-sd(DFUNMSM$`Cantidad de financiacion por privados`,na.rm=T)
+izqSM1<-mediaPrivSM-z*sigmaUNMSM1/sqrt(nSM)
+derSM1<-mediaPrivSM+z*sigmaUNMSM1/sqrt(nSM)
+
+sigmaPUCP1<-sd(DFPUCP$`Cantidad de financiacion por privados`,na.rm=TRUE)
+izqPUCP1<-mediaPrivPUCP-z*sigmaPUCP1/sqrt(nPUCP)
+derPUCP1<-mediaPrivPUCP+z*sigmaPUCP1/sqrt(nPUCP)
+
+cat("Media financiada por Privados a la UNMSM está entre (",izqSM1,",",derSM1,")\n")
+cat("Media financiada por Privados a la PUCP está entre (",izqPUCP1,",",derPUCP1,")")
+```
+
+Con un 95% de confianza, podemos decir que la media real de financiamiento por parte de los privados para realizar un proyecto en la PUCP esta en el intervalo (3110.166,67510.95 ) soles
+
+Para el caso de UNMSM, la media real de financiamiento por parte de los privados esta en el intervalo ( 25557.39 , 118333.2 ) soles.
+
+
+
+#### Media de financiamiento por universidad
+Nos permite saber qué tanto financia la universidad a los proyectos de sus estudiantes. Esto puede llevar a que ciertas universidades tengan mejores resultados para poder influenciar a su prosperidad y  ser un mejor indicador de qué tanto apoya una universidad a un proyecto. 
+```{r}
+media_PUCP<-mean(DFPUCP$`Cantidad financiada por universidad`,na.rm=TRUE)
+media_UNMSM<-mean(DFUNMSM$`Cantidad financiada por universidad`,na.rm=TRUE)
+```
+
+Intervalos de confianza:
+```{r}
+alpha<- 1-0.95 
+z<-qnorm(alpha/2,lower.tail=F)
+sigmaUNMSM2<-sd(DFUNMSM$`Cantidad financiada por universidad`,na.rm=TRUE)
+izqSM2<-media_UNMSM-z*sigmaUNMSM2/sqrt(nSM)
+derSM2<-media_UNMSM+z*sigmaUNMSM2/sqrt(nSM)
+
+sigmaPUCP2<-sd(DFPUCP$`Cantidad financiada por universidad`,na.rm=TRUE)
+izqPUCP2<-media_PUCP-z*sigmaPUCP2/sqrt(nPUCP)
+derPUCP2<-media_PUCP+z*sigmaPUCP2/sqrt(nPUCP)
+
+cat("Media financiada por la misma Universidad(UNMSM) a sus proyectos está entre  (",izqSM2,",",derSM2,")\n")
+cat("Media financiada por la misma Universidad(PUCP) a sus proyectos está entre  (",izqPUCP2,",",derPUCP2,")")
+```
+
+Con un 95% de confianza, podemos decir que la media real de financiamiento por parte de la universidad para realizar un proyecto de ciencias y/o ingeniería en la PUCP esta en el intervalo ( 29617.86 , 56640.71 ) soles.
+Para el caso de UNMSM, la media real de financiamiento por parte de la universidad esta en el intervalo ( 21517.05 , 79505.3 ) soles.
+
+
+
+### Media de financiamiento por área de aplicación
+#### Medicina
+Nos permite saber la inversión total que brindaron las dos universidades en esta área de aplicación y con los intervalos de confianza se podrá determinar cuál será el rango total real de financiamiento real para Medicina.
+```{r}
+mediaMED<-mean(DFMED$`Total financiado`,na.rm=TRUE)
+mediaMED
+```
+
+Intervalos de confianza:
+```{r}
+alpha<- 1 - 0.95
+t<-qt(alpha/2,nMED-1,lower.tail=F)
+sigmaMed<-sd(DFMED$`Total financiado`,na.rm=TRUE)
+izqMed<-mediaMED-t*sigmaMed/sqrt(nMED)
+derMed<-mediaMED+t*sigmaMed/sqrt(nMED)
+
+
+cat("Media financiada por las universidades al área de medicina está entre (",izqMed,",",derMed,")\n")
+
+```
+Con un 95% de confianza, podemos decir que la media de financiamiento real de medicina para realizar un proyecto de ciencias y/o ingeniería en las dos universidades esta en el intervalo ( 11305.02 , 77512.63 ) soles.
+
+
+#### Ingeniería
+Igual que en el área de Medicina, en el área de financiamiento de ingeniería nos permite saber la inversión total que brindó las dos universidades en esta área de aplicación y con los intervalos de confianza se podrá determinar cuál será el rango total real de financiamiento real para Ingeniería.
+```{r}
+mediaING<-mean(DFING$`Total financiado`,na.rm=TRUE)
+mediaING
+```
+
+Intervalos de confianza:
+```{r}
+alpha<- 1 - 0.95
+z<-qnorm(alpha/2,lower.tail=F)
+sigmaIng<-sd(DFING$`Total financiado`,na.rm=TRUE)
+izqIng<-mediaING-z*sigmaIng/sqrt(nING)
+derIng<-mediaING+z*sigmaIng/sqrt(nING)
+
+cat("Media financiada por las universidades al área de ingeniería  está entre (",izqIng,",",derIng,")\n")
+
+```
+Con un 95% de confianza, podemos decir que la media de financiamiento real de ingeniería para realizar un proyecto de ciencias y/o ingeniería en las dos universidades esta en el intervalo ( 280432.7 , 420025.7 ) soles.
+
+#### Ciencias
+
+En el área de financiamiento de ingeniería nos permite saber la inversión total que brindó las dos universidades en esta área de aplicación y con los intervalos de confianza se podrá determinar cuál será el rango total real de financiamiento real para Ciencias.
+```{r}
+mediaCIENCIAS<-mean(DFCIENCIAS$`Total financiado`,na.rm=TRUE)
+mediaCIENCIAS
+```
+
+Intervalos de confianza:
+```{r}
+alpha<- 1 - 0.95
+z<-qnorm(alpha/2,lower.tail=F)
+sigmaCien<-sd(DFING$`Total financiado`,na.rm=TRUE)
+izqCien<-mediaCIENCIAS-z*sigmaCien/sqrt(nCIENCIAS)
+derCien<-mediaCIENCIAS+z*sigmaCien/sqrt(nCIENCIAS)
+
+cat("Media financiada por las universidades al área de ciencias está entre (",izqCien,",",derCien,")\n")
+```
+Con un 95% de confianza, podemos decir que la media de financiamiento real de ciencias para realizar un proyecto de ciencias y/o ingeniería en las dos universidades esta en el intervalo ( 86699.42 , 320283.2 ) soles.
+
+
+### Media de total financiado
+Podemos tener una idea general de qué universidad tiene un financiamiento total mayor para la elaboración de un proyecto. Para obtenerlo se consigue el financiamiento total por proyecto (privado, universidad, CONCYTEC)
+ 
+```{r}
+mediatotalPUCP<-mean(DFPUCP$`Total financiado`)
+mediatotalSM<-mean(DFUNMSM$`Total financiado`)
+
+mediatotalPUCP
+mediatotalSM
+
+alpha<- 1 - 0.95
+z<-qnorm(alpha/2,lower.tail=F)
+sigmaUNMSM<-sd(DFUNMSM$`Total financiado`,na.rm=TRUE)
+izqSM<-mediatotalSM-z*sigmaUNMSM/sqrt(nSM)
+derSM<-mediatotalSM+z*sigmaUNMSM/sqrt(nSM)
+
+sigmaPUCP<-sd(DFPUCP$`Total financiado`,na.rm=TRUE)
+izqPUCP<-mediatotalPUCP-z*sigmaPUCP/sqrt(nPUCP)
+derPUCP<-mediatotalPUCP+z*sigmaPUCP/sqrt(nPUCP)
+
+cat("(",izqPUCP,",",derPUCP,")\n")
+cat("(",izqSM,",",derSM,")")
+```
+
+Con un 95% de confianza, podemos decir que la media total real de financiamiento para realizar un proyecto de ciencias y/o ingeniería en la PUCP esta en el intervalo ( 203450.1 , 311154.8 ) soles.
+
+Para el caso de UNMSM, la media total real de financiamiento esta en el intervalo ( 212431.4 , 392279.5 ) soles.
+
+
+### Rango intercuartil y Mediana del total financiado
+Nos permitirá saber la posición y dispersión de los datos, lo que nos dará un mejor entendimiento del presupuesto total de un proyecto.
+La mediana y el rango intercuartil nos permitirá saber cuál es la cantidad habitual de dinero que más se da a los proyectos. Notamos que el valor de mediana de la Universidad Católica es mucho más alto que el de la Universidad San Marcos.
+```{r}
+summary(DFPUCP$`Total financiado`)
+
+summary(DFUNMSM$`Total financiado`)
+```
+
+
+
+### Moda de financiamiento total
+La moda nos da el valor de financiamiento total que más se repite en cada universidad. Estos valores hallados estan por debajo de la mediana y la media del total financiado por universidad. Notamos que en los casos que el financiamiento total es la moda, todo el financiamiento se obtiene de la universidad, por lo que podríamos establecer estos valores como valores estándar. Esto no quiere decir que la universidad no dé apoyo económico menor a la media, mas son los que la universidad con más frecuencia brinda.
+```{r}
+modaPUCP<- mfv(DFPUCP$`Total financiado`)
+modaPUCP
+sum(DFPUCP$`Total financiado`==modaPUCP)
+
+modaUNMSM<- mfv(DFUNMSM$`Total financiado`)
+modaUNMSM
+sum(DFUNMSM$`Total financiado`==modaUNMSM)
+```
+## Descriptores gráficos
+```{r}
+DFPUCPF <- DFPUCP %>%  select(`Cantidad financiada por parte de CONCYTEC/FONDYTEC`,`Cantidad de financiacion por privados`,`Cantidad financiada por universidad`)  %>% rename("CONCYTEC"="Cantidad financiada por parte de CONCYTEC/FONDYTEC","PRIVADOS"="Cantidad de financiacion por privados", "UNIVERSIDAD"="Cantidad financiada por universidad")  %>% colSums(.,na.rm=TRUE)/nrow(DFPUCP)
+
+
+DFUNMSMF <- DFUNMSM %>%  select(`Cantidad financiada por parte de CONCYTEC/FONDYTEC`,`Cantidad de financiacion por privados`,`Cantidad financiada por universidad`) %>% rename("CONCYTEC"="Cantidad financiada por parte de CONCYTEC/FONDYTEC","PRIVADOS"="Cantidad de financiacion por privados", "UNIVERSIDAD"="Cantidad financiada por universidad") %>%  colSums(.,na.rm=TRUE)/nrow(DFUNMSM)
+
+DFProyecto <-matrix(c(DFPUCPF/sum(DFPUCPF),DFUNMSMF/sum(DFUNMSMF)),nrow=3,ncol=2)
+colnames(DFProyecto) <- c('PUCP', 'UNMSM')
+rownames(DFProyecto) <- c("CONCYTEC","PRIVADOS","UNIVERSIDAD")
+```
+
+
+### Comparación por medio del diagrama de barras
+Es relevante debido a que nos compara que tanto financian las distintas entidades cada proyecto, por lo que se puede entender quien afecta más a la prosperidad económica del proyecto. En ambos casos vemos que CONCYTEC es quien más apoyo financiero da.
+
+```{r}
+barplotPUCP <- barplot(DFPUCPF,col=c("red","red","red"),main="Financia por Proyecto PUCP",font.axis=3)
+text(barplotPUCP, DFPUCPF - 15000, labels = DFPUCPF)
+```
+```{r}
+barplotUNMSM <- barplot(DFUNMSMF,col=c("yellow","yellow","yellow"),main="Financia por Proyecto UNMSM",font.axis=3)
+text(barplotUNMSM, DFUNMSMF - 15000, labels = DFUNMSMF)
+```
+
+### \n Diagrama de barras apilada, comparación de contribución por proyecto
+Este diagrama de barras apiladas nos muestra el porcentaje de contribución que tiene cada tipo de financiador por proyecto. Como se ve en ambas barras, quien más apoya económicamente a los proyectos es CONCYTEC. Luego, para cada universidad, varía el segundo financiador que más aporta, siendo en la PUCP la misma universidad y en la UNMSM, privados.
+De acuerdo con el diagrama, quien es más importante para la prosperidad de los proyectos es CONCYTEC, debido a que es el ente que más apoyo brinda por proyecto, por lo que si CONCYTEC deja de apoyar económicamente podría ser un problema la realización de algunos proyectos.
+```{r}
+barplot(DFProyecto,
+        main = "Comparación de porcentajes de contribución por proyecto",
+        xlab="Universidad", ylab="Frecuencia",
+        col=c("blue","green","purple"), legend.text = rownames(DFProyecto), beside=F)
+```
+
+### Boxplot
+Muestra posición y dispersión del financiamiento total para un proyecto. Al ser la representación visual de los valores, es más fácil de entender, además que nos muestra más información. 
+
+En el caso del boxplot para la PUCP, se nota una distribución sesgada hacia la derecha (el valor de la media es mayor al de la mediana). En el caso del boxplot para la UNMSM, también hay una distribución sesgada hacia la derecha.
+
+Si comparamos ambos rangos intercuartiles notamos un mayor rango intercuartil en la UNMSM, debido a que hay menor concentración de datos en comparación a la PUCP.
+
+```{r}
+bpPUCP <-DFPUCP$`Total financiado`
+bpUNMSM <- DFUNMSM$`Total financiado`
+ynom=c("PUCP","UNMSM")
+boxplot(bpPUCP,bpUNMSM,names=ynom, horizontal=TRUE, main="Boxplot Financiamiento Total por proyecto", xlab = "Soles")
+abline(v=mean(DFPUCP$`Total financiado`),col="red")
+abline(v=mean(DFUNMSM$`Total financiado`),col="yellow")
+```
+
+
+## Pruebas de hipótesis
+
+### Media de financiamiento de la PUCP a sus proyectos
+H0=La media del financiamiento de la PUCP a sus proyectos será 50000 soles.Este valor de H0 se tomó debido a que es la moda.
+Ha=La media del financiamiento de la PUCP a sus proyectos será diferente a 50000 soles.
+
+El estadístico a usar será la media muestral o el promedio de la muestra.
+Esta será una prueba de hipótesis bilateral, ya que la media puede diferir al valor de la hipótesis nula en ambas direcciones.
+
+Esta prueba de hipótesis se analizará con un 95% de confianza.
+
+Se define la región de rechazo, con una normal.
+```{r}
+alpha<- 1 - 0.95
+zizq <- qnorm(alpha/2, mean = 50000, sd = sd(DFPUCP$`Cantidad financiada por universidad`,na.rm=T)/sqrt(nPUCP), lower.tail=T)
+zder <- qnorm(alpha/2, mean = 50000, sd = sd(DFPUCP$`Cantidad financiada por universidad`,na.rm=T)/sqrt(nPUCP), lower.tail=F)
+zizq
+zder
+```
+Analizamos si la media cae dentro de la región de rechazo:
+```{r}
+(mean(DFPUCP$`Cantidad financiada por universidad`,na.rm=T) > floor(zder)) || (mean(DFPUCP$`Cantidad financiada por universidad`,na.rm=T) < ceiling(zizq))
+mean(DFPUCP$`Cantidad financiada por universidad`,na.rm=T)
+```
+La media muestral resulta ser 43129.29 soles, y la región de rechazo desde menos infinito hasta 36488.58, unido con 63511.42 hasta más infinito. Por ello, como el estadístico no cae en la región de rechazo, no tenemos suficiente evidencia para rechazar la hipótesis nula(H0).
+
+### Media de financiamiento de la UNMSM a sus proyectos
+H0=La media del financiamiento de la UNMSM a sus proyectos será 30000 soles. Este valor de H0 se tomó en base a lo hallado con la moda.
+Ha=La media del financiamiento de la UNMSM a sus proyectos será diferente a 30000 soles.
+
+El estadístico a usar será la media muestral o el promedio de la muestra.
+Esta será una prueba de hipótesis bilateral, ya que la media puede diferir al valor de la hipótesis nula en ambas direcciones.
+
+Esta prueba de hipótesis se analizará con un 95% de confianza.
+
+Se define la región de rechazo, con una normal.
+```{r}
+alpha<- 1 - 0.95
+zizq <- qnorm(alpha/2, mean = 30000, sd = sd(DFUNMSM$`Cantidad financiada por universidad`,na.rm=T)/sqrt(nSM), lower.tail=T)
+zder <- qnorm(alpha/2, mean = 30000, sd = sd(DFUNMSM$`Cantidad financiada por universidad`,na.rm=T)/sqrt(nSM), lower.tail=F)
+zizq
+zder
+```
+Analizamos si la media cae dentro de la región de rechazo:
+```{r}
+(mean(DFUNMSM$`Cantidad financiada por universidad`,na.rm=T) > floor(zder)) || (mean(DFUNMSM$`Cantidad financiada por universidad`,na.rm=T) < ceiling(zizq))
+mean(DFUNMSM$`Cantidad financiada por universidad`,na.rm=T)
+```
+Como el estadístico no cae en la región de rechazo, no tenemos suficiente evidencia para rechazar la hipótesis nula(H0).
+
+
+### Media de financiamiento de CONCYTEC
+Se encontró un dato de un presupuesto de CONCYTEC para 190 proyectos, siendo este de 57 millones de soles. Podemos sacar el promedio y usarlo como valor teórico del financiamiento de CONCYTEC por proyecto que si han financiado(300000 soles). Este promedio lo compararemos con la media muestral de financiamiento de Concytec cuando sí financia Concytec, debido a que si no financia estaríamos calculando un promedio erróneo.
+
+```{r}
+DFCONCY <- DF %>%  filter(`Financiado por CONCYTEC/FONDYTEC`=='SI')
+```
+
+
+H0=La media de financiamiento por parte de CONCYTEC a cada proyecto que si ha financiado es 300000 soles.
+Ha=La media de financiamiento por parte de CONCYTEC a cada proyecto es si ha financiado es distinta a 300000 soles.
+
+```{r}
+alpha <- 1 - 0.95
+zizq<- qnorm(alpha/2, mean = 300000, sd = sd(DFCONCY$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`,na.rm=T)/sqrt(nrow(DFCONCY)), lower.tail=T)
+zder<- qnorm(alpha/2, mean = 300000, sd = sd(DFCONCY$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`,na.rm=T)/sqrt(nrow(DFCONCY)), lower.tail=F)
+zizq
+zder
+```
+Analizamos si la media cae dentro de la región de rechazo:
+```{r}
+(mean(DFCONCY$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`) > zder) || (mean(DFCONCY$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`) < zizq)
+mean(DFCONCY$`Cantidad financiada por parte de CONCYTEC/FONDYTEC`)
+```
+Como el estadístico cae en la región de rechazo, tenemos suficiente evidencia para rechazar la hipótesis nula(H0). Esto puede suceder debido a que la información sobre la media teórica que tomamos (300 000 soles) data de un artículo publicado en 2018 y nuestra media muestral considera datos de hasta el 2020. Dicho de otra manera, nuestros datos muestrales superan la fecha de publicación del artículo (dato teórico), en los años posteriores del artículo puede ser que la media haya cambiado en el periodo de esos años, esto explicaría el porque se rechaza la hipótesis nula.
+
+
+
+## Modelos de Regresión y Dependencia
+### Total financiado y año de inicio
+Conforme el tiempo a avanzado,queremos ver si hay alguna tendencia de cambio de financiamiento por proyecto. Por ello, queremos ver qué tanto explica la variación del total financiado, el año de inicio del proyecto.
+```{r}
+cor(x=(DF$`Año de inicio`),y=(DF$`Total financiado`),use="pairwise.complete.obs")
+plot(x=(DF$`Año de inicio`),y=(DF$`Total financiado`))
+lt1<-lm(DF$`Total financiado`~DF$`Año de inicio`)
+abline(lt1,col="red")
+summary(lt1)
+plot(lt1)
+```
+
+\n Notamos que conforme avanza el tiempo, el total financiado se hace menor. Esto también lo indica el coeficiente de correlación: -0.46.
+Evaluando las gráficas de diagnóstico que nos brinda el comando 'summary':
+
+- Residuos: se nota que hay problemas con los residuos, no hay homocedasticidad, debido a que la variación es distinta dependiendo del rango en el que se encuentra.
+- Normal Q-Q: en la parte del media parece seguir una distribución normal (0,1), pero en los extremos se tienen valores mayores a lo esperado por una normal.
+- 3era gráfica: La línea debería estar en 1, debido a que la desviación estándar debería ser 1 al ser normalizada. Que esté de la manera que sale es potencialmente un error.
+- Apalancamiento: En donde aparecen las líneas punteadas rojas (conjuntos de nivel), que demuestran que el punto número 76 afecta mucho la gráfica. Además el punto 11 y 62, también afectan bastante, similar al último Cuarteto de Anscombe.
+
+Se intentan corregir las gráficas:
+```{r}
+plot(x=(DF$`Año de inicio`),y=(DF$`Total financiado`))
+cond <- c(DF$"Año de inicio"<2016)
+cond1 <- c(DF$"Año de inicio"==2021)
+
+points(DF$`Año de inicio`[cond],DF$`Total financiado`[cond],pch=20,col="red")
+points(DF$`Año de inicio`[cond1],DF$`Total financiado`[cond1],pch=20,col="red")
+lt2<-lm(DF$`Total financiado`[-cond][-cond1]~DF$`Año de inicio`[-cond][-cond1])
+abline(lt1)
+abline(lt2,col="green")
+```
+
+
+```{r}
+summary(lt2)
+```
+
+\n En este modelo de regresión, obtuvimos que efectivamente podría haber una relación de dependencia entre estas dos variables, debido a que después de eliminar ciertas observaciones, el comportamiento de las gráficas mejoro, disminuyendo el error que existe, es decir, las observaciones no llegan al margen de error en el apalancamiento.
+Los puntos eliminados que causaban un 'error' eran de años donde no se tenían muchos datos como el 2013 (1), 2014(2), 2015(1) y 2021(1), debido a que al no contar con suficientes datos de esos años estos datos pueden ser valores atípicos.
+
+Se ve claramente la modelo de dependencia entre el total financiado y el año de inicio. En este caso, la variable independiente sería el año de inicio y la variable dependiente, el total financiado. En ambos casos, tanto el incerpecto como la variable dependiente son significativos. El pvalor también es significativo debido a que es menor que la signifcancia establecida (5%), por ello se rechaza la hipótesis nula de que el modelo no es significativo. La ecuación tendría la siguiente forma
+$$Total Financiado(t) = 242721689 - 120112t$$
+
+### Total financiado y áreas relacionadas
+Creemos que mientras más áreas relacionadas tenga un proyecto, mayor va a ser la cantidad total que se le financie.
+```{r}
+cor(x=(+0  + DF$`CANTIDAD DE AREAS RELACIONADAS`),y=(DF$`Total financiado`),use="pairwise.complete.obs")
+plot(x=(+0  + DF$`CANTIDAD DE AREAS RELACIONADAS`),y=(DF$`Total financiado`))
+lt4<-lm(DF$`Total financiado` ~ +0 +DF$`CANTIDAD DE AREAS RELACIONADAS`)
+abline(lt4,col='red')
+summary(lt4)
+plot(lt4)
+```
+
+\n Se fija el intercepto en cero debido a que si se tienen 0 áreas relacionadas, no se tendría un proyecto y por lo tanto no se tendría financiación. Notamos que conforme se tienen más áreas relacionadas, el total financiado es mayor según la recta de regresión. El coeficiente de correlación toma un valor de 0.30.
+Evaluando las gráficas de diagnóstico que nos brinda el comando 'summary':
+
+- Residuos: se nota que hay problemas con los residuos, no hay homocedasticidad, debido a que la variación es distinta dependiendo del rango en el que se encuentra.
+- Normal Q-Q: en la parte del tiene similitudes una distribución normal (0,1), pero en los extremos, sobretodo el derecho se tienen valores mucho mayores a lo esperado por una normal.
+- 3era gráfica: La línea debería estar en 1, debido a que la desviación estándar debería ser 1 al ser normalizada. Que esté de la manera que sale es potencialmente un error.
+- Apalancamiento: En donde aparecen las líneas punteadas rojas (conjuntos de nivel), que demuestran que el punto número 11 afecta mucho la gráfica. Además el punto 71 y 48, también afectan bastante, similar al último Cuarteto de Anscombe.
+
+Se intentan corregir las gráficas:
+```{r}
+plot(x=(+0  + DF$`CANTIDAD DE AREAS RELACIONADAS`),y=(DF$`Total financiado`))
+points(DF$`CANTIDAD DE AREAS RELACIONADAS`[71],DF$`Total financiado`[71],pch=20,col="red")
+points(DF$`CANTIDAD DE AREAS RELACIONADAS`[48],DF$`Total financiado`[48],pch=20,col="red")
+points(DF$`CANTIDAD DE AREAS RELACIONADAS`[11],DF$`Total financiado`[11],pch=20,col="red")
+lt4_2<-lm(DF$`Total financiado`[-71][-48][-11]~+0 +DF$`CANTIDAD DE AREAS RELACIONADAS`[-71][-48][-11])
+abline(lt4)
+abline(lt4_2,col="green")
+```
+
+
+
+```{r}
+summary(lt4_2)
+plot(lt4_2)
+```
+
+\n Al eliminar los puntos 11, 48 y 71, se elimina el error, y mejora el modelo en cierta medida. Antes de eliminar los puntos, el $R^2$ era igual a 0.4231, y ahora es de 0.4279.
+
+El modelo indica que hay una relación entre las dos variables: áreas relacionadas y total financiado; en donde las áreas relacionadas serían la variable independiente, y el total financiado la variable dependiente. En este caso como el intercepto fue fijado, nos importa la pendiente, la cual es significante. El modelo, es significativo al tener un pvalor menor a la significancia por lo que se rechaza la hipótesis nula de que el modelo no es significativo.
+
+Resulta en la siguiente dependencia $$TotalFinanciado(ar)=119771ar$$
+
+
+Algo que nos parece interesante es que notamos que cuando se tienen 5 áreas relacionadas, el total financiado parece decaer, por lo que evaluaremos más a fondo que sucede.
+Por ello sólo evaluaremos de 1 a 4, debido a que para 5 no consideramos tener los suficientes datos para estar seguros que ellos sean íntegros.
+
+```{r}
+plot(DF$`Total financiado`~+0 +DF$`CANTIDAD DE AREAS RELACIONADAS`)
+lt4_3<-lm(DF$`Total financiado`[DF$`CANTIDAD DE AREAS RELACIONADAS`<=4]~+0 +DF$`CANTIDAD DE AREAS RELACIONADAS`[DF$`CANTIDAD DE AREAS RELACIONADAS`<=4])
+points(DF$`CANTIDAD DE AREAS RELACIONADAS`[DF$`CANTIDAD DE AREAS RELACIONADAS`==5],DF$`Total financiado`[DF$`CANTIDAD DE AREAS RELACIONADAS`==5],pch=20,col="red")
+abline(lt4)
+abline(lt4_3,col="green")
+summary(lt4_3)
+plot(lt4_3)
+```
+
+\n Con esto vemos que el modelo de regresión se ajusta mejor a los datos de 1 a 4 áreas relacionadas. Notamos que la pendiente es significante y que el modelo tiene un pvalor menor a la significancia por lo que se concluye que el modelo es significativo. El modelo obtiene un $R^2$ de 0.4299, mejor que lo modelado anteriormente, en donde se forma la siguiente ecuación.
+$$TotalFinanciado(ar)=141301ar$$
+
+
+
+### Total financiado y número de carreras
+Creemos que ambas variables están relacionadas, debido a que a mayor número de carreras, va a haber un mayor total financiado.
+```{r}
+cor(x=(+0 + DF$`Número de carreras involucradas`),y=(DF$`Total financiado`),use="pairwise.complete.obs")
+plot(x=(+0 + DF$`Número de carreras involucradas`),y=(DF$`Total financiado`))
+lt5<-lm(DF$`Total financiado` ~ +0 + DF$`Número de carreras involucradas`)
+abline(lt5)
+summary(lt5)
+plot(lt5)
+```
+
+\n Notamos que conforme se tienen más carreras involucradas, el total financiado es mayor según la recta de regresión. El coeficiente de correlación es igual a 0.16.
+Evaluando las gráficas de diagnóstico que nos brinda el comando 'summary':
+
+- Residuos: no presenta homocedasticidad, debido a que la variación es distinta dependiendo del rango en el que se encuentra.
+- Normal Q-Q: una parte tiende a una distribución normal (0,1), pero desde aproximadamente la mitad hasta el final, se pasan los valores esperados.
+- 3era gráfica: La línea debería estar en 1, debido a que la desviación estándar debería ser 1 al ser normalizada. Que esté de la manera que sale es potencialmente un error.
+- Apalancamiento: En donde aparecen las líneas punteadas rojas (conjuntos de nivel), que demuestran que el punto número 71 afecta mucho la gráfica. Además el punto 11 y 62, también afectan bastante, similar al último Cuarteto de Anscombe.
+
+Se intentan corregir las gráficas:
+```{r}
+plot(x=(+0 + DF$`Número de carreras involucradas`),y=(DF$`Total financiado`))
+points(+0 + DF$`Número de carreras involucradas`[71],DF$`Total financiado`[71],pch=20,col="red")
+points(+0 + DF$`Número de carreras involucradas`[62],DF$`Total financiado`[62],pch=20,col="red")
+points(+0 + DF$`Número de carreras involucradas`[11],DF$`Total financiado`[11],pch=20,col="red")
+lt6<-lm(DF$`Total financiado`[-71][-62][-11]~+0 + DF$`Número de carreras involucradas`[-71][-62][-11])
+abline(lt5)
+abline(lt6,col="green")
+```
+
+
+```{r}
+summary(lt6)
+plot(lt6)
+```
+
+\n Eliminando los 3 puntos, se sigue teniendo una relación, no obstante este valor disminuye en algo. Sin los últimos 3 puntos, la regresión es significante, y muestra significancia entre el número de carreras involucradas y el total financiado.
+
+Se tiene la siguiente dependencia: $$TotalFinanciado(c)=81788c$$
+
+# Conclusiones
+- La financiación obtenida por parte de CONCYTEC es sumamente importante porque representa la mayor fuente de financiación de proyectos para la PUCP y la UNMSM. Las financiación por parte de la universidad es también importante porque es la fuente de financiación mas común entre los proyectos, aunque, en general, no brinde cantidades muy grandes de dinero. 
+- Las diferentes áreas de investigación no  reciben la misma financiación, existe una predilección por financiar proyectos de ingeniería, además, los proyectos de Medicina, en general, reciben poca financiación en comparación a las otras áreas.
+- Aparentemente, existe una dependencia entre la cantidad financiada y la cantidad de áreas que involucran los proyectos. Es una relación lógica pues si el proyecto abarca más áreas del conocimiento es más versátil y tiene posibilidad de tener más impacto.
+- Con un 95% de confianza podemos afirmar que la muestra financiada por CONCYTEC no es realmente representativa pues su media fue diferente a la teórica.
+- Con un 95% de confianza podemos afirmar que la muestra financiada por las universidades PUCP y UNMSM es representativa pues no se rechazaron las hipótesis nulas.
+- Tenemos evidencia, como para afirmar, con un 95% de confianza, que la financiación total de los proyectos tiende a disminuir conforme pasan los años.
