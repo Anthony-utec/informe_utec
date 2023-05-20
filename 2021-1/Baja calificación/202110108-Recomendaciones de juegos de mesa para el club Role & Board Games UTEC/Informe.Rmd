@@ -1,0 +1,949 @@
+---
+title: "Recomendaciones de juegos de mesa para el club Role & Board Games UTEC."
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+---
+
+
+```{r}
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(jsonlite)
+```
+
+
+-------------------------------------------------------------------
+
+## **Introducción**
+
+El club de juegos de mesa Role & Board Games UTEC está buscando obtener nuevos juegos para ofrecer a sus miembros. Nosotros utilizaremos la data que poseemos de 20 000 juegos de mesa puntuados en la página boardgamegeeks.com para recomendarle juegos de mesa según sus necesidades y gustos.
+
+## **Objetivos**
+  * ### *Objetivo General*
+    + Encontrar patrones en los juegos de mesa que sean de utilidad para decidir si se compra y que dicha decisión este fundamentada sobre un análisis estadístico.
+
+  * ### *Objetivos Específicos*
+    
+    + Encontrar juegos que se ajusten a las necesidades del grupo de Role & Board Games UTEC.
+    + Identificar juegos altamente recomendados por la comunidad de la página boardgamegeeks.com.
+    + Encontrar criterios que permitan juzgar los juegos de mesa antes de comprarlos.
+
+## **Población objetivo**
+El grupo de Role & Board Games UTEC.
+
+## **Espacio muestral**
+Estamos trabajando con una muestra de 20 000 juegos de mesa de un total de 128 850 juegos que se encuentran registrados en la página boardgamegeeks.com. Con estos datos calcularemos el intervalo de confianza que tenemos:
+
+
+$$
+n=\frac{(Z^2*p*q*N)}{((N*e^2)+(Z^2*p*q)}
+$$
+
+* n = Tamaño de muestra
+
+* Z = Nivel de confianza = 99% = 2.58
+
+* N = Población de estudio = 128550
+
+* e = Error de estimación = 1%
+
+* p = Probabilidad de éxito = 0.5
+
+* q = Probabilidad de fracaso = 0.5
+
+```{r}
+(2.58*2.58*0.5*0.5*128850)/(128850*0.01*0.01+2.58*2.58*0.5*0.5)
+```
+
+Si queremos un nivel de confianza de 99%, necesitamos una muestra con un tamaño mínimo de 14 738 aproximadamente. Es por ello que el nivel de confianza de nuestro espacio muestral es el adecuado para el nivel de confianza buscado.
+
+## **Unidad muestral**
+Un juego de mesa de la página boardgamegeeks.com.
+
+## **Método de recolección de datos**
+Consulta base de datos con 128 850 juegos de mesa registrados en la página boardgamegeeks.com.
+
+## **Conjunto de datos**
+El conjunto de datos que estamos utilizando a sido recogido de https://www.kaggle.com/extralime/20000-boardgames-dataset, perteneciente a la página https://www.boardgamegeeks.com. Este conjunto de datos contiene 52 variables y 20 000 observaciones.
+
+
+Cabe mencionar que el conjunto de datos considera 0 como valor nulo; es por eso que, dependiendo de la consulta y si su variable tiene algún cero, estas observaciones serán filtradas para no afectar al resultado del estudio.
+
+## **Limpieza de Datos**
+
+Hemos reducido la cantidad de variables en el conjunto de datos debido a que hay varias que no son relevantes para nuestro estudio, por lo que terminamos eliminando 36 de estas. A las 16 restantes se les cambio el nombre para evitar confusiones por el idioma. Esto nos ayudó a desarrollar y entender mejor las consultas.
+
+
+```{r}
+itlist <- function(l, cond) {
+  res <- c()
+  for(elem in l) {
+    res = append(res, cond(elem))
+  }
+  return(res)
+}
+```
+
+
+```{r}
+DF <- read_csv("boardgames.csv")
+
+DF$sortindex <- NULL
+DF$totalvotes <- NULL
+DF$playerage <- NULL
+DF$usersrated <- NULL
+DF$baverage <- NULL
+DF$stddev <- NULL
+DF$numweights <- NULL
+DF$numgeeklists <- NULL
+DF$numtrading <- NULL
+DF$numwanting <- NULL
+DF$numcomments <- NULL
+DF$siteviews <- NULL
+DF$numplays_month <- NULL
+DF$news <- NULL
+DF$blogs <- NULL
+DF$weblink <- NULL
+DF$podcast <- NULL
+DF$label <- NULL
+DF$boardgamedesigner_cnt <- NULL
+DF$boardgameartist_cnt <- NULL
+DF$boardgamepublisher_cnt <- NULL
+DF$boardgamecategory_cnt <- NULL
+DF$boardgamemechanic_cnt <- NULL
+DF$boardgameexpansion_cnt <- NULL
+DF$boardgameversion_cnt <- NULL
+DF$boardgamefamily_cnt <- NULL
+DF$boardgamedesigner <- NULL
+DF$boardgameartist <- NULL
+DF$boardgamepublisher <- NULL
+DF$boardgamehonor <- NULL
+DF$boardgameversion <- NULL
+DF$boardgamemechanic <- NULL
+DF$boardgameexpansion <- NULL
+DF$boardgamefamily <- NULL
+DF$description <- NULL
+DF$gamelink <- NULL
+
+colnames(DF) <- c("ID", "Nombre", "Ano_de_publicacion", "Min_jugadores", "Max_jugadores", "Min_tiempo_de_juego", "Max_tiempo_de_juego", "Min_edad", "Min_comunidad", "Max_comunidad", "Dependencia_lenguaje", "Nota", "Complejidad", "Cnt_partidas_jugadas", "Premios", "Categorias")
+
+DF$Categorias <- gsub("'", "\"", DF$Categorias)
+DF$Categorias <- sapply(DF$Categorias, fromJSON, USE.NAMES = F)
+```
+
+
+## **Variables**
+Estas son las 16 variables que consideramos importantes para nuestro estudio.
+
+| Variable             |     Tipo     |  Clase   |
+| -------------------- |:------------:|:--------:|
+| ID                   | Categórica   | Nominal  |
+| Nombre               | Categórica   | Nominal  |
+| Ano_de_publicacion   | Categórica   | Ordinal  |
+| Min_jugadores        | Numérica     | Discreta |
+| Max_jugadores        | Numérica     | Discreta |
+| Min_tiempo_de_juego  | Numérica     | Continua |
+| Max_tiempo_de_juego  | Numérica     | Continua |
+| Min_edad             | Numérica     | Discreta |
+| Min_comunidad        | Numérica     | Discreta |
+| Max_comunidad        | Numérica     | Discreta |
+| Dependencia_lenguaje | Categórica   | Ordinal  |
+| Nota                 | Numérica     | Continua |
+| Complejidad          | Numérica     | Continua |
+| Cnt_partidas_jugadas | Numérica     | Discreta |
+| Premios              | Numérica     | Discreta |
+| Categorias           | Categórica   | Nominal  |
+
+* *ID* : Identificador único del juego en la base de datos de la página BGG.
+ 
+* *Nombre*: Nombre del juego.
+ 
+* *Ano_de_publicacion*: Año en el que se publicó el juego.
+ 
+* *Min_jugadores*: Mínimo de jugadores requeridos para poder empezar el juego.
+ 
+* *Max_jugadores*: Máximo de jugadores permitidos para poder jugar.
+ 
+* *Min_tiempo_de_juego*: Mínimo tiempo que toma completar el juego medido en minutos.
+ 
+* *Max_tiempo_de_juego*: Máximo tiempo que puede tomar completar el juego medido en minutos.
+ 
+* *Min_edad*: Edad mínima requerida para entender el juego medido en años.
+ 
+* *Min_comunidad*: Mínima cantidad de jugadores por partida que los usuarios de la página recomiendan.
+ 
+* *Max_comunidad*: Máxima cantidad de jugadores por partida que los usuarios de la página recomiendan.
+ 
+* *Dependencia_lenguaje*: Escala del 1 al 5 que indica que tanto debes conocer el idioma del juego para poder jugar correctamente. A menor número, menor dependencia.
+* *Nota*: Calificación que representa el promedio del juego por parte de los usuarios de BGG en un rango de 1 a 10.
+ 
+* *Complejidad*: Escala del 1 al 10 que indica que tan difícil es entender el juego. A mayor el número, mayor la dificultad. 
+ 
+* *Cnt_partidas_jugadas*: Número de partidas registradas por parte de los usuarios de BGG.
+ 
+* *Premios*: Cantidad de premios obtenidos por el juego.
+ 
+* *Categorias*: Conjunto de categorías en las que encaja el juego.
+
+
+## **Descriptores numéricos de las variables**
+
+### *¿Cuál es el juego de mesa con la nota más alta y baja en la página BGG? ¿Qué tanto se diferencian con su media?*
+```{r}
+filter(DF, Nota > 0)[which.max(filter(DF, Nota > 0)$Nota),]#$Categorias[[1]]
+```
+```{r}
+filter(DF, Nota > 0)[which.min(filter(DF, Nota > 0)$Nota),]#$Categorias[[1]]
+```
+
+```{r}
+mean(filter(DF, Nota > 0)$Nota)
+```
+
+
+**Descripción:** El juego de mesa con las nota más alta viene siendo TerroriXico con una nota de 9.44. Este juego fue publicado en el año 2017, tiene un tiempo de juego entre 20 y 30 minutos y no tiene premios registrados. Además, entra en las categorías de "Card Game","Deduction","Horror" y "Mythology". Por otro lado, el juego con la nota más baja viene siendo MediCumLaude con una nota de 1. Además fue publicado en el año 1993, tiene un tiempo de juego de 45 minutos aproximadamente y tampoco tiene registrado ningún premio. Las categorías en las que entra vienen siendo "Medical" y "Trivia". 
+
+La media de notas esta 3.1 puntos debajo de la nota más alta y 5.3 puntos encima de la nota más baja de todos los juegos.
+
+* Se filtraron las notas que tengan 0, ya que no existe este número en la escala. Estas vienen representando valores nulos, lo que anula esta observación para este descriptor.
+
+### *¿Cuál es el juego de mesa más jugado y que tanto se diferencia de su media y mediana?*
+
+```{r}
+DF[which.max(DF$Cnt_partidas_jugadas),]
+```
+```{r}
+mean(filter(DF, Cnt_partidas_jugadas > 0)$Cnt_partidas_jugadas)
+```
+
+```{r}
+median(filter(DF, Cnt_partidas_jugadas > 0)$Cnt_partidas_jugadas)
+```
+
+
+**Descripción:** El juego con mayor cantidad de partidas registradas según la BGG es Dominion con una cantidad de 627 501 juegos registrados. Estos superan por una amplia diferencia al número de partidas promedio y a la mediana en todo el conjunto de datos. Es por esto que lo consideramos un dato atípico, pero cabe recalcar que el juego tiene una nota de 7.63 que se encuentra por encima de la media establecida en el punto anterior.
+
+
+* Se filtraron las partidas jugadas registradas que tengan 0, ya que este valor afecta a los descriptores que queremos usar en este caso. Estas vienen representando valores nulos, lo que anulan esta observación para este descriptor.
+
+
+### *¿Cuál es el juego con mayor cantidad de premios registrados? ¿Que tanto se diferencia con su mediana?*
+
+```{r}
+DF[which.max(DF$Premios),]
+```
+```{r}
+median(DF$Premios)
+```
+```{r}
+mean(DF$Premios)
+```
+
+**Descripción:** El juego con mayor cantidad de premios es 7 Wonders con 50 premios registrados en la página BGG. Estos superan altamente al promedio y la mediana de esta variable, siendo esta última 0. Por lo que consideramos que podría tomarse como una variable atípica. 
+
+
+Su nota en la página BGG esta muy cerca del juego más jugado, por lo que se encuentra encima de la media.
+
+
+### *¿Cuál es el promedio y la mediana de la complejidad de los juegos en la página BGG?*
+
+```{r}
+median(filter(DF, Complejidad > 0)$Complejidad)
+```
+```{r}
+mean(filter(DF, Complejidad > 0)$Complejidad)
+```
+
+**Descripción:** Aquí podemos ver de que hay un muy ligero sesgo a la derecha, pero al ser tan efímera esta diferencia podemos considerar de que los datos están concentrados en el punto 2 aproximadamente.
+
+* Se filtraron las complejidades que tengan 0, ya que este valor afecta a los descriptores que queremos usar en este caso. Estas vienen representando valores nulos, lo que anulan esta observación para este descriptor.
+
+### *¿Están los valores de dependencia de lenguaje dispersos?*
+
+```{r}
+mean(filter(DF, Dependencia_lenguaje > 0)$Dependencia_lenguaje)
+```
+```{r}
+median(filter(DF, Dependencia_lenguaje > 0)$Dependencia_lenguaje)
+```
+
+**Descripción:** Aquí podemos observar de que la media esta con un muy ligero sesgo hacia la derecha, pero esta diferencia es tan efímera que podemos considerar que los datos de esta variable están concentrados en el valor de 2.
+
+* Se filtraron las notas de dependencia de lenguaje que tengan 0, ya que este valor afecta a los descriptores que queremos usar en este caso. Estas vienen representando valores nulos, lo que anulan esta observación para este descriptor.
+
+### *¿Cuál es el juego con menor edad mínima y qué tanto se diferencia de su moda?*
+
+```{r}
+filter(DF, Min_edad > 0)[which.min(filter(DF, Min_edad > 0)$Min_edad),]$Categorias[[1]]
+```
+
+```{r}
+mean(filter(DF, Min_edad > 0)$Min_edad)
+```
+
+**Descripción:** El juego con menor edad mínima es Roll & Play con una edad requerida de 1 año para poder jugarlo, mas específicamente 18 meses. Este es recomendado para bebés con una duración de 5 minutos de juego. 
+
+Las categorías en las que encaja este juego vienen siendo "Childrens Game" y "Educational". 
+
+Cabe recalcar que esta edad esta muy por debajo del promedio de edades mínimas de los juegos en la página BGG, mas exactamente por 9 años.
+
+## **Descriptores Gráficos**
+
+### *¿Cuántos juegos fueron publicados por año y están registrados en la BGG en las últimas 2 décadas?*
+
+```{r}
+DFD <- DF %>% filter( 2000 <= Ano_de_publicacion & Ano_de_publicacion <= 2020 )
+#table(DFD$Ano_de_publicación) 
+barplot(table(DFD$Ano_de_publicacion),
+        main="Juegos por año ",
+        xlab="Años",
+        ylab="Cant. Juegos"
+        )
+```
+
+**Descripción:** Podemos observar que hay una tendencia que indica un crecimiento en la cantidad de juegos publicados hasta el año 2016, donde encontramos un punto de inflexión desde el cual empieza a decrecer. Esto nos genera varias dudas sobre porque sucede esto. 
+
+### *¿Cuáles son las categorías con más juegos registrados en BGG?*
+
+```{r}
+L_Categorias <- c()
+for (i in DF$Categorias) {
+  for (j in i) {
+    L_Categorias[length(L_Categorias)+1] <- j 
+  }
+}
+tab_Categorias <- table(L_Categorias)
+Top_Categorias <- head(sort(tab_Categorias, decreasing = TRUE))
+Top_Categorias
+```
+
+```{r}
+barplot(Top_Categorias, 
+        horiz = FALSE,
+        cex.names = 1, 
+        las=1,
+        main = "Cantidad de juegos por categorías más comúnes",
+        xlab = "Categorías",
+        ylab = "Frecuencia"
+        )
+```
+
+**Descripción:** Las categorías con mayor cantidad de juegos registrados son Card Game, Wargame, Fantasy, Party Game, Dice y Fighting. Cada una de estas cuenta con más de 1000 juegos registrados en BGG, lo que nos brinda un panorama donde podremos encontrar juegos de este estilo bastante seguido en tiendas o paginas web.
+
+
+### *¿Cuál es el rango intercuartil donde se ubica la mayor cantidad de notas?*
+
+```{r}
+summary(filter(DF, Nota > 0)$Nota)
+```
+
+```{r}
+boxplot(filter(DF, Nota > 0)$Nota, 
+        main = "Boxplot de Nota", 
+        xlab = "Nota",
+        horizontal = TRUE
+        )
+```
+```{r}
+hist(filter(DF, Nota > 0)$Nota, 
+        main = "Histograma de Nota", 
+        xlab = "Nota",
+        ylab = "Frecuencia",
+        breaks = 20
+        )
+```
+
+
+**Descripción:** Aquí podemos observar que las notas se encuentran concentradas dentro de un rango de 5.72 y 6.96. Con ello podemos asumir que los juegos que se escapen de este rango son tienen notas poco frecuentes. 
+
+
+### *¿Cuál es la tendencia de los premios con respecto a los juegos registrados?*
+
+```{r}
+summary(DF$Premios)
+```
+
+
+```{r}
+hist(DF$Premios, 
+     main = "Histograma de los Premios",
+     xlab = "Premios",
+     ylab = "Frecuencia",
+     breaks = 18
+     )
+```
+
+**Descripción:** Tal como sospechamos, la mayoría de los juegos no poseen premios. Esta tendencia se puede visualizar en la gráfica, donde son pocos los juegos con una gran cantidad de premios. Esto les da cierta exclusividad y renombre a los juegos que poseen uno o varios premios en su haber.
+
+### *¿Qué tanto uso se le puede dar a un juego de los que están registrados en la página BGG?*
+
+```{r}
+summary(filter(DF, Cnt_partidas_jugadas > 0)$Cnt_partidas_jugadas)
+```
+
+
+```{r}
+boxplot(filter(DF, Cnt_partidas_jugadas > 0)$Cnt_partidas_jugadas, 
+        horizontal = TRUE, 
+        log = "x", 
+        main = "Boxplot de las partidas jugadas registradas",
+        xlab = "Cantidad de partidas jugadas registradas"
+        )
+```
+
+
+```{r}
+hist(filter(DF, Cnt_partidas_jugadas >= 59 & Cnt_partidas_jugadas <= 723)$Cnt_partidas_jugadas,
+     main = "Histograma a escala de las Partidas Jugadas  entre 59 y 723",
+     xlab = "Cantidad de Partidas Jugadas",
+     ylab = "Frecuencia"
+     )
+```
+
+**Descripción:** Como se aprecia en el boxplot existen muchos juegos que son muy populares entre los usuarios y estos afectan a nuestros datos de la muestra. Por ello decidimos hacer un histograma que muestre a los juegos más convencionales entre los registrados. Por lo que la tendencia sigue siendo decreciente, afirmando que es menos común que un juego se use mucho. Sin embargo, el propio rango intercuartil nos da un mínimo entre el cual los juegos comúnmente son usados.
+
+
+### *¿Cuántos juegos hay por cada nivel de dependencia del lenguaje?*
+
+```{r}
+T_Dependencia_lenguaje <- table(filter(DF,Dependencia_lenguaje > 0)$Dependencia_lenguaje)
+T_Dependencia_lenguaje
+```
+
+```{r}
+barplot(T_Dependencia_lenguaje, 
+        main = "Barplot de Dependencia del Lenguaje",
+        xlab = "Nivel de dependencia de lenguaje", 
+        ylab = "Frecuencia"
+        )
+```
+
+```{r}
+P_Denpendencia_lenguaje <- round(T_Dependencia_lenguaje/sum(T_Dependencia_lenguaje)*100, 2)
+P_Denpendencia_lenguaje
+```
+
+**Descripción:** Existen cerca de la mitad de juegos (47.71%) que poseen una dependencia de lenguaje 1. Esta proporción disminuye conforme mayor dependencia exista, dejándonos con un 4.22 % de juegos con dependencia de lenguaje 5 con 555 juegos de mesa.
+
+
+### *¿En qué rangos de edades se logran ubicar la mayoría juegos de mesa registrados en BGG?*
+
+```{r}
+summary(filter(DF,Min_edad > 0)$Min_edad)
+```
+
+
+```{r}
+boxplot(filter(DF,Min_edad > 0)$Min_edad, 
+        horizontal = TRUE,
+        main = "Boxplot de edad mínima",
+        xlab = "Edad mínima"
+        )
+```
+```{r}
+barplot(table(filter(DF,Min_edad > 0)$Min_edad),
+     main = "Histograma de Edad mínima",
+     xlab = "Edad mínima"
+     )
+```
+
+**Descripción:** Según el rango intercuartil la mayoría de los juegos de mesa registrados en BGG tienen una edad mínima para jugarlo entre 8 y 12 años, siendo las edades mínimas más comunes 8, 10 y 12.
+
+
+## **Patrones**
+
+### *¿En qué año se sacaron mejores juegos de mesa en las últimas dos décadas?*
+
+
+```{r}
+DF %>% filter( 2000 <= Ano_de_publicacion & Ano_de_publicacion <= 2020  ) %>% group_by(Ano_de_publicacion) %>% 
+       summarise(`Rend.Prom` = mean(Nota)) %>% 
+       ggplot(., aes(x = Ano_de_publicacion, y = Rend.Prom)) + 
+  ggtitle("Nota promedio por año de lanzamiento") + 
+  xlab("\nAño de lanzamiento") + 
+  ylab("Nota del juego en la página BGG") + 
+  geom_bar(stat = "identity", fill = "springgreen4") + 
+  theme(axis.title = element_text(size = 10, face="bold"), 
+      axis.text = element_text(size = 8),
+      axis.text.x = element_text(angle=45, hjust=1, vjust=1),
+      plot.title = element_text(hjust = 0.5, color="black", size = 14, face="bold", margin=margin(0,0,17,0))) + 
+  geom_hline(aes(yintercept = mean(DF$Nota), color = "blue")) + 
+  scale_color_manual(name = "", values = c(blue = "blue"), labels = " Nota promedio total de los juegos en la BGG")  
+```
+
+
+
+
+
+**Descripción:** En este gráfico podemos observar qué juegos de mesa han mejorado su calidad al pasar de los años. La última década presenta mejores notas que la nota promedio en general, por lo que buscaremos juegos de la última década si priorizamos la nota al comprarlo.
+
+
+### *¿Si comparamos el año con las categoría más común de la muestra("Card Game") existiera alguna relación?*
+
+```{r}
+Ano_CardGame <- c()
+for (i in DF$ID) {
+  for (j in DF[i,]$Categorias) {
+    #print(j)
+    if(!is.null(j) && j == "Card Game"){
+      Ano_CardGame[length(Ano_CardGame)+1] <- DF[i,]$Ano_de_publicacion
+    }
+  }
+}
+tab_Ano_CardGame <- table(Ano_CardGame)
+tab_Ano_CardGame
+```
+
+```{r}
+barplot(tab_Ano_CardGame,
+     main = "Card Game según el año de publicación",
+     xlab = "Año de Publicación",
+     ylab = "Cantidad de Juegos"
+     )
+```
+
+
+**Descripción:** Claramente notamos un crecimiento en cuanto a publicar juegos de mesa dentro de esa categoría. Y es que esto no solo podría explicar el aumento de las notas en los últimos años. Ya que como observamos al inicio, en la sección de descriptores numéricos, esta categoría es muy reconocida por el público de juegos de mesa destacando en distintas áreas como lo son la nota, la cantidad de partidas jugadas y los premios. Esto podría también influir en la cantidad de juegos que salen por año ya que entendemos que si un juego es de agrado del público este se llega a vender bien influyendo en las compañías que publican juegas a crear más juegos similares. Sin embargo, no poseemos argumentos suficientes para hacer esta afirmación, por lo cual optamos por dejarlo como mera suposición. 
+
+### *¿Existe relación entre mínimo de edad y complejidad de juego?*
+
+```{r}
+DFD <- DF %>% filter(Complejidad != 0) %>% filter(Min_edad != 0)
+boxplot(DFD$Complejidad~DFD$Min_edad ,xlab = "Edad mínima", ylab = "Complejidad", main = "Complejidad según la edad mínima")
+```
+
+<!--Rehacer la descripción, no tiene sentido-->
+**Descripción:** En este gráfico podemos observar cómo existe una tendencia entre los juegos de mesa con edad mínima entre 10 y 16 a sacar juegos más complejos que en otras edades. Esto tiene sentido basándonos en la teoría del desarrollo cognitivo de Piaget, la cual nos indica que a partir de cierta edad(12-15) los niños empiezan a desarrollar capacidades más avanzadas de razonamiento para resolver problemas. Sin embargo encontramos algo muy resaltante en nuestro conjunto de datos es que a partir de cierta edad mínima, como 17-18, los juegos tienden a tener menor complejidad. Esto se puede deber a que, a partir de cierta edad, las personas vienen a buscar entretenimiento más sencillos debido a que se encuentran en entornos de trabajo o de estudio muy estresantes. Es por ello que los juegos deben ser fáciles de entender, jugar y con el extra de tener temas acordes a la edad.
+
+
+### *¿Existe una relación entre la complejidad de un juego y el mínimo de jugadores requeridos?*
+
+```{r}
+DFD <- DF %>% filter(Complejidad != 0) %>% filter(Min_jugadores != 0)
+boxplot(DFD$Complejidad~DFD$Min_jugadores ,xlab = "Mínimo de jugadores", ylab = "Complejidad", main = "Complejidad según la cantidad mínima de jugadores")
+```
+**Descripción:** Al igual que con edad mínimo existe una tendencia a crear juegos simples con un mínimo de jugadores de entre 3, 4 y 5 jugadores. Ambos datos son información que puedes encontrar en la caja de los juegos de mesa y pueden ayudar a estimar que juego puede ser complejo o no.
+
+
+### *¿Existe una relación entre la complejidad de un juego y su nota en BGG?*
+
+```{r}
+DFD <- DF %>% filter(Complejidad != 0)
+plot(DFD$Complejidad, DFD$Nota, xlab = "Complejidad", ylab = "Nota en BGG", main = "Relación entre complejidad y nota del juego", col = rgb(0, 0, 0, 0.5))
+abline(lm(DFD$Nota~DFD$Complejidad), col="red")
+#cor(DFD$Complejidad, DFD$Nota) 
+```
+
+
+**Descripción:** En este gráfico notamos que existe una relación ligeramente visible entre complejidad del juego de mesa y la nota que posee en la página BGG. Con esta información podemos anticipar que un juego con alto puntaje tiene una tendencia a ser complicado de jugar. Esto significa que, si buscamos juegos que sean para las personas que recién empiezan a jugar juegos de mesa, será mejor no priorizar la nota que tiene en la página.
+
+
+### *¿Existe una relación entre los premios obtenidos y la nota de un juego?*
+
+```{r}
+DFD <- DF %>% filter(Premios != 0) 
+plot(x = DFD$Premios, y = DFD$Nota, xlab = "Premios", ylab = "Nota en BGG", main = "Relación entre premios y nota del juego", col = rgb(0, 0, 0, 0.5))
+```
+
+**Descripción:**  Los juegos con menor cantidad de premios pueden tener un puntaje en un rango alto, y a medida que se tiene mas premios, el puntaje que tiene una tendencia a ser mayor.
+
+
+## **Variables Aleatorias**
+
+**Descripción:** La tabla contiene los rangos de Notas obtenidas de los juegos en la BGG con sus respectiva probabilidad de ser escogido un juego que pertenecen a dicho rango. El atributo Rango compone desde un número anterior hasta el número que esta en esa variable, por ejemplo:
+[0-1], <1-2], <2-3] y así consecutivamente hasta el rango de <9-10]. 
+El cálculo de la probabilidad se realizó al contar el número de juegos con la nota que pertenezca al rango y luego dividirlo con el total de juegos.
+
+```{r}
+
+tab1 <- DF %>% filter(Nota >= 0) %>% filter(Nota <= 1)
+tab2 <- DF %>% filter(Nota > 1) %>% filter(Nota <= 2)
+tab3 <- DF %>% filter(Nota > 2) %>% filter(Nota <= 3)
+tab4 <- DF %>% filter(Nota > 3) %>% filter(Nota <= 4)
+tab5 <- DF %>% filter(Nota > 4) %>% filter(Nota <= 5)
+tab6 <- DF %>% filter(Nota > 5) %>% filter(Nota <= 6)
+tab7 <- DF %>% filter(Nota > 6) %>% filter(Nota <= 7)
+tab8 <- DF %>% filter(Nota > 7) %>% filter(Nota <= 8)
+tab9 <- DF %>% filter(Nota > 8) %>% filter(Nota <= 9)
+tab10 <- DF %>% filter(Nota > 9) %>% filter(Nota <= 10)
+
+rangos <- c(1,2,3,4,5,6,7,8,9,10)
+cantidad <-  c(nrow(tab1),nrow(tab2),nrow(tab3),nrow(tab4),nrow(tab5),nrow(tab6),nrow(tab7),nrow(tab8),nrow(tab9),nrow(tab10))
+probabilidad <- c(nrow(tab1),nrow(tab2),nrow(tab3),nrow(tab4),nrow(tab5),nrow(tab6),nrow(tab7),nrow(tab8),nrow(tab9),nrow(tab10))/nrow(DF)
+
+
+tabla_notas <- data.frame(rangos,cantidad,probabilidad)
+
+show(tabla_notas)
+```
+
+
+
+
+**Descripción:** Se esta buscando saber la probabilidad de obtener dos juegos y ver sus casos al tener probabilidades menores a 7 o mayores u iguales a 7:
+
+P(A) -> Dos juegos con notas menores a 7.
+
+P(B) -> Un juego con nota menor a 7 y otro juego con nota mayor a 7.
+
+P(C) -> Dos juegos con notas mayores o iguales a 7.
+
+
+```{r}
+prob_men7 = sum(((tabla_notas %>% filter(rangos<7))$probabilidad))
+prob_may7 = sum(((tabla_notas %>% filter(rangos>=7))$probabilidad))
+
+elecciones <- c("2 juegos menores a 7","1 juego menor a 7 y 1 juego mayor a 7","2 juegos mayores a 7")
+probabilidades_elecciones <- c(round(prob_men7*prob_men7,4),round(prob_men7*prob_may7*2,4),round(prob_may7*prob_may7,4))
+may_men_7 <- data.frame(elecciones,probabilidades_elecciones)
+show(may_men_7)
+```
+
+
+**Descripción:** La variable aleatoria es la probabilidad de elegir juegos entre los años 2010 hasta el año 2018. El cálculo se hace contando la cantidad de juegos por cada año entre ese rango.
+
+P(2010) -> Juego del año 2010.
+
+P(2011) -> Juego del año 2011.
+
+P(2012) -> Juego del año 2012.
+
+...
+
+...
+
+...
+
+P(2017) -> Juego del año 2017.
+
+P(2018) -> Juego del año 2018.
+
+
+
+
+```{r}
+tabla_dep_anio <- as.data.frame(table((DF %>% filter(Dependencia_lenguaje >=2) %>% filter(Ano_de_publicacion >=2010) %>% filter(Ano_de_publicacion <= 2018))$Ano_de_publicacion))
+colnames(tabla_dep_anio)<- c('Años','Cantidad')
+tabla_dep_anio['Probabilidad'] = tabla_dep_anio$Cantidad/nrow(DF)
+show(tabla_dep_anio)
+```
+
+
+
+**Descripción:** La variable aleatoria es la probabilidad de elegir juegos con una dependencia de lenguaje de 1,2,3,4 o 5. El cálculo se hace contando la cantidad de juegos por cada año entre ese rango.
+
+P(1) -> Juego con Dependencia del lenguaje 1.
+
+P(2) -> Juego con Dependencia del lenguaje 2.
+
+P(3) -> Juego con Dependencia del lenguaje 3.
+
+P(4) -> Juego con Dependencia del lenguaje 4.
+
+P(5) -> Juego con Dependencia del lenguaje 5.
+
+
+```{r}
+#tabla_dep <- tabla_dep %>% filter(Dependencia >0)
+DF["Dependencia_lenguaje"] = as.numeric(as.character(DF$Dependencia_lenguaje))
+tabla_dep <- as.data.frame(table((DF %>% filter(Dependencia_lenguaje >= 1))$Dependencia_lenguaje))
+#tabla_dep <- as.data.frame(table(DF$Dependencia_lenguaje))
+colnames(tabla_dep) <- c('Dependencia','Cantidad')
+tabla_dep['Dependencia'] = as.numeric(as.character(tabla_dep$Dependencia))
+tabla_dep['Probabilidad'] = tabla_dep$Cantidad/sum(tabla_dep$Cantidad)
+show(tabla_dep)
+```
+
+
+**Descripción:** Se esta buscando la probabilidad de obtener un juego con una dependencia de lenguaje mayor o igual a 2, eso significa que si debas dominar de manera decente el lenguaje en el que se encuentre el juego y a la vez que se encuentre entre los años 2010 y 2018. Si es que se sabe que el juego elegido ya tiene una dependencia mayor o igual a 2.
+
+
+#### *Probabilidad de un Juego con dependencia de lenguaje mayor o igual a 2*
+
+```{r}
+show(sum((tabla_dep %>% filter(Dependencia >= 2))$Probabilidad))
+```
+
+
+$$
+P(B) = 0.5229295
+$$
+
+#### *Probabilidad de que un Juego este entre los años 2010 a 2018 y con dependencia de lenguaje mayor o igual a 2*
+
+```{r}
+show(sum(tabla_dep_anio$Probabilidad))
+```
+
+$$
+P(A\cap B) = 0.1693
+$$
+
+#### *Probabilidad de que un Juego con dependencia de lenguaje mayor o igual a 2 y este entre los años 2010 a 2018, si ya sabemos que el juego elegido cuenta con una dependencia de lenguaje mayor o igual a 2*
+
+```{r}
+show(round(sum(tabla_dep_anio$Probabilidad)/sum((tabla_dep %>% filter(Dependencia >= 2))$Probabilidad),4))
+```
+
+$$
+P(A\setminus B) = \frac{P(A \cap B)}{P(B)} = \frac{0.1693}{0.5229295} = 0.3238
+$$
+
+## **Intervalos de Confianza**
+
+### *Media de la Nota*
+
+```{r}
+#t.test(DF[DF$Nota > 0,]$Nota, conf.level = 0.99)
+n <- length(DF[DF$Nota > 0,]$Nota)
+x <- mean(DF[DF$Nota > 0,]$Nota)
+sigma <- sd(DF[DF$Nota > 0,]$Nota)
+
+z <- qnorm(0.01/2, lower.tail = FALSE)
+
+izq_Nota <- x - z*sigma/sqrt(n)
+der_Nota <- x + z*sigma/sqrt(n)
+z*sigma/sqrt(n)
+izq_Nota
+der_Nota
+```
+
+```{r}
+hist(DF[DF$Nota > 0,]$Nota, 
+     main = "Histograma de Nota",
+     xlab = "Nota",
+     ylab = "Frecuencia",
+     breaks = 50
+     )
+abline(v = izq_Nota, col="red")
+abline(v = der_Nota, col="red")
+```
+**Descripción:** La media de la nota es crucial, ya que sirve como base si queremos calificar a un juego. Este dato puede venir de ayuda para los usuarios de la página que buscan calificar los juegos, y el grupo Roll & Board Games UTEC que al estar en constante contacto con los juegos pueden calificarlos y apoyar a la página BGG. En nuestra data, para un intervalo con el 99% de nivel de confianza, tenemos un mínimo y máximo de 6.29 y 6.32. Claramente un intervalo bastante pequeño con respecto a la muestra.
+
+
+
+### *Media de Edad mínima*
+
+```{r}
+#t.test(DF[DF$Min_edad > 0,]$Min_edad, conf.level = 0.99)
+n <- length(DF[DF$Min_edad > 0,]$Min_edad)
+x <- mean(DF[DF$Min_edad > 0,]$Min_edad)
+sigma <- sd(DF[DF$Min_edad > 0,]$Min_edad)
+
+z <- qnorm(0.01/2, lower.tail = FALSE)
+
+izq_Min_Edad <- x - z*sigma/sqrt(n)
+der_Min_Edad <- x + z*sigma/sqrt(n)
+z*sigma/sqrt(n)
+izq_Min_Edad
+der_Min_Edad
+```
+```{r}
+hist(DF[DF$Min_edad > 0,]$Min_edad,
+     main = "Histograma de Edad Minima",
+     xlab = "Edad Minima",
+     ylab = "Frecuencia"
+     )
+abline(v = izq_Min_Edad, col="red")
+abline(v = der_Min_Edad, col="red")
+```
+
+**Descripción:** La edad mínima media es de apoyo para determinar a partir de que edades es recomendable tener miembros para que estos puedan sacar provecho de la mayoría de los juegos de mesa. Esto cumple bastante bien gracias a que, al ser un grupo universitario, los miembros serán mayores de 10.15 o 10.25 años. Añadiendo que si se deseara crear un grupo como este en un colegio, solo se aprovecharía totalmente en secundaria. Continuando con la gráfica, el intervalo de confianza es pequeño con respecto a la muestra analizada. 
+
+
+## **Pruebas de hipótesis**
+
+### *Hipótesis 1: ¿Los juegos con edad mínima jugable de mayor a 15 tienen complejidades mayores a 2?*
+
++ **h0:** Los juegos con edad mínima jugable de mayor a 15 tienen complejidades mayores a 2.
++ **h1:** Los juegos con edad mínima jugable de mayor a 15 no tienen complejidades mayores a 2.
+
+```{r}
+t.test(DF[DF$Min_edad > 15 & DF$Complejidad > 0,]$Complejidad, mu = 3, conf.level = 0.99, alternative = "less")
+```
+
+**Descripción:** Al analizar el resultado de la complejidad en la muestra con edad mínima mayor a 15 observamos que el p-value obtenido es menor a nuestro nivel de significancia (0.01). Es por esto que rechazamos la hipótesis nula, llegando a la conclusión de que los juegos con edad mínima jugable de mayor a 15 no tienen complejidades mayores a 2. Este valor fue escogido debido al comportamiento de la gráfica que buscaba la relación entre edad mínima y complejidad, donde encontramos una tendencia que reducía la dificultad conforme la edad mínima aumentaba. Esto es muy curioso y extraño, ya que según la teoría del desarrollo cognitivo de Piaget indica que los niños con edad de 15 años ya deberían estar en la capacidad de tener habilidades sistemáticas, de razonamiento lógico y solución de problemas, por lo que deberían tener juegos con una complejidad un poco mas elevada.
+
+### *Hipótesis 2: ¿Los juegos de la década del 2000 tienen mejor nota que los juegos de la década del 2010?*
+
++ **h0:** Los juegos de la década del 2000 tienen mejor nota que los juegos de la década del 2010.
++ **h1:** Los juegos de la década del 2000 no tienen mejor nota que los juegos de la década del 2010.
+
+
+```{r}
+t.test(DF[DF$Ano_de_publicacion < 2010 & DF$Ano_de_publicacion >= 2000,]$Nota, DF[DF$Ano_de_publicacion < 2020 & DF$Ano_de_publicacion >= 2010,]$Nota, conf.level = 0.99, alternative = "less")
+```
+
+**Descripción:** Al analizar el resultado de la prueba de hipótesis entre las notas obtenidas por los juegas en las décadas del 2000 y 2010 observamos que el p-value es menor a él nivel de significancia. Es por esto que rechazamos la hipótesis nula, llegando a la conclusión de que los juegos de la década del 2000 no tienen mejor nota que los juegos de la década del 2010.
+
+
+### *Hipótesis 3: ¿La cantidad de jugadores mínimo y máximos que la comunidad recomienda para jugar coinciden con los establecidos por los fabricantes?*
+
++ **h0:** La cantidad de jugadores mínimo y máximos que la comunidad recomienda para jugar coinciden con los establecidos por los fabricantes.
++ **h1:** La cantidad de jugadores mínimo y máximos que la comunidad recomienda para jugar no coinciden con los establecidos por los fabricantes.
+
+```{r}
+#? t.test
+t.test(as.numeric(DF$Min_comunidad), as.numeric(DF$Min_jugadores), conf.level = 0.99, paired = TRUE)
+```
+
+**Descripción:** En este caso, siendo el p-value menor que nuestro nivel de significancia podemos rechazar la hipótesis nula de que la cantidad de jugadores mínimo y máximos que la comunidad recomienda para jugar coinciden con los establecidos por los fabricantes. Esto significa que lo recomendado por los fabricantes no se asemeja a la realidad de los jugadores.
+
+### *Hipótesis 4: ¿Los juegos que requieran más de 2 jugadores tienen un tiempo de juego máximo menor al de 2 horas?*
+
++ **h0:** Los juegos que requieran más de 2 jugadores tienen un tiempo de juego máximo menor al de 2 horas.
++ **h1:** Los juegos que requieran más de 2 jugadores no tienen un tiempo de juego máximo menor al de 2 horas.
+
+```{r}
+length(DF[DF$Min_jugadores >= 2, ]$ID)
+```
+
+```{r}
+t.test(DF[DF$Min_jugadores >= 2, ]$Max_tiempo_de_juego, mu = 120, conf.level = 0.99, alternative = "greater")
+```
+
+**Descripción:** Al analizar el resultado de la prueba de hipótesis realizada sobre la muestra de juegos con un mínimo de jugadores de 2 observamos que el p-value es mayor a nuestro nivel de significancia. Es por esto que no rechazamos la hipótesis nula, llegando a la conclusión de que los juegos que requieran más de 2 jugadores tienen un tiempo de juego máximo menor al de 2 horas. Esto beneficia al grupo Role & Board Games UTEC porque sus reuniones semanales tienen formalmente una duración de 2 horas.
+
+
+## **Regresión**
+
+### *Tendencia de la Nota obtenida con respecto al año de publicación en los últimos 20 años*
+
+```{r}
+lm1 <- lm(DF[DF$Nota > 0 & DF$Ano_de_publicacion >= 2000,]$Nota~DF[DF$Nota > 0 & DF$Ano_de_publicacion >= 2000,]$Ano_de_publicacion)
+#plot(lm1)
+summary(lm1)
+lm1
+```
+
+* **h0** = No hay pendiente, el modelo no es válido.
+* **h1** = Hay pendiente, el modelo es válido.
+
+
+```{r}
+plot(DF[DF$Nota > 0 & DF$Ano_de_publicacion >= 2000,]$Nota~DF[DF$Nota > 0 & DF$Ano_de_publicacion >= 2000,]$Ano_de_publicacion,
+     main = "Nota en función del Año de Publicación ",
+     xlab = "Año de Publicación",
+     ylab = "Nota"
+     )
+abline(lm1, col="red")
+```
+
+#### *Modelo obtenido:*
+$$nota = -130.37531 + 0.06804*año\_de\_publicación$$
+
+```{r}
+plot(lm1)
+```
+
+
+**Descripción:** Como esta es una regresión lineal simple entre 2 variables, usamos el valor r-cuadrado = 0.1675. Esto nos indica que solo el 16,75% de la variabilidad es explicado por el modelo. Sin embargo, tenemos un p-valor de 2.2e-16, mucho menor a la significancia de 0.01. Por ello rechazamos la hipótesis nula y afirmamos la validez del modelo para un grado de confianza de 98%. 
+
+### *Tendencia de la nota del juego en función de su complejidad*
+
+```{r}
+lm2 <- lm(DF[DF$Nota > 0 & DF$Complejidad > 0,]$Nota~DF[DF$Nota > 0 & DF$Complejidad > 0,]$Complejidad)
+summary(lm2)
+lm2
+```
+
+* **h0** = No hay pendiente, el modelo no es válido.
+* **h1** = Hay pendiente, el modelo es válido.
+
+```{r}
+plot(DF[DF$Nota > 0 & DF$Complejidad > 0,]$Nota~DF[DF$Nota > 0 & DF$Complejidad > 0,]$Complejidad,
+     main = "Nota en función de la Complejidad",
+     xlab = "Complejidad",
+     ylab = "Nota"
+     )
+abline(lm2, col="red")
+```
+
+#### *Modelo obtenido:*
+$$nota = 5.1290 + 0.5952*Complejidad$$
+
+```{r}
+plot(lm2)
+```
+
+**Descripción:**  Como esta es una regresión lineal simple entre 2 variables, usamos el valor r-cuadrado = 0.26. Esto nos indica que solo el 26% de la variabilidad es explicado por el modelo. Sin embargo, tenemos un p-valor de 2.2e-16, mucho menor a nuestra significancia de 0.01. Por ello rechazamos la hipótesis nula y afirmamos la validez del modelo para un grado de confianza de 99%. 
+
+
+### *Tendencia de la complejidad del juego respecto a la edad mínima jugable*
+
+```{r}
+lm3 <- lm(DF[DF$Complejidad > 0 & DF$Min_edad > 0 & DF$Min_edad <= 15,]$Complejidad~DF[DF$Complejidad > 0 & DF$Min_edad > 0 & DF$Min_edad <= 15,]$Min_edad)
+summary(lm3)
+lm3
+```
+
+
+* **h0** = No hay pendiente, el modelo no es válido.
+* **h1** = Hay pendiente, el modelo es válido.
+
+
+```{r}
+plot(DF[DF$Complejidad > 0 & DF$Min_edad > 0 & DF$Min_edad <= 15,]$Complejidad~DF[DF$Complejidad > 0 & DF$Min_edad > 0 & DF$Min_edad <= 15,]$Min_edad,
+     main = "Complejidad en función de la Edad mínima hasta 15 años",
+     xlab = "Edad mínima",
+     ylab = "Complejidad"
+     )
+abline(lm3, col="red")
+```
+
+
+#### *Modelo obtenido:*
+$$Complejidad = 0.2411  + 0.1764*Min\_edad$$
+
+```{r}
+plot(lm3)
+```
+
+
+**Descripción:**  Como esta es una regresión lineal simple entre 2 variables, usamos el valor r-cuadrado = 0.25. Esto nos indica que solo el 25% de la variabilidad es explicado por el modelo. Sin embargo, tenemos un p-valor de 2.2e-16, mucho menor a la significancia de 0.01. Por ello rechazamos la hipótesis nula y afirmamos la validez del modelo para un grado de confianza de 98%. 
+
+
+### **Tendencia de los nota en base a la cantidad de premios obtenidos**
+
+
+```{r}
+lm4 <- lm(DF[DF$Premios > 0 & DF$Nota > 0,]$Nota~DF[DF$Premios > 0 & DF$Nota > 0,]$Premios)
+summary(lm4)
+lm4
+```
+
+* **h0** = No hay pendiente, el modelo no es válido.
+* **h1** = Hay pendiente, el modelo es válido.
+
+```{r}
+plot(DF[DF$Premios > 0 & DF$Nota > 0,]$Nota~DF[DF$Premios > 0 & DF$Nota > 0,]$Premios,
+     main = "Nota en función de los premios",
+     xlab = "Premios",
+     ylab = "Nota"
+     )
+abline(lm4, col="red")
+```
+
+#### *Modelo obtenido:*
+$$Nota = 6.5494  + 0.0701*Premios$$
+
+```{r}
+plot(lm4)
+```
+
+**Descripción:**  Como esta es una regresión lineal simple entre 2 variables, usamos el valor r-cuadrado = 0.08239. Esto nos indica que solo el 8.239% de la variabilidad es explicado por el modelo. Sin embargo, tenemos un p-valor de 2.2e-16, mucho menor a nuestra significancia de 0.01. Por ello rechazamos la hipótesis nula y afirmamos la validez del modelo para un grado de confianza de 99%. 
+
+
+
+## **Avance de proyecto**
+https://docs.google.com/spreadsheets/d/1dAqxDezZU3Oz-U9HiDCMBL-CSbg1ryJrd5x923CIO84/edit?usp=sharing
+
+
+## **Bibliografía**
+
++ kaggle. (2020). 20,000 Boardgames Dataset: Data from 20 000 boardgames scraped from boardgamegeek.com web: https://www.kaggle.com/extralime/20000-boardgames-dataset
++ Piaget. (1986). Teoría del desarrollo cognitivo de Piaget. com web: https://www.terapia-cognitiva.mx/wp-content/uploads/2015/11/Teoria-Del-Desarrollo-Cognitivo-de-Piaget.pdf

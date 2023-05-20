@@ -1,0 +1,557 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+---
+title: "S1_Ciclistas"
+output:
+  html_document:
+    df_print: paged
+---
+```{r echo=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(modeest)
+```
+# Cargamos el DF
+```{r echo=FALSE}
+DF_Bici <- read_csv("Bicicletas3.csv")
+```
+# Cambiamos el nombre de las variables
+```{r}
+names(DF_Bici)=c("Marca.temporal","Sexo","Edad","Peso_Pandemia","Peso_Ahora","Estatura_Pandemia","Estatura_Ahora","Haces_Deporte","Montas_Bici","Deportes","Horas_Semana_Depor","Intensidad_Depor","Incentivo_Bici","Horas_Semana_Bici","Intensidad_Bici","Inversion_Bici","Tipo_Bici","Distrito_Bici","Distrito_Ciclovia","Desordenes","Desor_Pandemia","Desor_Bici")
+```
+
+# Introducción
+
+Las ciclovías en la ciudad de Lima que se pensaban construir en los próximos cinco años necesitaron ser adelantadas porque una pandemia lo obligaba. Tal pandemia tuvo sus inicios en el año 2020, registrando el primer caso en Perú el día 6 de marzo del año mencionado, obligando de esta manera al país a entrar en cuarentena. Una de las restricciones propuestas por el ejecutivo fue la de limitar el transporte en carros particulares para así poder evitar la transmisión de este virus lo que conllevo a que las personas busquen otras opciones de transporte y es ahí en donde se inicia el uso masivo de las bicicletas en la ciudad como un medio de transporte amigable con el medio ambiente, fácil de transportar y con precios que están al alcance de cualquier bolsillo peruano. La bicicleta en el mundo se ha convertido en un medio de transporte eficaz para evitar contagios e impedir la propagación del Covid-19, un virus que se expande por los medios de transporte habituales como la combi, tren eléctrico, buses, etc esparciéndose por cada esquina.
+
+El coronavirus no viaja en bicicleta porque este es un medio de transporte personal que permite cumplir el distanciamiento social y que solo tiene dos puntos de contacto físico al cual reconocemos como manubrio, a diferencia del interior de un bus o combi, donde hay más de treinta superficies de contacto: puertas, pasamanos, asientos, respaldos, monedas, billetes, barandas y otros pasajeros.
+
+Por todo esto consideramos que es importante conocer cuánto ha aumentado el uso
+de este medio de transporte en Lima y si es que a su vez tuvo repercusión en la salud de los ciudadanos.
+
+
+
+# Factiblidad
+
+En la semana número 5, definimos el tema del proyecto y terminaremos de recolectar las 150 encuestas a través de un google forms. La recolección de datos ayudará a formar la base de datos que necesitamos para el proyecto. Para las semanas entre 6 y 8, las preguntas tendrían que ser llenadas con las respuestas para poder presentar en la semana 8. Luego, desde la semana 9 a 10, se empezaría el análisis de las respuestas y el filtro de la data. Esto nos ayudará para la tercera presentación.  Finalmente, para la última semana, se presentará el análisis con su respectiva conclusión y observaremos si nuestra hipótesis inicial fue acertada.
+
+
+# Objetivos
+
+
+- Evaluar si el incremento del uso de la bicicleta ha tenido un impacto directo en la salud de los ciclistas
+
+# Público Objetivo
+
+
+- Ciudadanos de Lima Metropolitana que usen bicicletas ya sea profesional o por pasatiempo.
+
+# Importancia
+
+
+- Nos ayudará a mostrar cómo es que la pandemia generó un auge en el uso de las bicicletas para usarlas como un medio de transporte efectivo además de probar si su uso ha sido el motivo del cual haya una mejora en la salud del ciclista.
+
+# Cantidad de muestras
+
+
+- Por medio de encuestas obtuvimos 307 muestras de las cuales 151 son importantes para nuestro estudio ya que es la cantidad que representa a las personas que montan bicicleta.
+```{r echo=FALSE}
+table(DF_Bici$Sexo)
+table(DF_Bici$Sexo[DF_Bici$Montas_Bici=="Si"])
+```
+- La cantidad de hombres que respondieron la encuesta es 177 de los cuales 99 manejan bicicleta.
+- La cantidad de mujeres que respondieron la encuesta es 130 de las cuales 52 manejan bicicleta.
+
+# Variables:
+    Categóricas:
+		        Nominales:
+                Sexo: Nos brinda información sobre si la persona es Hombre o Mujer
+                Deportes que practican: Nos brinda los deportes que practican los encuestados
+                Montas bicicleta?: Pregunta de Si o NO, nos indica si el individuo monta bicicleta o no
+                Haces deporte?: Pregunta de Si o NO, nos indica si el individuo hace deporte o no
+                Principal incentivo (Bicicleta): Nos dice el incentivo principal de la persona para empezar a manejar bicicleta
+                Tipo de bicicleta que usan (Bicicleta): Modelo de bicicleta que usa el individuo
+                En qué distrito manejas bicicleta (Bicicleta)
+                Distrito cuenta con ciclovías (Bicicleta)
+                Sufres alguno de estos desórdenes (Salud)
+                Han aumentado por la pandemia (Salud)
+	          Ordinales:
+                Intensidad con la que lo practican (Deportes)
+                Intensidad con la que lo practican (Bicicleta)
+                Consideras que montar bicicleta te ha ayudado a mejorar (Salud)
+
+    Numéricas:
+	      	Discretas:
+                Peso(antes de la pandemia y ahora)
+                Altura(antes de la pandemia y ahora)
+                Horas a la semana que le dedican(Deportes)
+                Horas a la semana que le dedican (Bicicleta)
+                Cuánto han invertido (Bicicleta)
+                IMC_Antes
+                IMC_Ahora
+                Edad
+
+
+
+
+# Calculamos el IMC_Ahora y IMC_Antes
+```{r}
+IMC_Ahora <- (DF_Bici$Peso_Ahora/(DF_Bici$Estatura_Ahora)^2)
+IMC_Antes <- (DF_Bici$Peso_Pandemia/(DF_Bici$Estatura_Pandemia)^2)
+```
+Usamos el IMC ya que es un indicador que nos puede decir a partir del peso en kilogramos de la persona y su estatura en metros, si es que está persona esta en su peso ideal o no de acuerdo a su estatura. Este indicador nos dice que es normal entre los rangos de [18.9;24.9] .
+
+# Eliminamos la columna "Marca Temporal" , agregamos IMC_Ahora y IMC_Antes
+```{r}
+DF_Bici <- select(DF_Bici,-Marca.temporal)
+DF_Bici <- cbind(DF_Bici,IMC_Ahora)
+DF_Bici <- cbind(DF_Bici,IMC_Antes)
+```
+# Encontrar al grupo de Ciclistas
+```{r}
+DF_Bici %>% filter(!is.na(DF_Bici$Inversion_Bici) & DF_Bici$Inversion_Bici!="Nd") -> Ciclistas #Inversion es en realidad el grupo de ciclistas
+```
+
+
+# Gráficas
+
+
+### Inversión Bicis
+
+```{r echo=FALSE}
+Ciclistas <- transform(Ciclistas, Inversion_Bici = as.numeric(Inversion_Bici))
+boxplot(Ciclistas$Inversion_Bici,col="lightgray",main="Inversión de Ciclistas",xlab="Inversión en Soles",horizontal = T)
+abline(v=mean(Ciclistas$Inversion_Bici),col="red")
+abline(v=median(Ciclistas$Inversion_Bici),col="blue")
+```
+
+Promedio= `r round(mean(Ciclistas$Inversion_Bici),digits=2)` (linea roja)
+Mediana= `r median(Ciclistas$Inversion_Bici) ` (linea azul)
+
+A partir de este gráficos podemos darnos cuenta cuanto dinero han invertido nuestro grupo de ciclistas. Como se puede observar a partir de los datos de el promedio y la mediana, estos nos indican que nuestros datos tienen un sesgo a la derecha. Además podemos observar algunos datos atípicos como el de 10000 y 4000 soles, los cuales hacen que nuestro promedio se ubica a la derecha de nuestra mediana. 
+
+
+### Gráfica Sexo vs Monta_Bici
+
+```{r echo=FALSE}
+mosaicplot(table(DF_Bici$Montas_Bici,DF_Bici$Sexo),main="Proporción de Monta Bicicleta por Sexo",col=c("red","blue"))
+```
+
+En está gráfica podemos observar que de las personas que hacen deporte (Hombres y Mujeres) hay un mayor número de ellos que monta bicicleta. A partir de nuestros datos también pudimos decir y comprobar que la mayoría de ciclistas son Hombres. 
+
+### Gráfica IMC_Ahora de los ciclistas
+
+```{r echo=FALSE}
+boxplot(Ciclistas$IMC_Ahora,Ciclistas$IMC_Antes , horizontal = T,main="Comparación de IMC",xlab="IMC",names=c("IMC_actual","IMC_sin pandemia"), col = c("skyblue","orange"))
+abline(v=mean(Ciclistas$IMC_Ahora),col="red")
+abline(v=(18.5),col="blue")
+abline(v=(24.9),col="blue")
+rango_Actual <- Ciclistas$IMC_Ahora[Ciclistas$IMC_Ahora > 18.5 & Ciclistas$IMC_Ahora < 25]
+rango_previo <- Ciclistas$IMC_Antes[Ciclistas$IMC_Antes > 18.5 & Ciclistas$IMC_Antes < 25]
+```
+
+Para la gráfica del IMC  establecimos con las dos líneas azules en los puntos 18.5 y 24.9, el intervalo donde se considera que la persona tiene su peso ideal acorde a su estatura. A partir de la gráfica nos damos cuenta que hay pocos datos atípicos para el IMC actual e IMC_sin pandemia y que con respecto a la mediana el promedio se sitúa a la derecha de este lo cual nos indica que están sesgados a la derecha, aunque si vemos los datos solo hay una diferencia aproximada de 0.8 entre el promedio y la mediana.
+
+Por último gracias a las líneas azules nos pudimos dar cuenta que de nuestra muestra de 150 ciclistas. Antes de la pandemia 86 personas se encontraban en el rango normal del IMC. Ahora ese número se ha reducido a 85.
+
+# Promedio y mediana IMC_Ahora y Antes
+Ambas variables tienen la misma mediana, aunque el promedio actual con respecto al de antes de la pandemia es ligeramente menor por lo que podríamos decir que hubo una mejora mínimo en este aspecto.
+
+
+### Horas a la semana que le dedican a bicicletear
+
+```{r echo=FALSE}
+table(Ciclistas$Horas_Semana_Bici)
+plot(table(Ciclistas$Horas_Semana_Bici),main="Horas a la Semana que bicicletean",xlab = "Horas",ylab = "Frecuencia")
+abline(v=mean(Ciclistas$Horas_Semana_Bici),col="red") #Promedio de horas semanales
+summary(Ciclistas$Horas_Semana_Bici)
+```
+Promedio = `r round(mean(Ciclistas$Horas_Semana_Bici),digits=2)` (línea roja)
+
+A partir de la siguiente gráfica podemos decir que los valores que más se repiten serían el de 3 y 1 (horas semanales que le dedican a bicicletear). Lo cual nos dice que una mayoría de nuestros ciclistas prefieren dedicarle de 3 a menos horas al ciclismo. Además podemos observar que nuestros datos están sesgados a la derecha no solo por ver la gráfica que nos muestra una clara aglomeración de datos en la parte derecha sino que además nuestro promedio se estaría situando a la derecha de nuestra mediana.
+
+
+### Intensidad Bici
+
+```{r echo=FALSE}
+table(Ciclistas$Intensidad_Bici)
+plot(table(Ciclistas$Intensidad_Bici),main="Intensidad con la que practican bicicleta",xlab = "Intensidad",ylab = "Frecuencia")
+abline(v=6,col="red") #Moda de intensidad 
+rango_Intensidad <- Ciclistas$Intensidad_Bici[Ciclistas$Intensidad_Bici > 5 & Ciclistas$Intensidad_Bici < 9]
+
+```
+
+Escala de Intensidad: (Escala de Likert del [1-10])
+Esfuerzo máximo: Completamente sin aliento, incapaz de hablar. (10)
+Esfuerzo muy suave: Actividad muy ligera, no me siento cansado. (1)
+
+A partir de la siguiente gráfica podemos darnos cuenta que la mayoría de ciclistas montan bicicleta con una intensidad de 8. Además nuestro moda se sitúa en 7. A partir de la gráfica nos damos cuenta que la mayoría realiza esta actividad con una intensidad de 6 a 8. Exactamente serían 79 ciclistas los que se encuentran dentro de este rango, un poco más de la mitad de la muestra.
+
+
+### Desordenes Ciclistas
+
+```{r echo=FALSE}
+table(Ciclistas$Desordenes )
+nombres <- c(names(table(Ciclistas$Desordenes)))
+barplot(table(Ciclistas$Desordenes),, col=c("yellow"),width=0.9,main="Desordenes ciclistas",xlab = "Desordenes",ylab = "Frecuencia",cex.names = 0.5, xlim = c(0,length(nombres)))
+
+```
+
+Moda -> `r mfv(Ciclistas$Desordenes)`
+
+A partir de la gráfica claramente la mayoría de nuestros ciclistas sufre de Cansancio o fatiga. A parte de eso el insomnio vendría a ser el desorden que más frecuente.
+
+
+
+### Si consideran que han aumentado por la pandemia
+
+```{r echo=FALSE}
+table(Ciclistas$Desor_Pandemia)
+barplot(table(Ciclistas$Desor_Pandemia), col=c("yellow"),main = "Se intensificó el desorden por la pandemia")
+```
+
+Y a partir de la siguiente gráfica podemos decir que la mayoría de ciclistas que sufren algún desorden de los mencionados han sentido que a raíz de la pandemia estos se han intensificado.
+
+
+
+### Si los ciclistas les ha ayudado
+
+```{r echo=FALSE}
+table(Ciclistas$Desor_Bici)
+barplot(table(Ciclistas$Desor_Bici),main = "Que tanto te ha ayudado para aliviar este desorde", col = "yellow")
+rango_desordenes <- Ciclistas$Desor_Bici[Ciclistas$Desor_Bici > 3 & Ciclistas$Desor_Bici < 7]
+```
+
+(Escala de Likert del [1-6])
+Me ha ayudado demasiado (6)
+No me ha ayudado en nada (1)
+
+A partir de la gráfica consideramos que si han marcado 4 en adelante, significa que los "ayuda mucho" en total este grupo lo conforman 116 personas. Entonces podemos concluir que una gran mayoría de nuestros encuestados sienten que montar bicicleta alivia alguno de sus desordenes.
+ 
+
+ 
+A partir de la siguiente gráfica podemos inferir que hay cierta relación entre la cantidad de horas que montan bicicleta y lo que han invertido en general con respecto al ciclismo. La tendencia que observamos es que mientras más horas uno le dedica a este deporte más invierte en él. Además nuestra concentración de datos se encuentra en el cuadrante inferior izquierdo de la gráfica. Por último hemos escogido el valor de 4.25 para trazar la linea roja ya que es la mitad de nuestro rango de horas; asimismo hemos hecho con respecto a la inversión (máximo valor registrado entre 2).
+
+
+### Sienten que les ayuda vs Montan Bici
+
+```{r echo=FALSE}
+plot(Ciclistas$Desor_Bici~Ciclistas$Horas_Semana_Bici,ylab = "Escala de ayuda frente a los desordenes",xlab="Horas a la semana",col="red", pch=16, cex=0.7)
+abline(h=4,col="blue")
+abline(v=4,col="red")
+lm5 <- lm(Ciclistas$Desor_Bici ~ Ciclistas$Horas_Semana_Bici)
+abline(lm5,col = 'green') #tiene una tendencia a crecer conforme aumenta las horas
+```
+En un principio pensamos que no había alguna relación entre estas dos variables, pero si nos damos cuenta mientras más horas a la semana practica este deporte las personas persiven que les ayuda más a controlar los desordenes que sufren. Concluimos esto ya que hay un cuadrante casi vacío en el rango de 5 a 10 horas.
+
+
+
+### Imc_Ahora vs Horas_Bici
+
+```{r echo=FALSE}
+plot(Ciclistas$IMC_Ahora~Ciclistas$Horas_Semana_Bici,xlab = "Horas a la semana",ylab="IMC_Ahora",col="red", pch=16, cex=0.7,)
+abline(h=mean(Ciclistas$IMC_Ahora),col="blue")
+abline(h=18.5,col="green")
+abline(h=24.9,col="green")
+abline(v=4,col="red")
+```
+
+IMC normal ronda entre el valor de 18.5 a 24.9 (Representado por las línea azul) 
+Por último hemos escogido el valor de 4.25 para trazar la linea roja ya que es la mitad de nuestro rango de horas
+
+A partir de la siguiente gráfica podemos darnos cuenta que en la mayoría de casos el IMC actual de los ciclistas se mantiene en el rango normal(las lineas verdes) y que en ciertas partes, con esto me refiero a las zonas por debajo del valor 18.5 y por arriba del valor de 24.9 con respecto al IMC actual, tienden a acercarse a nuestro rango normal mientras más horas a la semana le dedican a montar bicicleta.
+
+### Peso y horas que hace Bicicleta
+
+```{r echo=FALSE}
+plot(Ciclistas$Peso_Ahora~Ciclistas$Horas_Semana_Bici,xlab = "Horas a la semana",ylab="Peso (kg)",col="red", pch=16, cex=0.7,)
+abline(h=mean(Ciclistas$Peso_Ahora),col="blue")
+```
+A partir de la siguiente gráfica podemos darnos cuenta que en ciertos grupos de ciclistas, el peso tiende a subir mientras más horas a la semana le dedique y por otra parte hay un grupo en el cual ocurre el caso contrario. Esto suponemos puede deberse a que en algunos casos la persona a querido aumentar su masa muscular y este aumento se ha visto reflejado en el aumento de su peso y en otro caso sería que si bien no ha aumentado su masa muscular está persona tenía la intención de quemar grasa, por lo que su peso a disminuido.
+
+Hemos escogido el valor de 4.25 para trazar la linea roja ya que es la mitad de nuestro rango de horas. Además la linea azul representa el promedio de los pesos de los ciclistas
+
+
+### Intensidad vs horas bici
+
+```{r echo=FALSE}
+plot(Ciclistas$Horas_Semana_Bici~Ciclistas$Intensidad_Bici,xlab = "Intensidad (1-10)",ylab="horas a la semana",col="red", pch=16, cex=0.7,)
+abline(h=4.25,col="blue")
+abline(v=5,col="red")
+abline(-0.5,0.5,col="green")
+```
+En está gráfica podemos observar una ligera tendencia con respecto al incremento de la intensidad con respecto al número de horas que le dedica semanalmente a montar bicicleta.
+
+
+# Variables aleatorias 
+
+
+Para nuestro proyecto, ya que realizamos encuestas, los cuales son experimentos aleatorios, obtendremos variables aleatorias.
+La encuesta es un experimento aleatorio ya que no podemos saber que va a responder nuestro encuestado. La unica información que tenemos es que en ciertas preguntas la respuesta va a estar entre rangos que hemos establecido. Tomemos como ejemplo las gráficas de abajo, las cuales corresponden al modelo de distribución Binomial, ya que estamos repitiendo un sistema de Bernouli "n" veces (las encuestas) y vamos a tener dos posibles valores (Si,No).
+
+### Montas_Bici --> Aleatoria discreta
+
+```{r echo=FALSE}
+barplot(table(DF_Bici$Montas_Bici),main = "¿Montas Bicicleta?",ylab = "Frecuencia")
+```
+
+### Haces deporte --> Aleatoria discreta
+
+```{r echo=FALSE}
+barplot(table(DF_Bici$Haces_Deporte),main = "¿Haces deporte?",ylab = "Frecuencia")
+```
+
+# Tendencia
+
+
+### Inversión vs horas que hace bici
+
+```{r}
+plot(Ciclistas$Inversion_Bici~Ciclistas$Horas_Semana_Bici,ylab = "Inversion (S/.)",xlab="Horas a la semana",col="red", pch=16, cex=0.7)
+abline(h=10000/2,col="blue")
+abline(v=4.25,col="red")
+#Analizar concentracion de datos en la gráfica
+#abline(1,1000,col="green") 
+lm4 <- lm(Ciclistas$Inversion_Bici ~ Ciclistas$Horas_Semana_Bici)
+abline(lm4,col = 'green') #tiene una tendencia a crecer conforme aumenta las horas
+```
+
+### Imc_Ahora vs Horas_Bici
+
+```{r echo=FALSE}
+plot(Ciclistas$IMC_Ahora~Ciclistas$Horas_Semana_Bici,xlab = "Horas a la semana",ylab="IMC_Ahora",col="red", pch=16, cex=0.7,)
+abline(h=mean(Ciclistas$IMC_Ahora),col="blue")
+abline(h=18.5,col="green")
+abline(h=24.9,col="green")
+abline(v=4,col="red")
+```
+
+
+### **Prueba de hipótesis**
+
+Para las diferentes pruebas de hipótesis realizadas nuestro nivel de confianza será de 95%.
+
+**1. Partiendo de la hipótesis nula: El IMC antes de la pandemia debe ser menor o igual al IMC durante la pandemia**
+
+Variables a utilizar: IMC antes de pandemia, IMC durante pandemia.
+
+Teniendo como hipótesis:
+
+Ho: El IMC antes de la pandemia debe ser menor o igual al IMC durante la pandemia
+
+H1: El IMC antes de la pandemia debe ser mayor al IMC durante la pandemia
+```{r echo=FALSE}
+IMC_Ahora <- (DF_Bici$Peso_Ahora/(DF_Bici$Estatura_Ahora)^2)
+IMC_Antes <- (DF_Bici$Peso_Pandemia/(DF_Bici$Estatura_Pandemia)^2)
+boxplot(IMC_Ahora, IMC_Antes, col = c("skyblue","orange"),names=c("IMC_despues","IMC_antes"),main="Indice de masa corporal")
+t.test(x =IMC_Antes, y = IMC_Ahora, alternative = "greater", mu = 0, conf.level = 0.95)
+```
+
+La hipótesis nula es la siguiente: el IMC antes de la pandemia debe ser menor o igual al IMC durante la pandemia.. Se reafirma haciendo un análisis más profundo a las pruebas t-test, se concluye que la hipótesis nula no se rechaza puesto que no conseguimos suficiente evidencia en su contra a un nivel de significancia del 5 %.
+
+
+**2. Partiendo de la hipótesis nula: La media en la inversión de los hombres  es menor o igual al de las mujeres**
+
+Teniendo como hipótesis:
+
+Ho: La media en la inversión de los hombres  es menor o igual al de las mujeres
+
+H1: La media en la inversión de los hombres  es mayor al de las mujeres
+
+```{r echo=FALSE}
+HOMBRES<-Ciclistas[Ciclistas$Sexo =="Hombre","Inversion_Bici"]
+MUJERES<-Ciclistas[Ciclistas$Sexo =="Mujer","Inversion_Bici"]
+boxplot(HOMBRES,MUJERES, col = c("red","blue"),names=c("HOMBRES","MUJERES"),main="Inversión en bicicletas")
+title(xlab="Sexo",ylab="Inversión mensual (S/.)", line=3, cex.lab=1.3)
+medias<-c(mean(HOMBRES),mean(MUJERES))
+points(medias,pch=18,col="green")
+t.test(x =HOMBRES, y = MUJERES, alternative = "greater", mu = 0, var.equal = TRUE, conf.level = 0.95)
+```
+
+La hipótesis alternativa es la siguiente: la media en la inversión de los hombres  es mayor al de las mujeres. Los diagramas de caja (boxplots) presentados inicialmente, muestran los resultados de las medianas muestrales y muestra los valores extremos. Estos resultados, los cuales visualmente se ven diferentes y ligeramente distantes, nos conducen a pensar que la hipótesis nula planteada se rechaza. Esto se reafirma haciendo un análisis más profundo a las pruebas t-test, se concluye que la hipótesis nula se rechaza.
+
+- Para las siguientes 2 hipótesis usaremos la media entre ambos sexos de inversión en la bicicleta la cual es: 1316.97 soles.
+
+Promedio= `r round(mean(Ciclistas$Inversion_Bici),digits=2)` 
+
+
+**2.1 Partiendo de la hipótesis nula: Los ciclistas hombres invierten más de 1316.97 soles en sus bicicletas.**
+
+Teniendo como hipótesis:
+
+Ho: Los ciclistas hombres invierten más de 1316.97 soles en sus bicicletas.
+
+H1: Los ciclistas hombres invierten menos de 1316.97 soles en sus bicicletas.
+```{r echo=FALSE}
+HOMBRES<-Ciclistas[Ciclistas$Sexo =="Hombre","Inversion_Bici"]
+MUJERES<-Ciclistas[Ciclistas$Sexo =="Mujer","Inversion_Bici"]
+boxplot(HOMBRES, col = c("red"),names=c("Hombres"),main="Inversión Hombres")
+t.test(x =HOMBRES, alternative = "less", mu = 1316.97,  conf.level = 0.95)
+```
+En este caso no rechazamos la hipótesis nula puesto que no conseguimos suficiente evidencia en su contra a un nivel de significancia del 5 %.
+
+**2.2 Partiendo de la hipótesis nula: Las ciclistas mujeres invierten más de 1316.97 soles en sus bicicletas.**
+
+Teniendo como hipótesis:
+
+Ho: Las ciclistas mujeres invierten más de 1316.97 soles en sus bicicletas.
+
+H1: Las ciclistas mujeres invierten menos de 1316.97 soles en sus bicicletas.
+
+```{r echo=FALSE}
+boxplot(MUJERES, col = c("blue"),names=c("Mujeres"),main="Inversión Mujeres")
+t.test(x =MUJERES, alternative = "less", mu = 1316.97, conf.level = 0.95)
+
+```
+En este caso sí rechazamos la hipótesis nula puesto que conseguimos suficiente evidencia en su contra a un nivel de significancia del 5 %.
+
+
+**3. Partiendo de la hipótesis nula: La inversión de los ciclistas de Surco es menor a la inversión realizada por los ciclistas de Miraflores.**
+
+Se escogió estos 2 distritos en específico porque tenemos gran cantidad de respuestas provenientes de estas.
+
+Teniendo como hipótesis:
+
+Ho: La inversión en Surco es menor que en Miraflores.
+
+H1: La inversión en Surco es mayor que en Miraflores.
+
+```{r echo=FALSE}
+SURCO<-Ciclistas[Ciclistas$Distrito_Bici =="Santiago de Surco","Inversion_Bici"]
+MIRAFLORES<-Ciclistas[Ciclistas$Distrito_Bici =="Miraflores","Inversion_Bici"]
+boxplot(SURCO,MIRAFLORES,names=c("SURCO","MIRAFLORES"),main="DISTRITO VS INVERSIÓN")
+t.test(x =SURCO,y=MIRAFLORES, alternative = "greater", mu = 0, conf.level = 0.95)
+```
+
+La hipótesis nula es la siguiente: la inversión en Surco es menor que en Miraflores. Los resultados, los cuales visualmente se ven diferentes y ligeramente distantes, nos conducen a pensar que la hipótesis nula planteada no se rechaza. Esto se reafirma haciendo un análisis más profundo a las pruebas t-test, se concluye que la hipótesis nula no se rechaza puesto que no conseguimos suficiente evidencia en su contra a un nivel de significancia del 5 %.
+
+
+
+### Regresión
+
+
+**¿Es posible conocer las horas que la persona practica ciclismo a partir del valor de la intensidad con el que lo practica?**
+
+H0 = La varible intensidad con que se practica no se correlacion con las horas con que la persona practica
+ 
+
+```{r}
+plot(DF_Bici$Intensidad_Bici, DF_Bici$Horas_Semana_Bici ,pch = 20, col = rgb (0,0,0,0.2),xlab = "Intensidad",ylab="Horas a la semana")
+lm1 <- lm(DF_Bici$Horas_Semana_Bici ~ DF_Bici$Intensidad_Bici)
+abline(lm1,col = 'red')
+```
+```{r}
+round(cor(DF_Bici$Intensidad_Bici, DF_Bici$Horas_Semana_Bici, use = "pairwise.complete"),2)
+
+```
+Existe una correlación débil entre las variables
+
+
+
+
+```{r}
+
+summary(lm1)
+```
+Rechazamos nuestra hipótesis nula. Sin embargo, lo que debemos entender es que, según el Rcuadrad, el modelo solo explica el 22% de la variabilidad. 
+
+
+
+
+
+```{r}
+
+plot(lm1)
+
+```
+
+ 
+ 
+ 
+ 
+ 
+ 
+**¿Es posible predecir el peso del ciclista conociendo su estatura?**
+
+
+H0 = La varible peso no se correlaciona con la variable estatura.
+
+
+
+
+```{r}
+plot(DF_Bici$Estatura_Ahora, DF_Bici$Peso_Ahora,xlab = "Estatura(m)",ylab="Peso (kg)")
+lm2 <- lm(DF_Bici$Peso_Ahora ~ DF_Bici$Estatura_Ahora)
+abline(lm2,col = 'red')
+```
+```{r}
+round(cor(DF_Bici$Estatura_Ahora, DF_Bici$Peso_Ahora, use = "pairwise.complete"),2)
+```
+Existe una correlación media positiva entre las variables
+
+
+
+```{r}
+summary(lm2)
+```
+
+
+
+Análisis de residuos
+```{r}
+
+plot(lm2)
+
+```
+
+
+
+
+
+
+**¿Es posible predecir el peso actual de las personas que si practican ciclismo con su respectivo peso anterior a la pandemia?**
+
+
+H0 = La varible peso antes de pandemia no se correlaciona con el peso despues de la pandemia.
+
+
+
+```{r}
+plot(DF_Bici$Peso_Pandemia[DF_Bici$Montas_Bici=="Si"], DF_Bici$Peso_Ahora[DF_Bici$Montas_Bici=="Si"],xlab = "Peso(Kg) Antes de la pandemia",ylab="Peso (kg) en pandemia")
+lm3 <- lm(DF_Bici$Peso_Ahora ~ DF_Bici$Peso_Pandemia)
+abline(lm3,col = 'red')
+```
+```{r}
+round(cor(DF_Bici$Peso_Pandemia[DF_Bici$Montas_Bici=="Si"], DF_Bici$Peso_Ahora[DF_Bici$Montas_Bici=="Si"], use = "pairwise.complete"),2)
+```
+Existe una correlación positiva fuerte entre las variables. 
+
+
+
+
+```{r}
+summary(lm3)
+```
+Rechazamos nuestra hipótesis nula.
+
+
+
+Análisis de residuos
+```{r}
+
+plot(lm3)
+
+```
+
+
+### Conclusiones
+
+En conclusión, si bien en algunos aspectos nuestro estudio mostró que si había diferencias entre las personas que realizaban ciclismo y las que no. Al final, no hubo muchos cambios en variables como el IMC, la altura, la edad,etc. Por lo que no podemos decir con certeza que el ciclismo ha tenido un impacto significativo en las personas que lo practican. Además si el estudio si hubiece realizado analizando data de otros años o pudiendo realizar alguna prueba fisica con el entrevistado los datos recolectados podrían haber sido más interesantes de analizar y nos podrían haber brindado un mejor enfoque. 
+
+
