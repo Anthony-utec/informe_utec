@@ -1,0 +1,1290 @@
+---
+title: Análisis de la distribución de las instituciones de educación especial en el
+  Perú durante el año 2015
+output:
+  html_document:
+    df_print: paged
+---
+
+![](logo.png)
+
+
+
+```{r setup, include = FALSE, eval = FALSE}
+# install.packages("readr")
+# install.packages("dplyr")
+# install.packages("stringr")
+# install.packages("modeest")
+# install.packages("ggplot2")
+# install.packages("tidyverse")
+# install.packages("plotly")
+# install.packages("IRdisplay")
+# install.packages("hrbrthemes")
+# install.packages("viridis")
+```
+
+
+```{r echo=FALSE, message=FALSE}
+library(readr)
+library(dplyr)
+library(stringr)
+library(modeest)
+library(ggplot2)
+library(tidyverse)
+library(plotly)
+library(IRdisplay)
+library(hrbrthemes)
+library(viridis)
+```
+
+#### **Importancia y objetivo principal**
+La educación especial permite que el individuo con discapacidad se desarrolle correctamente para alcanzar su mayor potencial evolutivo dentro de una sociedad integradora. En el país alrededor de 38.5% de personas con discapacidad no tiene acceso a la educación. De las que sí tienen acceso, sólo el 3.61% accede a la escuela de educación especial (Estudios CEEDIS 2005). Es por ello que el objetivo principal de nuestro estudio es señalar cómo están distribuidas las instituciones de educación especial en el Perú en el año 2015, tomando las variables de departamentos, provincias, número de profesores y número de alumnos.
+Esta es la [base de datos](https://n9.cl/9xayr) que utilizaremos.
+
+#### **Definición de nuestra población, unidad muestral y el tipo de muestra**
+
+Definición | Descripción |
+-|-|
+**Población:** | Todas las instituciones formales de educación especial ubicadas en el Perú durante el año 2015. |
+**Unidad muestral:** | Una institución formal de educación especial ubicada en el Perú durante el año 2015. |
+**Tipo de muestreo:** | Dado que el estudio abarca a toda la población, las técnicas de muestreo resultan impertinentes, ya que estas solo sirven cuando se trabaja con solo un fragmento de la población. |
+
+
+#### **Lectura y limpieza de datos**
+Los datos se obtuvieron de la página de la INEI, la cual tiene un total de 487 observaciones y 13 variables. Para evitar errores y que influyan de mala manera con los descriptores numéricos se realiza la limpieza de la data eliminando los NA's y valores 0 en las variables numéricas (como 0 docentes, o 0 alumnos), los cuales consideramos errados y sin sentido en nuestro análisis. A su vez, existen "datos atípicos" los cuales consideramos son producto de la centralización de recursos y población que existe en el país, mas no de un error al momento de la contabilización.
+
+Por ende, el proceso para limpiar la data fue el siguiente:
+
+##### **Función para eliminar los 0's en variables numéricas**
+```{r echo =TRUE,message=FALSE}
+borrarDatos <- function(D, col1, col2, col3){
+  for(i in 1:nrow(D)){
+    if(D[i, col1]==0 | D[i, col2]==0 | D[i, col3]==0){
+      D[i, col1] = NA
+    }
+  }
+  na.omit(D)
+}
+```
+##### **Limpieza final**
+```{r echo=TRUE, message=FALSE,warning=FALSE}
+Data <- read_csv("Col_Espe.csv")
+Data <- na.omit(Data)
+Data <- borrarDatos(Data, 11,12,13)
+```
+
+```{r echo=FALSE}
+Data
+```
+Finalmente, los valores atípicos en esta investigación son aquellos que cumplen tal que:
+q < Q1 - 1.5(Q3-Q1)  o q > Q3+1.5(Q3-Q1) . Donde q es equivalente al valor en cuestión, Q3 es el tercer cuartil y Q1 es el primer cuartil.
+
+#### **Clasificación de las variables**
+La data obtenida consta de 13 variables de las cuales la mayoría resulta ser del tipo categórica nominal. Una tabla es presentada para determinar el tipo de variable y una descripción de la variable:
+
+Variable | Tipo de variable | Descripción |
+-|-|-|
+**Código modular**| Categórica ordinal | Consta de 7 dígitos y se encarga de identificar al centro educativo. |
+**Código local** | Categórica ordinal | Identifica su ubicación a partir de su dirección, es un código autorizado a una I.E. |
+**Nombre** | Categórica nominal | Nombre de las instituciones educativas. |
+**Nivel** | Categórica nominal | Indica el tipo de educación que se brinda. (Educación especial en nuestro caso). |
+**Formación** | Categórica nominal | Indica si la institución está escolarizada. |
+**Gestión** | Categórica nominal | Indica si la institución es de control público o privado. |
+**Dirección** | Categórica nominal | Indica la ubicación exacta del establecimiento. |
+**Departamento** | Categórica nominal | Indica el departamento donde se encuentra el establecimiento. |
+**Provincia** | Categórica nominal | Indica la provincia donde se encuentra el establecimiento. |
+**Distrito** | Categórica nominal | Indica el distrito donde se encuentra el establecimiento. |
+**Alumno** | Numérica discreta | Indica la cantidad de estudiantes inscritos en la institución. |
+**Docente** | Numérica discreta | Indica la cantidad de profesores que trabajan en la institución. |
+**Sección** | Numérica discreta | Indica la cantidad de salones/grupos de estudio en la institución. |
+
+```{r echo=FALSE}
+summary(Data)
+```
+
+#### **Evaluación de las variables numéricas con respecto a las Instituciones Educativas**
+
+Para iniciar con la visualización de los datos es necesario entender como es que se comportan, para ello decidimos que sería prudente mostrar los valores de media, primer cuartil, tercer cuartil, máximo valor y la desviación estándar.
+
+Descriptores numéricos | Importancia |
+-|-|
+**Media y mediana**| La media nos ayudara a identificar que tipo de sesgo existe en los datos con ayuda de la mediana.|
+**Primer cuartil y tercer cuartil** | La importancia de usar estos descriptores está en poder observar en donde se encuentra el 50% de las observaciones y a qué valor tienden. |
+**Máximo valor** | Este descriptor numérico será necesario para confirmar la existencia de "picos" o valores atípicos, los cuales tienen sentido en un país muy centralizado como es Perú. |
+**Variación estándar** | Este mismo nos servirá para manifestar la falta de uniformidad en los datos numéricos y la desigualdad existente en torno al alcance que tienen las diferentes Instituciones Educativas para personas con discapacidad. |
+
+A continuación un resumen de los valores de los descriptores numéricos para las variables ALUMNOS y DOCENTES:
+
+Descriptores numéricos para alumnos| |
+-|-|
+Media | ~ 40 alumnos |
+1° Cuartil | 14 alumnos |
+Mediana | 25 alumnos |
+3° Cuartil | 50 alumnos |
+Máximo valor | 310 alumnos |
+Desviación estándar | ~ 40 alumnos |
+
+Descriptores numéricos para docentes| |
+-|-|
+Media | ~ 8 docentes |
+1° Cuartil | 2 docentes |
+Mediana | 5 docentes |
+3° Cuartil | 10 docentes |
+Máximo valor | 54 docentes |
+Desviación estándar | ~ 9 docentes |
+
+```{r echo=FALSE}
+D2 <- data.frame(Data$`Docentes (2015)`, Data$`Alumnos (2015)`)
+```
+
+```{r echo=FALSE}
+D3 <- D2 %>% rename(Docentes=Data..Docentes..2015.., Alumnos=Data..Alumnos..2015..)
+```
+
+#### **Boxplot y gráfico de violin**
+Estos descriptores gráficos nos permitirán observar todo aquello que mencionamos: la dispersión, tendencia y concentración de los valores numéricos, valores atípicos y el tipo de sesgo que tienen.
+Cabe mencionar que el gráfico de violín junto con el boxplot ayudan a percibir mucho mejor la concentración de los datos para ciertos rangos.
+```{r echo=TRUE}
+c1 <- D3 %>%
+  ggplot(aes(x="", y=Docentes, fill=Docentes)) +
+    geom_boxplot() +
+    scale_fill_viridis(discrete = FALSE) +
+    geom_jitter(color="blue", size=0.7, alpha=0.5) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    xlab("")
+c2 <- D3 %>%
+  ggplot( aes(x="", y=Alumnos, fill=Alumnos)) +
+    geom_boxplot() +
+    scale_fill_viridis(discrete = FALSE) +
+    geom_jitter(color="blue", size=0.7, alpha=0.5) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    xlab("")
+```
+
+
+
+```{r echo=FALSE}
+p1 <- D3 %＞% ggplot(aes(x="", y = Docentes))  + 
+         geom_violin() + 
+         geom_boxplot(width=0.1) +
+         theme(axis.title.x = element_blank())
+p2 <- D3 %＞% ggplot(aes(x="", y = Alumnos))  + 
+         geom_violin() + 
+         geom_boxplot(width=0.1) +
+         theme(axis.title.x = element_blank())
+```
+
+
+```{r echo=TRUE}
+r2 <- boxplot(D3$Alumnos, horizontal = 1, main="Distribución de la cantidad de alumnos por Institución Educativa",cex.main=1, col ="green")
+abline(v=mean(D3$Alumnos,na.rm = TRUE),col="darkblue",lwd=2,lty=2)
+c2
+p2
+```
+
+Se observa una gran cantidad de datos atípicos que se diferencian considerablemente del resto de datos. Es por ello que la media es notablemente mayor que la mediana.
+
+```{r echo=TRUE}
+
+r1 <- boxplot(D3$Docentes, horizontal = 1, main="Distribución de la cantidad de docentes por Institución  Educativa", cex.main=1, col ="green")
+abline(v=mean(D3$Docentes,na.rm = TRUE),col="darkblue",lwd=2,lty=2)
+c1
+p1
+
+```
+En síntesis, se puede observar cómo es que la mayoría de los datos se concentra por debajo de la mediana (tanto para el caso de alumnos como para el de docentes). De manera que la cantidad de datos por encima de la mediana va disminuyendo rapidamente culminando en los datos atipicos, los cuales son numerosos.
+
+Si se quisiera ver exactamente en que intervalos se condensa más la población podríamos utilizar la siguiente herramienta, esta nos proporciona un ambiente agil, ya que podemos interactuar directamente con el gráfico y obtener datos especificos en puntos que consideremos importantes:
+
+**Para el caso de alumnos**
+
+```{r echo=TRUE}
+X1 <- D3 %＞% plot_ly(x = "", y = ~Alumnos, type = 'violin',
+                     box = list(visible = TRUE, width = 0.2))
+ 
+htmlwidgets::saveWidget(X1, "X1.html")
+display_html('＜iframe src="X1.html" width=600 height=600 frameborder="0"＞＜/iframe＞')
+```
+
+**Para el caso de docentes**
+```{r echo=TRUE}
+X2 <- D3 %＞% plot_ly(x = "", y = ~Docentes, type = 'violin',
+                     box = list(visible = TRUE, width = 0.2))
+ 
+htmlwidgets::saveWidget(X2, "X2.html")
+display_html('＜iframe src="X2.html" width=600 height=600 frameborder="0"＞＜/iframe＞')
+```
+Estos mismos requieren de una extensión de R. Es por ello que se presentan los archivos X1.html y x2.html para su visualización e interacción.
+
+##### **Apartado de regresión para las variables alumnos y docentes**
+
+Seguidamente, sería prudente observar si existe una relación lineal entre estas dos variables numéricas a traves del gráfico de dispersión:
+
+```{r echo=TRUE}
+plot(Data$`Alumnos (2015)`, Data$`Docentes (2015)`, pch = 20, col = "blue", main = "Alumnos y docentes", xlab= "Alumnos", ylab = "Docentes")
+```
+A simple vista parece tener una relación directamente proporcional. Esto lo podemos confirmar con los valores de covarianza y correlación. El dato de la covarianza unicamente nos proporciona información acerca del cambio que sufre una variable al momento de alterar la otra, por lo que lo unico que nos interesa es el signo que tiene. Por otro lado, la correlación es mucho más directa en afirmar qué tan cerca está el conjunto de datos para poder considerarla como un relación lineal. El valor que puede tomar se encuentra entre -1 y 1.
+
+```{r echo=FALSE}
+data2 = data.frame(cbind(Data$`Alumnos (2015)`, Data$`Docentes (2015)`))
+```
+
+```{r}
+# Covarianza
+cov(Data$`Alumnos (2015)`, Data$`Docentes (2015)`)
+```
+El signo positivo de la covarianza nos indica una relación "directamente proporcional".
+
+```{r}
+# Correlación
+cov(Data$`Alumnos (2015)`, Data$`Docentes (2015)`)/(sd(Data$`Alumnos (2015)`)*(sd(Data$`Docentes (2015)`)))
+```
+```{r}
+cor(data2)
+```
+
+El valor de la correlación nos indica una tendencia de comportamiento lineal de los datos.
+
+**HIPÓTESIS:** El número de docentes aumenta por la necesidad de personal para atender a una mayor cantidad de alumnos.
+
+Dado el valor numérico de la correlación podemos intentar realizar un ajuste lineal:
+```{r}
+regresion1 <- lm(Data$`Docentes (2015)` ~ Data$`Alumnos (2015)`, data = data2)
+summary(regresion1)
+```
+En síntesis, con estos resultados se puede afirmar que: 
+
+**Alrededor del 73.99% de la variación de la variable docentes es explicada por la regresión y = 0.429326 + 0.189004x** 
+
+**Para el coeficiente de intersección paramétrico: bajo la prueba de hipotesis a un 5% de significancia se acepta la hipótesis nula, dado que su pvalor es igual a 0.14** 
+
+**Para el coeficiente de regresión paramétrico: bajo la prueba de hipótesis a un 5% de significancia se rechaza la hipótesis nula, dado que su pvalor es 2e-16**
+
+Esto quiere decir que el intercepto con el eje "y" muy probablemente sea 0. De la misma manera, sugiere que el coeficiente de regresión paramétrico es distinto de 0, por lo que la función es lineal.
+
+Hay que resaltar además que el intervalo en donde se pueden realizar las respectivas predicciones es [1, 310], los cuales corresponden al valor minimo y valor maximo de la variable alumnos.
+
+
+```{r}
+plot(Data$`Alumnos (2015)`, Data$`Docentes (2015)`, pch = 20, col = "blue", main = "Alumnos y docentes", xlab= "Alumnos", ylab = "Docentes")
+abline(regresion1, col = "black")
+```
+
+#### **Data frame de instituciones especiales clasificadas por Departamentos - Nro de Alumnos - Nro de Docentes - Nro de Secciones**
+
+En este apartado trabajaremos con la variable numérica de SECCIÓN en conjunto con DOCENTES y ALUMNOS. La variable SECCIÓN representa el número total de salones que tiene la Institución Educativa Especial.
+```{r echo=FALSE}
+D_AlDocSec <- data.frame(Data$`Departamento`,Data$`Alumnos (2015)`, Data$`Docentes (2015)`, Data$`Secciones (2015)`)
+```
+
+```{r echo=FALSE}
+DSeccionDistribution <- D_AlDocSec %>% rename(Departamento=Data.Departamento, Docentes=Data..Docentes..2015.., Alumnos=Data..Alumnos..2015.., Secciones=Data..Secciones..2015..)
+DSeccionDistribution
+```
+A la tabla anterior se le añaden 2 columnas, las cuales representaran la cantidad de alumnos por sección (al_sec) y la cantidad de docentes por sección (sec_doc):
+
+```{r echo=FALSE}
+al_Sec<-DSeccionDistribution[,2]/DSeccionDistribution[,4]
+doc_Sec<-DSeccionDistribution[,3]/DSeccionDistribution[,4]
+
+DSeccionDistribution<-data.frame(cbind(DSeccionDistribution,al_Sec,doc_Sec))
+DSeccionDistribution
+```
+
+A continuación se mostrará la distribución de alumnos por sección y la de docentes por sección:
+```{r echo=FALSE}
+Densidad_Al_Sec<- boxplot(DSeccionDistribution$al_Sec, horizontal = 1, main="Densidad de alumnos por sección", cex.main=1, col ="aquamarine4")
+abline(v=mean(DSeccionDistribution$al_Sec,na.rm = TRUE),col="darkblue",lwd=2,lty=2)
+```
+```{r echo=FALSE}
+ASv <- DSeccionDistribution %＞% ggplot(aes(x="", y = al_Sec))  + 
+         geom_violin() + 
+         geom_boxplot(width=0.1) +
+         theme(axis.title.x = element_blank())
+ASv
+```
+Usando nuevamente el gráfico de violin podemos ver mejor representada la distribución de alumnos por sección a lo largo del boxplot. Se observa que la mayoría de los datos se encuentran por debajo de la media. De igual forma, una cantidad similar se encuentra aproximadamente entre el segundo y cuarto cuartil .
+
+
+```{r echo=FALSE}
+Densidad_Doc_Sec<- boxplot(DSeccionDistribution$doc_Sec, horizontal = 1, main="Densidad de docentes por sección", cex.main=1, col ="aquamarine4")
+abline(v=mean(DSeccionDistribution$doc_Sec,na.rm = TRUE),col="darkblue",lwd=2,lty=2)
+```
+```{r echo=FALSE}
+DSv <- DSeccionDistribution %＞% ggplot(aes(x="", y = doc_Sec))  + 
+         geom_violin() + 
+         geom_boxplot(width=0.1) +
+         theme(axis.title.x = element_blank())
+DSv
+```
+Para el caso de docentes por sección ocurre algo peculiar: se podría estimar que la cantidad de datos disminuye de forma lineal a medida que aumenta el valor de la variable mencionada.
+
+Además de ello, la cantidad de docentes por sección varía entre 0.5 y 1.5 en la mayoría de instituciones educativas especiales. Esto nos indica que en gran parte de estas no hay 1 profesor asignado a una sección, lo que se podría considerar como el requisito mínimo para que se de una educación de calidad. Por el contrario, hay otras intituciones donde existen entre 2.5 y 3.5 docentes por sección.
+
+**Para la variable alumnos por sección**
+```{r echo=TRUE}
+ASV <- DSeccionDistribution %＞% plot_ly(x = "", y = ~al_Sec, type = 'violin',
+                     box = list(visible = TRUE, width = 0.2))
+ 
+htmlwidgets::saveWidget(ASV, "ASV.html")
+display_html('＜iframe src="ASV.html" width=600 height=600 frameborder="0"＞＜/iframe＞')
+```
+
+**Para la variable docentes por sección**
+```{r echo=TRUE}
+DSV <- DSeccionDistribution %＞% plot_ly(x = "", y = ~doc_Sec, type = 'violin',
+                     box = list(visible = TRUE, width = 0.2))
+ 
+htmlwidgets::saveWidget(DSV, "DSV.html")
+display_html('＜iframe src="DSV.html" width=600 height=600 frameborder="0"＞＜/iframe＞')
+```
+
+Para continuar, como se realizo con las variables ALUMNOS y DOCENTES, se puede observar el comportamiento y relación de estas nuevas variables en un grafico de dispersión:
+
+```{r echo=FALSE}
+Dispercion_Al_Doc_Sec<- ggplot(DSeccionDistribution, aes(x = al_Sec, y = doc_Sec,
+                     color = Departamento)) + 
+  geom_point(alpha = 1)
+
+a <- Dispercion_Al_Doc_Sec + 
+  scale_color_brewer(palette = "Set1") + 
+  ggtitle("Dispersión de alumnos por sección - docentes por sección por departamento")
+Dispercion_Al_Doc_Sec
+```
+Además de solo mostrar los puntos se muestra la que región a la que pertenece. A pesar de ello, los datos se encuentran muy acumulados en la parte inferior izquierda, por lo que se realiza un gráfico con coordenadas logarítmicas:
+
+```{r echo=TRUE}
+Dispercion_Al_Doc_Sec<- ggplot(DSeccionDistribution, aes(x = al_Sec, y = doc_Sec,
+                     color = Departamento)) + 
+  geom_point(alpha = 1) + coord_trans(x="log",y="log")
+
+a <- Dispercion_Al_Doc_Sec + 
+  scale_color_brewer(palette = "Set1") + 
+  ggtitle("Dispersión de alumnos por sección - docentes por sección por departamento")
+Dispercion_Al_Doc_Sec
+```
+Debido a que las variables ahora conforman prácticamente una relación lineal gracias a la transformación a coordenadas logarítmicas, se puede especular un tipo de comportamiento logarítmico para estas variables.
+
+#### **Variables numéricas separadas por departamentos**
+Una vez visto el comportamiento de los datos con respecto a las Instituciones Educativas, es aconsejable observar un plano general y manifestar si este comportamiento se sigue dando aún en cada departamento. Para esto, se agrupa la data original por departamento, sumando la cantidad de alumnos y docentes que esten en una Institución Educativa perteneciente a cierto departamento.
+
+```{r echo=FALSE}
+D4 <- Data %>% group_by(Departamento) %>% summarise(Alumnos=sum(`Alumnos (2015)`))
+
+D5 <- Data %>% group_by(Departamento) %>% summarise(Docentes=sum(`Docentes (2015)`))
+```
+
+```{r echo=FALSE}
+D4
+
+D5
+```
+
+```{r echo=FALSE}
+summary(D4)
+sd(D4$Alumnos)
+```
+
+
+```{r echo=FALSE}
+summary(D5)
+sd(D5$Docentes)
+```
+
+#### **Evaluación de las variables numéricas con respecto a los departamentos**
+Dado que esta evaluación llega a ser ligeramente similar al caso anterior, se mantienen los mismos descriptores numéricos.
+
+Descriptores numéricos para alumnos| |
+-|-|
+Media | ~ 751 alumnos |
+1° Cuartil | 233 alumnos |
+Mediana | 337 alumnos | 
+3° Cuartil | 685 alumnos |
+Máximo valor | 8451 alumnos |
+Desviación estándar | ~ 1630 alumnos |
+
+Descriptores numéricos para docentes| |
+-|-|
+Media | ~ 150 docentes |
+1° Cuartil | 41 docentes |
+Mediana | 80 docentes |
+3° Cuartil | 141 docentes |
+Máximo valor | 1627 docentes |
+Desviación estándar | ~ 313 docentes |
+
+```{r echo=FALSE}
+sd(Data$`Alumnos (2015)`)
+sd(Data$`Docentes (2015)`)
+```
+
+#### **Histogramas**
+El uso de histogramas se debe a que al conglomerar las variables numéricas por departamentos el numero de datos atípicos se ve considerablemente reducido. Por lo tanto, para visualizar mejor su comportamiento resulta factible dividirlo en intervalos y medir la frecuencia con la que ocurren.
+```{r echo=FALSE}
+hist(D4$Alumnos, main="Distribución de alumnos por departamento", cex.main=1, xlab="N° de alumnos", ylab="Frecuencia",xlim=c(0,8500), ylim=c(0,12), breaks = 40)
+
+hist(D5$Docentes, main="Distribución de docentes por departamento", cex.main=1, xlab="N° de docentes", ylab="Frecuencia",xlim=c(0,2000), ylim=c(0,10), breaks = 40)
+
+```
+**HIPÓTESIS:** Las instituciones tienen la necesidad de ser numerosas para así poder satisfacer a toda la población especial en territorio peruano. No obstante, como esta es una minoría, entonces las instituciones tienden a tener un número bajo de docentes, ya que poseen un número limitado de alumnos. Las excepciones ocurren en departamentos como Lima, ya que aquí la población está altamente concentrada, así que se presentan instituciones con alto número tanto de profesores como alumnos.
+
+##### **Apartado de regresión para las variables alumnos por departamento y docentes por departamento**
+
+Se procura nuevamente vincular los datos conglomerados por departamentos para realizar el análisis del comportamiento de estas variables.
+
+```{r echo=FALSE}
+plot(D4$Alumnos, D5$Docentes, pch = 20, col = "blue", main = "Alumnos y docentes", xlab= "Alumnos por departamento", ylab = "Docentes por departamento")
+```
+```{r echo=FALSE}
+data1 = data.frame(cbind(D4$Alumnos, D5$Docentes))
+```
+
+
+```{r}
+# Covarianza
+cov(D4$Alumnos, D5$Docentes)
+```
+Este valor nos confirma que a medida que una de las variables aumenta la otra lo hará de igual manera, una relación positiva.
+
+```{r}
+# Correlación
+cov(D4$Alumnos, D5$Docentes)/(sd(D4$Alumnos)*(sd(D5$Docentes)))
+```
+La formulación anterior puede ser corroborada con la función "cor" que se muestra a continuación:
+
+```{r}
+cor(data1)
+```
+De manera consecuente podemos intentar recrear una función lineal que pueda seguir el comportamiento de los datos:
+
+```{r}
+regresion <- lm(D5$Docentes ~ D4$Alumnos, data = data1)
+summary(regresion)
+```
+En síntesis, con estos resultados se puede afirmar que: 
+
+**Alrededor del 99.65% de la variación de la variable docentes por departamento es explicada por la regresión y = 6.174923 + 0.191598x** 
+
+**Para el coeficiente de intersección paramétrico: bajo la prueba de hipotesis a un 5% de significancia se acepta la hipótesis nula, dado que su pvalor es igual a 0.151** 
+
+**Para el coeficiente de regresión paramétrico: bajo la prueba de hipótesis a un 5% de significancia se rechaza la hipótesis nula, dado que su pvalor es 2e-16** 
+
+Esto quiere decir que el intercepto con el eje "y" probablemente sea equivalente a 0. De la misma forma, significa que el coeficiente de regresión paramétrico es distinto de 0, por lo que la función es lineal.
+
+Se puede ver cómo es que la nube de datos llega a ser concordante con el comportamiento de la función lineal.
+
+Hay que resaltar además que el intervalo en donde se pueden realizar las respectivas predicciones es [47, 8451], es decir el valor minimo y el valor maximo de la variable alumnos por departamento.
+
+
+```{r}
+plot(D4$Alumnos, D5$Docentes, pch = 20, col = "blue", main = "Alumnos y docentes", xlab= "Alumnos por departamento", ylab = "Docentes por departamento")
+abline(regresion, col = "black")
+```
+
+##### **Regresión Múltiple**
+Ahora, probaremos el modelo de regresión múltiple para predecir el número de docentes en la región costa. La razón por la que escogimos esta variable es porque nos interesa saber cómo estarán formadas las aulas en cuanto a personal educativo relacionadas con las otras dos variables (alumnos y secciones) en los años después de la toma de datos (2015).
+
+```{r}
+DCosta<-Data %>% filter(Departamento=="Ancash"| Departamento=="Callao"| Departamento=="Ica"| Departamento=="Lima"| Departamento=="Piura"| Departamento=="La Libertad"|Departamento=="Arequipa"|Departamento=="Moquegua"|Departamento=="Tacna"|Departamento=="Lambayeque"| Departamento=="Tumbes"| Departamento=="Callao")
+DCosta
+modelo<-lm( `Docentes (2015)`~ `Alumnos (2015)`+`Secciones (2015)`, data = DCosta)
+summary(modelo)
+```
+
+Como observamos, el coeficiente de determinación es grande (0.7701), por lo que el modelo predecirá adecuadamente el número de docentes. Además, vemos que el p-valor para el intercepto (1.36e-06) es menor a la significancia (0.1), por lo que la Ho (ßo = 0) se rechaza. Para los demás coeficientes se cumple lo ya explicado (2e-16 < 0.1, 5.38e-13 < 0.1), por lo que las Ho (ß1 = 0 y ß2 = 0) se rechazan, con lo que tenemos que el modelo propuesto sí es un modelo significativo.
+
+Sin embargo, tenemos que verificar la fiabilidad del modelo, ya que también se debe de cumplir la propiedad de que las variables predictoras (alumnos y docentes) no tengan una correlación alta.
+
+Así, analizamos la correlación entre las variables.
+```{r}
+DatosCos<-data.frame(DCosta[11],DCosta[12],DCosta[13])
+cor <- round(cor(x = DatosCos, method = "pearson"), 3)
+cor
+```
+
+Como observamos, se tiene una correlación relativamente alta de 0.791 entre alumnos y secciones, por lo que no se considera apropiado su uso para realizar predicciones. Por ende, lo más adecuado es trabajar con un modelo de regresión lineal simple.
+
+
+Pasando al analisis de otras variables:
+```{r echo=FALSE}
+DistTotalPorDep<-select(DSeccionDistribution, -al_Sec, -doc_Sec)
+DistTotalPorDep<-DistTotalPorDep %>% group_by(Departamento) %>% summarise_each(funs(sum))
+DistTotalPorDep
+al_Sec_T<-DistTotalPorDep[,2]/DistTotalPorDep[,4]
+doc_Sec_T<-DistTotalPorDep[,3]/DistTotalPorDep[,4]
+
+DistTotalPorDep<- data.frame(DistTotalPorDep, al_Sec_T, doc_Sec_T)
+DistTotalPorDep<- DistTotalPorDep %>% rename(AlumnosPorSeccion=Alumnos.1, DocentesPorSeccion=Docentes.1)
+DistTotalPorDep
+```
+
+Asimismo, podemos organizar estos datos y verlos mejor representados a traves de un gráfico de barras:
+
+**Para la variable AlumnosPorSeccion**
+```{r echo=FALSE}
+DistTotalPorDep %>% ggplot(aes(x = Departamento, y=AlumnosPorSeccion), main = "Densidad de alumnos por sección por departamento", xlab = "Departamento", ylab = "Promedio de alumnos por sección") + geom_col (fill="steelblue")+ geom_hline(yintercept=mean(DistTotalPorDep$AlumnosPorSeccion), color="red") + theme(text = element_text(size=10),
+        axis.text.x = element_text(angle=90, hjust=1)) 
+```
+Se puede apreciar la distribución de alumnos por sección en cada departamento, lo cual resulta de de sumar el total de alumnos y luego dividirlos entre el total de secciones en cada departamento. Esto genera un valor similar a un promedio por departamento.
+Además, es notorio que los departamentos donde hay una mayor densidad de alumnos por sección son Loreto, Lima, Callao y Moquegua; y los de menor densidad son Pasco, Huancavelica, Apurímac y Amazonas. La media de alumnos por departamento es de 4.6.
+
+**Para la variable DocentesPorSeccion**
+```{r echo=FALSE}
+DistTotalPorDep %>% ggplot(aes(x = Departamento, y=DocentesPorSeccion), main = "Densidad de docentes por sección por departamento",
+     xlab = "Departamento", ylab = "Promedio de docentes por sección") + geom_col (fill="steelblue")+ geom_hline(yintercept=mean(DistTotalPorDep$DocentesPorSeccion), color="red") + theme(text = element_text(size=10),
+        axis.text.x = element_text(angle=90, hjust=1)) 
+```
+Para este caso se hizo un procedimiento similar al anterior gráfico, solo que usando el total de docentes, en lugar del de alumnos. Seguidamente se le dividió entre el total de secciones. En este gráfico se observa que los departamentos donde hay mayor concentración de docentes por sección son Áncash, Callao, Ucayali y Moquegua. Igualmente, aquellos donde la densidad es menor son Apurímac, Pasco, Huancavelica y San Martín. Asimismo, la media de docentes por sección por departamento es de 0.97.
+
+#### **Evaluación de las variables categóricas nominales**
+
+Para la siguiente parte de nuestro analisis nos centraremos en los departamentos y cantidad de colegios escolarizados, privados y publicos que hay en cada uno. Para este caso se utilizaron las variables categoricas de FORMA, GESTIÓN y DEPARTAMENTO de la data original, las cuales conforman un nuevo data.frame denominado "Publi_priv.csv" el cual estará adjunto con el resto de archivos.
+
+Debemos mencionar que se hará enfasis en la presentación de las tablas y no se mostrara algún descriptor gráfico debido a la cantidad escasa de observaciones de este nuevo data frame.
+
+```{r echo=FALSE}
+
+Nuevo2<-read_csv("Publi_priv.csv")
+Nuevo2<- na.omit(Nuevo2)
+Nuevo2<-mutate(Nuevo2,Tcolegios=Publica + Privada)
+
+```
+
+```{r echo=TRUE}
+# Gráfica Total de colegios
+
+Nuevo2 %>% ggplot(aes(x = Departamento, y=Tcolegios), main = "Instituciones Educativas", xlab = "Departamento", ylab = "Colegios") + geom_col (fill=colors()[76])+ geom_hline(yintercept=mean(Nuevo2$Tcolegios), color="red") + theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=90, hjust=1,vjust = 0.2)) 
+
+```
+En esta gráfica se observa que la mayoría cantidad de colegios se encuentran en Lima, la cual es alrededor de 3 veces mayor que la segunda más alta, Arequipa. Esta relación concuerda con la población de ambos departamentos, ya que ambos poseen las poblaciones más grandes del país.
+
+```{r echo=TRUE}
+# Tcolegios sin Lima(Gráfico)
+Tcol_xlima<-Nuevo2[Nuevo2$Tcolegios < 100, ]
+
+Tcol_xlima %>% ggplot(aes(x = Departamento, y=Tcolegios), main = "Instituciones Educativas", xlab = "Departamento", ylab = "Colegios") + geom_col (fill=colors()[76])+ geom_hline(yintercept=mean(Tcol_xlima$Tcolegios), color="red") + theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=90, hjust=1,vjust = 0.2)) 
+# Departamento con MAYOR numero de colegios
+slice(Nuevo2,which.max(Tcolegios))
+# Departamento con MENOR numero de colegios
+slice(Nuevo2,which.min(Tcolegios))
+# ORDEN (Escolarizado y No escolarizado)
+
+# Departamentos coN MENOR cantidad de colegios escolarizados
+EscolarizadaLOW <- Nuevo2[order(Nuevo2$Escolarizado), ]
+head(EscolarizadaLOW)
+# Departamentos con MAYOR cantidad de colegios escolarizados
+EscolarizadaUP<-EscolarizadaLOW[nrow(EscolarizadaLOW):1, ]
+head(EscolarizadaUP)
+# Gráfica de escolarizados 
+Nuevo2 %>% ggplot(aes(x = Departamento, y=Escolarizado), main = "Frecuencia de escolarizado", xlab = "Departamento", ylab = "Escolarizados") + geom_col (fill="darkgreen")+ geom_hline(yintercept=mean(Nuevo2$Escolarizado), color="red") + theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=90, hjust=1,vjust = 0.2))
+```
+Se aprecia que las instituciones escolarizadas siguen una tendencia muy similar a la de todas las instituciones en conjunto, donde Lima lidera con diferencia. 
+
+```{r echo=TRUE}
+
+
+# Escolarizados sin contar Lima(Dataframe)
+ED_sinlima<-EscolarizadaUP[EscolarizadaUP$Escolarizado < 60, ]
+head(ED_sinlima)
+
+
+# GRÁFICA de escolarizados sin contar lima
+ED_sinlima %>% ggplot(aes(x = Departamento, y=Escolarizado), main = "Frecuencia de escolarizado", xlab = "Departamento sin Lima", ylab = "Escolarizados") + geom_col (fill="darkgreen")+ geom_hline(yintercept=mean(Nuevo2$Escolarizado), color="red") + theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=90, hjust=1,vjust = 0.2)) 
+
+# GESTIÓN (PUBLICA O PRIVADA)
+
+# Privados
+
+# Orden Privados
+
+# Departamentos con MAYOR gestion PRIVADA
+PrivLOW <- Nuevo2[order(Nuevo2$Privada), ]
+PrivUP<-PrivLOW[nrow(PrivLOW):1, ]
+head(PrivUP)
+# Sin contar LIMA
+Privup_sinlima<-PrivUP[PrivUP$Privada < 22, ]
+head(Privup_sinlima)
+# GRÁFICA DE COLEGIOS ESPECIALES PRIVADOS EN EL PERÚ
+Nuevo2 %>% ggplot(aes(x = Departamento, y= Privada), main = "Frecuencia de gestio privada", xlab = "Departamento", ylab = "Escolarizados") + geom_col (fill=colors()[72])+ geom_hline(yintercept=mean(Nuevo2$Privada), color="red") + theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=90, hjust=1,vjust = 0.2)) 
+# GRÁFICA DE COLEGIOS ESPECIALES PUBLICOS EN EL PERÚ
+
+Nuevo2 %>% ggplot(aes(x = Departamento, y= Publica), main = "Frecuencia de gestio pública", xlab = "Departamento", ylab = "Privados") + geom_col (fill=colors()[511])+ geom_hline(yintercept=mean(Nuevo2$Publica), color="red") + theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=90, hjust=1,vjust = 0.2)) 
+
+```
+
+En estas últimas dos gráficas se aprecia que la cantidad de instituciones en el Departamento de Lima es considerablemente mayor a la media. Asimismo, se observa que la cantidad de instituciones públicas es notablemente mayor a la cantidad de instituciones privadas, hasta el punto que departamentos principalmente rurales como Amazonas, Loreto y Moquegua carecen de instituciones privadas.
+
+Para representar gráficamente la frecuencia de la cantidad de alumnos por tipo de escuela se usó el histograma, ya que nos permite agrupar en intervalos la cantidad de alumnos. Con esto podemos ver que la tendencia son las instituciones con menos alumnado.
+
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+Col_Espe <- read_csv("Col_Espe.csv")
+Col_Espe <- na.omit(Col_Espe)
+Col_Espe <- borrarDatos(Data, 11,12,13)
+```
+
+```{r echo=TRUE}
+PublicaSectorEducacion<-Col_Espe$`Alumnos (2015)`[which(Col_Espe$`Gestión / Dependencia`=="Pública - Sector Educación")]
+PublicaEnconvenio<-Col_Espe$`Alumnos (2015)`[which(Col_Espe$`Gestión / Dependencia`=="Pública - En convenio")]
+PrivadaInstitucionesBeneficas<-Col_Espe$`Alumnos (2015)`[which(Col_Espe$`Gestión / Dependencia`=="Privada - Instituciones Benéficas")]
+PrivadaParticular<-Col_Espe$`Alumnos (2015)`[which(Col_Espe$`Gestión / Dependencia`=="Privada - Particular")]
+PrivadaParroquial<-Col_Espe$`Alumnos (2015)`[which(Col_Espe$`Gestión / Dependencia`=="Privada - Parroquial")]
+hist(PublicaSectorEducacion,xlab = "Cantidad de alumnos", ylab="Frecuencia",col=colors()[125])
+hist(PublicaEnconvenio,xlab = "Cantidad de alumnos", ylab="Frecuencia",col=colors()[125])
+hist(PrivadaInstitucionesBeneficas,xlab = "Cantidad de alumnos", ylab="Frecuencia",col=colors()[125])
+hist(PrivadaParticular,xlab = "Cantidad de alumnos", ylab="Frecuencia",col=colors()[125])
+hist(PrivadaParroquial,xlab = "Cantidad de alumnos", ylab="Frecuencia",col=colors()[125])
+
+```
+
+En este caso se muestra la relación entre la cantidad de alumnos por las diferentes regiones del país (costa, sierra y selva).
+
+```{r echo=FALSE}
+depar=c("costa","sierra","selva")
+
+sumalumnos2=c(sum(Col_Espe[Col_Espe$Departamento=="Ancash" | Col_Espe$Departamento=="Callao"|Col_Espe$Departamento=="Ica"|Col_Espe$Departamento=="Lima"|Col_Espe$Departamento=="Piura"|Col_Espe$Departamento=="La Libertad"|Col_Espe$Departamento=="Arequipa"|Col_Espe$Departamento=="Moquegua"|Col_Espe$Departamento=="Tacna"|Col_Espe$Departamento=="Lambayeque",11]), 
+sum(Col_Espe[Col_Espe$Departamento=="Huancavelica" | Col_Espe$Departamento=="Apurimac"|Col_Espe$Departamento=="Ayacucho"|Col_Espe$Departamento=="Cusco"| Col_Espe$Departamento=="Puno" | Col_Espe$Departamento=="Junin" |Col_Espe$Departamento=="Pasco"| Col_Espe$Departamento=="San Martin",11]),
+sum(Col_Espe[Col_Espe$Departamento=="Madre de Dios" | Col_Espe$Departamento=="Ucayali" | Col_Espe$Departamento=="Amazonas" | Col_Espe$Departamento=="Loreto",11]))
+
+
+
+barplot(sumalumnos2,names.arg = c(depar), col=colors()[125])
+
+```
+
+#### **Análisis de confiabilidad de los datos**
+Es necesario recalcar que la data con la que se trabaja reúne la información de toda la población. Esta es conformada por todos los Colegios de Educación Especial en el Perú en el año 2015. En consecuencia, se presentará el análisis de confiabilidad para cierta muestra aleatoria de la población.
+
+#### Funciones para el cálculo del tamaño de la muestra y estimación del intervalo de confianza
+
+```{r echo=TRUE}
+# Para estimar el intervalo de confianza de una muestra no normal con varianza conocida
+icv1 <- function(me, conf, var1, n){
+  x1=me-qnorm(1-(1-conf)/2, mean=0, sd=1)*sqrt(var1/n)
+  x2=me+qnorm(1-(1-conf)/2, mean=0, sd=1)*sqrt(var1/n)
+  IC<-c(x1, x2)
+  IC
+}
+```
+
+
+```{r}
+#Para calcular el tamaño de muestra
+cn <- function(conf, desv, errorp){
+  x1=(qnorm(1-(1-conf)/2, mean=0, sd=1)*desv/errorp)^2
+  x1
+}
+```
+
+Estas formulaciones fueron realizadas en base a lo presentado en las sesiones teóricas de la asignatura de Estadística y Probabilidades.
+
+```{r}
+costa<-Col_Espe %>% filter(Departamento=="Ancash"| Departamento=="Callao"| Departamento=="Ica"| Departamento=="Lima"| Departamento=="Piura"| Departamento=="La Libertad"|Departamento=="Arequipa"|Departamento=="Moquegua"|Departamento=="Tacna"|Departamento=="Lambayeque"| Departamento=="Tumbes"| Departamento=="Callao")
+costa
+
+sierra<-Col_Espe %>% filter(Departamento=="Huancavelica" | Departamento=="Apurimac"|Departamento=="Ayacucho"|Departamento=="Cusco"| Departamento=="Puno" | Departamento=="Junin" |Departamento=="Pasco" | Departamento=="Cajamarca" | Departamento=="Huanuco")
+sierra
+
+selva<-Col_Espe %>% filter(Departamento=="Madre de Dios" | Departamento=="Ucayali" | Departamento=="Amazonas"|Departamento=="San Martin"|Departamento=="Loreto")
+selva
+```
+
+A continuación, procedemos a evaluar el tamaño de muestra considerando 3 niveles de confianza:
+
+```{r echo=FALSE}
+cn(0.95, sd (costa$`Alumnos (2015)`), 6)
+cn(0.90, sd (costa$`Alumnos (2015)`), 6)
+cn(0.85, sd (costa$`Alumnos (2015)`), 6)
+
+cn(0.95, sd (sierra$`Alumnos (2015)`), 3.5)
+cn(0.90, sd (sierra$`Alumnos (2015)`), 3.5)
+cn(0.85, sd (sierra$`Alumnos (2015)`), 3.5)
+
+cn(0.95, sd (selva$`Alumnos (2015)`), 10)
+cn(0.90, sd (selva$`Alumnos (2015)`), 10)
+cn(0.85, sd (selva$`Alumnos (2015)`), 10)
+```
+```{r echo=FALSE}
+
+cn(0.95, sd (costa$`Docentes (2015)`), 1.7)
+cn(0.90, sd (costa$`Docentes (2015)`), 1.7)
+cn(0.85, sd (costa$`Docentes (2015)`), 1.7)
+
+cn(0.95, sd (sierra$`Docentes (2015)`), 1.7)
+cn(0.90, sd (sierra$`Docentes (2015)`), 1.7)
+cn(0.85, sd (sierra$`Docentes (2015)`), 1.7)
+
+cn(0.95, sd (selva$`Docentes (2015)`), 2.5)
+cn(0.90, sd (selva$`Docentes (2015)`), 2.5)
+cn(0.85, sd (selva$`Docentes (2015)`), 2.5)
+```
+```{r echo=FALSE}
+cn(0.95, sd (costa$`Secciones (2015)`), 2)
+cn(0.90, sd (costa$`Secciones (2015)`), 2)
+cn(0.85, sd (costa$`Secciones (2015)`), 2)
+
+cn(0.95, sd (sierra$`Secciones (2015)`), 2)
+cn(0.90, sd (sierra$`Secciones (2015)`), 2)
+cn(0.85, sd (sierra$`Secciones (2015)`), 2)
+
+cn(0.95, sd (selva$`Secciones (2015)`), 2)
+cn(0.90, sd (selva$`Secciones (2015)`), 2)
+cn(0.85, sd (selva$`Secciones (2015)`), 2)
+```
+
+Esto se realizó para escoger qué tamaño de muestreo nos conviene. En este caso como observamos las poblaciones de la costa al ser una  población grande escogemos el factor 0.9 ya que un factor mayor superaría el tamaño de muestra. En el caso de la sierra al ser una población pequeña y con baja varianza se optó por un factor de confianza de 0.9 ya que no afectará sustancialmente al muestreo total. Por último en la selva se optó por un factor de confianza de 0.9 ya que colocarle un factor más bajo sobrepasaría el tamaño de la población.
+
+#### **Por región**
+
+##### **COSTA**
+
+##### **Cálculo del intervalo de confianza para la media de docentes en la región costa**
+
+Primeramente se organiza la información en un nuevo dataframe:
+```{r}
+DCosta<-Data %>% filter(Departamento=="Ancash"| Departamento=="Callao"| Departamento=="Ica"| Departamento=="Lima"| Departamento=="Piura"| Departamento=="La Libertad"|Departamento=="Arequipa"|Departamento=="Moquegua"|Departamento=="Tacna"|Departamento=="Lambayeque"| Departamento=="Tumbes"| Departamento=="Callao")
+DCosta
+```
+Se calcula entonces el tamaño de muestra deseado. En este caso y en los siguientes se prioriza tener un intervalo con una buena precisión hasta donde lo permita la población. En otras palabras, el número calculado no deberá sobrepasar al de la población.
+Por esta razón se escogió un error de 1.7
+```{r}
+cn(0.9, sd(DCosta$`Docentes (2015)`), 1.7)
+```
+Luego de ello se tomará una muestra aleatoria de la población y en base a ella se estimará el intervalo de confianza.
+```{r}
+MuestraCostaD <- sample(DCosta$`Docentes (2015)`, 89, replace = FALSE)
+MuestraCostaD
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraCostaD), 0.9, var(DCosta$`Docentes (2015)`), 89)
+```
+
+A continuación se muestra la distribución de la población y se compara la media real con la media estimada.
+```{r echo=FALSE}
+hist(DCosta$`Docentes (2015)`, main="Distribución de docentes en la región Costa", cex.main=1, xlab="N° de docentes", ylab="Frecuencia",xlim=c(0,54), ylim=c(0,60), breaks = 20)
+
+abline(v=mean(DCosta$`Docentes (2015)`), col="blue")
+abline(v=mean(MuestraCostaD), col="red")
+```
+Se define la siguiente función para indicar el rechazo o aceptación de la hipótesis nula:
+
+```{r}
+# Para varianza conocida
+hipvarcon <- function(media.mues, mu, varia, signifi, n, alt){
+  if(alt=="doble"){
+    es=qnorm(signifi/2)
+    as=qnorm(1-signifi/2)
+    z=(media.mues-mu)*sqrt(n/varia)
+    if(z>es && z<as)
+      return("La H0 cumple, no se rechaza")
+    else
+      return("La H0 no cumple, se rechaza")
+    }
+  else if(alt=="izquierda"){
+    es=qnorm(signifi)
+    z=(media.mues-mu)*sqrt(n/varia)
+    if(z>es)
+      return("La H0 cumple, no se rechaza")
+    else
+      return("La H0 no cumple, se rechaza")
+    }
+  else if(alt=="derecha"){
+    es=qnorm(1-signifi)
+    z=(media.mues-mu)*sqrt(n/varia)
+    if(z<es)
+      return("La H0 cumple, no se rechaza")
+    else
+      return("La H0 no cumple, se rechaza")
+    }
+  else
+    return("error")
+}
+```
+
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DCosta$`Docentes (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de docentes en la región costa es mayor o igual a 9
+
+```{r}
+hipvarcon(media.mues=mean(MuestraCostaD), mu=9, varia=var(DCosta$`Docentes (2015)`), signifi=0.05, n=89, alt="izquierda")
+```
+
+Como podemos observar, la H0 se cumple. La media de docentes en la región costa es superior a 9.
+
+##### **Cálculo del intervalo de confianza para la media de alumnos en la región costa**
+
+En el caso de los alumnos, el error que se tomó fue de 6 debido a la gran diferencia de valores entre las distintas instituciones a lo largo de esta región.
+
+```{r}
+cn(0.9, sd(DCosta$`Alumnos (2015)`), 6)
+```
+
+```{r}
+MuestraCostaAl <- sample(DCosta$`Alumnos (2015)`, 145, replace = FALSE)
+MuestraCostaAl
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraCostaAl), 0.9, var(DCosta$`Alumnos (2015)`), 145)
+```
+
+
+```{r echo=FALSE}
+hist(DCosta$`Alumnos (2015)`, main="Distribución de alumnos en la región Costa", cex.main=1, xlab="N° de alumnos", ylab="Frecuencia",xlim=c(0,310), ylim=c(0,100), breaks = 20)
+
+abline(v=mean(DCosta$`Alumnos (2015)`), col="blue")
+abline(v=mean(MuestraCostaAl), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DCosta$`Alumnos (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de alumnos en la región costa es mayor o igual a 45
+
+```{r}
+hipvarcon(media.mues=mean(MuestraCostaAl), mu=45, varia=var(DCosta$`Alumnos (2015)`), signifi=0.05, n=145, alt="izquierda")
+```
+
+Como podemos observar la H0 se cumple. La media de alumnos en la región costa es superior a 45.
+
+##### **SIERRA**
+
+##### **Cálculo del intervalo de confianza para la media de docentes en la región Sierra**
+
+```{r }
+DSierra<-Data %>% filter(Departamento=="Huancavelica" | Departamento=="Apurimac"|Departamento=="Ayacucho"|Departamento=="Cusco"| Departamento=="Puno" | Departamento=="Junin" |Departamento=="Pasco" | Departamento=="Cajamarca" | Departamento=="Huanuco")
+DSierra
+```
+
+Se tomó un error de 1.7, ya que el tamaño de muestra que nos resultaba era bastante menor al tamaño poblacional. De esta manera se podía obtener una mayor precisión en el resultado.
+
+```{r}
+cn(0.9, sd(DSierra$`Docentes (2015)`), 1.7)
+```
+
+```{r}
+MuestraSierraD <- sample(DSierra$`Docentes (2015)`, 23, replace = FALSE)
+MuestraSierraD
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraSierraD), 0.9, var(DSierra$`Docentes (2015)`), 23)
+```
+
+```{r echo=FALSE}
+hist(DSierra$`Docentes (2015)`, main="Distribución de docentes en la región Sierra", cex.main=1, xlab="N° de docentes", ylab="Frecuencia",xlim=c(0,33), ylim=c(0,80), breaks = 20)
+
+abline(v=mean(DSierra$`Docentes (2015)`), col="blue")
+abline(v=mean(MuestraSierraD), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DSierra$`Docentes (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de docentes en la región sierra es mayor o igual a 3
+
+```{r}
+hipvarcon(media.mues=mean(MuestraSierraD), mu=3, varia=var(DSierra$`Docentes (2015)`), signifi=0.05, n=23, alt="izquierda")
+```
+
+Como podemos observar, la H0 se cumple. La media de docentes en la región sierra es superior a 3.
+
+##### **Cálculo del intervalo de confianza para la media de alumnos en la región Sierra**
+
+El error que se consideró es de 3.5, debido a que para esta variable sí existía mayor variación respecto a los resultados. Por lo tanto, el tamaño muestral requerido era mayor.
+
+```{r}
+cn(0.9, sd(DSierra$`Alumnos (2015)`), 3.5)
+```
+
+```{r}
+MuestraSierraAl <- sample(DSierra$`Alumnos (2015)`, 129, replace = FALSE)
+MuestraSierraAl
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraSierraAl), 0.9, var(DSierra$`Alumnos (2015)`), 129)
+```
+
+```{r echo=FALSE}
+hist(DSierra$`Alumnos (2015)`, main="Distribución de alumnos en la región Sierra", cex.main=1, xlab="N° de alumnos", ylab="Frecuencia",xlim=c(0,209), ylim=c(0,60), breaks = 20)
+
+abline(v=mean(DSierra$`Alumnos (2015)`), col="blue")
+abline(v=mean(MuestraSierraAl), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DSierra$`Alumnos (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de alumnos en la región sierra es mayor o igual a 18
+
+```{r}
+hipvarcon(media.mues=mean(MuestraSierraAl), mu=18, varia=var(DSierra$`Alumnos (2015)`), signifi=0.05, n=129, alt="izquierda")
+```
+
+Como podemos observar, la H0 se cumple. La media de alumnos en la región sierra es superior a 18.
+
+##### **SELVA**
+
+##### **Cálculo del intervalo de confianza para la media de docentes en la región Selva**
+
+```{r}
+DSelva<-Data %>% filter(Departamento=="Madre de Dios" | Departamento=="Ucayali" | Departamento=="Amazonas"|Departamento=="San Martin"|Departamento=="Loreto")
+DSelva
+```
+
+Para el presente caso, el error tomado es de 2.5, ya que al no haber tantas instituciones educativas y una variación considerable entre ellas, se requería un mayor error para obtener un tamaño muestral equilibrado con las consideraciones mencionadas.
+
+```{r}
+cn(0.9, sd(DSelva$`Docentes (2015)`), 2.5)
+```
+
+```{r}
+MuestraSelvaD <- sample(DSelva$`Docentes (2015)`, 28, replace = FALSE)
+MuestraSelvaD
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraSelvaD), 0.9, var(DSelva$`Docentes (2015)`), 28)
+```
+
+```{r echo=FALSE}
+hist(DSelva$`Docentes (2015)`, main="Distribución de docentes en la región Selva", cex.main=1, xlab="N° de docentes", ylab="Frecuencia",xlim=c(0,41), ylim=c(0,20), breaks = 20)
+
+abline(v=mean(DSelva$`Docentes (2015)`), col="blue")
+abline(v=mean(MuestraSelvaD), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DSelva$`Docentes (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de docentes en la región selva es menor o igual a 10
+
+```{r}
+hipvarcon(media.mues=mean(MuestraSelvaD), mu=10, varia=var(DSelva$`Docentes (2015)`), signifi=0.05, n=128, alt="derecha")
+```
+
+Como podemos observar, la H0 se cumple. La media de docentes en la región selva es inferior a 10.
+
+##### **Cálculo del intervalo de confianza para la media de alumnos en la región Selva**
+
+Similar al caso anterior, se contó con un tamaño poblacional pequeño, junto con una mayor variación con la población de alumnos. Por estos motivos, se escogió el valor del error de 10.
+
+
+```{r}
+cn(0.9, sd(DSelva$`Alumnos (2015)`), 10)
+```
+
+```{r}
+MuestraSelvaAl <- sample(DSelva$`Alumnos (2015)`, 32, replace = FALSE)
+MuestraSelvaAl
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraSelvaAl), 0.9, var(DSelva$`Alumnos (2015)`), 32)
+```
+
+```{r echo=FALSE}
+hist(DSelva$`Alumnos (2015)`, main="Distribución de alumnos en la región Selva", cex.main=1, xlab="N° de alumnos", ylab="Frecuencia",xlim=c(0,165), ylim=c(0,20), breaks = 20)
+
+abline(v=mean(DSelva$`Alumnos (2015)`), col="blue")
+abline(v=mean(MuestraSelvaAl), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población, en esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DSelva$`Alumnos (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de alumnos en la región selva es menor o igual a 40
+
+```{r}
+hipvarcon(media.mues=mean(MuestraSelvaAl), mu=40, varia=var(DSelva$`Alumnos (2015)`), signifi=0.05, n=128, alt="derecha")
+```
+
+Como podemos observar, la H0 se cumple. La media de alumnos en la región selva es inferior a 40.
+
+##### **Intervalo de confianza para la capital Lima**
+
+##### **Cálculo del intervalo de confianza para la media de alumnos en Lima**
+
+```{r}
+DLima<-Data %>% filter(Departamento=='Lima')
+DLima
+```
+
+Se propuso un valor de error de 8, ya que si bien la población era ciertamente grande, la desviación estándar también era considerable.
+
+```{r}
+cn(0.9, sd(DLima$`Alumnos (2015)`), 8)
+```
+```{r}
+MuestraLimaA <- sample(DLima$`Alumnos (2015)`, 107, replace = FALSE)
+MuestraLimaA
+```
+
+Intervalo de confianza:
+```{r}
+icv1(mean(MuestraLimaA), 0.9, var(DLima$`Alumnos (2015)`), 107)
+```
+```{r echo=FALSE}
+hist(DLima$`Alumnos (2015)`, main="Distribución de alumnos en Lima", cex.main=1, xlab="N° de alumnos", ylab="Frecuencia",xlim=c(0,310), ylim=c(0,20), breaks = 40)
+
+abline(v=mean(DLima$`Alumnos (2015)`), col="blue")
+abline(v=mean(MuestraLimaA), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DLima$`Alumnos (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de alumnos en Lima es menor o igual a 80
+
+```{r}
+hipvarcon(media.mues=mean(MuestraLimaA), mu=80, varia=var(DLima$`Alumnos (2015)`), signifi=0.05, n=107, alt="derecha")
+```
+
+Como podemos observar, la H0 se cumple. La media de alumnos en Lima es inferior a 80.
+
+##### **Cálculo del intervalo de confianza para la media de docentes en Lima**
+
+Para los docentes de Lima vemos que el error es mucho menor en comparación al de los alumnos. Esto se debe principalmente a la desviación estándar de esta población, la cual es mucho menor.
+
+```{r}
+cn(0.9, sd(DLima$`Docentes (2015)`), 1.8)
+```
+```{r}
+MuestraLimaD <- sample(DLima$`Docentes (2015)`, 94, replace = FALSE)
+MuestraLimaD
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraLimaD), 0.9, var(DLima$`Docentes (2015)`), 94)
+```
+```{r echo=FALSE}
+hist(DLima$`Docentes (2015)`, main="Distribución de docentes en Lima", cex.main=1, xlab="N° de docentes", ylab="Frecuencia",xlim=c(0,52), ylim=c(0,20), breaks = 20)
+
+abline(v=mean(DLima$`Docentes (2015)`), col="blue")
+abline(v=mean(MuestraLimaD), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(DLima$`Docentes (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de docentes en Lima es menor o igual a 20
+
+```{r}
+hipvarcon(media.mues=mean(MuestraLimaD), mu=20, varia=var(DLima$`Docentes (2015)`), signifi=0.05, n=94, alt="derecha")
+```
+
+Como podemos observar, la H0 se cumple.La media de docentes en Lima es inferior a 20.
+
+##### **Para Perú**
+
+##### **Cálculo del intervalo de confianza para la media de alumnos en Perú**
+
+Se toma un error de 3.2 debido a las observaciones atípicas de la población (las que causan una variación de los datos muy alta). Se interpreta que esto se debe a la pronunciada centralización presente en el país.
+
+```{r}
+cn(0.9, sd(Data$`Alumnos (2015)`), 3.2)
+```
+```{r}
+MuestraPeruA<- sample(Data$`Alumnos (2015)`, 423, replace = FALSE)
+MuestraPeruA
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraPeruA), 0.9, var(Data$`Alumnos (2015)`), 423)
+```
+Intervalo de confianza con una muestra inferior a 30:
+```{r}
+x <- sample(DCosta$`Alumnos (2015)`, 25, replace = FALSE)
+t.test(x, conf.level=0.9)
+```
+Se puede observar que en esta última situación se pierde precisión, lo que amplia mucho más el intervalo de confianza. Además, como la variable "Alumnos" podría variar según la región en la que se evalúe, esto podría afectar mucho al calculo realizado. Debido a lo mencionado, se sugiere tomar una muestra representativa mucho mayor para estimar un intervalo de confianza adecuado.
+
+```{r echo=FALSE}
+hist(Data$`Alumnos (2015)`, main="Distribución de alumnos en Perú", cex.main=1, xlab="N° de alumnos", ylab="Frecuencia",xlim=c(0,320), ylim=c(0,200), breaks = 20)
+
+abline(v=mean(Data$`Alumnos (2015)`), col="blue")
+abline(v=mean(MuestraPeruA), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(Data$`Alumnos (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de alumnos en el Perú es mayor o igual a 45
+
+```{r}
+hipvarcon(media.mues=mean(MuestraPeruA), mu=45, varia=var(Data$`Alumnos (2015)`), signifi=0.05, n=423, alt="izquierda")
+```
+
+Como podemos observar, la H0 no se cumple. Esto quiere decir que la media de alumnos debería ser menor a 45, lo cual es cierto.
+
+##### **Cálculo del intervalo de confianza para la media de docentes en Perú**
+
+Aqui el error es 0.7 debido a que la concentración de los datos es mucho mejor que para el caso de alumnos.
+
+```{r}
+cn(0.9, sd(Data$`Docentes (2015)`), 0.7)
+```
+```{r}
+MuestraPeruD <- sample(Data$`Docentes (2015)`, 426, replace = FALSE)
+MuestraPeruD
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(MuestraPeruD), 0.9, var(Data$`Docentes (2015)`), 94)
+```
+
+Intervalo de confianza con una muestra inferior a 30:
+```{r}
+y <- sample(Data$`Docentes (2015)`, 25, replace = FALSE)
+t.test(y, conf.level=0.9)
+```
+Se puede observar que en esta última situación se pierde precisión, lo que amplia mucho más el intervalo de confianza. Además, como la variable "Docentes" podría variar según la región en la que se evalúe, esto podría afectar mucho al calculo realizado. Debido a lo mencionado, se sugiere tomar una muestra representativa mucho mayor para estimar un intervalo de confianza adecuado.
+
+```{r echo=FALSE}
+hist(Data$`Docentes (2015)`, main="Distribución de docentes en Perú", cex.main=1, xlab="N° de docentes", ylab="Frecuencia",xlim=c(0,54), ylim=c(0,150), breaks = 20)
+
+abline(v=mean(Data$`Docentes (2015)`), col="blue")
+abline(v=mean(MuestraPeruD), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(Data$`Docentes (2015)`)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de docentes en el Perú es mayor o igual a 10
+
+```{r}
+hipvarcon(media.mues=mean(MuestraPeruD), mu=10, varia=var(Data$`Docentes (2015)`), signifi=0.05, n=426, alt="izquierda")
+```
+
+Como podemos observar, la H0 no se cumple. Esto quiere decir que la media de alumnos debería ser menor a 10, lo cual es cierto.
+
+##### **Cálculo del intervalo de confianza para la media de docentes por sección en el Perú**
+
+```{r}
+al_Sec<-Data$`Alumnos (2015)`/Data$`Secciones (2015)`
+```
+
+```{r}
+cn(0.9, sd(doc_Sec), 0.07)
+```
+
+```{r}
+Muestra.doc.sec <- sample(doc_Sec, 210, replace = FALSE)
+Muestra.doc.sec
+```
+
+Intervalo de confianza:
+```{r echo=FALSE}
+icv1(mean(Muestra.doc.sec), 0.9, var(doc_Sec), 210)
+```
+
+```{r echo=FALSE}
+hist(doc_Sec, main="Distribución de docentes por seccion", cex.main=1, xlab="N° de docentes/seccion", ylab="Frecuencia",xlim=c(0,4), ylim=c(0,100), breaks = 20)
+
+abline(v=mean(doc_Sec), col="blue")
+abline(v=mean(Muestra.doc.sec), col="red")
+```
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(doc_Sec)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de docentes por sección en el Perú es mayor o igual a 3
+
+```{r}
+hipvarcon(media.mues=mean(Muestra.doc.sec), mu=3, varia=var(doc_Sec), signifi=0.05, n=210, alt="izquierda")
+```
+
+Como podemos observar, la H0 no se cumple. Esto quiere decir que la media de docentes por sección debería ser menor a 3, lo que en definitiva es cierto.
+
+##### **Cálculo del intervalo de confianza para la media de alumnos por sección en el Perú**
+
+```{r}
+cn(0.9, sd(al_Sec), 0.35)
+```
+
+```{r}
+Muestra.al.sec <- sample(al_Sec, 245, replace = FALSE)
+Muestra.al.sec
+```
+
+```{r echo=FALSE}
+icv1(mean(Muestra.al.sec), 0.9, var(al_Sec), 245)
+```
+
+```{r echo=FALSE}
+hist(al_Sec, main="Distribución de alumnos por seccion", cex.main=1, xlab="N° de alumnos/seccion", ylab="Frecuencia",xlim=c(0,20), ylim=c(0,100), breaks = 20)
+
+abline(v=mean(al_Sec), col="blue")
+abline(v=mean(Muestra.al.sec), col="red")
+```
+
+Compararemos lo que nos dice la prueba de hipótesis con la respuesta obtenida directamente de la población. En esta ocasión se propone lo siguiente:
+
+```{r}
+mean(al_Sec)
+```
+Ya que se conoce la media de la población, veremos si la prueba de hipótesis coordina con este resultado:
+
+H0 = La media de la población de docentes en la región selva es menor o igual a 2
+
+```{r}
+hipvarcon(media.mues=mean(Muestra.al.sec), mu=2, varia=var(al_Sec), signifi=0.05, n=245, alt="derecha")
+```
+
+Como podemos observar, la H0 no se cumple. Esto quiere decir que la media de alumnos por sección debería ser mayor a 2, lo que en definitiva es cierto.

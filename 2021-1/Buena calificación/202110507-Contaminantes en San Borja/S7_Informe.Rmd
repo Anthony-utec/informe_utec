@@ -1,0 +1,1021 @@
+---
+title: "Entrega P4"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: Synthwave85
+---
+
+------------------------------------------------------------------------
+```{r message=FALSE, echo=FALSE}
+# if (!require('car')) install.packages('car', dependencies = TRUE, repos="http://cran.us.r-project.org" )
+library('car')
+# if (!require('readr')) install.packages('readr', dependencies = TRUE, repos="http://cran.us.r-project.org" )
+library('readr')
+# if (!require('dplyr')) install.packages('dplyr', dependencies = TRUE , repos="http://cran.us.r-project.org")
+library('dplyr')
+# if (!require('vioplot')) install.packages('Vioplot', dependencies = TRUE, repos="http://cran.us.r-project.org" )
+library('vioplot')
+# if (!require('backports')) install.packages('backports', dependencies = TRUE, repos="http://cran.us.r-project.org" ) 
+library('backports')
+# if (!require('mosaic')) install.packages('mosaic', dependencies = TRUE, repos="http://cran.us.r-project.org" )
+library('mosaic')
+# if (!require('TeachingDemos')) install.packages('TeachingDemos', dependencies = TRUE, repos="http://cran.us.r-project.org")
+library('TeachingDemos')
+# if (!require('EnvStats')) install.packages('EnvStats', dependencies = TRUE, repos="http://cran.us.r-project.org")
+library('EnvStats')
+
+```
+
+```{r message=FALSE, echo=FALSE}
+y<-read_csv("datos_horarios_contaminacion_lima.csv", col_types = cols(.default = col_double(), ESTACION  = col_character(),`CODIGO ESTACION` =  col_character()))
+
+x <- y[complete.cases(y), ]
+P<-x %>% filter(ESTACION== "SAN BORJA",ANO== 2016, MES== 4)
+L2<-x %>% filter(ESTACION== "SAN BORJA")
+```
+
+```{css, echo=FALSE}
+h1, h4 {
+  text-align: center;
+  color: brown;
+  font-weight: bold;
+}
+```
+
+# **Tema de trabajo**
+
+Análisis de la cantidad de contaminantes del aire en el distrito de San Borja a lo largo de abril del 2016 y sus impactos en la salud.
+
+# **Importancia**
+
+La importancia del estudio reside en el análisis acerca de la cantidad de contaminantes en San Borja a lo largo del tiempo y relacionar los resultados con los efectos de contaminantes en el aire en la salud.
+
+# **Objetivos**
+**Objetivos Generales**
+
+1.  Relacionar la concentración de contaminantes en el aire con sus efectos directos en la salud.
+\
+
+**Objetivos Específicos**
+
+1. Dar un análisis de qué tan relacionados están estos contaminantes y determinar el patrón de estos gráficos para el mes siguiente.
+\
+2.  Relacionar el contaminante con más concentración en el aire con las enfermedades específicas que puede causar
+\
+3.  Indicar un análisis de capacidad de la mala gestión del organismo local estableciendo argumentos en base a nuestro resultado
+\
+
+# **Variables**
+**Variables Numéricas**
+**Cuantitativas Continua**
+
+1.  **PM10**: Es la concentración de partículas en suspensión con un tamaño igual o inferior a 10 micras en microgramos por metro cúbico. 
+\
+2.  **PM 2.5**: Es la concentración de partículas en suspensión con un tamaño igual o inferior a 2.5 micras en microgramos por metro cúbico.
+\
+3.  **SO2**: Concentración de partículas de dióxido de azufre en el aire en microgramos por metro cúbico.
+\
+4.  **NO2**: Concentración de partículas de dióxido de nitrógeno en el aire en microgramos por metro cúbico.
+\
+5.  **O3**: Concentración de partículas de dióxido de ozono en el aire en microgramos por metro cúbico.
+\
+6.  **CO**: Concentración de partículas de monóxido de carbono en el aire en microgramos por metro cúbico.
+
+**Variables Categóricas**
+**Categóricas Ordinales**
+
+1.  **Mes**: Toma en consideración un registro de 12 meses.
+\
+2.  **Año**: Es el registro anual que se tiene desde 2010 hasta 2020.
+\
+3.  **Día**: Se realizó  un registro máximo de 31 días.
+\
+4.  **Hora**: Toma en consideración la hora  hasta un máximo de 23.
+
+**Categóricas Cardinales**
+
+1.  **Código Estación**: Indica la clasificación por estación de un distrito de Lima.
+\
+2.  **Estación**: Es el lugar donde se toma  como referencia de punto para cada distrito.
+
+# **Limpieza de base de datos**
+
+**Criterios de Limpieza**
+
+La base de datos inicial extraída del SENAMHI contaba con un total de 700000 observaciones de distintos distritos, de la cual se extrajo la información del distrito de San Borja. Al introducir la base de datos a R con la función read_csv(), observamos que R no leía correctamente los datos al dejar datos como N.A a pesar de que estos dentro del csv estaban completos. Para solucionar este problema, se decidió en un principio completar manualmente la base de datos de San Borja, tomando como referencia para la primera entrega 912 observaciones completadas por el grupo de forma manual. Pero al final, se pudo filtrar la base de datos estableciendo el tipo de variables en la entrada de la lectura de R debido a que R no reconocía el tipo de variables para SO2,NO2 y O3 para ello se consideró el siguiente código:
+
+```{r message=FALSE}
+y<-read_csv("datos_horarios_contaminacion_lima.csv", col_types = cols(.default = col_double(), ESTACION  = col_character(),`CODIGO ESTACION` =  col_character()))
+```
+
+Se consideró únicamente al distrito de San Borja en el año 2016 en el mes de Abril debido a la cantidad de datos con los que contaba (observaciones completas), mientras que los otros distintos no tenían datos de PM2,5 y CO principalmente, San Borja si contaba con estas variables. Siendo estas dos variables de importancia para poder determinar si los niveles de contaminantes en el aire de acuerdo a la ECA-aire son dañinos para la salud de las personas.
+
+**Población**
+
+Los contaminantes del aire en el distrito de San Borja 
+
+**Muestra**
+
+Los contaminantes del aire en el distrito de San Borja a lo largo de abril del 2016
+
+**Tipo de muestreo**
+
+En este caso estamos utilizando un muestreo por conveniencia debido a que estamos seleccionando unos datos ordenados en vez de datos al azar.
+
+
+# **Descriptores Numéricos**
+
+1.  **PM10**:
+a)  Covarianza: este descriptor será utilizado para obtener la información sobre la relación de datos entre PM10 y PM2.5. Si este valor es positivo nos brindará información de que a valores altos de PM10 hay una mayor tendencia a encontrar valores altos de PM2.5 y a valores bajos de PM10, correspondientemente valores bajos.
+b)  Media: este descriptor será utilizado para reconocer si el promedio de PM10 por horas es superior o inferior según los Estándares Nacionales de Calidad Ambiental del Aire (ECA del aire).
+c)  Desviación estándar: este descriptor será utilizado para poder determinar la variación existente entre los datos de la variable PM10 y su media, para así poder observar si de acuerdo con el tiempo estos tienen una dependencia a variar en mayor o menor medida de acuerdo a la estación del año.
+d)  Cuartiles: este descriptor será utilizado para saber qué tanto es la concentración de datos contaminantes tomado por rangos y también establecer los rangos de las horas con más concentración de contaminantes.
+
+2.  **PM2.5**:
+a)  Covarianza: este descriptor será utilizado para obtener la información sobre la relación de datos entre PM2.5 y PM10. Si este valor es positivo nos brindará información de que a valores altos de PM2.5 hay una mayor tendencia a encontrar valores altos de PM10 y a valores bajos de PM2.5, correspondientemente valores bajos
+b)  Media: este descriptor será utilizado para reconocer si el promedio de PM2.5 por horas es superior o inferior según los Estándares Nacionales de Calidad Ambiental del Aire (ECA del aire).
+c)  Desviación estándar: este descriptor será utilizado para poder determinar la variación existente entre los datos de la variable PM2.5 y su media, para así poder observar si de acuerdo con el tiempo estos tienen una dependencia a variar en mayor o menor medida de acuerdo a la estación del año.
+d)  Cuartiles: este descriptor será utilizado para saber qué tanto es la concentración de datos contaminantes tomado por rangos y también establecer los rangos de las horas con más concentración de contaminantes.
+
+3.  **SO2**:
+a)  Covarianza: este descriptor será utilizado para poder visualizar la dispersión de datos de la cantidad de partículas de dióxido de azufre en el aire en microgramos por metro cúbico.
+b)  Media: este descriptor será utilizado para reconocer si el promedio de la cantidad de partículas de dióxido de azufre en el aire en microgramos por metro cúbico por horas es superior o inferior según el Índice Nacional de Calidad del Aire (ICA).
+c) Varianza: este descriptor será utilizado para el empleo de los datos de la cantidad de partículas de dióxido de azufre en el aire en microgramos por metro cúbico para ver que tan próximos están estos datos a su promedio y observar qué tanto influye los valores atípicos.
+\
+d) Cuartiles: este descriptor será utilizado para saber qué tanto es la concentración del SO2 tomado por rangos y ver el patrón que siguen dependiendo cuando se toma los datos completos a cuando se toma por partes.
+\
+
+4.  **NO2**:
+a)  Covarianza: este descriptor será utilizado para poder visualizar la dispersión de datos de la cantidad de partículas de dióxido de nitrógeno en el aire en microgramos por metro cúbico.
+b)  Media: este descriptor será utilizado para reconocer si el promedio de la cantidad de partículas de dióxido de nitrógeno en el aire en microgramos por metro cúbico por horas es superior o inferior según el Índice Nacional de Calidad del Aire (ICA).
+c) Varianza: este descriptor será utilizado para el empleo de los datos de la cantidad de partículas de dióxido de nitrógeno en el aire en microgramos por metro cúbico para ver que tan próximos están estos datos a su promedio y observar qué tanto influye los valores atípicos.
+\
+d) Cuartiles: este descriptor será utilizado para saber qué tanto es la concentración del NO2 tomado por rangos y ver el patrón que siguen dependiendo cuando se toma los datos completos a cuando se toma por partes.
+\
+
+5.  **O3**:
+a)  Correlación lineal: este descriptor será utilizado para poder visualizar la dispersión de datos de la cantidad de partículas de dióxido de ozono en el aire en microgramos por metro cúbico.
+b)  Media: este descriptor será utilizado para reconocer si el promedio de la cantidad de partículas de dióxido de ozono en el aire en microgramos por metro cúbico por horas es superior o inferior según el Índice Nacional de Calidad del Aire (ICA).
+c) Varianza: este descriptor será utilizado para el empleo de los datos de la cantidad de partículas de dióxido de ozono en el aire en microgramos por metro cúbico para ver que tan próximos están estos datos a su promedio y observar qué tanto influye los valores atípicos.
+\
+d)  Cuartiles: este descriptor será utilizado para saber qué tanto es la concentración del O3 tomado por rangos y ver el patrón que siguen dependiendo cuando se toma los datos completos a cuando se toma por partes.
+\
+
+6.  **CO**:
+a)  Correlación lineal: este descriptor será utilizado para poder visualizar la dispersión de datos de la cantidad de partículas de monóxido de carbono en el aire en microgramos por metro cúbico.
+b)  Media: este descriptor será utilizado para reconocer si el promedio de la cantidad de partículas de monóxido de carbono en el aire en microgramos por metro cúbico por horas es superior o inferior según el Índice Nacional de Calidad del Aire (ICA).
+c) Varianza: este descriptor será utilizado para el empleo de los datos de la cantidad de partículas de monóxido de carbono en el aire en microgramos por metro cúbico para ver que tan próximos están estos datos a su promedio y observar qué tanto influye los valores atípicos.
+d) Cuartiles: este descriptor será utilizado para saber qué tanto es la concentración del CO tomado por rangos y ver el patrón que siguen dependiendo cuando se toma los datos completos a cuando se toma por partes.
+
+
+# **Descriptores Gráficos**
+
+**Boxplot:** El boxplot será de utilidad para poder comparar las distribuciones de datos según los cuartiles de la variable analizada en el gráfico.
+
+```{r echo=FALSE}
+boxplot(P$CO,col = 'orange',horizontal = TRUE, main = "1.1 Boxplot de CO",xlab = expression(paste('ug/',m^3)) )
+abline(v=mean(P$CO,na.rm=TRUE),col="blue",lwd=3,lty=2)
+legend("topright", legend = c("Media"),
+       lwd = 3, col = c("blue"), lty=3:5)
+axis(1,at=c(round(mean(P$CO,na.rm=TRUE),2)))
+
+```
+
+En este caso nos damos cuenta que hay una mayor cantidad de CO que se encuentran en un rango de 500 a 1000$ug/m^3$, esto es debido a que en todo momento hay circulación de vehículos alrededor del distrito por lo que en ningún momento el valor de este contaminante será igual a cero, mientras que el máximo valor se habría de registrar en una hora de gran concurrencia vehicular . Asimismo, se muestran datos que se podrían considerar atípicos pero en realidad aun así se trabajaran con los mismos , ya que trabajamos con sensores calibrados y cada dato fue registrado y si es atípico es debido a un factor externo.
+
+**Gráfico de barras:** El gráfico de barras será de utilidad para poder determinar si a medida del paso de los años la cantidad de contaminantes tiene una tendencia al aumento o disminución.
+
+```{r echo=FALSE}
+
+PROMEDIOS_HORA <- group_by(P, HORA) %>% 
+summarise(
+  Prom_CO = mean(CO, na.rm = TRUE),
+  Prom_PM2.5 = mean(`PM 2.5`, na.rm = TRUE),
+  Prom_PM10= mean(`PM 10`, na.rm = TRUE),
+  Prom_SO2= mean(SO2, na.rm = TRUE),
+  Prom_O3= mean(O3, na.rm = TRUE),
+  Prom_NO2= mean(NO2, na.rm = TRUE),
+  )
+par(mfrow=c(2, 2))
+barplot(height=PROMEDIOS_HORA$Prom_SO2, names=PROMEDIOS_HORA$HORA, main = "1.2 Promedio de SO2 por hora",xlab = ' Hora ', ylab =  expression(paste('ug/',m^3)), col="darkolivegreen1")
+
+
+abline(h=mean(P$SO2,na.rm=TRUE),col="purple",lwd=2,lty=2)
+legend("topleft", legend = c("Media"),
+       lwd = 3, col = c("purple"), lty=3:5, cex=0.8)
+axis(4,at=c(round(mean(P$SO2,na.rm=TRUE),2)))
+
+barplot(height=PROMEDIOS_HORA$Prom_NO2, names=PROMEDIOS_HORA$HORA, main = "1.3 Promedio de NO2 por hora",xlab = ' Hora ', ylab =  expression(paste('ug/',m^3)), col="darkolivegreen1")
+
+
+abline(h=mean(P$NO2,na.rm=TRUE),col="blue",lwd=2,lty=2)
+legend("topleft", legend = c("Media"),
+       lwd = 3, col = c("blue"), lty=3:5, cex=0.8)
+axis(4,at=c(round(mean(P$NO2,na.rm=TRUE),2)))
+
+
+barplot(height=PROMEDIOS_HORA$Prom_O3, names=PROMEDIOS_HORA$HORA, main = "1.4 Promedio de O3 por hora",xlab = ' Hora ', ylab =  expression(paste('ug/',m^3)), col="darkolivegreen1")
+
+
+abline(h=mean(P$O3,na.rm=TRUE),col="red",lwd=2,lty=2)
+legend("topleft", legend = c("Media"),
+       lwd = 3, col = c("red"), lty=3:5, cex=0.8)
+axis(4,at=c(round(mean(P$O3,na.rm=TRUE),2)))
+
+barplot(height=PROMEDIOS_HORA$Prom_CO, names=PROMEDIOS_HORA$HORA, main = "1.5 Promedio de CO por hora",xlab = ' Hora ', ylab =  expression(paste('ug/',m^3)), col="darkolivegreen1")
+
+
+abline(h=mean(P$CO,na.rm=TRUE),col="orange",lwd=2,lty=2)
+legend("topleft", legend = c("Media"),
+       lwd = 3, col = c("orange"), lty=3:5, cex=0.8)
+axis(4,at=c(round(mean(P$CO,na.rm=TRUE),2)))
+
+```
+
+Como podemos observar en el gráfico 1.5, los picos de la concentración de CO suceden en los rangos 7-9 y 18-20, esto puede ser debido a las conocidas "Horas Punta" en las cuales la cantidad de autos que liberan estos contaminantes aumenta de manera exponencial, produciendo estos picos en el gráfico. Mientras que los valles dentro del gráfico que suceden en la madrugada en el rango de 2-4 suceden al igual que los picos por la cantidad de carros que se conducen en el área, al ser un área poco concurrida por los conductores la cantidad de partículas es considerablemente menor.
+
+Observamos además que esta tendencia también se ve reflejada en los gráficos de SO2 y NO2, mientras que en el gráfico del contaminante ozono no observamos la misma tendencia. Esto es debido a que principalmente la generación del contaminante es proporcional a la cantidad de calor y luz solar del ambiente, lo que se ve reflejado en el gráfico 1.4 donde observamos que las horas en las que hay más concentración del contaminante son entre las 10am y 5pm horas donde se acostumbra a tener grandes cantidades de luz solar.
+
+**Histograma:** Nos permitirá observar claramente cómo varía la cantidad de distintos contaminantes de acuerdo a las fechas de las observaciones, mostrando así si existe una tendencia a variar dependiendo de las estaciones, temperatura, entre otros.
+
+```{r echo=FALSE}
+par(mfrow=c(2, 2))
+hist(P$SO2, main = "1.6 Histograma de SO2",xlab = expression(paste('ug/',m^3)),ylab =  'Frecuencia',col = 'bisque')
+abline(v=mean(P$SO2,na.rm=TRUE),col="blue",lwd=2,lty=2)
+legend("topright", legend = c("Media"),
+       lwd = 3, col = c("blue"), lty=3:5)
+
+
+hist(P$NO2, main = "1.7 Histograma de NO2",xlab = expression(paste('ug/',m^3)),ylab =  'Frecuencia',col = 'bisque')
+abline(v=mean(P$NO2,na.rm=TRUE),col="red",lwd=2,lty=2)
+legend("topright", legend = c("Media"),
+       lwd = 3, col = c("red"), lty=3:5)
+
+hist(P$O3, main = "1.8 Histograma de O3",xlab = expression(paste('ug/',m^3)),ylab =  'Frecuencia',col = 'bisque')
+abline(v=mean(P$O3,na.rm=TRUE),col="orange",lwd=2,lty=2)
+legend("topright", legend = c("Media"),
+       lwd = 3, col = c("orange"), lty=3:5)
+
+hist(P$CO, main = "1.9 Histograma de CO",xlab = expression(paste('ug/',m^3)),ylab =  'Frecuencia',col = 'bisque')
+abline(v=mean(P$CO,na.rm=TRUE),col="purple",lwd=2,lty=2)
+legend("topright", legend = c("Media"),
+       lwd)
+```
+
+De acuerdo a los gráficos presentados, podemos determinar que el contaminante O3 no se produce en la misma cantidad que el NO2, SO2 y CO. Esto es debido a que el O3 se genera en mayor cantidad en días soleados, además como nuestro análisis es en el mes de abril,  el cual no es un mes tan caluroso explica la baja concentración de este contaminante. Adicionalmente, se sabe de antemano que el O3 se produce en pequeñas cantidades ya que es altamente nocivo para la salud
+
+**Gráfico violín:**
+<div>
+```{r echo=FALSE}
+vioplot(P$`PM 2.5`, horizontal= TRUE, col = 5, main = " 1.10 Gráfico violín de PM 2.5")
+abline(v=mean(P$`PM 2.5`,na.rm=TRUE),col="red",lwd=2,lty=2)
+axis(3,at=c(round(mean(P$`PM 2.5`,na.rm=TRUE),2)))
+
+vioplot(P$`PM 10`, horizontal= TRUE, col = 5, main = ".    .        1.11 Gráfico violín de PM 10")
+abline(v=mean(P$`PM 10`,na.rm=TRUE),col="red",lwd=2,lty=2)
+axis(3,at=c(round(mean(P$`PM 10`,na.rm=TRUE),2)))
+```
+
+Como se observa en los gráficos de violín de las variables PM10 y PM2.5, podemos observar que la distribución de los datos es casi la misma solo que la cantidad de PM2,5 es menor a la cantidad de PM10. Este patrón es debido a que el valor de PM2,5 esta incluido dentro de la variable PM10, una parte de las partículas en suspensión menores a 10 micrómetros incluye a aquellas menores a 2,5 micrómetros por lo que al estar la variable PM2,5 dentro de la variable PM10 podemos observar que sus gráficos violines tienen una distribución muy parecida.
+
+
+**Gráficos de Correlación: **
+
+**Gráfico de dispersión:** Nos permite saber que tan dispersos están los datos gráficamente y también qué tan relacionadas están las variables, además nos permitirá observar si las variables tienen tendencias lo que nos permitiría hacer predicciones de acuerdo a la base de datos para determinar si en un futuro los contaminantes serán un problema más serio para la salud.
+
+```{r echo=FALSE}
+plot(P$SO2,P$NO2, pch = 1, col = 1: 2, main = expression(paste("2.1 Gráfico de dispersión NO"[2]," vs SO"[2])),xlab = expression(paste('NO'[2],' (',mu,'g/',m^3,')')),ylab = expression(paste('SO'[2],' (',mu,'g/',m^3,')')))
+legend("topright", legend = c("SO2", "NO2","LT"), fill=c(2,1,20))
+
+reg<-lm(P$NO2~P$SO2)
+abline(reg, col=20)
+cor(P$SO2, P$NO2)
+
+```
+Podemos observar en el gráfico 2 que la relación que tienen los contaminantes SO2 y NO2 es una correlación positiva fuerte, de acuerdo con el valor obtenido de la correlación de ambas variables (siendo 0.649). Podemos determinar que la relación existente entre los dos contaminantes es debido a que ambos son generados por la combustión de combustibles fósiles, y al ser causados ambos principalmente por el consumo de los vehículos en el distrito. 
+
+```{r echo=FALSE}
+plot(P$`PM 10`,P$`PM 2.5`, pch = 1, col = 1: 2, main = expression(paste("2.2 Gráfico de dispersión PM 10 vs PM 2.5")),xlab = expression(paste('PM 10 (ug/',m^3,')')),ylab = expression(paste('PM 2.5 (ug/',m^3,')')))
+
+legend("topright", legend = c("PM 2.5", "PM 10","LT"), fill=c(2,1,20))
+
+reg<-lm(P$`PM 2.5`~ P$`PM 10`)
+abline(reg, col=20)
+
+cor(P$`PM 2.5`, P$`PM 10`)
+```
+
+En el gráfico 2.2 podemos observar como existe una relación entre las variables PM10 y PM2,5, afirmación que se ve sustentada con el valor de correlación obtenido (siendo: 0.679) lo que da una correlación positiva fuerte. Esta relación se puede ver explicada debido a que ambas variables representan la cantidad de partículas, pero cada una con un tamaño máximo distinto. Por lo tanto si PM10 representa las partículas menores a 10 micrómetros, y PM2,5 representa las partículas menores a 2,5 micrómetros, podemos afirmar que la variable PM2,5 estará dentro de la variable PM10. Definida matemáticamente como, PM(2,5) =PM(10)-PM(<2.5).
+
+
+```{r echo=FALSE}
+plot(P$NO2,P$CO, pch = 1, col = 1: 2, main = expression(paste("2.3 Gráfico de dispersión NO"[2]," vs CO")),xlab = expression(paste('CO (ug/',m^3,')')),ylab = expression(paste('NO'[2],' (ug/',m^3,')')))
+
+legend("topright", legend = c("CO", "NO2","LT"), fill=c(2,1,20))
+
+reg<-lm(P$CO~P$NO2 )
+abline(reg, col="blue")
+
+cor(P$NO2, P$CO)
+```
+
+Al igual que en la figura 2.1, en la figura 2.3 observamos que entre ambos compuestos contaminantes NO2 y CO están relacionados, de acuerdo con el valor de correlación entre variables (siendo: 0.725). Determinamos que entre ambas variables existe una correlación positiva fuerte debido a que la fuente que genera ambos contaminantes es el consumo y quema de combustibles fósiles como se observa en vehículos. Por lo tanto, ambas variables son dependientes de la cantidad de autos en circulación.
+
+
+```{r echo=FALSE}
+plot(P$SO2,P$CO, pch = 1, col = 1: 2, main = expression(paste("2.4 Gráfico de dispersión SO"[2],"vs CO")),xlab = expression(paste('CO (ug/',m^3,')')),ylab = expression(paste('SO'[2],' (ug/',m^3,')')))
+
+legend("topright", legend = c("CO", "SO2","LT"), fill=c(2,1,20))
+reg<-lm(P$CO~P$SO2 )
+abline(reg, col="blue")
+cor(P$SO2, P$CO)
+```
+
+En el gráfico 2.4 también podemos realizar el mismo análisis que en el 2.1 y 2.3. Determinando que existe una relación entre los contaminantes CO y SO2, teniendo un valor de correlación de 0.644 lo que significa una correlación positiva fuerte. Además, el motivo es el mismo expuesto en las gráficas previas, al ser ambos compuestos generados al reaccionar la quema de combustibles fósiles con el oxígeno del ambiente se generan ambos. Siendo ambos dependientes de la concurrencia vehicular dentro del distrito.
+
+
+Cabe recalcar que se omitió en las gráficas de relaciones entre variables al contaminante O3 (Ozono), debido a que esta variable no presenta una relación directa a los demás contaminantes, al ser generado por otra fuente. Mientras que los contaminantes son principalmente generados por la combustión en vehículos, el ozono es generado por la radiación solar y el calor del ambiente por lo que se determinó que no se haría relación con la variable ozono.
+
+# **Variables Aleatorias**
+
+**Variables Aleatorias continua**
+
+**PM10 y PM2.5**
+
+Analizando de acuerdo al decreto supremo emitido por el MINAM, con respecto a contaminantes y su concentración en zonas pobladas podemos determinar cual es la probabilidad de que estos contaminantes superen los límites establecidos por el MINAM, siendo estos límites para PM10=100$ug/m^3$ y para PM2=50$ug/m^3$.
+
+Sabemos que para esta variable contamos con 720 observaciones y que los resultados oscilan entre 16,79 y 156,3 (rango). 
+
+Para obtener la probabilidad de que la concentración de las partículas menores a 10 micrómetros o 2,5 micrómetros supere al límite establecido por el MINAM, debemos empezar calculando la media y la desviación típica a partir de las observaciones:
+
+Para PM10:
+```{r echo=FALSE}
+m10<-mean(P$`PM 10`)
+sd10<- sd(P$`PM 10`)
+```
+1) Media:
+```{r echo=FALSE}
+m10
+```
+2)Desviación estándar:
+```{r echo=FALSE}
+sd10
+```
+
+Para PM2,5:
+```{r echo=FALSE}
+m2<-mean(P$`PM 2.5`)
+sd2<- sd(P$`PM 2.5`)
+```
+1) Media:
+```{r echo=FALSE}
+m2
+```
+2)Desviación estándar:
+```{r echo=FALSE}
+sd2
+```
+
+La variable PM10 puede aproximarse a una distribución normal de media 56,2 y desviación típica de 21,6, para poder determinar cual es la probabilidad de que este contaminante supere en concentración al límite establecido, se realiza un gráfico de densidad de la variable para cada una:
+
+```{r echo=FALSE}
+plotDist("norm", mean = mean(P$`PM 10`), sd = sd(P$`PM 10`), groups = x >=100, 
+  type = "h", main="3.1 Gráfico de Densidad PM10")
+```
+
+```{r echo=FALSE}
+plotDist("norm", mean = mean(P$`PM 2.5`), sd = sd(P$`PM 2.5`), groups = x >= 50, 
+  type = "h", main="3.1 Gráfico de Densidad PM2,5")
+```
+
+Se calculará la probabilidad de que los valores de ambos contaminantes superen al límite establecido por la ECA-aire:
+```{r }
+#Probabilidad 1
+p1 = (1 - pnorm((100), mean(P$`PM 10`), sd= sd(P$`PM 10`)))
+p1
+
+
+#Probabilidad 2
+p2 = (1 - pnorm( (50) , mean(P$`PM 2.5`),  sd(P$`PM 2.5`)))
+p2
+
+
+```
+
+Como observamos, la probabilidad de que supere al establecido por el MINAM los contaminantes son valores reducidos. El valor más considerable es el del contaminante PM10, pero al mismo tiempo no es tan nocivo para la salud como otros contaminantes en esos niveles de concentración. A pesar de esto, sería importante observar los impactos en la salud que tendrían estas concentraciones para las personas.
+
+
+# **Intervalos de confianza**
+
+## **SO2**
+
+```{r message=FALSE, echo=FALSE}
+epdfPlot(P$SO2, epdf.col = "red",main="Gráfico de SO2",xlab = expression(paste('SO2 (ug/',m^3,')')),ylab = "Frecuencia")
+```
+
+*Desviación estándar de SO2*
+
+```{r message=FALSE, echo=FALSE}
+sd(L2$SO2,na.rm = TRUE)
+```
+
+Precisión: ± 0.05
+
+Nivel de confianza: 95%  
+
+Tamaño de muestra ideal: 654
+
+
+Priorizamos un nivel de confianza alto (95%) ya que no se observa una desviación estándar muy alta, por lo que la distribución de los datos no se aleja del intervalo de confianza de la muestra. Con una precisión elegida de ± 0.05 argumentado bajo el mismo criterio de una baja desviación estándar se puede hacer el cálculo de cuál sería el tamaño de la muestra ideal para la variable:
+
+```{r echo=FALSE}
+(sd(P$SO2)^2*1.96^2*720)/(0.05^2*(720-1)+1.96^2*sd(P$SO2)^2)
+```
+Intervalo de confianza:
+
+```{r echo=FALSE}
+#Desviación poblacional
+sd=sd(L2$SO2,na.rm = TRUE)
+
+#Media muestral
+mean=mean(P$SO2)
+#Muestra
+n=length(P$SO2)
+
+#Nivel de Confianza
+N=0.95
+z=1-N
+
+i = mean-qnorm(1-z/2)*sd/sqrt(n)
+d = mean+qnorm(1-z/2)*sd/sqrt(n)
+c(i,d)
+
+```
+## **CO**
+
+```{r message=FALSE, echo=FALSE}
+epdfPlot(P$CO, epdf.col = "red",main="Gráfico de CO",xlab = expression(paste('CO (ug/',m^3,')',"sd=507.6375")),ylab = "Frecuencia")
+```
+
+
+*Desviación estándar de CO*
+
+```{r message=FALSE, echo=FALSE}
+sd(L2$CO,na.rm = TRUE)
+```
+
+Precisión: ±0.1
+
+Nivel de confianza:85%
+
+Tamaño de muestra ideal: 719 
+
+Se decidió ir un intervalo de confianza reducido ya que la mayoría de estos datos están dispersos y se encontró mejorar la precisión de estos para el intervalo de confianza. Además, se cuenta con una precisión de ±0.1 que busca aumentar la precisión para los resultados considerando una población con datos dispersos. En base a la alta desviación estándar de la variable se utiliza un nivel de confianza del 85%, utilizando este nivel de confianza podemos hacer el cálculo del tamaño de la muestra ideal para la variable:
+
+```{r message=FALSE, echo=FALSE}
+(sd(P$CO)^2*1.44^2*720)/(0.05^2*(720-1)+1.44^2*sd(P$CO)^2) 
+```
+Intervalo de confianza:
+
+```{r message=FALSE, echo=FALSE}
+#Evaluando la desviación estándar de la población para establecer el nivel de confianza
+#sd(y$NO2,na.rm = TRUE)
+
+#Desviación poblacional
+sd=sd(L2$CO,na.rm = TRUE)
+#Media muestral
+mean=mean(P$CO)
+#Muestra
+n=length(P$CO)
+
+#Nivel de Confianza
+N=0.85
+z=1-N
+
+i = mean-qnorm(1-z/2)*sd/sqrt(n)
+d = mean+qnorm(1-z/2)*sd/sqrt(n)
+c(i,d)
+```
+
+Del resultado podemos observar que para poder tener resultados precisos el tamaño de la muestra que se debería utilizar es el tamaño completo de la población.
+
+## **O3**
+
+
+```{r message=FALSE, echo=FALSE}
+epdfPlot(P$O3, epdf.col = "red",,main="Gráfico de O3",xlab = expression(paste('O3 (ug/',m^3,')')),ylab = "Frecuencia")
+```
+
+
+*Desviación estándar de O3*
+
+```{r message=FALSE, echo=FALSE}
+sd(L2$O3,na.rm = TRUE)
+```
+
+Precisión: ±0.02
+
+Nivel de confianza:99%  
+
+Tamaño de muestra ideal: 720
+
+En este caso se observó que la desviación estándar era mínima por lo que se optó   por un intervalo de confianza afianzando mejor la fiabilidad del intervalo para obtener un mejor resultado (99%), además de una precisión del ±0.2 basándonos en la variación existente entre los datos. Considerando el nivel de confianza y el nivel de precisión requerido podemos hacer el cálculo de tamaño de muestra ideal: 
+```{r message=FALSE, echo=FALSE}
+(sd(P$O3)^2*2.58^2*720)/(0.01^2*(720-1)+2.58^2*sd(P$O3)^2)
+```
+Intervalo de confianza:
+
+```{r message=FALSE, echo=FALSE}
+#Desviación poblacional
+sd=sd(L2$O3,na.rm = TRUE)
+
+#Media muestral
+mean=mean(P$O3)
+#Muestra
+n=length(P$O3)
+
+#Nivel de Confianza
+N=0.99
+z=1-N
+
+i = mean-qnorm(1-z/2)*sd/sqrt(n)
+d = mean+qnorm(1-z/2)*sd/sqrt(n)
+c(i,d)
+```
+
+Del resultado obtenido podemos observar que el tamaño ideal de la muestra para poder tener la precisión requerida sería el tamaño de la población, siendo estas 720 observaciones.
+
+## **NO2**  
+
+```{r message=FALSE, echo=FALSE}
+epdfPlot(P$NO2, epdf.col = "red",main="Gráfico de NO2",xlab = expression(paste('NO2 (ug/',m^3,')')),ylab = "Frecuencia")
+```
+
+
+*Desviación estándar de NO2*
+
+```{r message=FALSE, echo=FALSE}
+sd(L2$NO2,na.rm = TRUE)
+```
+
+Precisión: ± 0.05
+
+Nivel de confianza: 95%  
+
+Tamaño de muestra ideal: 713
+
+Se consideró un nivel de confianza relativamente alto, pero también conservando la precisión mínima para que el intervalo de confianza no se vea muy apretado en el cálculo del intervalo de confianza ya que presenta datos relativamente juntos sin una variación considerable. Considerando lo expuesto previamente el nivel de confianza se toma en 95%, y la precisión de ± 0.05 para poder incrementar la precisión de los cálculos a realizar. A partir de ambas premisas se puede hacer el cálculo del tamaño de la muestra ideal para la
+variable:
+```{r message=FALSE, echo=FALSE}
+(sd(P$NO2)^2*1.96^2*720)/(0.05^2*(720-1)+1.96^2*sd(P$NO2)^2)
+```
+Intervalo de confianza:
+
+```{r message=FALSE, echo=FALSE}
+#Desviación poblacional
+sd=sd(L2$NO2,na.rm = TRUE)
+
+#Media muestral
+mean=mean(P$NO2)
+#Muestra
+n=length(P$NO2)
+
+#Nivel de Confianza
+N=0.95
+z=1-N
+
+i = mean-qnorm(1-z/2)*sd/sqrt(n)
+d = mean+qnorm(1-z/2)*sd/sqrt(n)
+c(i,d)
+```
+
+
+Del resultado podemos observar que el tamaño de muestra ideal para
+la variable es 713 observaciones, basándonos en el nivel de confianza y las
+precisiones requeridas.
+
+## **PM2,5** 
+
+```{r message=FALSE, echo=FALSE}
+epdfPlot(P$`PM 2.5`, epdf.col = "red",main="Gráfico de PM 2.5",xlab = expression(paste('PM 2.5 (ug/',m^3,')')),ylab = "Frecuencia")
+```
+
+*Desviación estándar de PM 2.5*
+
+```{r message=FALSE, echo=FALSE}
+sd(L2$`PM 2.5`,na.rm = TRUE)
+```
+
+Precisión: ± 0.05
+
+Nivel de confianza: 95%   
+
+Tamaño de muestra ideal: 715
+ 	
+La gráfica presenta una distribución parecida a normal por lo que asumimos un nivel de confianza y precisión estándar debido a que la desviación no es tan alta por lo que decidió por intervalo de confianza estándar que entre la precisión y el nivel de confianza. Al observar una distribución de datos no tan dispersa podemos asumir un nivel de confianza de (95%) y una precisión de ± 0.05 basándonos en la desviación estándar de la variable, a partir de esto podemos calcular el tamaño de la muestra ideal para la variable:
+
+```{r message=FALSE, echo=FALSE}
+(sd(P$`PM 2.5`)^2*1.96^2*720)/(0.05^2*(720-1)+1.96^2*sd(P$`PM 2.5`)^2)
+```
+Intervalo de confianza:
+
+```{r message=FALSE, echo=FALSE}
+#Desviación poblacional
+sd=sd(L2$`PM 2.5`,na.rm = TRUE)
+
+#Media muestral
+mean=mean(P$`PM 2.5`)
+#Muestra
+n=length(P$`PM 2.5`)
+
+#Nivel de Confianza
+N=0.95
+z=1-N
+
+i = mean-qnorm(1-z/2)*sd/sqrt(n)
+d = mean+qnorm(1-z/2)*sd/sqrt(n)
+c(i,d)
+```
+
+Del resultado podemos observar que el tamaño de muestra ideal considerando que la población cuenta con 720 observaciones. 
+
+
+# **Pruebas de hipótesis**
+
+**Hipótesis 1**
+
+En vista que San borja es un distrito donde la cantidad de contaminantes es muy notorio a horas de la tarde.Se sospecha que a partir del mediodía para adelante es donde se encuentra mayor concentración de contaminantes.En este caso se recurrió a un nivel de confianza de 99% ya que como la variable es hora la dispersión de los datos es siempre la misma.
+
+Prueba de hipótesis unilateral (cola a la izquierda)
+
+H0: u ≥ 12 h
+
+Hp: u < 12 h
+
+```{r}
+µ = 12
+σ = sd(L2$HORA)     
+n = length(P$HORA)
+media.muestral = mean(P$HORA) 
+α = 0.01
+z <- (media.muestral-µ)*sqrt(n)/σ
+z
+i=qnorm(α,0,1)
+i
+```
+
+```{r echo=FALSE}
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-3, to=3, xlim=c(-3, 3), col=3, lwd=4,xlab = "Horas",ylab = " ", , main="Gráfica de Prueba de Hipótesis N°1")
+abline(v=qnorm(α,0,1), col=7) ## Punto Crítico
+abline(v=z, col="Red") ## Z
+legend("topright", legend = c("Z","Zc"),
+       lwd = 3, col = c("red",7), lty=1:1)
+```
+
+$$Z_c  < Z$$
+
+$$-2.326348 > -1.936677$$
+
+No se rechaza la H0. El Z se encuentra en el área de aceptación.
+Podemos concluir que después del mediodía hay más probabilidad de entrar en contacto con más contaminantes,lo cual es nocivo para la salud, que cuando es antes de esa hora.
+
+
+**Hipótesis 2**
+
+El contaminante SO2, puede llegar a ser dañino para la salud humana a partir de 300$ug/m^3$, por lo que decidimos plantear una hipótesis para saber si la media poblacional es igual o sobrepasa el límite establecido de 300$ug/m^3$. Se usa un nivel de confianza de 95%, ya que ya fue explicado en la primera parte de la entrega. En este caso la hipótesis nula será (H0: u≥300) y la hipótesis alterna (H1: u< 300) .
+
+Prueba de hipótesis unilateral (cola a la izquierda)
+
+H0: u≥ 300 $ug/m^3$
+Hp: u< 300 $ug/m^3$
+
+```{r}
+µ = 300
+σ= sd(L2$SO2)
+n = 720
+media.muestral=mean(P$SO2)  #muestral
+α = 0.05
+Z <- (media.muestral-µ)*sqrt(n)/σ
+Z
+Pc=qnorm(0.05,0,1)
+Pc
+```
+
+```{r echo=FALSE}
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-1000, to=10, xlim=c(-1000, 10), col=3, lwd=4,ylab = " ",xlab = "ug/m^3", , main="Gráfica de Prueba de Hipótesis N°2" )
+
+abline(v=qnorm(α, mean = 0, sd = 1), col=7) ## Punto Crítico
+abline(v=Z, col="Red") ## Z
+legend("topright", legend = c("Z","Zc"),
+       lwd = 3, col = c("red",7), lty=1:1)
+
+```
+
+$$Z= -905.7388$$
+$$P_c= -1.644854$$
+
+La hipótesis se rechaza, ya que el Z es menor que el punto crítico se encuentra en el área de rechazo. Podemos concluir que la media poblacional de SO2, no sobrepasa los límites para la salud.
+
+**Hipótesis 3**
+
+Para la prueba de hipótesis 3	, queríamos descartar la sospecha de que la media poblacional del contaminante PM2,5, se encuentre en una cantidad nociva para la salud humana. Por lo que decidimos plantear una hipótesis para saber si la media poblacional es igual o sobrepasa el límite establecido de 50$ug/m^3$ por MINAM. En este caso la hipótesis nula será (H0: u≥50) y la hipótesis alterna (H1: u<50) . Se usa un nivel de confianza de 95%, ya que ya fue explicado en la primera parte de la entrega.
+
+Prueba de hipótesis unilateral (cola a la izquierda)
+
+```{r}
+µ = 50
+σ = sd(L2$`PM 2.5`)
+n = 720
+media.muestral = mean(P$`PM 2.5`)
+α = 0.05
+Pc<-qnorm(α,0,1)
+Pc
+Z <- (media.muestral-µ)*sqrt(n)/σ
+Z
+```
+
+```{r echo=FALSE}
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-100, to=10, xlim=c(-100, 10), col=3, lwd=4,ylab =" " ,xlab = "ug/m^3", main="Gráfica de Prueba de Hipótesis N°3")
+abline(v=qnorm(α, mean = 0, sd = 1), col=7) ## Punto Crítico
+abline(v=Z, col="Red") ## Z
+legend("topright", legend = c("Z","Zc"),
+       lwd = 3, col = c("red",7), lty=1:1)
+
+```
+
+$$Z= -91.84674$$
+$$P_c=-1.644854$$
+
+La hipótesis nula se rechaza, ya que nuestro Z es menor que el punto crítico y se encuentra en el área de rechazo.
+
+# **Regresión Lineal Simple**
+
+Variable X (independiente): Las horas por cada día elegido en el mes.
+
+Variable Y (dependiente): variables cuantitativas PM10, PM2.5 y SO2.
+
+**Supuestos:** 
+
+- En cuanto a nuestra segunda prueba de hipótesis, el grupo supone que el contaminante SO2 no pasará el límite de 300$ug/m^3$ en todos los días a las 19:00 horas (hora punta) en la ciudad. 
+- El día 30 del mes tendrá una pendiente en la ecuación de la regresión lineal simple mayor con respecto al día 1 debido a la acumulación de gases contaminantes después de haber pasado 29 días entre estos.
+- La variable X y Y tendrá una relación directa debido a que a medida que aumenten las horas en el día habrá más cantidad de gases contaminantes debido a la acumulación de estos.
+-Analizar si nuestro modelo es funcional gracias a la tercera prueba de hipótesis, donde se evaluó si la media poblacional de PM2.5 no sobrepasa el límite establecido por el MINAM de 50$ug/m^3$.
+
+**Para la variable SO2**
+
+Se crea la nueva base de datos para las 19:00 horas de cada día.
+```{r echo=FALSE}
+siete<- P %>% filter(HORA==19)
+```
+
+Se emplea el cálculo y representación de la recta de mínimos cuadrados:
+
+Análisis:
+```{r echo=FALSE}
+regresion <- lm(siete$SO2 ~ siete$DIA, data = siete)
+summary(regresion)
+```
+
+Los errores típicos de los estimadores de los parámetros β0 y β1 son: 0.42803 y 0.02411.
+
+El estimador de la desviación típica de los errores σ aparece como Residual standard error y su valor es 1.143
+
+El $$r^2 = 0.5855$$
+
+Para la variable SO2, se plantea lo siguiente: *H0:β0=0 y H0:β1=0* teniendo en cuenta los cocientes entre el estimador y su error típico son: para el intercepto 16.555 y 6.477 para la pendiente. Los correspondientes p-valores: 5.41e-16 y 5.11e-07 son muy pequeños por lo que se rechazan ambas hipótesis para los niveles de significación habituales.
+
+Los intervalos de confianza para los parámetros son los siguientes con un nivel de confianza del 95%:
+
+```{r echo=FALSE}
+confint(regresion)
+```
+
+Los parámetros de la ecuación de la recta de mínimos cuadrados que relaciona el día en las 19:00 horas correspondiente en función de la variable SO2, vienen dados por la columna ´Estimate´ de la tabla ´Coefficients´ de la salida anterior. Por lo tanto, en este ejemplo la ecuación de la recta de mínimos cuadrados es:
+
+$$SO2(t)=7.08598+0.15617t$$
+Donde el dominio y rango de las ecuaciones es:
+
+$D =$ $t$  $ϵ$ $[0;30]$
+
+$R =$ $SO2$  $ϵ$ $[6.5;14.3]$
+
+
+```{r echo=FALSE}
+plot(siete$DIA, siete$SO2, xlab='Día', ylab='SO2',main="Gráfica de regresión lineal de SO2 en todos los días a las 19:00 horas")
+abline(regresion)
+```
+
+El coeficiente de determinación (es decir, el coeficiente de correlación al cuadrado) mide la bondad del ajuste de la recta a los datos. A partir de la salida anterior, vemos que su valor en este caso es Multiple R-squared: 0.5998.
+
+Para la variable SO2, se puede asegurar que no sobrepasa el límite de los 300$ug/m^3$, gracias a esto se puede decir que se trata de un modelo funcional ya que presenta un coeficiente de determinación alto para tratarse de una regresión lineal. Se puede ver una pendiente positiva y esto puede deberse a la acumulación de gases contaminantes en el aire a medida que pasan los días y no sería beneficioso para el análisis.
+
+**Para la variable PM10:**
+
+Se crean las nuevas bases de datos para el primer y trigésimo día.
+```{r echo=FALSE}
+dia1<- P %>% filter(DIA== 1)
+dia30<- P %>% filter(DIA==30)
+```
+
+Se emplea el cálculo y representación de la recta de mínimos cuadrados:
+
+Análisis día 1:
+```{r echo=FALSE}
+regresion1 <- lm(dia1$`PM 10` ~ dia1$HORA, data = dia1)
+summary(regresion1)
+```
+
+Los errores típicos de los estimadores de los parámetros β0 y β1 son: 6.2310 y 0.4642
+
+El estimador de la desviación típica de los errores σ aparece como Residual standard error y su valor es 15.74
+
+El $$r^2 = 0.2182$$
+
+Para este caso, se plantea lo siguiente: *H0:β0=0 y H0:β1=0* teniendo en cuenta los cocientes entre el estimador y su error típico son: para el intercepto 6.956 y 2.724 para la pendiente. Los correspondientes p-valores: 5.54e-07 y 0.0124 son muy pequeños por lo que se rechazan ambas hipótesis para los niveles de significación habituales.
+
+Los intervalos de confianza para los parámetros son los siguientes con un nivel de confianza del 95%:
+
+```{r echo=FALSE}
+confint(regresion1)
+```
+
+
+Analisis día 30:
+```{r echo=FALSE}
+regresion2 <- lm(dia30$`PM 10` ~ dia30$HORA, data = dia30)
+summary(regresion2)
+```
+Los errores típicos de los estimadores de los parámetros β0 y β1 son: 5.1454 y 0.3833
+
+El estimador de la desviación típica de los errores σ aparece como Residual standard error y su valor es 13
+
+El $$r^2 = 0.4649$$
+
+Para el trigésimo día, se plantea lo siguiente: *H0:β0=0 y H0:β1=0* teniendo en cuenta los cocientes entre el estimador y su error típico son: para el intercepto 5.911 y 4.581 para la pendiente. Los correspondientes p-valores: 6e-06 y 0.000146 son aún más pequeños en comparación al día número 1 por lo que se rechazan ambas hipótesis para los niveles de significación habituales.
+
+Los intervalos de confianza para los parámetros son los siguientes con un nivel de confianza del 95%:
+
+```{r echo=FALSE}
+confint(regresion2)
+```
+
+Los parámetros de las ecuaciones de la recta de mínimos cuadrados que relaciona la hora del día correspondiente en función de la variable PM10, vienen dados por la columna ´Estimate´ de la tabla ´Coefficients´ de la salida anterior. Por lo tanto, en este ejemplo las ecuaciones de la recta de mínimos cuadrados son:
+
+Para el día 1:$$PM10(t)=43.3421+1.2646t$$
+Para el día 30:$$PM10(t)=30.4141+1.7561t$$
+
+Donde el dominio y rango de las ecuaciones es:
+
+Para ambas ecuaciones el dominio es:
+
+$D =$ $t$  $ϵ$ $[0;24]$
+
+Para el día 1:
+
+$R =$ $PM10$  $ϵ$ $[28.61;97.6]$
+
+Para el día 30:
+
+$R =$ $PM10$  $ϵ$ $[25.29;83.3]$
+
+```{r echo=FALSE}
+plot(dia1$HORA, dia1$`PM 10`, xlab='Hora', ylab='PM10',main="Gráfica de regresión lineal de PM10 en el día 1")
+abline(regresion1)
+
+plot(dia30$HORA, dia30$`PM 10`, xlab='Hora', ylab='PM10',main="Gráfica de regresión lineal de PM10 en el día 30")
+abline(regresion2)
+```
+
+El coeficiente de determinación (es decir, el coeficiente de correlación al cuadrado) mide la bondad del ajuste de la recta a los datos. A partir de la salida anterior, vemos que sus valores en este caso son Multiple R-squared: 0.2182 y 0.4649 para el día 1 y 30, respectivamente.
+
+Para la variable PM10, la pendiente del trigésimo día es mayor que la del primer día por lo tanto se puede corroborar la primera suposición de la acumulación de gases contaminantes conforme el paso de los días. De los gráficos se puede ver una relación directa muy pronunciada debido a que los puntos no tienen un error estimado muy alto en la recta de la regresión lineal simple. Finalmente, según los coeficientes de determinación el grupo concluyó que los modelos no llegan a ser del todo funcionales debido a que en un solo día hay muchas variaciones en los valores de PM10, si se quisiera trabajar en meses obtendremos una mayor pronunciación de estas variaciones.
+
+**Para la variable PM2.5:**
+
+De nuevo emplearemos el cálculo y representación de la recta de mínimos cuadrados:
+
+Análisis día 1:
+```{r echo=FALSE}
+regresion3 <- lm(dia1$`PM 2.5` ~ dia1$HORA, data = dia1)
+summary(regresion3)
+```
+
+Los errores típicos de los estimadores de los parámetros β0 y β1 son: 2.03257 y 0.15143
+
+El estimador de la desviación típica de los errores σ aparece como Residual standard error y su valor es 5.135
+
+El $$r^2 = -0.0448$$
+
+Para el primer día, se plantea lo siguiente: *H0:β0=0 y H0:β1=0* teniendo en cuenta los cocientes entre el estimador y su error típico son: para el intercepto 8.118 y -0.117 para la pendiente. Los correspondientes p-valores: 4.63e-08 y 0.908 son valores pequeños pero para el caso de la pendiente tenemos un valor considerablemente mayor en comparación a la variable PM10, sin embargo, igualmente  se rechazan ambas hipótesis para los niveles de significación habituales.
+
+Los intervalos de confianza para los parámetros son los siguientes con un nivel de confianza del 95%:
+
+```{r echo=FALSE}
+confint(regresion3)
+```
+
+Analisis día 30:
+```{r echo=FALSE}
+regresion4 <- lm(dia30$`PM 2.5` ~ dia30$HORA, data = dia30)
+summary(regresion4)
+```
+
+Los errores típicos de los estimadores de los parámetros β0 y β1 son: 2.7234 y 0.2029
+
+El estimador de la desviación típica de los errores σ aparece como Residual standard error y su valor es 6.88
+
+El $$r^2 = 0.05052$$
+
+Para este caso, se vuelve a plantear lo siguiente: *H0:β0=0 y H0:β1=0* teniendo en cuenta los cocientes entre el estimador y su error típico son: para el intercepto 5.283 y 1.082 para la pendiente. Los correspondientes p-valores: 2.66e-05 y 0.291 son valores menores que al día número 1 por lo que se rechazan ambas hipótesis para los niveles de significación habituales.
+
+Los intervalos de confianza para los parámetros son los siguientes con un nivel de confianza del 95%:
+
+```{r echo=FALSE}
+confint(regresion4)
+```
+
+Para esta variable, las ecuaciones de la recta de mínimos cuadrados son:
+
+Para el día 1:$$PM2.5(t)=16.50033-0.01778t$$
+Para el día 30:$$PM2.5(t)=14.388+0.21951t$$
+
+Donde el dominio y rango de las ecuaciones es:
+
+Para ambas ecuaciones el dominio es:
+
+$D =$ $t$  $ϵ$ $[0;24]$
+
+Para el día 1:
+
+$R =$ $PM2.5$  $ϵ$ $[8.8;30.2]$
+
+Para el día 30:
+
+$R =$ $PM2.5$  $ϵ$ $[5.6;34.2]$
+
+```{r echo=FALSE}
+plot(dia1$HORA, dia1$`PM 2.5`, xlab='tiempo(horas)', ylab='PM2.5',main="Gráfica de regresión lineal de PM2.5 en el día 1")
+abline(regresion3)
+
+plot(dia30$HORA, dia30$`PM 2.5`, xlab='tiempo(horas)', ylab='PM2.5',main="Gráfica de regresión lineal de PM2.5 en el día 30")
+abline(regresion4)
+```
+
+Los valores de coeficiente de determinación para la variable PM2.5 son: 0.0006264 y 0.05052 para el día 1 y 30, respectivamente.
+
+Para la variable PM 2.5, la primera suposición resultó correcta debido a que la pendiente en el primer día es menor a la del trigésimo día, es decir que los gases contaminantes se estuvieron acumulando conforme pasaban los días del mes. De los gráficos se puede analizar una relación no del todo directa entre las variables de tiempo y PM2.5 a diferencia de la variable PM10 debido a que se puede ver un error estimado mayor que en el gráfico de la variable PM10. Finalmente, según los coeficientes de determinación el grupo concluyó que los modelos no llegan a ser del todo funcionales debido a que en un solo día hay muchas variaciones en los valores de PM2.5, si se quisiera trabajar en meses obtendremos una mayor pronunciación de estas variaciones y no sería beneficioso para el análisis.
+
+# **Conclusiones**
+
+- El contaminante con mayor concentración de los trabajados en el proyecto es el CO, y podemos observar su impacto en la salud de los habitantes del distrito en mareos, fatigas, disfunciones cardíacas, daños en el sistema nervioso central, entre otros efectos negativos algunos temporales mientras que otros son permanentes. Aunque este contaminante no supera los límites establecidos por la norma de calidad de aire (ECA-AIRE), manteniéndose en niveles inferiores a los 10000 µ/m3, al igual que los demás contaminantes trabajados que no superan estos limites preestablecidos por el estado peruano.
+- En base a nuestra hipótesis 1 podemos decir que, durante el mes de abril del año 2016, salir a la calle a partir del mediodía pudo ser perjudicial para la salud de los vecinos ya que es a partir de esta hora que se obtuvieron más registros de agentes contaminantes.  
+- En cuanto a los supuestos planteados en las regresiones lineales podemos concluir que las variables que se pusieron a prueba tienen relación directa entre sí y además se determinó que la acumulación de gases contaminantes a medida que pasen los días, meses y años estará en aumento, por lo que es importante recalcar el peligro en la salud que puede causar esta acumulación de gases a largo plazo.
+- Finalmente, las normas establecidas por el municipio de San Borja son lo suficientemente rigurosas como para evitar que las concentraciones de contaminantes en el área sea lo suficientemente grande y afecte la salud de los habitantes del distrito. 
+
+# **Factibilidad**
+
+1.  ***Semana 5-6 :***\
+
+-   Limpieza de base de datos
+-   Elegir descriptores numéricos y gráficos
+-   Hacer gráficos
+
+2.  ***Semana 7-8 :***\
+
+-   Añadir más observaciones
+-   Investigar acerca de las posibles enfermedades que causan los contaminantes
+-   Determinar si algunas variables son mutuamente dependientes.
+-   Empezar con la redacción del informe final.
+
+3.  ***Semana 9-10 :***\
+
+-   Analizar resultados estadísticos y su impacto en la salud
+-   Investigar acerca del índice de calidad del aire
+-   Hacer una base de datos con la información de otro distrito
+-   Según lo investigado, hacer una breve descripción sobre el índice de calidad y hacer mención de nuestros datos en el informe.
+
+4.  ***Semana 11-12 :***\
+
+-   Hacer una comparación con otro distrito en el mismo periodo de tiempo
+-   Determinar si existen tendencias de aumento o disminución de las variables a lo largo del tiempo.
+-   Redactar todas las diferencias entre periodos en el informe final.
+
+5.  ***Semana 13-14 :***
+
+-   Realizar un análisis de los resultados de la comparación
+-   Añadir nuestras conclusiones respecto a los datos obtenidos.
+
+6.  ***Semana 15-16 :***
+
+-   Pulir detalles para la presentación final
+
+
+
