@@ -1,0 +1,1961 @@
+---
+title: "S3 Oxígeno"
+output:
+  html_document:
+    df_print: paged
+---
+
+#### **1. Relevancia**  
+
+<p style="text-align: justify;">**Audiencia:** Personas interesadas en saber de la situación del oxígeno en el país.  
+
+**- ¿Es el estudio de interés para la audiencia?**  
+<p style="text-align: justify;">
+El estudio es de interés para la audiencia porque es un tema actual de salud que compete a toda la población. En el contexto de la pandemia, el oxígeno se ha vuelto un producto muy valioso que en algunas ocasiones escasea. Con este estudio sería posible tener un panorama más claro de su disponibilidad en el país.</p>  
+</br>
+**- ¿Qué información se desea aportar al final del estudio?**  
+<p style="text-align: justify;">
+Inicialmente, buscamos hacer un estudio descriptivo de la situación del oxígeno en el Perú y, luego, inferir algunas relaciones entre las variables de estudio como el consumo de oxígeno y el número de cilindros disponibles. Asimismo, buscamos relacionar nuestros datos con otra base de datos de vacunación en el país, a través de la variable departamento o región y, con ello, pretendemos verificar si existe una correcta distribución de vacunas de acuerdo con la necesidad que será medida tomando en cuenta la demanda de oxígeno por cada región. Este parámetro nos dará una idea de que tan grave es la situación por el COVID-19 en una región. 
+Posteriormente, considerando los datos recolectados hasta la fecha del análisis, pretendemos predecir cómo será la disponibilidad del oxígeno en cada región del país en los próximos meses.  
+Finalmente, con todo ello, ayudar a optimizar la gestión del oxígeno en las IPRESS a nivel nacional para tener un mejor servicio en el sector salud.</p>  
+</br>
+**- ¿Por qué se justifica nuestro estudio?**
+
+<p style="text-align: justify;">
+El presente estudio está justificado por los siguientes puntos:  
+
+* Es **factible** porque haremos uso de los datos de la Superintendencia Nacional de Salud (SUSALUD) con información de la disponibilidad de tanques de oxígeno, cantidad consumida en $m^3$y otros parámetros relevantes respecto al oxígeno para las diferentes IPRESS del país con datos registrados diariamente.  
+* Por otro lado, trabajamos con otra base de datos que contiene información sobre las vacunas suministradas a nivel nacional, la cual nos servirá para responder ciertas preguntas causales que relacionan ambas datas.   
+* Es **específico** porque el estudio se enfoca en IPPRES dentro del territorio peruano; además, de estudiar las variables en un rango específico de tiempo [ 31/03/2021 - 19/05/2021 ]   
+* Es **desconocido** porque nuestra investigación relaciona dos bases de datos que inicialmente presentaban fines distintos. Además, las variables de estudio abordan un tema reciente y las bases de datos que las recopilan aún siguen actualizándose. </p>  
+
+</br>
+
+#### **2. Objetivos**  
+**General:**  
+<p style="text-align: justify;">
+
+Analizar el comportamiento de la gestión de oxígeno medicinal en las IPRESS del Perú, y su relación con el proceso de vacunación contra el COVID-19 diarios en el intervalo de tiempo [ 31/03/2021 - 19/05/2021 ]
+
+**Específicos:**  
+<p style="text-align: justify;">
+* Describir el comportamiento de la disponibilidad y consumo de oxígeno medicinal en las IPRESS  a nivel nacional  
+* Analizar las variables logísticas implicadas en el suministro de oxígeno medicinal en las IPRESS a nivel nacional  
+* Establecer factores vinculantes del suministro de oxígeno medicinal respecto al proceso de vacunación</p>  
+</br>
+
+#### **3. Marco teórico**  
+<p style="text-align: justify;">  
+##### **3.1 Definiciones importantes:**  
+* **IPRESS:** Se conoce como IPRESS a toda entidad pública, privada o mixta que preste un servicio de salud.
+* **Nivel de una IPRESS:** El nivel de una IPRESS es determinado por su tamaño, la capacidad de atención que esta tiene y los servicios especializados que ofrece.    
+
+##### **3.2. Población objetivo:**  
+Las instituciones prestadoras de servicios de salud (IPRESS) públicas, privadas y mixtas del país que presentan demanda de oxígeno  
+
+##### **3.3. Tipo de muestreo:**  
+Las instituciones prestadoras de servicios de salud (IPRESS) públicas, privadas y mixtas del país que presentan demanda de oxígeno  
+
+##### **3.4. Sesgo:**
+Debido a que estamos sacando nuestros datos de una base de datos tenemos los siguientes sesgos:  
+* **Sesgo de extraer registros:** Nosotros no recolectamos los datos y esta está aún en proceso de recolección de datos; por ello, no cuenta con el análisis correspondiente para validar los datos.  
+
+* **sesgo de publicación:**  La base de datos depende de los reportes que den las IPRRES por lo que no tenemos datos de aquellas IPRESS que no reportaron datos sobre su uso y disponibilidad de oxígeno  
+
+##### **3.5. Unidades muestrales:**  
+469 IPRESS públicas, privadas y mixtas a nivel nacional    
+
+##### **3.6. Las bases de datos:**  
+Cargamos las librerías para leer los datos.</p>  
+
+```{r}
+#install.packages("vctrs")
+#Si no se tiene instalado este paquete quitar el numeral del comentario de arriba y volver a correr
+```
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(vctrs)
+```
+</br>
+La base de datos `OXIGENO_T`:  
+```{r}
+OXIGENO_T<-read_csv("Oxigeno.csv")
+head(OXIGENO_T)
+```
+</br>
+La base de datos `VACUNAS_T`:  
+```{r}
+VACUNAS_T<-read_csv("Vacunas.csv")
+head(VACUNAS_T)
+```
+</br>
+
+```{r}
+OXIGENO_T$FECHAREGISTRO=as.Date(OXIGENO_T$FECHAREGISTRO,format="%d/%m/%Y")
+```
+</br>
+
+#### **4. Limpieza de datos**  
+
+<p style="text-align: justify;">Creamos un nuevo data frame derivado de `OXIGENO_T`, al cual denominaremos `OXIGENO_cNA` pues contendrán todas las observaciones, aunque tengan NAs. Para ello usamos el comando `select()` de dplyr:</p>  
+```{r}
+OXIGENO_T %>% select(FECHAREGISTRO,NOMBRE,NIVEL,GRUPO,REGION,CIL_TOT_CILINDROS,CIL_VOL_POT_MT3,CIL_NU_CIL_LLEN_INI_DU24,CIL_NU_CIL_REABAST_DU24,CIL_VOL_DISP_M3_DU24,CIL_NU_CIL_CONSUM_CU24,CIL_VOL_M3_CU24,CIL_TOT_PROPIOS,CIL_TOT_TERCEROS) -> OXIGENO_cNA
+```
+</br>
+El data frame `OXIGENO_cNA` sería:  
+```{r}
+head(OXIGENO_cNA)
+```
+</br>
+
+<p style="text-align: justify;">
+En la base de datos `OXIGENO_cNA`:  
+
+Vemos la cantidad de datos faltantes en la base de datos.</p>
+```{r}
+NAs<-sum(is.na(OXIGENO_cNA))
+NAs
+```
+Vemos la cantidad de observaciones incompletas en la base de datos.
+```{r}
+sum(!complete.cases(OXIGENO_cNA))
+```
+
+Calculamos el porcentaje que representan los datos faltantes en nuestra base de datos.  
+```{r}
+round((NAs/(nrow(OXIGENO_cNA)*ncol(OXIGENO_cNA)))*100,2)
+```
+Calculamos los datos faltantes por cada variable para ver cómo los `NA` afectan a cada una de ellas.
+```{r}
+colSums(is.na(OXIGENO_cNA))
+```
+<p style="text-align: justify;">
+Dado que tenemos relativamente un pequeño porcentaje de datos faltantes y 675 unidades muestrales que no registran ningún valor numérico para nuestro estudio, es pertinente eliminar dichas observaciones incompletas. Este dataframe se denominará `OXIGENO`:</p>    
+
+```{r}
+OXIGENO<-OXIGENO_cNA[complete.cases(OXIGENO_cNA),]
+head(OXIGENO)
+```
+
+<p style="text-align: justify;">Dado que existe la posibilidad de algunas IPRESS hayan registrado sus datos 2 o más veces el mismo día. Calcularemos y filtraremos los valores únicos para el data frame `OXIGENO`.      
+
+```{r}
+n_distinct(OXIGENO)
+```
+
+<p style="text-align: justify;">Para hallar la cantidad de registros repetidos restamos la cantidad de registros totales de `OXIGENO` con la cantidad de registros únicos.</p>
+
+```{r}
+nrow(OXIGENO)-n_distinct(OXIGENO)
+```
+
+<p style="text-align: justify;">Son 3472 registros que nos ofrecen información redundante. Por lo que, lo pertinente sería no incluirlos en la base de datos. Para descartar estos registros usamos el comando `distinct()`:</p>
+
+```{r}
+OXIGENO<-distinct(OXIGENO)
+```
+
+</br>  
+**Análisis por datos atípicos**   
+
+<p style="text-align: justify;">Para la variable `CIL_VOL_DISP_M3_DU24`:</p>
+```{r}
+boxplot(OXIGENO$CIL_VOL_DISP_M3_DU24,horizontal = TRUE,main = "Boxplot: Volumen disponible de oxígeno en metros cúbicos",xlab="Volumen (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">Como se puede observar en el boxplot, se tienen muchos datos atípicos en esta variable y existe al menos uno que se aleja demasiado de la nube de puntos. Para confirmar la cantidad de valores que conforman este punto, haremos un filtro de datos para visualizar si estos pertenecen a una misma IPRESS o si son registros de un mismo día. Finalmente, evaluaremos si es pertinente eliminar estos datos.</p> 
+
+```{r}
+sum(OXIGENO$CIL_VOL_DISP_M3_DU24>25000)
+```
+
+```{r}
+OXIGENO[OXIGENO$CIL_VOL_DISP_M3_DU24>25000,]
+```
+
+<p style="text-align: justify;">Como se puede observar, este punto atípico solo nos representa un registro para una IPRESS en un día específico. Para validar si se trata de un error de tipeo, procederemos a observar los valores de esta variable en los registros de esta IPRESS para el día anterior y posterior del registro atípico.</p> 
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-24" & OXIGENO$NOMBRE == "ANTONIO LORENA DEL CUSCO", ]
+```
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-27" & OXIGENO$NOMBRE == "ANTONIO LORENA DEL CUSCO", ]
+```
+
+<p style="text-align: justify;">Como es posible observar en las tablas filtradas obtenidas, para los días 25/4/2021 y 27/4/2021 los valores de la variable CIL_VOL_DISP_M3_DU24 son 3560. Por lo que, en nuestro registro atípico es muy probable que haya existido un error de tipeo al agregar un 0 de más al valor registrado para esta variable. Además, este valor no concuerda con el número total de cilindros que registra ese día IPRESS. Tomando en cuenta que la capacidad máxima de un cilindro es 10 $m^3$, el volumen máximo disponible que se podría tener es 3560 $m^3$. En ese sentido, resulta más evidente que fue un error de registro y potencialmente conocemos el valor que debió haberse registrado si tomamos como referencia los valores cercanos a ese día. Por lo tanto, lo pertinente sería corregir  este registro en la base de datos.</p>
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-25" & OXIGENO$NOMBRE == "ANTONIO LORENA DEL CUSCO", 10]=3560
+```
+
+</br>
+
+<p style="text-align: justify;">Para la variable `CIL_NU_CIL_LLEN_INI_DU24`:</p>
+```{r}
+boxplot(OXIGENO$CIL_NU_CIL_LLEN_INI_DU24,horizontal = TRUE,main = "Boxplot: Número de cilindros llenos al iniciar el día",xlab="Número de cilindros",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">Como se puede observar en el boxplot, se tienen muchos datos atípicos en esta variable y un grupo de los mismos se aleja mucho del resto de la nube de puntos. Para evaluar si se tratan de errores en los registros evaluaremos cuántos datos conforman este grupo y filtraremos los registros a los que pertenecen.</p> 
+
+```{r}
+sum(OXIGENO$CIL_NU_CIL_LLEN_INI_DU24 > 1000)
+```
+
+```{r}
+OXIGENO[OXIGENO$CIL_NU_CIL_LLEN_INI_DU24>1000,]
+```
+
+<p style="text-align: justify;">Como se puede observar, este punto atípico nos representa dos registros para una misma IPRESS en dos días consecutivos y un registro para un día de una IPRESS diferente. Para validar si se tratan de errores de tipeo, procederemos a observar el valor de esta variable en el registro correspondiente a los días 2/4/2021 y 3/4/2021 para la primera IPRESS y los registro de los días 25/4/2021 y 27/4/2021 para la otra IPRESS</p> 
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-02" & OXIGENO$NOMBRE == "MAX SALUD AVISAL S.A.", ]
+```
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-03" & OXIGENO$NOMBRE == "MAX SALUD AVISAL S.A.", ]
+```
+
+<p style="text-align: justify;">Se puede observar en ambas tablas filtradas para los días posteriores que los valores de esta variable son 2 cilindros. Este es un valor muy pequeño en relación a los 1500 cilindros que se consignaban para los dos registros atípicos de la primera IPRESS (MAX SALUD AVISAL S.A.). Considerando las fechas de estos registros, vemos que corresponden a los dos primeros días de la toma de datos. Por ello, es muy probable que la IPRESS haya tenido dificultades para interpretar la codificación de las variables. Como consecuencia, esto les haya llevado a cometer errores en el registro de los datos. Asimismo, considerando los mismos registros, vemos que la variable `CIL_TOT_CILINDROS`, que corresponde al número total de cilindros que posee la IPRESS, debe ser mayor o igual a la cantidad de cilindros llenos al iniciar el día (`CIL_NU_CIL_LLEN_INI_DU24`). En nuestros registros atípicos, para esta IPRESS, esta condición no se cumple, por lo tanto, estos datos no son confiables serán eliminados.</p>  
+
+```{r}
+OXIGENO <- OXIGENO[OXIGENO$CIL_VOL_DISP_M3_DU24!=1500,]
+```
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-25" & OXIGENO$NOMBRE == "ANTONIO LORENA DEL CUSCO", ]
+```
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-27" & OXIGENO$NOMBRE == "ANTONIO LORENA DEL CUSCO", ]
+```
+
+<p style="text-align: justify;"> Para la segunda IPRESS (ANTONIO LORENA DEL CUSCO), se puede observar que se trata de un error de registro al observar los registros de la fecha anterior y posterior. Este error puede deberse a dos posibles razones. Por un lado, puede haber existido un error de tipeo al agregar un 0 de más al valor original. De ser así, el valor sin ese 0 sí tendría sentido ya que el número de cilindros llenos (CIL_NU_CIL_LLEN_INI_DU24) sí sería menor o igual al valor de los cilindros totales de la IPRESS. Por otro lado, es posible que, al momento de registrar los datos, haya ocurrido una confusión con el valor de la variable anterior (CIL_VOL_POT_MT3) dado que ambos números son iguales en el registro atípico. Como no podemos determinar a cabalidad cuál de las dos opciones ocurrió, lo más pertinente sería eliminar este registro.</p>
+
+```{r}
+OXIGENO <- OXIGENO[OXIGENO$CIL_NU_CIL_LLEN_INI_DU24!=3560,]
+```
+
+</br>
+<p style="text-align: justify;">Para la variable `CIL_NU_CIL_REABAST_DU24`:</p>
+```{r}
+boxplot(OXIGENO$CIL_NU_CIL_REABAST_DU24,horizontal = TRUE,main = "Boxplot: Número de cilindros recargados en el día",xlab="Número de cilindros",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">En esta variable tenemos datos atípicos que están notoriamente más alejados de la nube de puntos. Para verificar si se tratan de errores se analizarán cada uno de ellos mediante una observación de sus históricos. Pero antes es necesario observar cuántos de ellos son mayores de 500 pues aproximadamente después de este valor los puntos se alejan mucho de los demás.</p> 
+
+```{r}
+sum(OXIGENO$CIL_NU_CIL_REABAST_DU24 > 500)
+```
+
+<p style="text-align: justify;">Al hacer un filtrado de los valores mayores a 500, nos damos cuenta que son 6 registros que pueden ser datos atípicos. Los históricos de cada uno de estos serán analizados a continuación y empezaremos por el más alejado.</p> 
+
+```{r}
+OXIGENO[OXIGENO$CIL_NU_CIL_REABAST_DU24>800,]
+```
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-22" & OXIGENO$NOMBRE == "SANTA MARIA DE CUTERVO", ]
+```
+
+```{r}
+OXIGENO[OXIGENO$FECHAREGISTRO == "2021-04-26" & OXIGENO$NOMBRE == "SANTA MARIA DE CUTERVO", ]
+```
+
+<p style="text-align: justify;">Al verificar el histórico de esta IPRESS para la variable de estudio podríamos pensar de que los valores que registra sí son posibles porque oscilan entre los mismos valores. Sin embargo, este registro pierde confianza y validez al observar otras variables que deberían tener coherencia entre sí. Para este caso, el número de los cilindros llenos iniciales no deberían exceder al número de cilindros totales que tiene la IPRESS. Por lo tanto, todos aquellos registros que no cumplan esta condición no serían tampoco confiables, por lo que, deberían ser eliminados.</p>
+
+```{r}
+OXIGENO<-OXIGENO[OXIGENO$CIL_TOT_CILINDROS>=OXIGENO$CIL_NU_CIL_LLEN_INI_DU24,]
+```
+
+
+</br>
+<p style="text-align: justify;">Para la variable `CIL_VOL_DISP_M3_DU24`:</p>  
+```{r}
+boxplot(OXIGENO$CIL_VOL_DISP_M3_DU24, horizontal = 1, main =  "Boxplot: Volumen de oxígeno disponible en metros cúbicos",xlab="Volumen (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">En esta variable no hay datos atípicos que se alejen demasiado de la nube de puntos. Por lo que, en este caso, no será necesario hacer una limpieza de ellos.</p> 
+
+</br>
+<p style="text-align: justify;">Para la variable `CIL_VOL_M3_CU24`:</p>  
+```{r}
+boxplot(OXIGENO$CIL_VOL_M3_CU24, horizontal = 1, main =  "Boxplot: Volumen de oxígeno consumido en metros cúbicos",xlab="Volumen (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">Como se puede observar en el diagrama de cajas y bigotes, existen puntos atípicos notorios, los cuales probablemente sean producto de un error de digitación. Para comprobar la cantidad de datos que representan estos puntos se hará un filtrado de los datos para esta variable mayores a 4000 $m^3$.</p>
+
+```{r}
+sum(OXIGENO$CIL_VOL_M3_CU24>4000)
+```
+
+```{r}
+OXIGENO[OXIGENO$CIL_VOL_M3_CU24>4000,]
+```
+
+<p style="text-align: justify;">Como podemos observar en la tabla filtrada, estos datos atípicos le pertenecen a una misma IPRESS. Sin embargo, estos no pueden ser eliminados porque sus registros respecto al número de cilindros consumidos tienen coherencia con sus registros del volumen consumido. Por lo que, no podemos afirmar que haya ocurrido algún tipo de error en el registro y entonces estos registros atípicos no pueden ser eliminados.</p>
+
+</br>
+
+En la base de datos `VACUNAS`:  
+
+<p style="text-align: justify;">Creamos un nuevo data frame derivado de `VACUNAS_T`, al cual denominaremos `VACUNAS`. Para ello usamos el comando `select()` de dplyr:</p>  
+```{r}
+VACUNAS_T %>% select(FECHA_VACUNACION,GRUPO_RIESGO,DEPARTAMENTO) -> VACUNAS
+```
+</br>
+El data frame `VACUNAS` sería:  
+```{r}
+head(VACUNAS)
+```
+</br>
+Vemos la cantidad de datos faltantes en la base de datos.
+```{r}
+NAs2<-sum(is.na(VACUNAS))
+NAs2
+```
+<p style="text-align: justify;">Como no tenemos datos faltantes ni datos numéricos no es necesario hacer una limpieza de datos para este data frame. Por ende, la base de datos final sería `VACUNAS`.</p>  
+
+</br>
+
+#### **5. Variables de estudio:** 
+##### **5.1. Presentación de variables de estudio:** 
+<p style="text-align: justify;">
+Para nuestro estudio usaremos solo algunas variables de toda la base de datos. Para cada base de datos cargada se muestra una tabla con las variables a tomarse en cuenta con sus respectivos significados:</p>  
+</br>
+*Base de datos `OXIGENO_T`:*  
+
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Nombre de la variable    | Descripción                                                                                                                                                                                                                                                                                                                                   | 
++=========================+===============================================================================================================================================================================================================================================================================================================================================+
+|FECHAREGISTRO            |Fecha del registro realizado                                                                                                                                                                                                                                                                                                                   |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|NOMBRE                   |Nombre de la  IPRESS                                                                                                                                                                                                                                                                                                                           |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|NIVEL                    |Nivel del establecimiento de salud. El nivel 1 significa que la IPRESS ofrece servicios básicos y es pequeña; el nivel 2, significa que la IPRESS ofrece servicios básicos, algunos especializados y es de tamaño intermedio y el nivel 3, significa que la IPRESS presta servicios más especializados y son de gran tamaño                     |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|INSTITUCIÓN              |Institución o ámbito a la que pertenece el establecimiento de salud que registra los datos de camas; fuente RENIPRESS.                                                                                                                                                                                                                         |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|GRUPO                    |Grupo del establecimiento de salud                                                                                                                                                                                                                                                                                                             |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|REGION                   |Región de la IPRESS                                                                                                                                                                                                                                                                                                                            |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+ 
+|CIL_TOT_CILINDROS        |Número TOTAL de cilindros: Cantidad de cilindros propios o de terceros (llenos y vacíos) que tiene la IPRESS.                                                                                                                                                                                                                                  |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|CIL_VOL_POT_MT3          |Volumen Potencial: Es el cálculo de cilindros totales multiplicado por la capacidad del cilindro; es la Capacidad máxima que pueden contener en su totalidad los cilindros de oxígeno; resulta de multiplicar la cantidad total de cilindros por la capacidad de la presentación del envase.                                                   |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|CIL_NU_CIL_LLEN_INI_DU24 |Número de cilindros llenos inicial: Es el número de cilindros llenos con que cuenta el Almacén al iniciar el día de ayer considerando que los cilindros sobrantes son devueltos al almacén                                                                                                                                                     |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|CIL_NU_CIL_REABAST_DU24  |Número de cilindros recargados/reabastecidos: Es el número de cilindros recargados o reabastecidos que recibió el Almacén durante el día de ayer, estos pueden ser adquiridos por: donación, transferencia de otra IPRESS, proveedor de Oxígeno medicinal, otros.                                                                              |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|CIL_VOL_DISP_M3_DU24     |Volumen Disponible en $m^3$: Es el cálculo en $m^3$, considerando el número de cilindros llenos que inició el día anterior más los cilindros reabastecidos el día anterior multiplicado por la capacidad del cilindro. (Asumimos que los cilindros sobrantes a medio llenar fueron reabastecidos y almacenados)                                      |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|CIL_NU_CIL_CONSUM_CU24   |Número de cilindros consumidos: Es el número total de cilindros (llenos) que salieron de almacén para su consumo en las áreas asistenciales, en las últimas 24 horas (día de ayer), en las presentaciones que se disponga.                                                                                                                     |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|CIL_VOL_M3_CU24          |Volumen $m^3$: Es el cálculo en $m^3$, considerando el número de cilindros consumidos multiplicado por la capacidad del cilindro.                                                                                                                                                                                                                    |
++-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+</br>
+
+*Base de datos `VACUNAS_cNA`:*  
+
++---------------------+------------------+--------------------------------------------------------------------------------------------------------+
+|Variable             |Tipo              |Restricción                                                                                             |
++=====================+==================+========================================================================================================+
+|GRUPO_RIESGO         |Categórica nominal| Ninguna                                                                                                |
++---------------------+------------------+--------------------------------------------------------------------------------------------------------+
+|DEPARTAMENTO         |Categórica nominal| Son los 25 departamento del Perú                                                                       |
++---------------------+------------------+--------------------------------------------------------------------------------------------------------+
+|FECHA_VACUNACION     |Categórica ordinal| fechas entre 31 de marzo del 2021 y 19 de mayo del 2021 considerando en el siguiente orden: día/mes/año|
++---------------------+------------------+--------------------------------------------------------------------------------------------------------+
+
+</br>
+
+#### **6. Descripción de las variables de estudio**
+
+##### **6.1. Para la base de datos `OXIGENO`**
+<p style="text-align: justify;">Para realizar los descriptores numéricos y gráficos solo tomaremos las variables relevantes y para las que los descriptores tienen significancia alguna.</p>  
+</br>
+* Variable `NIVEL`:
+<p style="text-align: justify;">Para esta variable se realiza un diagrama de barras, ya que este nos servirá para comparar las frecuencias entre los niveles I, II y III de las IPRESS del Perú.</p>
+
+```{r}
+Nivel<-OXIGENO%>%select(NOMBRE,NIVEL)
+Nivel<-Nivel[vec_unique_loc(Nivel$NOMBRE),]
+barplot(table(Nivel$NIVEL),main = "Distribución de niveles de las IPRESS a nivel nacional",xlab="Nivel", ylab = "Frecuencia")
+```
+  
+<p style="text-align: justify;">La gráfica de barras nos revela que la mayoría de las IPRESS a nivel nacional pertenecen al nivel 2. Esto indica que la mayoría de estos establecimientos cuenta con servicios de salud básicos y con infraestructura necesaria frente a emergencias. Asimismo, observamos que existen IPRESS que aún no han recibido una categoría y que las de nivel 1 y 3 son las que se encuentran en menor cantidad. Finalmente, se puede concluir a grandes rasgos que el Perú cuenta con un nivel de atención intermedio en el sector salud.</p> 
+</br>
+
+* Variable `GRUPO`:  
+Para esta variable se realizará un gráfico de barras para visualizar qué tantas IPREES públicas y privadas tiene el país.  
+
+```{r}
+Grupo<-OXIGENO%>%select(NOMBRE,GRUPO)
+Grupo<-Grupo[vec_unique_loc(Grupo$NOMBRE),]
+barplot(table(Grupo$GRUPO),main = "Distribución de grupos de las IPRESS a nivel nacional",xlab="Grupo", ylab = "Frecuencia")
+```
+  
+<p style="text-align: justify;">En el gráfico se puede observar claramente que la mayoría de IPRESS pertenece al sector público. Esto nos indica que la mayoría de ellas tiene una gestión no tan eficiente por el hecho de ser públicas. Esta hipótesis podría comprobarse más adelante observando información sobre la disponibilidad de oxígeno. Sin embargo, esto también puede verse influido por el nivel de las IPRESS que conforman cada grupo.</p>   
+  
+</br>
+* Variable `REGION`:  
+<p style="text-align: justify;">Para analizar las interacciones de la variable `REGION` decidimos asignar un color a las representaciones gráficas de cada región correspondiente a su `MACROREGION`. Para ello, realizamos un nuevo *data frame* denominado *RESUMEN_REGION*; de ese modo, agrupar la región con su macroregión y color correspondiente.</p> 
+
+Empezamos seleccionando las variables `REGION` y `MACROREGIONES` de nuestro primer DF, `OXIGENO_T`. 
+
+```{r}
+RESUMEN_REGION<-OXIGENO_T%>%select(REGION,MACROREGIONES)%>%distinct()%>%arrange(REGION)
+```
+
+<p style="text-align: justify;">Al aplicar la función `distinct()` los resultados esperables serían solo el total de regiones del Perú con su macroregión correspondiente. Es decir, un total de 25 registros. Por ello, evaluaremos y contrastaremos el número de registros con el valor esperado.</p>
+
+```{r}
+nrow(RESUMEN_REGION)
+```
+
+<p style="text-align: justify;">Al comparar el valor esperado y el valor de registros de nuestro *data frame*, observamos que el número de registros excede en dos unidades al esperado. Por lo que identificaremos las regiones excedentes mediante una inspección a los valores únicos de regiones y su cantidad.</p>
+
+```{r}
+##Regiones distintas en el data frame `RESUMEN_REGION`
+unique(RESUMEN_REGION$REGION)
+```
+```{r}
+##Número de regiones distintas en el data frame `RESUMEN_REGION`
+n_distinct(RESUMEN_REGION$REGION)
+```
+
+<p style="text-align: justify;">Observamos que presentamos un registro correspondiente a una región NA. Por lo que , procedemos a eliminarlo.</p>
+
+```{r}
+RESUMEN_REGION<-RESUMEN_REGION[!is.na(RESUMEN_REGION$REGION),]
+```
+
+<p style="text-align: justify;">Ahora, sin la región "NA" tenemos un total de 25 registros distintos pero un total de 26 registros globales.</p>
+
+```{r}
+##Número de regiones distintas en el data frame `RESUMEN_REGION`
+n_distinct(RESUMEN_REGION$REGION)
+```
+
+
+```{r}
+##Número de regiatros en el data frame `RESUMEN_REGION`
+nrow(RESUMEN_REGION)
+```
+<p style="text-align: justify;"> Por ende, concluimos que tenemos una REGION repetida, cada registro con una diferente MACROREGION.
+
+Para encontrar la `REGION` repetida emplearemos una tabla de frecuencias</p>
+
+```{r}
+n_occur<-table(RESUMEN_REGION$REGION)
+n_occur[n_occur> 1]
+```
+<p style="text-align: justify;">Al analizar la tabla de frecuencia, identificamos que LIMA es la región que posee dos registros.</p>
+
+```{r}
+RESUMEN_REGION[RESUMEN_REGION$REGION== "LIMA",]
+```
+
+<p style="text-align: justify;">Dado que existe una incongruencia respecto a la `MACROREGION`, consultamos la macroregión correspondiente a Lima según la clasificación del Tribunal Constitucional. Resultando así que Lima y Callao corresponden a una sola macroregión llamada LIMA.</p>
+
+```{r}
+RESUMEN_REGION[RESUMEN_REGION$REGION== "CALLAO",]
+```
+<p style="text-align: justify;">Como la región Callao no presenta una clasificación, se decidió designar a Lima y Callao como una sola macroregión: LIMA. Ello basado en la clasificación del Tribunal Constitucional y las incongruencias en la data proporcionada por las IPRESS. </p>
+
+
+```{r}
+##Eliminamos el registro de la región Lima correspondiente a la MACROREGION Zona Centro.
+RESUMEN_REGION<-RESUMEN_REGION[-which(RESUMEN_REGION$REGION=="LIMA" & RESUMEN_REGION$MACROREGIONES=="Zona Centro"),]
+```
+
+```{r}
+##Designamos una nueva `MACROREGION` llamada Lima correspondiente a las regiones Callao y Lima
+RESUMEN_REGION[which(RESUMEN_REGION$REGION =="LIMA"),2]<-"Lima"
+RESUMEN_REGION[which(RESUMEN_REGION$REGION =="CALLAO"),2]<-"Lima"
+```
+
+<p style="text-align: justify;">Como se observa existen 25 registros diferentes, las cuales representan a las 25 regiones totales del Perú.</p>
+
+```{r}
+n_distinct(RESUMEN_REGION)
+```
+<p style="text-align: justify;"> Ahora, evaluemos los datos faltantes (NA) </p>
+
+```{r}
+colSums(is.na(RESUMEN_REGION))
+```
+<p style="text-align: justify;"> Comprobamos así que no existen datos faltantes. Por ello, empezamos a designar los colores a cada `MACROREGION`. </p>
+
+```{r}
+distinct(RESUMEN_REGION,MACROREGIONES)
+``` 
+<p style="text-align: justify;"> Decidimos asignar el color amarillo, azul, marrón, negro y verde para las macroregiones `Zona Norte`, `Zona Centro`,  `Zona Sur`, `Lima` y  `Zona Oriente` respectivamente.</p>
+
+```{r}
+##Creamos un `data frame` MACROREGION para designar los colores a cada macroregión distinta
+COLOR_MACROREGION<-cbind(distinct(RESUMEN_REGION,MACROREGIONES), COLOR=c("yellow","lightslateblue","lightsalmon4","gray", "limegreen"))
+
+##Ahora, agregamos una nueva variable al DF `RESUMEN_REGION` llamada COLOR
+RESUMEN_REGION<-RESUMEN_REGION%>%mutate(COLOR=NA)
+
+##Calculamos los valores distintors de la variable MACROREGION
+n=n_distinct(RESUMEN_REGION$MACROREGIONES)
+
+##Realizamos un for() para designar el color correspondiente a cada región
+for(i in 1:n){
+  RESUMEN_REGION$COLOR[RESUMEN_REGION$MACROREGIONES == COLOR_MACROREGION[i,1]]<- COLOR_MACROREGION[i,2]
+}
+```
+
+<p style="text-align: justify;"> Como consecuencia el *data frame* `RESUMEN_REGION`posee tres variables [REGION, MACROREGIONES, COLOR] </p>
+```{r}
+head(RESUMEN_REGION)
+```
+
+<p style="text-align: justify;"> Designar colores representativos de cada región correspondiente a su macroregión nos permitirá encontrar patrones en el estudio de la variable `REGION` respecto a su `MACROREGION`, de manera visual se podrá interpretar los gráficos respecto a los colores propios de cada `MACROREGION.</p>
+
+<p style="text-align: justify;">Para empezar, con el análisis visual de las regiones con sus respectivos colores; graficaremos la relación correspondiente a la región con la cantidad de IPRRES que dispone como región. </p>
+
+
+```{r}
+##Cantidad de establecimientos prestadores de salud (IPRESS) por región
+IPRESS<-OXIGENO%>%select(NOMBRE,REGION)%>%distinct()
+
+##Tabla de frecuencia de las IPRESS por región
+frec_IPRESS<-table(IPRESS$REGION)
+
+barplot(frec_IPRESS[order(frec_IPRESS)],horiz = 1,main = "Número de IPRESS por región", xlab = "Frecuencia",cex.names = 0.5, las=1,col=RESUMEN_REGION$COLOR[order(frec_IPRESS)])
+
+legend(x="bottom", title="Macroregiones",inset = c(4, -0.33),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=TRUE, cex=0.7,xpd = TRUE,y.intersp=)
+```
+  
+</br>
+<p style="text-align: justify;"> En la gráfica se observa que Lima es la región con mayor IPRESS por región y posee más de 120 IPRESS en su jurisdicción. En el segundo lugar, encontramos a la región `La Libertad` con una diferencia significativa respecto al primer lugar, Lima. Ello nos invita a evaluar el hecho de que Lima es la región con mayor población en el Perú. Según la INEI citada en el diario  El Peruano (2021), Lima posee alrededor de 9 millones 847,000 de habitantes, que representan el 29,8% de la población nacional proyectada. Dado que el último censo en el Perú se realizó el año 2017, se empleará esta data para analizar el comportamiento de nuestras variables de interés respecto a la población total de cada región. 
+
+
+<p style="text-align: justify;"> Empezamos exportando el *data frame* `POBLACION`, el cual registra la población censada por región del Perú en el año 2017. (https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1544/) [Nota: Tomo 1, hoja de Excel 'POB7']  </p> 
+```{r}
+POBLACION<-read_csv("POBLACION.csv")
+head(POBLACION)
+##Departamento y región representan el mismo espacio geográfico, ambos son sinónimos
+```
+ 
+```{r}
+##Número de registros
+nrow(POBLACION)
+```
+
+<p style="text-align: justify;"> Observamos que `POBLACION` presenta 25 registros ordenados alfabéticamente por el nombre del departamento. Esta cantidad de registros corresponde al total de las regiones del Perú.
+Respecto a las variables, para este estudio solo será de interés el análisis de la variable `Total`, variable que representa el total de población censadapor región. Por lo tanto, agregaremos esta variable al *data frame* `RESUMEN_REGION` dentro de una nueva variable llamada `POBLACION_CENSADA_2017`</p>
+
+```{r}
+RESUMEN_REGION<-cbind(RESUMEN_REGION,POBLACION_CENSADA_2017=POBLACION$Total)
+head(RESUMEN_REGION)
+```
+  
+<p style="text-align: justify;"> Para empezar con el análisis de la cantidad de IPRESS por región respecto a su población censada en el año 2017, calcularemos el ratio de la cantidad de IPRESS sobre la población censada en el año 2017 de cada región</p>
+
+```{r}
+##Seleccionamos variable ``Poblacion2017`
+Poblacion2017<-RESUMEN_REGION$POBLACION_CENSADA_2017
+
+##Seleccionamos variable `IPRESS`
+IPRESS<-OXIGENO%>%select(NOMBRE,REGION)%>%distinct()
+
+##Calculamos el ratio`IPRESSxPOBL`
+IPRESSxPOBL<-table(IPRESS$REGION)/Poblacion2017
+
+##Ordenamos el ratio de manera ascendente de acuerdo con su frecuencia
+Order_IPRESSxPOBL<-IPRESSxPOBL[order(IPRESSxPOBL)]
+
+Order_IPRESSxPOBL
+```
+  
+<p style="text-align: justify;">Observamos que todos los ratios están en la escala de (e-05) por lo que multiplicaremos `e05` a la tabla de frecuencias para permitir una mejor visualización de datos. Sin embargo, en el título de la gráfica se indicará este cambio de escala </p>
+
+```{r}
+Order_IPRESSxPOBL<-Order_IPRESSxPOBL*10^5
+```
+
+
+```{r}
+barplot(Order_IPRESSxPOBL,horiz = 1,main = "Cantidad de IPRESS por cada 100 000 habitantes censados en el 2017 según región", cex.main=0.9, xlab ="Ratio IPRESS por población censada en el 2017",cex.names = 0.45, las=1,col=RESUMEN_REGION$COLOR[order(IPRESSxPOBL)])
+
+legend(x="bottomright", title="Macroregiones",inset = c(0.025, 0),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=FALSE, cex=0.7,xpd = TRUE)
+
+abline(v = mean(Order_IPRESSxPOBL), col="red", lwd=3, lty=2)
+abline(v = median(Order_IPRESSxPOBL), col="blue")
+legend(x="bottomright", inset = c(0.03, 0.35), legend=c("Mediana  ", "Media    "),
+       col=c("blue", "red"),lty=1:2, cex=0.6,
+       title="Line types", text.font=4)
+```
+</br>  
+<p style="text-align: justify;"> En primer lugar, vemos coherente explicar el significado del ratio estudiado. La proporción `Cantidad de IPRESS*  [e-05] / población censada en el 2017` indica la cantidad de IPRESS por cada 100 000 habitantes censados en el 2017 dentro de cada región del Perú. En este sentido, podemos decir que Lima presenta alrededor de 1.5 IPRESS por cada 100 000 habitantes censados en el 2017 y en la región Cusco existen alrededor de 2 IPRESS por cada 100 000 habitantes censados en el 2017.</p>
+
+<p style="text-align: justify;">En el gráfico, se observa que la región Tumbes presenta el mayor ratio de IPRESS por habitantes censados, con un total de 3.12 IPRESS por cada 100 000 habitantes censados en el 2017. Y la región con menor ratio es Huánuco, con 0.83 IPRESS por cada 100 000  habitantes censados en el 2017. Un detalle importante de esta gráfica es la posición a la que descendió Lima, región con mayor cantidad de IPRESS a nivel nacional.</p>   
+
+<p style="text-align: justify;">Comparando los resultados por macroregiones apreciamos que todas las regiones ubicadas en la `Zona Centro` sobrepasan la media de 1.7 IPRESS por cada 100 000 habitantes censados en el 2017. Caso contrario a la macroregión `Lima` pues todas sus regiones se encuentran por debajo de la media nacional.</p>
+
+<p style="text-align: justify;">Por último, podemos decir que la relación cantidad de IPRESS sobre la población censada en el 2017 presenta un sesgo hacia la izquierda. 
+
+</p>
+
+</br>
+* Variable `CIL_TOT_CILINDROS`:  
+<p style="text-align: justify;">Para esta variable que nos indica la cantidad de cilindros propios o de terceros (llenos y vacíos) que tiene la IPRESS, se realizará una tabla de resumen.</p>
+
+```{r}
+summary(OXIGENO$CIL_TOT_CILINDROS)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_TOT_CILINDROS, horizontal = 1, main =  "Boxplot: Cantidad de cilindros que tiene la IPRESS",xlab="Número de cilindros",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">La tabla y el gráfico muestran que los datos están concentrados en el rango intercuartil y que están sesgados a la derecha. Por lo que, no sería conveniente trabajar con la media como un descriptor de referencia, más bien, la mediana sería un mejor candidato. De esta tabla podemos concluir que una mitad de las IPRESS tiene por lo menos 45 cilindros de oxígeno diariamente y que la otra mitad tiene menos de 45 cilindros. Esto nos indicaría la baja disponibilidad de cilindros de oxígeno en un gran número de IPRESS del país.</p>  
+</br>
+
+* Variable `CIL_VOL_POT_MT3`:  
+<p style="text-align: justify;">Para esta variable que nos indica el volumen potencial de oxígeno que puede almacenar la IPRESS, se realizará una tabla de resumen.</p>  
+```{r}
+summary(OXIGENO$CIL_VOL_POT_MT3)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_VOL_POT_MT3, horizontal = 1, main =  "Boxplot: Volumen potencial de oxígeno",xlab="Volumen (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+  
+<p style="text-align: justify;">La tabla y el gráfico muestran que los datos están concentrados en el rango intercuartil y que están sesgados a la derecha. Por lo que, no sería conveniente trabajar con la media, más bien, se trabajaría con la mediana como descriptor de posición. De esta tabla podemos concluir que una mitad de las IPRESS puede almacenar potencialmente más de 390 $m^3$de oxígeno diariamente y que la otra mitad, menos de 390 $m^3$ de oxígeno.</p>
+  
+</br>
+* Variable `CIL_NU_CIL_LLEN_INI_DU24`:  
+<p style="text-align: justify;">Para esta variable que nos indica el número de cilindros llenos de oxígeno al iniciar el día, se hará una tabla de resumen.</p>  
+```{r}
+summary(OXIGENO$CIL_NU_CIL_LLEN_INI_DU24)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_NU_CIL_LLEN_INI_DU24, horizontal = 1, main =  "Boxplot: Número de cilindros llenos al iniciar el día",xlab="Número de cilindros",pch=20,border=rgb(0,0,0,0.2))
+```
+  
+<p style="text-align: justify;">La tabla y el gráfico muestran que los datos están concentrados en el rango intercuartil y que están sesgados a la derecha. Por lo que, no es conveniente trabajar con la media, sino se trabajaría con la mediana como descriptor de posición. De esta tabla podemos concluir que una mitad de las IPRESS inicia el día con más de 13  cilindros de oxígeno llenos y que la otra mitad, con menos de 13 cilindros.</p>
+  
+</br>
+* Variable `CIL_NU_CIL_REABAST_DU24`:  
+<p style="text-align: justify;">Para esta variable que nos indica el número de cilindros recargados durante el día, se hará una tabla de resumen y un diagrama de cajas y bigotes.</p>  
+```{r}
+summary(OXIGENO$CIL_NU_CIL_REABAST_DU24)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_NU_CIL_REABAST_DU24,horizontal = 1, main =  "Boxplot: Número de cilindros recargados durante el día",xlab="Número de cilindros",pch=20,border=rgb(0,0,0,0.2))
+```
+  
+<p style="text-align: justify;">La tabla y el gráfico nos muestran que los datos están muy concentrados en el rango intercuartil y que los datos están sesgados a la derecha. Se puede evidenciar que por lo menos la mitad de las IPRESS no recargan los cilindros de oxígeno durante el día. Esto puede deberse a que no todas las IPRESS están equipadas con una planta de oxígeno.</p>
+
+</br>
+* Variable `CIL_VOL_DISP_M3_DU24`:  
+Para esta variable que nos indica el volumen disponible en $m^3$ de oxígeno, se hará una tabla de resumen y diagrama de cajas y bigotes.  
+```{r}
+summary(OXIGENO$CIL_VOL_DISP_M3_DU24)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_VOL_DISP_M3_DU24, horizontal = 1, main =  "Boxplot: Volumen de oxígeno disponible",xlab="Volumen (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">La tabla y el gráfico muestran que los datos están concentrados en el rango intercuartil y que están sesgados a la derecha. Considerando la mediana, podemos afirmar que la mitad de las IPRESS posee una cantidad de oxígeno menor o igual a 180 $m^3$ de oxígeno listo para ser usado; del mismo modo, la otra mitad, posee una cantidad de oxígeno mayor o igual a esta. Finalmente, podemos ver que hay por lo menos una IPRESS que no tiene disponibilidad de oxígeno.</p>
+
+
+</br>
+* Variable `CIL_NU_CIL_CONSUM_CU24`:  
+Para esta variable que nos indica el número de cilindros consumidos de oxígeno, se hará una tabla de resumen un gráfico de caja y bigotes.
+  
+```{r}
+summary(OXIGENO$CIL_NU_CIL_CONSUM_CU24, horizontal = 1)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_NU_CIL_CONSUM_CU24, horizontal = 1, main = "Boxplot: Cilindros de oxígeno consumidos diariamente en las IPRESS", xlab="Cantidad de cilindros",pch=20,border=rgb(0,0,0,0.2))
+```
+
+<p style="text-align: justify;">Los datos se encuentran fuertemente concentrados en el rango intercuartil por lo que podemos afirmar que la mayoría de IPRESS consumen entre 0 y 14 cilindros de oxígeno; así mismo, se deduce que la mitad de las IPRESS consume una cantidad menor o igual a 3 cilindros diariamente.</p>
+  
+</br>
+* Variable `CIL_VOL_M3_CU24`:  
+Para esta variable que nos indica el volumen consumido en $m^3$ de oxígeno, se hará una tabla de resumen y un diagrama de cajas y bigotes.
+  
+```{r}
+summary(OXIGENO$CIL_VOL_M3_CU24)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_VOL_M3_CU24, horizontal = 1, main = "Boxplot: Volumen de oxígeno consumido en metros cúbicos", xlab = "Volumen de oxígeno (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+  
+<p style="text-align: justify;">Del gráfico y la tabla podemos ver que el 75 % de los datos se encuentra dentro del rango intercuartil por lo que podemos afirmar que la mayoría de la IPRESS consumen ente 0 y 135 $m^3$ de oxígeno; así mismo, vemos que una mitad de las IPRESS tiene un consumo menor o igual a 30 $m^3$ de oxígeno y la otra mitad, un consumo mayor o igual a esta cantidad. Finalmente, podemos ver que cerca del 25 % de las  IPRESS no presentan un consumo de oxígeno pues su consumo es igual a 0 $m^3$ de oxígeno.</p>
+
+</br>
+
+A continuación agregaremos 2 nuevas variables derivadas a nuestra base de datos `OXIGENO` las cuales son:
+
+* `CIL_SOB`: Número de cilindros sobrantes llenos de oxígeno  
+`CIL_SOB` = `CIL_NU_CIL_LLEN_INI_DU24` + `CIL_NU_CIL_REABAST_DU24` - `CIL_NU_CIL_CONSUM_CU24`  
+* `VOL_OXI_DESP`: Volumen de oxígeno no usado en el día  
+`VOL_OXI_DESP` = `CIL_VOL_DISP_M3_DU24` - `CIL_VOL_M3_CU24`  
+
+</br>
+Agregamos las variables a nuestra data frame `OXIGENO` 
+```{r}
+OXIGENO<-cbind(OXIGENO,CIL_SOB = OXIGENO$CIL_NU_CIL_LLEN_INI_DU24 + OXIGENO$CIL_NU_CIL_REABAST_DU24 - OXIGENO$CIL_NU_CIL_CONSUM_CU24)
+OXIGENO<-cbind(OXIGENO,VOL_OXI_DESP = OXIGENO$CIL_VOL_DISP_M3_DU24 - OXIGENO$CIL_VOL_M3_CU24)
+head(OXIGENO)
+```
+
+  
+Pasamos a describir las nuevas variables:
+</br>
+* Variable `CIL_SOB`:  
+Para esta variable que nos indica el número de cilindros consumidos de oxígeno, se hará una tabla de resumen y un diagrama de caja y bigotes.
+  
+```{r}
+summary(OXIGENO$CIL_SOB, horizontal = 1)
+```
+
+```{r}
+boxplot(OXIGENO$CIL_SOB, horizontal = 1, main = "Boxplot: Número de cilindros llenos sobrantes", xlab = "Número de cilindros",pch=20,border=rgb(0,0,0,0.2))
+```
+  
+<p style="text-align: justify;">En la gráfica se puede ver que los datos de la cantidad de cilindros sobrantes están concentrados en el rango intercuartil, pero también se observa la presencia de datos atípicos los cuales están concentrados en el rango de 80 hasta aproximadamente 350 cilindros. Además, se puede observar que la mitad de las IPRESS posee una cantidad menor o igual a 12 cilindros llenos no usados y la otra mitad, una cantidad mayor o igual a 12 cilindros.</p>
+
+</br>
+* Variable `VOL_OXI_DESP`:  
+<p style="text-align: justify;">Para esta variable que nos indica el volumen de oxígeno en $m^3$ no usado en el día, se hará una tabla de resumen y un diagrama de caja y bigotes.</p>
+
+```{r}
+summary(OXIGENO$VOL_OXI_DESP, horizontal = 1)
+```
+
+```{r}
+boxplot(OXIGENO$VOL_OXI_DESP, horizontal = 1, main = "Boxplot: Volumen de oxígeno no usado", xlab = "Volumen (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+  
+<p style="text-align: justify;">con respecto a la gráfica, vemos que los datos están concentrados en el rango intercuartil y a pesar de que haya datos atípicos no podemos afirmar que estos sean productos de errores en la recolección de los datos.</p>
+
+<p style="text-align: justify;">
+Por otro lado, de la tabla nos podemos dar cuenta que hay datos con valores negativos. Esto nos puede sugerir que algunas IPRESS usan fuentes de abastecimiento no contempladas en el estudio para cubrir su demanda o que estos valores se tratan de errores en el registro de los datos. Para analizar estas 2 posibilidades filtraremos los registros en los que esta variable (`VOL_OXI_DESP`) sea menor a 0 y lo contrastaremos con el número de cilindros sobrantes (`CIL_SOB`)</p>.
+
+```{r}
+OXIGENO %>% filter(VOL_OXI_DESP<0) %>%select(FECHAREGISTRO, NOMBRE, REGION,CIL_SOB, VOL_OXI_DESP)
+```
+</br>
+<p style="text-align: justify;">
+Como se puede observar, existen solo 4 registros que cumplen con tener la variable `VOL_OXI_DESP` negativa. Además, estas fueron registradas en diferentes días y por diferentes IPRESS. Luego, nos damos cuenta que para estos registros no existen valores negativos para los cilindros sobrantes (`CIL_SOB`) lo cual es inconsistente pues al haber una deficiencia en el volumen de oxígeno también debería haber deficiencia de cilindros. Por lo tanto, consideramos que estos 4 datos son potencialmente errores de registro y serán eliminados.</p>
+</br>
+
+```{r}
+OXIGENO<-OXIGENO[OXIGENO$VOL_OXI_DESP>0,]
+head(OXIGENO)
+```
+
+</br>
+Con este cambio volveremos a crear la tabla de resumen y a graficar el diagrama de cajas y bigotes.
+
+```{r}
+summary(OXIGENO$VOL_OXI_DESP, horizontal = 1)
+```
+
+```{r}
+boxplot(OXIGENO$VOL_OXI_DESP, horizontal = 1, main = "Boxplot: Volumen de oxígeno no usado", xlab = "Volumen (metros cúbicos)",pch=20,border=rgb(0,0,0,0.2))
+```
+</br>
+<p style="text-align: justify;">
+Vemos que los datos han sufrido un cambio en su distribución. Pues si bien siguen muy concentrados dentro del rango intercuartil los valores del mismo han cambiado, al igual que el valor de la media. Considerando estos cambios podemos ver que la mitad de las IPRESS ahora tienen entre 48 y 321 $m^3$ de oxígeno no usado al finalizar el día. Con respecto a la mediana, vemos que una mitad de las IPRESS posee un valor menor o igual a 124 $m^3$ de oxígeno sobrante al final del día y la otra mitad posee un valor mayor o igual a 124 $m^3$ de oxígeno sobrante. Finalmente, considerando el volumen mínimo afirmamos que ninguna IPRESS logra usar todo el oxígeno que tiene disponible en un día.</p>
+
+</br>
+  
+##### *6.2. Para la base de datos `VACUNAS` *
+
+
+* Variable `GRUPO_RIESGO`:  
+Para esta variable realizamos un gráfico de barras para conocer la distribución de los grupos de riesgo que ya han sido vacunados.
+```{r}
+barplot(table(VACUNAS$GRUPO_RIESGO),main = "Grupos de riesgos a las que las personas vacunadas pertenecen",ylab="Número de personas",las=3, cex.names = 0.6, cex.axis = 0.7)
+
+```
+  
+<p style="text-align: justify;">En la gráfica se muestra que los grupos de riesgo que más vacunas recibieron fueron los adultos mayores y el personal de salud, lo cual concuerda con el plan de vacunación del gobierno.</p>
+  
+</br>
+* Variable `DEPARTAMENTO`:  
+Para esta variable realizamos un gráfico de barras para conocer la distribución de las personas vacunadas por región.
+
+```{r}
+Tabla_VacunaRegion<-table(VACUNAS$DEPARTAMENTO)
+
+barplot(Tabla_VacunaRegion[order(Tabla_VacunaRegion)], horiz = 1,main = "Número de vacunados por región", xlab = "Frecuencia",cex.names = 0.5, las=1,col=RESUMEN_REGION$COLOR[order(Tabla_VacunaRegion)])
+
+
+legend(x="bottom", title="Macroregiones",inset = c(4, -0.33),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=TRUE, cex=0.7,xpd = TRUE,y.intersp=)
+```
+
+</br>
+<p style="text-align: justify;">En el gráfico se puede ver que  la región `Lima` presenta el mayor número de vacunados a nivel nacional, con una diferencia de casi 1 millón respecto a la segunda región con más vacunados `Callao`. Esta diferencia sustancial de Lima con respecto a las demás regiones se debe principalmente a la proporción de habitantes que habitan en su jurisdicción. Por ello, al igual que el gráfico de distribución de IPRESS por regiones evaluaremos la cantidad de vacunados respecto a la población censada en el 2017.</p>
+
+<p style="text-align: justify;">Para empezar, hallaremos el ratio correspondiente a la `Población vacunada sobre la población censada en el 2017 respecto a cada región del Perú`.</p>
+
+```{r}
+##Calculamos el ratio`VACUNASxPOBL`
+VACUNASxPOBL<-Tabla_VacunaRegion/Poblacion2017
+
+##Ordenamos el ratio de manera ascendente de acuerdo con su frecuencia
+Order_VACUNASxPOBL<-VACUNASxPOBL[order(VACUNASxPOBL)]
+
+Order_VACUNASxPOBL
+```
+<p style="text-align: justify;"> Al observar la tabla de frecuencia se cree más pertinente expresar el ratio en porcentaje. Por ende, multiplicaremos el ratio por 100. Lo cual equivaldría al porcentaje total de vacunados en cada región respecto a su población electoral hábil. </p>
+
+```{r}
+##Porcentaje de población vacunada
+Order_VACUNASxPOBL<-Order_VACUNASxPOBL*100
+```
+
+<p style="text-align: justify;"> Ahora, graficaremos la data en un gráfico de barras.</p>
+
+```{r}
+barplot(Order_VACUNASxPOBL,horiz = 1,main = "Porcentaje de habitantes vacunados según región",xlab ="Porcentaje de habitantes vacunados (%)",cex.names = 0.45, las=1,col=RESUMEN_REGION$COLOR[order(VACUNASxPOBL)])
+
+legend(x="bottomright", title="Macroregiones",inset = c(0.025, 0),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=FALSE, cex=0.6)
+
+abline(v = mean(Order_VACUNASxPOBL), col="red", lwd=3, lty=2)
+abline(v = median(Order_VACUNASxPOBL), col="blue")
+
+legend(x="bottomright", inset = c(0.028, 0.28), legend=c("Mediana  ", "Media    "),
+       col=c("blue", "red"),lty=1:2, cex=0.6,
+       title="Line types", text.font=4)
+```
+    
+<p style="text-align: justify;"> 
+En el gráfico, se observa que la región Callao presenta el mayor porcentaje de electores hábiles vacunados, con alrededor el 19.72 % de habitantes censados en el 2017. Y la región con menor porcentaje es Cajamarca, con cerca de 4.52 % de habitantes vacunados. Un detalle importante de esta gráfica es que la posición de Lima desciende un puesto respecto a la gráfica anterior, y su diferencia de personas vacunadas respecto a la población nacional disminuye.</p>    
+
+<p style="text-align: justify;"> Comparando los resultados por macroregiones apreciamos que todas las regiones ubicadas en la macroregión `Lima` sobrepasan la media nacional de 7.92 % de la población electoral hábil vacunada. Caso contrario a la `Zona Centro` y `Zona Oriente` pues todas sus regiones se encuentran por debajo de la media nacional.</p>
+
+<p style="text-align: justify;"> Por último, podemos decir que el porcentaje de habitantes vacunados presenta un sesgo a la derecha.
+</p>
+</br>
+
+#### **7. Interacción entre variables**  
+
+En esta sección veremos la relación entre algunas variables categóricas y numéricas de la base de datos `OXIGENO`, `VACUNAS` y ambas.
+</br>
+
+##### **7.1. En la base de datos `OXIGENO`**  
+</br>
+* Variables `CIL_VOL_DISP_M3_DU24` y `CIL_VOL_M3_CU24`:  
+Se pasará a comparar el volumen disponible de oxígeno en metros cúbicos y el volumen consumido de oxígeno en $m^3$.
+```{r}
+plot(OXIGENO$CIL_VOL_DISP_M3_DU24,OXIGENO$CIL_VOL_M3_CU24,pch=20,col=rgb(0,0,0,0.2),xlab = "Volumen disponible (metros cúbicos)", ylab = "Volumen consumido (metros cúbicos)", main = "Volumen disponible vs Volumen consumido")
+```
+</br>
+<p style="text-align: justify;">
+Se puede observar que la data posee un comportamiento logístico porque existe un límite en el consumo de oxígeno. Esto quiere decir que se llega al punto donde a pesar de que aumente el volumen de oxígeno disponible, el consumo del mismo se mantendrá constante. Ello se puede deber a que no hay un aumento constante de camas UCI en las IPRESS y tampoco existe una sustancial rotación de pacientes en un tiempo relativamente corto.  
+Con respecto a los datos atípicos, vemos que existen 2 puntos que se alejan notoriamente de esta tendencia. En estos puntos se ve un alto consumo de oxígeno que corresponde con una alta disponibilidad del mismo. Debido a que para el periodo de tiempo solo se repitieron 2 veces consideramos que estos puntos representan casos especiales. Considerando que estos puntos corresponden al mismo hospital de nivel 2 es posible que en estas fechas se haya presentado una emergencia en algunos pacientes y debido a la gravedad de la situación fueron trasladados a un hospital de nivel 3 para estabilizarlos.
+</p>
+
+</br>
+* Variables `CIL_SOB` y `CIL_NU_CIL_LLEN_INI_DU24`:  
+Se compararán el número de cilindros sobrantes y el número de cilindros disponibles al iniciar el día.
+
+```{r}
+plot(OXIGENO$CIL_SOB,OXIGENO$CIL_NU_CIL_LLEN_INI_DU24,pch=20,col=rgb(0,0,0,0.2),xlab = "Cilindros sobrantes",ylab = "Cilindros llenos al iniciar el día",main = "Número de cilindros sobrantes vs Número de cilindros llenos")
+
+abline(lm(OXIGENO$CIL_SOB ~ OXIGENO$CIL_NU_CIL_LLEN_INI_DU24),col="red")
+```
+
+```{r}
+cor(OXIGENO$CIL_SOB,OXIGENO$CIL_NU_CIL_LLEN_INI_DU24)
+```
+
+</br>
+<p style="text-align: justify;">
+En el gráfico de dispersión se puede observar una relación lineal creciente (la correlación es positiva y cercana a 1) entre el número de cilindros sobrantes y la cantidad de cilindros llenos al iniciar el día. Esto nos sugiere que, si tenemos una mayor cantidad de cilindros sobrantes, al día siguiente habrá una mayor cantidad de cilindros al iniciar el día. Con esto comprobamos que los cilindros sobrantes son devueltos a los almacenes y se contabilizan para el número de cilindros iniciales del día siguiente. Además, a primera vista es extraño que el número de cilindros al iniciar el día sea similar a los cilindros sobrantes. Pero, esto se puede explicar con el hecho de que durante el día los cilindros que se vacían se van llenando. También se puede deducir que, como la relación es cercana a 1, las donaciones o compra de cilindros durante el día permiten tener una mayor cantidad de cilindros al día siguiente.</p>
+
+</br>
+* Variables `NIVEL` y `GRUPO`:  
+
+```{r}
+mosaicplot(table(Grupo$GRUPO,Nivel$NIVEL),main = "Nivel y Grupo de pertenencia de la IPRESS",xlab="Grupo",ylab ="Nivel",off = 10,las = 1, border=rgb(0,0,0,0.2), col=c("#cc9999","#99cc99","#9999cc", "#9c9c9c"))
+```
+<p style="text-align: justify;">La gráfica de mosaico nos muestra que las IPRESS en ambos grupos son mayormente de nivel 2, donde un gran número de estas son privadas. Además, podemos observar que las de nivel 3 y 1 son en su mayoría públicas. Así mismo, las IPRESS no clasificadas son, en su totalidad, públicas.</p> 
+
+<p style="text-align: justify;">Por otro lado, se usó un código de colores para la variable categórica ordinal "Nivel" con el objetivo de brindar una mejor visualización en el *mosaicplot*. La asignación de colores fue totalmente arbitraria ya que no existe relación entre los colores y los niveles de la variable que representa.</p>  
+
+</br>
+
+* Variables `REGION` y `CIL_VOL_M3_CU24`:  
+
+```{r}
+boxplot(OXIGENO$CIL_VOL_M3_CU24 ~ OXIGENO$REGION, horizontal = 1, cex.axis = 0.5, las=1, pch=20,border=rgb(0,0,0,0.2), xlab = "Volumen consumido de oxígeno (metros cúbicos)", ylab = "", main="Volumen consumido de oxígeno (metros cúbicos) por región", col=RESUMEN_REGION$COLOR)
+
+legend(x="bottom", title="Macroregiones",inset = c(4, -0.33),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=TRUE, cex=0.7,xpd = TRUE,y.intersp=)
+
+```
+
+<p style="text-align: justify;">Tomando en cuenta las medianas del volumen de oxígeno consumido, se puede observar que la región que ha presentado el registro de consumo más alto es Moquegua y seguido por Huánuco. Curiosamente la región con la mayor población, Lima, tiene una mediana pequeña de consumo de oxígeno en comparación con los demás departamentos. Esto puede explicarse a través de la hipótesis de que, al tener la mayor cantidad de IPRESS, la demanda del oxígeno no sea tan grande en cada IPRESS de manera individual. En contraste, en la región Moquegua, la cual es la segunda región con la menor cantidad de IPRESS se observa un efecto contrario pues la demanda de acuerdo con su mediana es la más grande de todas las regiones. No obstante, este análisis puede no ser correcto por la cantidad de datos atípicos para las regiones con más IPRESS como Lima, los cuales pueden afectar el valor de la mediana.</p>  
+
+</br>
+
+* Variables `REGION` y `CIL_VOL_DISP_M3_DU24`:  
+
+```{r}
+boxplot(OXIGENO$CIL_VOL_DISP_M3_DU24 ~ OXIGENO$REGION, horizontal = 1, cex.axis = 0.5, las=1, pch=20,border=rgb(0,0,0,0.2), xlab = "Volumen disponible de oxígeno (metros cúbicos)", ylab = "", main="Volumen de oxígeno disponible (metros cúbicos) por región", col=RESUMEN_REGION$COLOR)
+
+legend(x="bottom", title="Macroregiones",inset = c(4, -0.33),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=TRUE, cex=0.7,xpd = TRUE,y.intersp=)
+```
+
+<p style="text-align: justify;">En esta gráfica, al igual que en la gráfica del consumo y según la mediana, las regiones que más oxígeno disponible tienen son las que presentan una menor cantidad de IPRESS y las que tienen una mayor cantidad de IPRESS presentan un menor volumen disponible de oxígeno por IPRESS en cada región. Sin embargo, esta hipótesis puede verse sesgada ya que los datos para las regiones con menos IPRESS están muy dispersos justamente por la pequeña cantidad de registros que tienen. Además, la gran cantidad de datos atípicos para las regiones con más IPRESS como Lima puede que nos dé un valor erróneo de la mediana aunque esta sea robusta. Para observar mejor estas distribuciones sería conveniente observar la misma gráfica con una escala logarítmica, pues nuestros valores varían en un rango muy amplio y, además no se tienen valores iguales a 0 ni negativos para la variable numérica.</p>
+
+```{r}
+boxplot(OXIGENO$CIL_VOL_DISP_M3_DU24 ~ OXIGENO$REGION, horizontal = 1, cex.axis = 0.5, las=1, pch=20,border=rgb(0,0,0,0.2), xlab = "Volumen disponible de oxígeno (metros cúbicos)", ylab = "", log="x", main="Oxígeno disponible (metros cúbicos) por región en escala logarítmica", col=RESUMEN_REGION$COLOR)
+
+legend(x="bottom", title="Macroregiones",inset = c(4, -0.33),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=TRUE, cex=0.7,xpd = TRUE,y.intersp=)
+```
+   
+<p style="text-align: justify;">En este gráfico de escala logarítmica se pueden observar mejor las diferencias en los valores del volumen disponible de oxígeno por cada región del país. Con ello se reafirma la hipótesis de que las regiones con mayor cantidad de IPRESS tienen una menor disponibilidad de oxígeno y las regiones con menor cantidad de IPRESS tienen una mayor disponibilidad de oxígeno. Esto tiene que ver con las poblaciones totales de cada región y con la disponibilidad de IPRESS por cada persona en la respectiva región. De la gráfica relativa de IPRESS por cada 100000 electores, que fue analizada más arriba, se puede afirmar que estos resultados tienen sentido ya que en las regiones con una cantidad relativamente grande de IPRESS y una población pequeña, se tienen más IPRESS por cada 100000 habitantes que en otras donde ocurre todo lo contrario. Esta disponibilidad de IPRESS por población tiene mucho que ver con la demanda del oxígeno porque es pertinente pensar que si la demanda de IPRESS en una región es alta, entonces tendría que existir también  una mayor disponibilidad de oxígeno en todas las IPRESS de esa región para cubrir la demanda de oxígeno de toda su población. Sin embargo, cabe destacar que ello no es una causa única, pues para determinar con certeza la razón de la disponibilidad de oxígeno en cada IPRESS es necesario evaluar otros factores que puedan ocurrir independientemente en cada región e incluso en cada IPRESS.</p>
+
+</br>
+
+* Variables `CIL_SOB` y `REGION`:  
+```{r}
+boxplot(OXIGENO$CIL_SOB ~ OXIGENO$REGION, horizontal = 1, cex.axis = 0.5, las=1, pch=20,border=rgb(0,0,0,0.2), xlab = "Número de cilindros sobrantes", ylab = "", main="Número de cilindros sobrantes por región", col=RESUMEN_REGION$COLOR)
+
+legend(x="bottom", title="Macroregiones",inset = c(4, -0.33),legend=COLOR_MACROREGION$MACROREGIONES, fill=COLOR_MACROREGION$COLOR, horiz=TRUE, cex=0.7,xpd = TRUE,y.intersp=)
+```
+
+<p style="text-align: justify;">En el siguiente gráfico podemos observar una gran cantidad de valores atípicos para la gran mayoría de regiones en el país. Esto se puede explicar debido a los cambios repentinos en la necesidad de oxígeno y su respectivo llenado. Esto es debido a los grandes picos de contagios y disminución repentina en ellos. Asimismo, podemos observar que regiones como Lima, Cusco y Arequipa presentan una gran cantidad de valores atípicos en comparación con sus medianas. Esto nos puede decir que han tenido una gran producción de oxígeno y que los casos por Covid han tenido una disminución que ha llevado a no usar tanto oxígeno. Además, tenemos regiones como Piura, Tumbes y Ancash con un bajo número de cilindros sobrantes guiándonos de sus medianas. Esto puede reafirmar la gran cantidad de oxígeno consumido debido a los ya conocidos casos de Covid, los cuales eran muchos en comparación al resto de regiones en base a su cantidad de habitantes.</p>
+
+</br>
+
+* Variables `CIL_TOT_CILINDROS` y `CIL_NU_CIL_CONSUM_CU24`:  
+
+```{r}
+plot(OXIGENO$CIL_TOT_CILINDROS,OXIGENO$CIL_NU_CIL_CONSUM_CU24,pch=20,col=rgb(0,0,0,0.2),xlab = "Cilindros totales",ylab = "Cilindros consumidos",main = "Número de cilindros totales vs Número de cilindros consumidos")
+
+abline(lm(OXIGENO$CIL_NU_CIL_CONSUM_CU24 ~ OXIGENO$CIL_TOT_CILINDROS),col="red")
+```
+
+<p style="text-align: justify;">Antes de explicar la gráfica se desea aclarar que los Cilindros totales hace referencia a los cilindros en buenas y malas condiciones que tiene la IPRESS y que dentro de los cilindros en buenas condiciones se encuentran los cilindros llenos y vacíos. Entonces, de la gráfica se puede entender que para la mayoría de los casos los Cilindros totales deberían ser mayores o iguales a los Cilindros consumidos, pero aún es posible observar una mayor cantidad de cilindros consumidos que cilindros totales de la IPRESS. Esto se puede explicar de distintas maneras.   
+1) La IPRESS hizo un mal registro sobre la cantidad de cilindros totales y los cilindros consumidos.  
+2) La IPRESS no toma en consideración en Cilindros totales, los cilindros que ingresan durante el día por medio de donaciones o que las mismas personas llevan para sus familiares, amigos, etc.  
+3) Los cilindros pueden ser rellenados y utilizados más de una vez durante el día.</p>
+
+</br>
+* Variables `CIL_VOL_DISP_M3_DU24` vs `NIVEL` y `GRUPO`:  
+
+```{r}
+boxplot(OXIGENO$CIL_VOL_DISP_M3_DU24~OXIGENO$NIVEL:OXIGENO$GRUPO,horizontal = TRUE,main = "Volumen disponible de oxígeno (metros cúbicos) por nivel y grupo",xlab="Volumen (metros cúbicos)",ylab="",pch=20,border=rgb(0,0,0,0.2), las = 1, cex.axis = 0.5,log="x")
+```
+
+<p style="text-align: justify;">Estamos usando una escala logarítmica para observar mejor la distribución de los datos. El uso de esta escala se justifica porque para la variable tenemos valores que se distribuyen en un rango muy amplio. Del anterior gráfico se puede deducir que las IPRESS públicas tienen un mayor volumen disponible de oxígeno. Esto debería estar relacionado a que las IPRESS públicas necesitan una cantidad mayor de oxígeno porque más personas acuden a estas, ya que probablemente no pueden pagar una privada o podría estar relacionado con el tamaño de las IPRESS públicas y privadas, normalmente las privadas son clínicas y no son tan grandes, mientras que las públicas tienen un mayor tamaño permitiendo almacenar una mayor cantidad de oxígeno. Asimismo, se puede explicar de la misma manera los puntos atípicos de la gráfica. Por ejemplo, se observan los puntos atípicos de las IPRESS del nivel 1 privadas y los puntos atípicos de las IPRESS nivel 1, 2 y 3 públicas se logra notar una diferencia entre estas. Además, con respecto a los niveles, se puede observar una mayor disponibilidad de oxígeno mientras mayor sea este. Esto podría estar relacionado con que mientras más preparada o mejor servicios brinde la IPRESS, más disponibilidad de oxígeno tendrá. Para entender mejor esto, se logra apreciar la diferencias de las medianas de las IPRESS nivel 3 privadas y públicas según la gráfica y así sucesivamente con las de menor nivel.</p>
+
+</br>
+
+* Variables `FECHAREGISTRO` y `CIL_VOL_M3_CU24`:  
+```{r}
+VOL_CONSUM_DIA<- aggregate(OXIGENO$CIL_VOL_M3_CU24, by=list(Fecha=OXIGENO$FECHAREGISTRO), FUN=sum)
+VOL_CONSUM_DIA
+```
+
+```{r}
+plot(VOL_CONSUM_DIA$Fecha,VOL_CONSUM_DIA$x, xlab = "Fecha", ylab = "Volumen consumido (metros cúbicos)", main = "Evolución en el tiempo del consumo de oxígeno en el país", pch=20,col=rgb(0,0,0,0.2))
+abline(lm(VOL_CONSUM_DIA$x ~ VOL_CONSUM_DIA$Fecha),col="red")
+```
+
+<p style="text-align: justify;">En el gráfico anterior podemos ver que el comportamiento del volumen consumido de oxígeno a lo largo del periodo de tiempo del estudio. En este gráfico podemos observar algunos periodos en el que el consumo del oxígeno aumentó, como es el caso del 15 de abril y otros donde el mismo disminuye. Analizando toda la nube de puntos se revela una tendencia, en consumo de oxígeno, a disminuir conforme pasa el tiempo. Esta observación se refuerza al trazar la línea de tendencia pues esta posee una pendiente negativa.</p>
+<p style="text-align: justify;">El comportamiento de los datos se puede explicar debido a 2 factores externos, la vacunación contra el COVID 19 y la recuperación de los pacientes internados. Por un lado, Considerando el aumento de personas vacunadas contra el covid-19, al haber más personas vacunas, disminuye la cantidad de pacientes nuevos que entran a la IPRESS por problemas en las vías respiratorias. Por otro lado, considerando la eventual recuperación de los pacientes previamente internados por problemas respiratorios, el consumo de oxígeno también disminuye. Combinando estos factores, el aumento en el número de vacunados y la recuperación de los pacientes internados, es coherente que el volumen del consumo de oxígeno disminuya.</p>
+<p style="text-align: justify;">Finalmente, en el gráfico vemos que la pendiente de la nube de puntos es relativa pequeña para los rangos de valores del eje $y$. Esto indica que la disminución del consumo de oxígeno se da de forma lenta. Esto se explica considerando el periodo de recuperación de las enfermedades respiratorias graves el cual puede extenderse hasta algunos meses.</p>
+
+</br>
+
+##### **7.2. En la base de datos `VACUNAS`**  
+</br>
+
+* Variables `FECHA_VACUNACION` y `NUM_VACUNADOS`:  
+
+<p style="text-align: justify;">Para poder hacer las gráficas de Fecha vs Número de vacunados, fue necesario cambiar con programación en C++ las fechas de la base de datos de `VACUNAS` a un formato de fecha válido para leerse en R.</p>
+
+```{r}
+VACUNAS<-cbind(VACUNAS,read_csv("result.csv"))
+VACUNAS<-select(VACUNAS,GRUPO_RIESGO,DEPARTAMENTO,Fecha_registro)
+```
+
+```{r}
+VAC_NUM <- cbind(VACUNAS,NUM_VACUNADOS=1)
+VAC_DIA<- aggregate(VAC_NUM$NUM_VACUNADOS, by=list(Fecha=VAC_NUM$Fecha_registro), FUN=sum)
+VAC_DIA<- filter(VAC_DIA,Fecha>="2021-03-31")
+VAC_DIA<-cbind(VAC_DIA, Num_vac_acum=cumsum(VAC_DIA$x))
+VAC_DIA
+```
+
+```{r}
+plot(VAC_DIA$Fecha,VAC_DIA$Num_vac_acum, xlab = "Fecha",ylab = "Número de vacunados", main = "Evolución en el tiempo del número de vacunados en el país", pch=20,col=rgb(0,0,0,0.2))
+abline(lm(VAC_DIA$Num_vac_acum ~ VAC_DIA$Fecha),col="red")
+```
+
+<p style="text-align: justify;">
+El gráfico muestra la evolución del número de personas vacunadas a lo largo del tiempo. La nube de puntos presenta el gráfico posee una tendencia creciente. Esto indica que cada vez hay más personas que están siendo vacunadas. Así mismo, la pendiente de la gráfica indica que la cantidad de personas vacunadas por día aumenta rápidamente. Además, considerando el periodo de tres meses y la escala del eje, podemos ver que las personas vacunadas crecen en el orden de miles por cada día. Si bien a primera vista este parece un número grande, considerando que la población mundial está en el orden de millones podemos decir que el proceso de vacunación está avanzando lentamente en proporción al número total de habitantes en el Perú (eso no quiere decir que no haya muchas personas vacunadas por día). Esto es coherente por el gráfico anterior (evolución del volumen de oxígeno consumido en el tiempo) pues que un número relativamente pequeño de personas estén vacunada contribuye de forma limitada a la disminución de enfermos en las IPRESS que requieren un suministro de oxígeno.</p>
+
+</br>
+
+##### **7.3. Entre ambas bases de datos:**  
+<p style="text-align: justify;">Para este caso se hará una tabla donde se relacione el número de vacunados total y el volumen de oxígeno consumido en todas las IPRESS de acuerdo con los días en los que se registraron.</p>  
+```{r}
+x<-data.frame(Fecha=VAC_DIA$Fecha,Numero_Vacunados=VAC_DIA$Num_vac_acum,Volumen_consumido=VOL_CONSUM_DIA$x[c(1:49)])
+x
+```
+<p style="text-align: justify;">Para observar la relación entre las variables se hará un gráfico de dispersión con una línea de ajuste.</p>  
+```{r}
+plot(x$Numero_Vacunados,x$Volumen_consumido, pch=20, main = "Número de vacunados vs Volumen de oxígeno consumido", xlab="Número de vacunados", ylab = "Volumen de oxígeno consumido (metros cúbicos)",col=rgb(0,0,0,0.2))
+abline(lm(x$Volumen_consumido ~ x$Numero_Vacunados),col="red")
+```
+```{r}
+cor(x$Numero_Vacunados,x$Volumen_consumido, use = "pairwise.complete")
+```
+
+<p style="text-align: justify;">En la gráfica se puede observar una relación inversamente proporcional entre las variables (correlación negativa). Estos resultados apoyan nuestra hipótesis de que a medida que el número de vacunados aumenta, el volumen de oxígeno que se consume a nivel nacional debería disminuir. Para validar esta relación, en el apartado 11 se aplicará una regresión lineal por el método de mínimos cuadrados para la relación de ambas variables y se evaluará la hipótesis a partir de la significancia del modelo.</p>  
+
+</br>
+
+#### **8. Variables aleatorias identificadas**  
+Las variables que pueden ser consideradas aleatorias son `NIVEL` y `GRUPO` para la base de datos `OXIGENO` y `GRUPO_RIESGO` para la base de datos `VACUNAS`. En ese sentido, es posible calcular sus probabilidades respecto al total de los datos.  
+</br>
+**NIVEL:**  
+
+```{r}
+round(table(Nivel$NIVEL)/nrow(Nivel),4)
+```
+<p style="text-align: justify;">Tomando en cuenta la tabla de probabilidades para los diferentes niveles, si escogemos al azar una IPRESS con el fin de evaluar su desempeño, por ejemplo, lo más probable sería que esta sea de *Nivel 2* ya que la probabilidad de este grupo es de 0.8141. En contraste, lo menos probable sería que esta IPRESS no tenga categoría pues la probabilidad de que salga Sin Categoría es de solo 0.0064.</p>  
+</br>
+**GRUPO:**  
+```{r}
+round(table(Grupo$GRUPO)/nrow(Grupo),4)
+```
+<p style="text-align: justify;">Tomando en cuenta la tabla de probabilidades para la variable `GRUPO`, si escogemos al azar una IPRESS, lo más probable sería que esta sea *Pública* ya que la probabilidad de este grupo es de 0.5962. En contraste, la probabilidad de que sea *Privada* es 0.4038. En adición a esto, podemos modelar esta variable con la distribución de Bernoulli donde asignamos al grupo Públicos el evento de éxito (1) y al grupo de Privados el evento de fracaso (0). Con esto el valor de la probabilidad de que ocurra el evento de éxito es $$p=0.5962$$. A partir de ello, podemos calcular el valor de la varianza poblacional de nuestra variable `GRUPO` con la siguiente expresión $$Var(X)=p(1-p)$$. Entonces, la varianza sería $$Var(GRUPO)=0.5962*(1-0.5962)=0.24$$</p>  
+</br>
+**GRUPO_RIESGO:**  
+```{r}
+round(table(VACUNAS$GRUPO_RIESGO)/nrow(VACUNAS),4)
+```
+<p style="text-align: justify;">En base a la tabla de probabilidades para los diferentes grupos de riesgo vacunados, si escogemos al azar una persona, lo más probable sería que esta sea un *adulto mayor* ya que la probabilidad de este grupo es de 0.4693. En contraste, lo menos probable sería que esta persona sea un(a) estudiante de ciencias de la salud pues la probabilidad de este grupo es de solo 0.0023.</p>  
+
+</br>
+
+**Ejemplos de probabilidad condicional con las variables aleatorias discretas anteriores**  
+
+```{r}
+round(table(Nivel$NIVEL,Grupo$GRUPO)/nrow(Nivel),4)
+```
+<p style="text-align: justify;">En esta tabla podemos observar la distribución de probabilidades de las variables `NIVEL` y `GRUPO` de las IPRESS. Esta tabla es una simplificación numérica del gráfico de losetas observado y analizado anteriormente. Con este recurso podemos aplicar unas cuantas relaciones de probabilidad condicional entre los eventos de las variables:</p>  
+<p style="text-align: center;">$$P(Nivel 1|Privado)= \frac {P(Nivel 1 \cap Privado)}{P(Privado)} = \frac{0.0021}{0.4038}=0.0052$$</p>  
+<p style="text-align: center;">$$P(Sin Categoría|Privado)= \frac {P(Sin Categoría \cap Privado)}{P(Privado)} = \frac{0}{0.4038}=0$$</p>  
+<p style="text-align: center;">$$P(Público|Nivel 2)= \frac {P(Público \cap Nivel 2)}{P(Nivel 2)} = \frac{0.4209}{0.8141}=0.52$$</p>
+
+**Ejemplos de variables aleatorias continuas**  
+<p style="text-align: justify;">Para identificar las variables aleatorias continuas se realizarán los histogramas de algunas de las variables numéricas continuas más relevantes. A partir de ello, se podrá modelar cada una de ellas con el modelo con el que mejor encajen:  </p>
+
+</br>
+
+* Variable `CIL_VOL_DISP_M3_DU24`:  
+```{r}
+hist(OXIGENO$CIL_VOL_DISP_M3_DU24,probability = 1,main = "Histograma de CIL_VOL_DISP_M3_DU24",xlab = "Volumen de oxígeno disponible en la IPRESS en un día", breaks = 50)
+```
+
+<p style="text-align: justify;">Como se puede observar en el histograma, la variable que representa el volumen de oxígeno disponible en el día (`CIL_VOL_DISP_M3_DU24`) se asemeja a una variable aleatoria continua exponencial. Por lo que, a continuación se hallará el parámetro lambda a partir de su esperanza:  </p>
+
+```{r}
+lambda_CIL_VOL_DISP_M3_DU24 <- 1/mean(OXIGENO$CIL_VOL_DISP_M3_DU24)
+lambda_CIL_VOL_DISP_M3_DU24
+```
+Entonces, el valor del parámetro $\lambda$ para esta variable es 0.002.
+
+</br> 
+
+* Variable `CIL_VOL_M3_CU24`:  
+```{r}
+hist(OXIGENO$CIL_VOL_M3_CU24,probability = 1,main = "Histograma de CIL_VOL_M3_CU24",xlab = "Volumen de oxígeno consumido en la IPRESS en un día", breaks = 50)
+```
+
+<p style="text-align: justify;">Como se puede observar en el histograma, la variable que representa el volumen de oxígeno consumido en el día (`CIL_VOL_M3_CU24`) se asemeja a una variable aleatoria continua exponencial. Por lo que, a continuación se hallará el parámetro lambda a partir de su esperanza:  </p>
+
+```{r}
+lambda_CIL_VOL_M3_CU24 <- 1/mean(OXIGENO$CIL_VOL_M3_CU24)
+lambda_CIL_VOL_M3_CU24
+```
+Entonces, el valor del parámetro $\lambda$ para esta variable es 0.009.
+
+</br> 
+
+#### **9. Intervalos de confianza**  
+<p style="text-align: justify;">En este apartado se hallarán los intervalos de confianza para las medias de las variables numéricas continuas vistas anteriormente y para las proporciones de las variables `NIVEL` y `GRUPO`. En el caso de nuestra base de datos, tenemos información de todas las IPRESS registradas a nivel nacional en la Superintendencia Nacional de Salud; no obstante, es posible que existan algunas IPRESS que no se hayan registrado en esta entidad y de las cuales no tengamos información, pero que sí son parte de la población. Por ende, es necesario establecer intervalos de confianza tanto para las proporciones como para las medias de algunas variables relevantes que describen la disponibilidad y consumo de oxígeno. Para establecer estos intervalos de confianza se considerarán los siguientes parámetros:  </p> 
+
+* **Nivel de confianza:** $99 \%$  
+* **Significancia:** $\alpha=0.01$
+* **Tamaño de la muestra:** $17302$  
+
+<p style="text-align: justify;">Se utiliza dicho nivel de confianza ya que el tamaño de nuestra muestra es grande.</p>   
+</br>
+
+##### **Intervalos de confianza de las proporciones:**
+
+**Variable `NIVEL`**:  
+
+- Para el Nivel 1:
+```{r}
+alfa<-0.01
+p_Nivel1<-(table(OXIGENO$NIVEL)/length(OXIGENO$NIVEL))[1]
+z_Nivel1<-qnorm(alfa/2,lower.tail = 0)
+izq_Nivel1<-p_Nivel1-z_Nivel1*sqrt((p_Nivel1*(1-p_Nivel1))/length(OXIGENO$NIVEL))
+der_Nivel1<-p_Nivel1+z_Nivel1*sqrt((p_Nivel1*(1-p_Nivel1))/length(OXIGENO$NIVEL))
+cat("(",izq_Nivel1,";",der_Nivel1,")")
+pres_Nivel1<-z_Nivel1*sqrt((p_Nivel1*(1-p_Nivel1))/length(OXIGENO$NIVEL))
+```
+<p style="text-align: justify;">Como se puede observar, la proporción de las IPRESS de Nivel 1 puede ser un valor entre `r round(izq_Nivel1,3)` y `r round(der_Nivel1,3)`. Entonces, su intervalo de confianza sería: (`r round(izq_Nivel1,3)`; `r round(der_Nivel1,3)`) con una precisión de `r round(pres_Nivel1,3)`.</p>
+
+</br>
+
+- Para el Nivel 2:
+```{r}
+p_Nivel2<-(table(OXIGENO$NIVEL)/length(OXIGENO$NIVEL))[2]
+z_Nivel2<-qnorm(alfa/2,lower.tail = 0)
+izq_Nivel2<-p_Nivel2-z_Nivel2*sqrt((p_Nivel2*(1-p_Nivel2))/length(OXIGENO$NIVEL))
+der_Nivel2<-p_Nivel2+z_Nivel2*sqrt((p_Nivel2*(1-p_Nivel2))/length(OXIGENO$NIVEL))
+cat("(",izq_Nivel2,";",der_Nivel2,")")
+pres_Nivel2<-z_Nivel2*sqrt((p_Nivel2*(1-p_Nivel2))/length(OXIGENO$NIVEL))
+```
+<p style="text-align: justify;">Como se puede observar, la proporción de las IPRESS de Nivel 2 puede ser un valor entre `r round(izq_Nivel2,3)` y `r round(der_Nivel2,3)`. Entonces, su intervalo de confianza sería: (`r round(izq_Nivel2,3)`; `r round(der_Nivel2,3)`) con una precisión de `r round(pres_Nivel2,3)`</p>
+
+</br>
+
+- Para el Nivel 3:
+```{r}
+p_Nivel3<-(table(OXIGENO$NIVEL)/length(OXIGENO$NIVEL))[3]
+z_Nivel3<-qnorm(alfa/2,lower.tail = 0)
+izq_Nivel3<-p_Nivel3-z_Nivel3*sqrt((p_Nivel3*(1-p_Nivel3))/length(OXIGENO$NIVEL))
+der_Nivel3<-p_Nivel3+z_Nivel3*sqrt((p_Nivel3*(1-p_Nivel3))/length(OXIGENO$NIVEL))
+cat("(",izq_Nivel3,";",der_Nivel3,")")
+pres_Nivel3<-z_Nivel3*sqrt((p_Nivel3*(1-p_Nivel3))/length(OXIGENO$NIVEL))
+```
+<p style="text-align: justify;">Como se puede observar, la proporción de las IPRESS de Nivel 3 puede ser un valor entre `r round(izq_Nivel3,3)` y `r round(der_Nivel3,3)`. Entonces, su intervalo de confianza sería: (`r round(izq_Nivel3,3)`; `r round(der_Nivel3,3)`) con una precisión de `r round(pres_Nivel3,3)`</p>
+
+</br>
+
+**Variable `GRUPO`**:  
+
+- Para PRIVADOS:  
+```{r}
+p_Privados<-(table(OXIGENO$GRUPO)/length(OXIGENO$GRUPO))[1]
+z_Privados<-qnorm(alfa/2,lower.tail = 0)
+izq_Privados<-p_Privados-z_Privados*sqrt((p_Privados*(1-p_Privados))/length(OXIGENO$GRUPO))
+der_Privados<-p_Privados+z_Privados*sqrt((p_Privados*(1-p_Privados))/length(OXIGENO$GRUPO))
+cat("(",izq_Privados,";",der_Privados,")")
+pres_Privados<-z_Privados*sqrt((p_Privados*(1-p_Privados))/length(OXIGENO$GRUPO))
+```
+
+<p style="text-align: justify;">Como se puede observar, la proporción de las IPRESS privadas puede ser un valor entre `r round(izq_Privados,3)` y `r round(der_Privados,3)`. Entonces, su intervalo de confianza sería: (`r round(izq_Privados,3)`; `r round(der_Privados,3)`) con una precisión de `r round(pres_Privados,3)`</p>
+
+</br>
+
+- Para PÚBLICOS:  
+```{r}
+p_Publicos<-(table(OXIGENO$GRUPO)/length(OXIGENO$GRUPO))[2]
+z_Publicos<-qnorm(alfa/2,lower.tail = 0)
+izq_Publicos<-p_Publicos-z_Publicos*sqrt((p_Publicos*(1-p_Publicos))/length(OXIGENO$GRUPO))
+der_Publicos<-p_Publicos+z_Publicos*sqrt((p_Publicos*(1-p_Publicos))/length(OXIGENO$GRUPO))
+cat("(",izq_Publicos,";",der_Publicos,")")
+pres_Publicos<-z_Publicos*sqrt((p_Publicos*(1-p_Publicos))/length(OXIGENO$GRUPO))
+```
+
+<p style="text-align: justify;">Como se puede observar, la proporción de las IPRESS públicas puede ser un valor entre `r round(izq_Publicos,3)` y `r round(der_Publicos,3)`. Entonces, su intervalo de confianza sería: (`r round(izq_Publicos,3)`; `r round(der_Publicos,3)`) con una precisión de `r round(pres_Publicos,3)`</p>
+
+</br>
+
+##### **Intervalos de confianza de las medias:**  
+
+<p style="text-align: justify;">Dado que todas nuestras variables numéricas continuas se aproximan a variables aleatorias exponenciales, primero se hallará el intervalo de confianza para el parámetro $\lambda$ y luego, a partir de la expresión de la esperanza o media ($E(X)= \frac{1}{\lambda}$), se determinará el intervalo de confianza para la media. Quedando así la expresión para el intervalo de confianza de la media:</p>
+<p style="text-align: center;">$[\frac{1}{lim_{sup}\lambda};\frac{1}{lim_{inf}\lambda}]$</p>
+<p style="text-align: justify;">Además, el intervalo de confianza a nivel 1 − $\alpha$ para el parámetro $\lambda$ de una distribución
+exponencial calculado a partir de una muestra con media $\bar{X}$ es:</p>
+<p style="text-align: center;">$[\frac{{X^2}_{2n,\alpha/2}}{2n\bar{X}};\frac{{X^2}_{2n,1-\alpha/2}}{2n\bar{X}}]$</p>  
+
+Donde se usa el chi-cuadrado para calcular el valor de los límites.  
+
+</br>
+
+
+**Variable `CIL_VOL_DISP_M3_DU24`**:  
+
+Primero, hallamos el intervalo de confianza para $\lambda$.
+```{r}
+x_CIL_VOL_DISP_M3_DU24<-mean(OXIGENO$CIL_VOL_DISP_M3_DU24)
+izq_CIL_VOL_DISP_M3_DU24<-qchisq(alfa/2, 2 * n)/(2 * n * x_CIL_VOL_DISP_M3_DU24)
+der_CIL_VOL_DISP_M3_DU24<-qchisq(1-alfa/2, 2 * n)/(2 * n * x_CIL_VOL_DISP_M3_DU24)
+cat("(",izq_CIL_VOL_DISP_M3_DU24,";",der_CIL_VOL_DISP_M3_DU24,")")
+```
+Una vez hallado el intervalo de confianza para $\lambda$, transformamos dicho intervalo para hallar el intervalo de confianza para la media.
+```{r}
+cat("(",1/der_CIL_VOL_DISP_M3_DU24,";",1/izq_CIL_VOL_DISP_M3_DU24,")")
+```
+<p style="text-align: justify;">Como se puede observar, la media del volumen de oxígeno disponible en una IPRESS en un día puede ser un valor entre `r round(1/der_CIL_VOL_DISP_M3_DU24,3)` $m^3$ y `r round(1/izq_CIL_VOL_DISP_M3_DU24,3)` $m^3$. Entonces, su intervalo de confianza sería: (`r round(1/der_CIL_VOL_DISP_M3_DU24,3)`; `r round(1/izq_CIL_VOL_DISP_M3_DU24,3)`) $m^3$ </p>
+
+</br>
+
+**Variable `CIL_VOL_M3_CU24`**:  
+
+Primero, hallamos el intervalo de confianza para $\lambda$.
+```{r}
+x_CIL_VOL_M3_CU24<-mean(OXIGENO$CIL_VOL_M3_CU24)
+izq_CIL_VOL_M3_CU24<-qchisq(alfa/2, 2 * n)/(2 * n * x_CIL_VOL_M3_CU24)
+der_CIL_VOL_M3_CU24<-qchisq(1-alfa/2, 2 * n)/(2 * n * x_CIL_VOL_M3_CU24)
+cat("(",izq_CIL_VOL_M3_CU24,";",der_CIL_VOL_M3_CU24,")")
+```
+Una vez hallado el intervalo de confianza para $\lambda$, transformamos dicho intervalo para hallar el intervalo de confianza para la media.
+```{r}
+cat("(",1/der_CIL_VOL_M3_CU24,";",1/izq_CIL_VOL_M3_CU24,")")
+```
+<p style="text-align: justify;">Como se puede observar, la media del volumen de oxígeno consumido en una IPRESS en un día puede ser un valor entre `r round(1/der_CIL_VOL_M3_CU24,3)` $m^3$ y `r round(1/izq_CIL_VOL_M3_CU24,3)` $m^3$. Entonces, su intervalo de confianza sería: (`r round(1/der_CIL_VOL_M3_CU24,3)`; `r round(1/izq_CIL_VOL_M3_CU24,3)`) $m^3$ </p>
+
+</br>
+
+
+#### **10. Evaluación y pruebas de hipótesis**  
+Para la evaluación de hipótesis se considerará una significancia $\alpha=0.01$.
+
+</br>
+
+**Hipótesis 1:**  
+
+<p style="text-align: justify;">En esta hipótesis se evaluará la diferencia entre las medias del consumo de oxígeno del día 19 de mayo de 2021 (último día de evaluación) y el 31 de marzo de 2021 (primer día de evaluación) para las IPRESS públicas. Para ello, primero se filtrarán las entradas para este grupo y luego se guardarán en vectores los datos para las fechas indicadas.</p>  
+
+```{r}
+Publicas_DF_19_05<-filter(OXIGENO,OXIGENO$GRUPO=="PÚBLICOS",OXIGENO$FECHAREGISTRO=="2021-05-19")
+Publicas_DF_31_03<-filter(OXIGENO,OXIGENO$GRUPO=="PÚBLICOS",OXIGENO$FECHAREGISTRO=="2021-03-31")
+summary(Publicas_DF_19_05$CIL_VOL_M3_CU24)
+summary(Publicas_DF_31_03$CIL_VOL_M3_CU24)
+```
+
+<p style="text-align: justify;">De acuerdo con los datos obtenidos por la función `summary`, podemos ver que el consumo de oxígeno parece haber disminuido desde el 31 de marzo de 2021 al 19 de mayo de 2021. Sin embargo, no podemos estar seguros de esta tendencia debido a la aleatoriedad inherente a las muestras.</p>  
+
+<p style="text-align: justify;">Por ello, usaremos la prueba de t-student, unilateral con significancia $\alpha=0.01$, para analizar si la diferencia entre las medias es significativa.</p>  
+</br>
+- **H0:** La diferencia de las medias del consumo de oxígeno en las IPRESS públicas del 31 de marzo de 2021 y el 19 de mayo de 2021 es 0.  
+- **Ha:** La media del consumo de oxígeno en las IPRESS públicas es mayor en el 31 de marzo de 2021 que la media del 19 de mayo de 2021.  
+
+<p style="text-align: justify;">A continuación se realizará la prueba de hipótesis. En este caso, no se puede configurar el parámetro `paired` del comando `t.test` en TRUE, ya que el tamaño de nuestra muestra no es el mismo en ambas fechas:</p>  
+
+```{r}
+t.test(x=Publicas_DF_31_03$CIL_VOL_M3_CU24,y=Publicas_DF_19_05$CIL_VOL_M3_CU24, alternative = "greater",conf.level = 0.99)
+```
+Ahora, hallamos el $t_c$:  
+
+```{r}
+qt(alfa,length(Publicas_DF_31_03$CIL_VOL_M3_CU24)+length(Publicas_DF_19_05$CIL_VOL_M3_CU24)-2, lower.tail = 0)
+```
+
+<p style="text-align: justify;">Una vez hallado el $t_c$, la zona de rechazo para la hipótesis nula sería $t_{p}\geq{2.335389}$</p>
+
+<p style="text-align: justify;">Dado que $t_p=2.0815$ cae en la zona de aceptación y el $p_{value}=0.019$ es mayor que la significancia $\alpha=0.01$, no se rechaza la hipótesis nula tras no haber encontrado evidencia suficiente. En ese sentido, se abre el beneficio a la duda de que la diferencia de medias del volumen de oxígeno consumido por las IPRESS públicas el 31 de marzo de 2021 respecto al consumido el 19 de mayo de 2021 es 0.</p>  
+
+</br>
+
+**Hipótesis 2:**  
+
+<p style="text-align: justify;">En esta hipótesis se evaluará la diferencia entre las medias del consumo de oxígeno del día 19 de mayo de 2021 (último día de evaluación) y el 31 de marzo de 2021 (primer día de evaluación) para las IPRESS privadas. Para ello, primero se filtrarán las entradas para este grupo y luego se guardarán en vectores los datos para las fechas indicadas.</p>  
+
+```{r}
+Privadas_DF_19_05<-filter(OXIGENO,OXIGENO$GRUPO=="PRIVADOS",OXIGENO$FECHAREGISTRO=="2021-05-19")
+Privadas_DF_31_03<-filter(OXIGENO,OXIGENO$GRUPO=="PRIVADOS",OXIGENO$FECHAREGISTRO=="2021-03-31")
+summary(Privadas_DF_19_05$CIL_VOL_M3_CU24)
+summary(Privadas_DF_31_03$CIL_VOL_M3_CU24)
+```
+
+<p style="text-align: justify;">De acuerdo con los datos obtenidos por la función `summary`, podemos ver que el consumo de oxígeno parece haber aumentado desde el 31 de marzo de 2021 al 19 de mayo de 2021. Sin embargo, no podemos estar seguros de esta tendencia debido a la aleatoriedad inherente a las muestras.</p>  
+
+<p style="text-align: justify;">Por ello, usaremos la prueba de t-student, unilateral con significancia $\alpha=0.01$, para analizar si la diferencia entre las medias de estas dos fechas para este grupo es significativa.</p>  
+</br>
+- **H0:** La diferencia de las medias del consumo de oxígeno en las IPRESS privadas del 31 de marzo de 2021 y el 19 de mayo de 2021 es 0.  
+- **Ha:** La media del consumo de oxígeno en las IPRESS privadas es mayor en el 19 de mayo 2021 que la media del 31 de marzo de 2021.  
+
+<p style="text-align: justify;">A continuación se realizará la prueba de hipótesis. En este caso, tampoco se puede configurar el parámetro `paired` del comando `t.test` en TRUE, ya que el tamaño de nuestra muestra no es el mismo en ambas fechas:</p>  
+
+```{r}
+t.test(x=Privadas_DF_19_05$CIL_VOL_M3_CU24,y=Privadas_DF_31_03$CIL_VOL_M3_CU24, alternative = "greater",conf.level = 0.99)
+```
+Ahora, hallamos el $t_c$:  
+
+```{r}
+qt(alfa,length(Privadas_DF_31_03$CIL_VOL_M3_CU24)+length(Privadas_DF_19_05$CIL_VOL_M3_CU24)-2, lower.tail = 0)
+```
+
+<p style="text-align: justify;">Una vez hallado el $t_c$, la zona de rechazo para la hipótesis nula sería $t_{p}\geq{2.339644}$</p>
+
+<p style="text-align: justify;">Dado que $t_p=0.27638$ cae en la zona de aceptación y el $p_{value}=0.391$ es mayor que la significancia $\alpha=0.01$, no se rechaza la hipótesis nula tras no haber encontrado evidencia suficiente en contra. En ese sentido, se abre el beneficio a la duda de que la diferencia de la media del volumen de oxígeno consumido por las IPRESS privadas el 31 de marzo de 2021 respecto al 19 de mayo de 2021 no es significativa.</p>  
+
+</br>
+
+**Hipótesis 3:**  
+
+<p style="text-align: justify;">En esta hipótesis se evaluará si la diferencia entre las medias del volumen de oxígeno no consumido durante el día para el conjunto de IPRESS de Nivel 1 y Nivel 2 es significativa.</p>
+
+```{r}
+summary(OXIGENO$VOL_OXI_DESP[OXIGENO$NIVEL=="Nivel 1"])
+summary(OXIGENO$VOL_OXI_DESP[OXIGENO$NIVEL=="Nivel 2"])
+```
+
+<p style="text-align: justify;">De acuerdo con las tablas de resumen, se puede observar que la media del volumen de oxígeno no consumido por las IPRESS de nivel 1 es aparentemente mayor que la media de las de nivel 2. Esto nos indicaría dos posibles escenarios:</p>  
+<p style="text-align: justify;">
+1. Las IPRESS de nivel 1 no están recibiendo una demanda adecuada de pacientes con requerimiento de oxígeno acorde a su nivel.  
+2. Las IPRESS de nivel 1 reciben/producen demasiado oxígeno (posiblemente la misma cantidad que las de nivel 2) y es por ello que tienen una media de volumen de oxígeno sobrante alta.</p>  
+<p style="text-align: justify;">
+Para validar si las diferencias entre las medias del volumen de oxígeno sobrante para ambos niveles es significativa, se aplicará una prueba de t-student, unilateral con significancia $\alpha=0.01$. Para esto se tienen las siguientes hipótesis:</p>  
+
+</br>
+- **H0:** La diferencia de las medias del volumen de oxígeno sobrante en las IPRESS de nivel 1 y nivel 2 es 0.  
+- **Ha:** La media del volumen de oxígeno sobrante en las IPRESS de nivel 1 es mayor que la media de las IPRESS de nivel 2.   
+
+<p style="text-align: justify;">A continuación se realizará la prueba de hipótesis:</p>  
+
+```{r}
+t.test(x=OXIGENO$VOL_OXI_DESP[OXIGENO$NIVEL=="Nivel 1"],y=OXIGENO$VOL_OXI_DESP[OXIGENO$NIVEL=="Nivel 2"], alternative = "greater",conf.level = 0.99)
+```
+Ahora, hallamos el $t_c$:  
+
+```{r}
+qt(alfa,length(OXIGENO$VOL_OXI_DESP[OXIGENO$NIVEL=="Nivel 1"])+length(OXIGENO$VOL_OXI_DESP[OXIGENO$NIVEL=="Nivel 2"])-2, lower.tail = 0)
+```
+
+<p style="text-align: justify;">Una vez hallado el $t_c$, la zona de rechazo para la hipótesis nula sería $t_{p}\geq{2.326592}$</p>
+
+<p style="text-align: justify;">Dado que $t_p=1.1101$ cae en la zona de aceptación y el $p_{value}=0.1336$ es mayor que la significancia $\alpha=0.01$, no se rechaza la hipótesis nula tras no haber encontrado evidencia suficiente en contra. En ese sentido, se abre el beneficio a la duda de que la media del volumen de oxígeno sobrante en las IPRESS de nivel 1 es igual a la media de las de nivel 2.</p>  
+
+</br>
+
+**Hipótesis 4:**  
+<p style="text-align: justify;">Dado que en la hipótesis anterior inferimos que las IPRESS de nivel 1 reciben/producen la misma cantidad de oxigeno que las IPRESS de nivel 2, en esta hipótesis se evaluará si la diferencia entre las medias del volumen de oxígeno disponible de estos dos grupos es significativa.</p>  
+
+```{r}
+summary(OXIGENO$CIL_VOL_DISP_M3_DU24[OXIGENO$NIVEL=="Nivel 1"])
+summary(OXIGENO$CIL_VOL_DISP_M3_DU24[OXIGENO$NIVEL=="Nivel 2"])
+```
+<p style="text-align: justify;">De acuerdo con las tablas de resumen, se puede observar que la media del volumen de oxígeno disponible por las IPRESS de nivel 2 es aparentemente mayor que la media de las de nivel 1. Para validar ello se aplicará una prueba de t-student unilateral con significancia $\alpha=0.01$ para el cual se tienen las siguientes hipótesis:</p>  
+
+</br>
+- **H0:** La diferencia de las medias del volumen de oxígeno disponible al iniciar el día en las IPRESS de nivel 1 y nivel 2 es 0.  
+- **Ha:** La media del volumen de oxígeno disponible al iniciar el día en las IPRESS de nivel 2 es mayor que la media de las IPRESS de nivel 1.   
+
+<p style="text-align: justify;">A continuación se realizará la prueba de hipótesis:</p>  
+
+```{r}
+t.test(x=OXIGENO$CIL_VOL_DISP_M3_DU24[OXIGENO$NIVEL=="Nivel 2"],y=OXIGENO$CIL_VOL_DISP_M3_DU24[OXIGENO$NIVEL=="Nivel 1"], alternative = "greater",conf.level = 0.99)
+```
+Ahora, hallamos el $t_c$:  
+
+```{r}
+qt(alfa,length(OXIGENO$CIL_VOL_DISP_M3_DU24[OXIGENO$NIVEL=="Nivel 2"])+length(OXIGENO$CIL_VOL_DISP_M3_DU24[OXIGENO$NIVEL=="Nivel 1"])-2, lower.tail = 0)
+```
+
+<p style="text-align: justify;">Una vez hallado el $t_c$, la zona de rechazo para la hipótesis nula sería $t_{p}\geq{2.326592}$</p>
+
+<p style="text-align: justify;">Dado que $t_p=0.62648$ cae en la zona de aceptación y el $p_{value}=0.2656$ es mayor que la significancia $\alpha=0.01$, no se rechaza la hipótesis nula tras no haber encontrado evidencia suficiente en contra. En ese sentido, se abre el beneficio a la duda de que la media del volumen de oxígeno disponible al iniciar el día en las IPRESS de nivel 1 es igual a la media de las IPRESS de nivel 2.</p>  
+
+</br>
+
+#### **11. Regresiones y predicciones**  
+
+**Regresión 1:**
+
+<p style="text-align: justify;">En este apartado se realizará la regresión para explicar el comportamiento de la variable `volumen de oxígeno consumido` en función del `número total de vacunados`.</p> 
+
+```{r}
+lm1<-lm(x$Volumen_consumido ~ x$Numero_Vacunados)
+plot(x$Numero_Vacunados,x$Volumen_consumido, pch=20, main = "Número de vacunados vs Volumen de oxígeno consumido", xlab="Número de vacunados", ylab = "Volumen de oxígeno consumido (metros cúbicos)",col=rgb(0,0,0,0.2))
+abline(lm1,col="red")
+```
+
+<p style="text-align: justify;">Como se puede observar, existe una tendencia que se modela mediante una pendiente negativa en el comportamiento de la variable *volumen de oxígeno consumido* ($m^3$) respecto al número de vacunados. Esto nos indica que podríamos plantear la siguiente hipótesis: A medida que el número de vacunados aumenta, la demanda de oxígeno en la IPRESS a nivel nacional disminuye. Para validar esta hipótesis a continuación se analizará el resumen de la regresión.</p>  
+
+</br>
+
+**Resumen de la regresión:**  
+
+```{r}
+summary(lm1)
+```
+
+<p style="text-align: justify;">En primer lugar, debemos de verificar que los residuos siguen el modelo normal:</p>  
+
+La media de los residuos es:   
+
+```{r}
+mean(lm1$residuals)
+```
+
+El histograma de los residuos es:   
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width="85%"}
+hist(lm1$residuals, breaks= 20,main="Histograma de residuos", col="thistle3", xlab = "Residuos", freq = FALSE)
+curve(dnorm(x, mean(lm1$residuals), sd = sd(lm1$residuals)), # Función dnorm a evaluar
+#      -60, 20,150, # Límites de x y nº de valores a evaluar
+      col = "slateblue4", 
+      lwd= 2,
+      las = 1, # Etiquetas alineadas horizontalmente
+      ann = FALSE, # Sin títulos en los ejes
+      xaxp = c(-15, 15, 5),  # Marcas del eje x
+      ylim = c(0,0.00020), # Límites del eje
+      yaxs = "i", add=TRUE) # Estilo del eje y, ajustado a los límites
+```
+
+<p style="text-align: justify;">Como se puede observar, los residuos siguen una distribución cercana a la normal. Además, su media es aproximadamente 0 lo que asegura la linealidad del modelo. Con ello podemos concluir que la línea de ajuste hallada cumple con las características de una buena regresión. A partir del resumen se obtienen las siguientes observaciones:</p>  
+
+* Con respecto a los coeficientes:  
+
+*Intercepto:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ se rechaza por lo que el valor de $b \neq 0$  
+*Pendiente:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ no se rechaza por lo que el valor de $a = 0$  
+
+* Con respecto la $r^2$ ajustado:   
+
+<p style="text-align: justify;">La variabilidad de la variable *oxígeno consumido a nivel nacional* se explica solamente en un 3.24 % a través de la variación de la variable *número de vacunados total*. Este bajo porcentaje sugiere que existen otras variables que influyen en la variación del volumen de oxígeno consumido.</p>    
+
+* Con respecto al $p-value$:   
+
+<p style="text-align: justify;">Dado que el $p-value$ (0.1132) es mayor que la significancia ($\alpha = 0.01$) no se rechaza la hipótesis nula $H_0$ por lo que se sugiere que el modelo no explica la relación entre las variables.</p>  
+
+</br>
+
+**Gráficas de diagnóstico**
+
+```{r}
+op=par(mfrow=c(2,2))
+plot(lm1, pch=20,col=rgb(0,0,0,0.25))
+```
+
+<p style="text-align: justify;">De acuerdo con las gráficas de diagnóstico de la línea de ajuste, se tienen las siguientes observaciones:</p>    
+
+* Con respecto a la gráfica de  *Residuos vs. Valores ajustados*:  
+  + Existen 3 valores atípicos.  
+  + Se pueden observar residuos positivos y negativos distribuidos alrededor de la línea roja.  
+  + Los residuos son homocedásticos ya que su varianza es aproximadamente constante.  
+  
+* Con respecto a la gráfica de la *Normal Q-Q*:  
+  + Tenemos valores atípicos pero estos no afectan en gran medida la forma de distribución normal de los residuos. Por lo que, el modelo sigue siendo una buena regresión.  
+
+* Con respecto a la gráfica *Scale Location*:  
+  + Los residuos estandarizados están distribuidos uniformemente alrededor de la recta roja y esta parece ser plana. Por lo tanto, a partir de la gráfica se refuerza la condición de homocedasticidad del modelo.    
+
+* Con respecto a la gráfica *Residual vs. Leverage*:  
+  + Se puede observar que existen algunos puntos que producen el efecto palanca y los cuales podrían ser determinantes de la tendencia.  
+
+</br>
+
+**Utilizando el modelo para hacer predicciones**  
+
+<p style="text-align: justify;">Del análisis anterior se concluye entonces que el modelo no es significativo, por lo que no es posible realizar predicciones con el mismo. Además, dado que $a=0$, el modelo sugiere que el volumen de oxígeno consumido respecto al número de vacunados es una función constante con un $b=41200 m^3$.</p>
+
+<p style="text-align: justify;">Para corroborar ello, calcularemos el valor del volumen de oxígeno consumido para el día 21 de julio de 2021 a partir de la base datos de la Superintendencia de Salud para la fecha en cuestión:</p>  
+
+```{r}
+Actual<-read_csv("OxigenoActual.csv")
+```
+
+```{r}
+Actual<-Actual[,c(2,23)]
+Actual$FECHAREGISTRO<-as.Date(Actual$FECHAREGISTRO,format="%d/%m/%Y")
+Actual<-Actual[complete.cases(Actual),]
+VOL_CONSUM_DIA_ACTUAL<- aggregate(Actual$CIL_VOL_M3_CU24, by=list(Fecha=Actual$FECHAREGISTRO), FUN=sum)
+ValorTeo<-VOL_CONSUM_DIA_ACTUAL$x[VOL_CONSUM_DIA_ACTUAL$Fecha=="2021-07-21"]
+ValorTeo
+```
+<p style="text-align: justify;">De acuerdo con los datos reales, $Volumen \space consumido(2021-07-21)=43846 \space m^3$</p>
+
+<p style="text-align: justify;">Por lo tanto, sí se puede esperar que el consumo de oxígeno sea constante a pesar de que el número de vacunados aumente. Sin embargo, debemos destacar que es posible que otras variables puedan influir a la variable del volumen de oxígeno consumido.</p>  
+
+</br>
+
+**Regresión 2:**
+
+<p style="text-align: justify;">En este apartado se realizará la regresión para explicar el comportamiento de la variable `volumen de oxígeno consumido` en función del `volumen disponible de oxígeno`.</p> 
+
+```{r}
+lm2<-lm(OXIGENO$CIL_VOL_M3_CU24 ~ OXIGENO$CIL_VOL_DISP_M3_DU24)
+plot(OXIGENO$CIL_VOL_DISP_M3_DU24,OXIGENO$CIL_VOL_M3_CU24, pch=20, main = "Volumen de oxígeno consumido vs Volumen de oxígeno disponible", xlab="Volumen disponible de oxígeno (metros cúbicos)", ylab = "Volumen de oxígeno consumido (metros cúbicos)",col=rgb(0,0,0,0.2))
+abline(lm2,col="red")
+```
+
+<p style="text-align: justify;">Como se puede observar, existe una tendencia que se modela mediante una pendiente positiva en el comportamiento de la variable *volumen de oxígeno consumido* ($m^3$) respecto a la variable *volumen de oxígeno disponible* ($m^3$). Esto nos indica que podríamos plantear la siguiente hipótesis: Si existe mayor disponibilidad de oxígeno, mayor será el consumo del mismo. Para validar esta hipótesis a continuación se analizará el resumen de la regresión:</p> 
+
+
+</br>
+
+**Resumen de la regresión:**  
+
+```{r}
+summary(lm2)
+```
+<p style="text-align: justify;">En primer lugar, debemos de verificar que los residuos siguen el modelo normal:</p>  
+
+La media de los residuos es:   
+
+```{r}
+mean(lm2$residuals)
+sd(lm2$residuals)
+```
+
+El histograma de los residuos es:   
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width="85%"}
+hist(lm2$residuals, breaks= 25,main="Histograma de residuos", col="thistle3", xlab = "Residuos", freq = FALSE)
+curve(dnorm(x, mean(lm2$residuals), sd = sd(lm2$residuals)), # Función dnorm a evaluar
+#      -60, 20,150, # Límites de x y nº de valores a evaluar
+      col = "slateblue4", 
+      lwd= 2,
+      las = 1, # Etiquetas alineadas horizontalmente
+      ann = FALSE, # Sin títulos en los ejes
+      xaxp = c(-15, 15, 5),  # Marcas del eje x
+      ylim = c(0,0.00020), # Límites del eje
+      yaxs = "i", add=TRUE) # Estilo del eje y, ajustado a los límites
+```
+<p style="text-align: justify;">Como se puede observar, los residuos parecen seguir una distribución normal. Pero de acuerdo a su desviación estándar no se puede afirmar ello aunque su media esté centrada en aproximadamente 0. Con respecto al resumen se tienen las siguientes observaciones:</p>  
+
+* Con respecto a los coeficientes:  
+
+*Intercepto:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ se rechaza por lo que el valor de $b \neq 0$  
+*Pendiente:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ se rechaza por lo que el valor de $a \neq 0$  
+
+* Con respecto la $r^2$ ajustado:   
+
+<p style="text-align: justify;">La variabilidad de la variable *volumen de oxígeno consumido* se explica en un 51.87 % a través de la variación de la variable *volumen de oxígeno disponible*.</p>    
+
+* Con respecto al $p-value$:   
+
+<p style="text-align: justify;">Dado que el $p-value$ (< 2.2e-16) es menor que la significancia ($\alpha = 0.01$) se rechaza la hipótesis nula $H_0$, por lo que se sugiere que el modelo sí explica la relación entre las variables.</p>  
+
+</br>
+
+**Gráficas de diagnóstico**
+
+```{r}
+op=par(mfrow=c(2,2))
+plot(lm2, pch=20,col=rgb(0,0,0,0.25))
+```
+
+<p style="text-align: justify;">De acuerdo con las gráficas de diagnóstico de la línea de ajuste, se tienen las siguientes observaciones:</p>    
+
+* Con respecto a la gráfica de  *Residuos vs. Valores ajustados*:  
+  + Existen 3 valores atípicos.  
+  + Se pueden observar residuos positivos y negativos concentrados en el rango [0; 1000].  
+  + Los residuos son heterocedásticos ya que no se distribuyen uniformemente alrededor de la línea roja.  
+  
+* Con respecto a la gráfica de la *Normal Q-Q*:  
+  + Tenemos valores atípicos los cuales afectan la forma de distribución normal de los residuos. Además se observa que estos son los que causan que la forma de la gráfica no sea lineal y se desvíe en los extremos. A partir de esto podemos decir que el modelo no es del todo bueno.
+
+* Con respecto a la gráfica *Scale Location*:  
+  + Los residuos estandarizados no están distribuidos uniformemente alrededor de la recta roja y esta no es plana. Además, se observa una concentración de puntos en el rango [0; 1000]. Por lo tanto, a partir de la gráfica se refuerza la condición de heterocedasticidad del modelo.    
+
+* Con respecto a la gráfica *Residual vs. Leverage*:  
+  + Se puede observar que existen algunos puntos que producen el efecto palanca y los cuales podrían ser determinantes de la tendencia. Además, algunos superan los límites de las curvas de nivel, lo cual nos refuerza la idea de que el modelo podría no explicar adecuadamente la variabilidad, porque existen puntos atípicos que afectan en gran medida el modelo.  
+
+</br>
+
+**Utilizando el modelo para hacer predicciones**  
+
+<p style="text-align: justify;">Del análisis anterior se concluye entonces que el modelo no es suficientemente significativo, por lo que no sería adecuado realizar predicciones con el mismo.</p>
+</br>
+
+**Regresión 3:**
+
+<p style="text-align: justify;">En este apartado se realizará la regresión para explicar el comportamiento de la variable `número de cilindros reabastecidos` en función del `número de cilindros consumidos`.</p>  
+
+```{r}
+plot(OXIGENO$CIL_NU_CIL_CONSUM_CU24, OXIGENO$CIL_NU_CIL_REABAST_DU24,col=rgb(0,0,0,0.2), pch=20, main="Número de cilindros reabastecidos vs Número de cilindros consumidos", xlab="Número de cilindros consumidos", ylab = "Número de cilindros reabastecidos")
+lm3<-lm(OXIGENO$CIL_NU_CIL_REABAST_DU24~OXIGENO$CIL_NU_CIL_CONSUM_CU24)
+abline(lm3, col="red")
+```
+
+<p style="text-align: justify;">Como se puede observar, existe una tendencia que se modela mediante una pendiente positiva en el comportamiento de la variable *Número de cilindros reabastecidos* respecto a la variable *volumen de oxígeno disponible*. Esto nos indica que podríamos plantear la siguiente hipótesis: Si se consumen más cilindros de oxígeno, habrá una mayor cantidad de cilindros reabastecidos durante el día. Para validar esta hipótesis a continuación se analizará el resumen de la regresión:</p> 
+
+
+</br>
+
+**Resumen de la regresión:**  
+
+```{r}
+summary(lm3)
+```
+
+<p style="text-align: justify;">En primer lugar, debemos de verificar que los residuos siguen el modelo normal:</p>  
+
+La media de los residuos es:   
+
+```{r}
+mean(lm3$residuals)
+sd(lm3$residuals)
+```
+
+El histograma de los residuos es:   
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width="85%"}
+hist(lm3$residuals, breaks= 25,main="Histograma de residuos", col="thistle3", xlab = "Residuos", freq = FALSE)
+curve(dnorm(x, mean(lm3$residuals), sd = sd(lm3$residuals)), # Función dnorm a evaluar
+#      -60, 20,150, # Límites de x y nº de valores a evaluar
+      col = "slateblue4", 
+      lwd= 2,
+      las = 1, # Etiquetas alineadas horizontalmente
+      ann = FALSE, # Sin títulos en los ejes
+      xaxp = c(-15, 15, 5),  # Marcas del eje x
+      ylim = c(0,0.00020), # Límites del eje
+      yaxs = "i", add=TRUE) # Estilo del eje y, ajustado a los límites
+```
+
+<p style="text-align: justify;">Como se puede observar, los residuos parecen seguir una distribución normal. La media de los residuos es aproximadamente 0, pero su desviación estándar es mayor que 1. Por lo que podemos afirmar que la distribución de los residuos se escapa un poco del modelo normal estándar. Con respecto al resumen se tienen las siguientes observaciones:</p>  
+
+* Con respecto a los coeficientes:  
+
+*Intercepto:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ se rechaza por lo que el valor de $b \neq 0$  
+*Pendiente:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ se rechaza por lo que el valor de $a \neq 0$  
+
+* Con respecto la $r^2$ ajustado:   
+
+<p style="text-align: justify;">La variabilidad de la variable *número de cilindros reabastecidos* se explica en un 69.15 % a través de la variación de la variable *número de cilindros consumidos*.</p>    
+
+* Con respecto al $p-value$:   
+
+<p style="text-align: justify;">Dado que el $p-value$ (< 2.2e-16) es menor que la significancia ($\alpha = 0.01$) se rechaza la hipótesis nula $H_0$, por lo que se sugiere que el modelo sí explica la relación entre las variables.</p>  
+
+</br>
+
+**Gráficas de diagnóstico**
+
+```{r}
+op=par(mfrow=c(2,2))
+plot(lm3, pch=20,col=rgb(0,0,0,0.25))
+```
+
+<p style="text-align: justify;">De acuerdo con las gráficas de diagnóstico de la línea de ajuste, se tienen las siguientes observaciones:</p>    
+
+* Con respecto a la gráfica de  *Residuos vs. Valores ajustados*:  
+  + Se pueden observar residuos positivos y negativos concentrados en el rango [0; 200].  
+  + Los residuos son heterocedásticos ya que no se distribuyen uniformemente alrededor de la línea roja sino que se concentran en un extremo.  
+  
+* Con respecto a la gráfica de la *Normal Q-Q*:  
+  + Tenemos valores atípicos los cuales afectan la forma de distribución normal de los residuos. Además se observa que estos son los que causan que la pendiente de la gráfica sea casi nula.
+  + En los extremos los errores se alejan de la tendencia normal tanto desde el lado negativo como positivo.
+  + Existe un valor atípico que se aleja mucho más de la tendencia a comparación de los demás datos.
+
+* Con respecto a la gráfica *Scale Location*:  
+  + Los residuos estandarizados no están distribuidos uniformemente alrededor de la recta roja y esta no es plana. Además, se observa una concentración de puntos en el rango [0; 200]. Por lo tanto, a partir de la gráfica se refuerza la condición de heterocedasticidad del modelo.    
+
+* Con respecto a la gráfica *Residual vs. Leverage*:  
+  + Se puede observar que la mayoría de los puntos están concentrados en un extremo de la gráfica. Además, existen puntos que producen el efecto palanca, los cuales podrían ser determinantes de la tendencia. Además, algunos puntos superan los límites de las curvas de nivel, lo cual nos refuerza la idea de que el modelo podría no explicar adecuadamente la variabilidad, porque existen puntos atípicos que afectan en gran medida el modelo.  
+
+</br>
+
+**Utilizando el modelo para hacer predicciones**  
+
+<p style="text-align: justify;">Del análisis de las gráficas de diagnóstico se concluye entonces que el modelo no es suficientemente significativo, a pesar de que el coeficiente de determinación sea alto. Por lo tanto, no sería adecuado realizar predicciones con el modelo.</p>
+</br>  
+
+**Regresión 4:**
+<p style="text-ali gn: justify;"> En este apartado se realizará la regresión para explicar el comportamiento de la variable `ratio de cilindros propios respecto a los cilindros totales` en función del `número total de vacunados`.</p>
+
+<p style="text-ali gn: justify;"> Para ello, empezaremos definiendo el significado del `ratio de cilindros propios respecto a los cilindros totales`. Como se puede observar, el ratio permite evaluar el nivel de abastecimiento de cilindros propios en las IPREES.</p>
+$Ratio\ de\ cilindros\ propios\ respecto\ a\ los\ cilindros\ totales = \frac{Número\ de \ cilindros\ propios}{Número\ de \ cilindros\ totales}$
+
+$Ratio\ de\ cilindros\ propios\ respecto\ a\ los\ cilindros\ totales = \frac{Número\ de \ cilindros\ propios}{Número\ de \ cilindros\ propios + Número\ de \ cilindros\ tercerizados}$
+
+<p style="text-ali gn: justify;"> Cuando este ratio aumenta implica que la proporción de cilindros tercerizados (donaciones, adquirido por los familiares o por empresas terceras) se reduce.</p>
+
+
+```{r}
+#Creación del ratio de cilindros propios respecto a los cilindros totales
+RATIO_PT_DF<-data.frame(FECHA=OXIGENO$FECHAREGISTRO, RATIO_PT=OXIGENO$CIL_TOT_PROPIOS/OXIGENO$CIL_TOT_CILINDROS)
+
+#Dado que los reportes de vacunación son diarias para comparar 
+RATIO_PT_DIARIO <- aggregate(RATIO_PT_DF$RATIO_PT, by=list(Fecha=RATIO_PT_DF$FECHA), FUN=mean)
+
+RATIO_PT_DIARIO <- RATIO_PT_DIARIO[1:49,] ##Fechas de estudio [2021-03-31 / 2021-05-18], mismo periodo para el número de vacunados
+```
+
+<p style="text-align: justify;"> Al evaluar la correlación entre ambas variables de estudio, nos percatamos que su relación es significativa pues este estadístico es igual a 0.82.</p>
+
+```{r}
+cor(x$Numero_Vacunados, RATIO_PT_DIARIO$x)
+```
+
+<p style="text-align: justify;"> Dado que la relación es positiva y fuerte podemos plantear la siguiente hipótesis: A medida que el número de vacunados aumenta, el `ratio de cilindros propios respecto a los cilindros totales` también aumenta. </p>
+
+<p style="text-align: justify;">A continuación, se presenta un gráfico de puntos que relaciona  el `ratio de cilindros propios respecto a los cilindros totales`con el `Número de vacunados`. Asimismo, se incluye una linea de ajuste obtenida a partir del método de minimos cuadrados. </p>
+
+```{r}
+lm4<-lm(RATIO_PT_DIARIO$x~ x$Numero_Vacunados)
+
+plot(x$Numero_Vacunados, RATIO_PT_DIARIO$x, pch=20, main = "Número de vacunados vs Ratio CIL_PROP sobre CIL_TOT", xlab="Número de vacunados", ylab = "Ratio CIL_PROP sobre CIL_TOT")
+abline(lm4,col="red")
+```
+
+<p style="text-ali gn: justify;">Para validar esta hipótesis planteada anteriormente, a continuación se analizará el resumen de la regresión:</p> 
+
+</br>
+
+**Resumen de la regresión:**  
+
+```{r}
+summary(lm4)
+```
+
+<p style="text-align: justify;">En primer lugar, debemos de verificar que los residuos siguen el modelo normal:</p>  
+
+La media y desviación de los residuos es:   
+
+```{r}
+mean(lm4$residuals)
+sd(lm4$residuals)
+```
+
+El histograma de los residuos es:   
+```{r}
+hist(lm4$residuals, breaks= 20,main="Histograma de residuos", col="thistle3", xlab = "Residuos", freq = FALSE)
+curve(dnorm(x, mean(lm4$residuals), sd = sd(lm4$residuals)), # Función dnorm a evaluar
+#      -60, 20,150, # Límites de x y nº de valores a evaluar
+      col = "slateblue4", 
+      lwd= 2,
+      las = 1, # Etiquetas alineadas horizontalmente
+      ann = FALSE, # Sin títulos en los ejes
+      xaxp = c(-15, 15, 5),  # Marcas del eje x
+      ylim = c(0,0.00020), # Límites del eje
+      yaxs = "i", add=TRUE) # Estilo del eje y, ajustado a los límites
+```
+
+<p style="text-align: justify;">Como se puede observar, los residuos parecen seguir una distribución normal. La media de los residuos es aproximadamente 0, pero su desviación estándar es menor que 1. Por lo que podemos afirmar que la distribución de los residuos se escapa un poco del modelo normal estándar. Con respecto al resumen se tienen las siguientes observaciones:</p>  
+
+* Con respecto a los coeficientes:  
+
+*Intercepto:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ se rechaza por lo que el valor de $b \neq 0$  
+*Pendiente:* Para una significancia de 0.01 la hipótesis nula $(H_0)$ se rechaza por lo que el valor de $a \neq 0$  
+
+* Con respecto la $r^2$ ajustado:   
+
+<p style="text-align: justify;">La variabilidad de la variable *ratio de cilindros propios respecto a los cilindros totales* se explica en un 66.47 % a través de la variación de la variable *número total de vacunados*.</p>  
+
+* Con respecto al $p-value$:   
+
+<p style="text-align: justify;"> Dado que el $p-value$ (5.986e-13) es menor que la significancia ($\alpha = 0.01$) se rechaza la hipótesis nula $H_0$, por lo que se sugiere que el modelo sí explica la relación entre las variables.</p>  
+
+</br>
+
+
+**Gráficas de diagnóstico**
+
+```{r}
+op=par(mfrow=c(2,2))
+plot(lm4, pch=20,col=rgb(0,0,0,0.25))
+```
+
+
+<p style="text-align: justify;">De acuerdo con las gráficas de diagnóstico de la línea de ajuste, se tienen las siguientes observaciones:</p>    
+
+* Con respecto a la gráfica de  *Residuos vs. Valores ajustados*:  
+  + Existen 3 valores atípicos.  
+  + Se pueden observar residuos positivos y negativos concentrados en un intervalo pequeño cerca del rango [-0.015; 0.015].  
+  + Los residuos son homocedásticos ya que no se distribuyen uniformemente alrededor de la línea roja.  
+  
+* Con respecto a la gráfica de la *Normal Q-Q*:  
+  + Se observa que la forma de la gráfica tiene tendencia a la linealidad y se ajusta a la línea normal. A partir de esto podemos decir que el modelo puede ser adecuado.
+
+* Con respecto a la gráfica *Scale Location*:  
+  + Los residuos estandarizados están distribuidos uniformemente alrededor de la recta roja y esta es aproximadamente plana. Por lo tanto, a partir de esta información se refuerza la condición de homocedasticidad del modelo.   
+
+* Con respecto a la gráfica *Residual vs. Leverage*:  
+  + Se puede observar que existen algunos puntos que producen el efecto palanca y los cuales podrían ser determinantes de la tendencia.
+
+</br>
+
+
+*Utilizando el modelo para hacer predicciones*
+
+
+<p style="text-align: justify;"> De acuerdo a los resultados, nuestro modelo resulta significativo y se ajusta a la siguiente expresión: </p>
+
+$Ratio_{cilindros\ propios\ respecto\ a\ los\ cilindros totales}=(2.130e-08)×número\ de\ vacunados+5.852e-01$
+
+<p style="text-align: justify;"> Cabe destacar que el modelo solo es válido cuando el $ratio_{estimado}\leq 1$. Para corroborar el ajuste, haremos una predicción del `ratio de cilindros propios respecto a los cilindros totales` para el día 21 de julio de 2021 respecto al número total de vacunados para esa misma fecha. De acuerdo a la página web “Pongo el hombro por el Perú”, a la fecha existen 11237063 personas vacunadas.</p>  
+
+Evaluando:   
+
+$Ratio_{cilindros\ propios\ respecto\ a\ los\ cilindros totales}=(2.130e-08*11237063)+5.852e-01$
+$Ratio_{cilindros\ propios\ respecto\ a\ los\ cilindros totales}=0.824549$
+
+
+<p style="text-align: justify;">Ahora, para verificar si nuestro modelo resultó útil o no, se calculará el valor real del *ratio de cilindros propios respecto a los cilindros totales* a partir de la base datos de la Superintendencia de Salud para la fecha en cuestión:</p>  
+
+```{r}
+Actual<-read_csv("OxigenoActual.csv")
+```
+
+```{r}
+Actual<-Actual[,c(2,15,16)]
+Actual$FECHAREGISTRO<-as.Date(Actual$FECHAREGISTRO,format="%d/%m/%Y")
+Actual<-Actual[complete.cases(Actual),]
+
+
+Actual<-cbind(Actual,RATIO_PT_DF_TEO=Actual$CIL_TOT_PROPIOS/Actual$CIL_TOT_CILINDROS)
+
+Actual<-Actual[complete.cases(Actual),]
+
+RATIO_PT_ACTUAL<- aggregate(Actual$RATIO_PT_DF_TEO, by=list(Fecha=Actual$FECHAREGISTRO), FUN=mean)
+
+ValorTeo<-RATIO_PT_ACTUAL$x[RATIO_PT_ACTUAL$Fecha=="2021-07-21"]
+ValorTeo
+```
+
+Como se observa nuestros valores teóricos y reales difieren:
+
+$Valor_{estimado} \neq Valor_{real}$  
+$0.824549 \neq 0.6179356$  
+Además, con los valores teóricos y valores estimados se calculará el porcentaje de error.
+
+$\% \ error = |\frac{Valor_{teórico} - Valor_{estimado}}{Valor_{teórico}} \cdot 100  \% \ |$  
+$\% \ error = |\frac{0.6179356 - 0.824549}{0.6179356} \cdot 100 \ \% \ |$  
+$\% \ error = 33.44\ \%$  
+
+<p style="text-align: justify;"> Se observa que el porcentanje de error es cercano al 33.44 %. Por lo que, se puede decir que nuestra regresión es significativa pero no ofrece una conclusión efectiva frente a las predicciones, ya que para determinar el avance en el sector salud y la adquisición de cilindros propios depende de otros factores como la demanda de pacientes con problemas respiratorios, el estado de la infraestructura médica de las IPRESS, etc. </p>   (proceso)
+
+</br>
+
+#### **12. Preguntas**  
+
+**Descriptivas:**   
+
+* ¿Cómo es la dispersión de los datos del volumen disponible de oxígeno por región?   
+<p style="text-align: justify;">Esta pregunta fue respondida en la sección `Interacción entre variables` en el apartado dedicado a las variables `REGION` y `CIL_VOL_DISP_M3_DU24`.</p>   
+
+</br>
+
+* ¿Cómo es la dispersión de los datos de consumo de oxígeno por región?  
+<p style="text-align: justify;">Esta pregunta fue respondida en la sección de `Interacción de variables` en el apartado dedicado a las variables `REGION` y `CIL_VOL_M3_CU24`.</p>  
+
+</br>
+
+* ¿Cómo es el consumo diario de oxígeno en todo el país en el periodo de estudio?  
+<p style="text-align: justify;">Esta pregunta fue respondida en la sección de `Interacción de variables` en el apartado dedicado a las variables `FECHAREGISTRO` y `CIL_VOL_M3_CU24`.</p>  
+
+</br>
+
+* ¿Cuáles fueron las 6 IPRESS con mayor saldo final de oxígeno durante el periodo de estudio?   
+```{r}
+arrange(OXIGENO,-OXIGENO$VOL_OXI_DESP)
+```
+
+<p style="text-align: justify;">Como se puede observar en la tabla anterior ordenada de mayor a menor para la variable `VOL_OXI_DESP`, las 6 IPRESS con mayor saldo final de oxígeno ($m^3$) son:  
+
+- Centro de Atención y Aislamiento COVID-19 "Villa Panamericana"  
+- HOSPITAL NACIONAL RAMIRO PRIALE PRIALE  
+- HOSPITAL I VICTOR ALFREDO LAZO PERALTA  
+- ADOLFO GUEVARA VELASCO  
+- ANTONIO LORENA DEL CUSCO
+- HOSPITAL HIPOLITO UNANUE DE TACNA</p>  
+
+</br>
+
+* ¿Cómo es la dispersión de los datos del exceso de cilindros de oxígeno en las regiones del estudio?  
+<p style="text-align: justify;">Esta pregunta fue respondida en la sección de `Interacción de variables` en el apartado dedicado a las variables `CIL_SOB` y `REGION`.</p>
+
+</br>
+
+* ¿Cuál es la región con mayor volumen disponible de oxígeno ($m^3$)?
+```{r}
+Region_Vol_disp<-aggregate(OXIGENO$CIL_VOL_DISP_M3_DU24,by=list(Region=OXIGENO$REGION), FUN = sum)
+Region_Vol_disp[which.max(Region_Vol_disp$x),]
+```
+<p style="text-align: justify;">La región con el mayor volumen disponible de oxígeno es Lima. Esto era de esperarse ya que esta región es la que tiene la mayor cantidad de IPRESS y, por lo tanto, la suma total tendría que ser la mayor también.</p>  
+
+</br>
+
+* ¿Cuáles son las 3 regiones que se encuentran mejor preparadas con respecto al número de IPRESS?  
+<p style="text-align: justify;">Según el gráfico de barras titulado `Cantidad de IPRESS por cada 100 000 electores hábiles según región` ubicado en la sección descriptiva de la variable `REGION` de la base de datos `OXIGENO`, se puede observar que las regiones Tumbes, Ica y Pasco son las mejores preparadas, ya que cada una de ellas tiene al menos 3 IPRESS disponibles para atender a 100 000 habitantes. Por lo que, la demanda de IPRESS en estas regiones no es tan alta respecto a las otras regiones donde se tiene una menor cantidad de IPRESS para la atención de la misma cantidad de personas.</p>  
+
+</br>
+
+* ¿Cuántas personas están vacunadas por región?  
+<p style="text-align: justify;">La respuesta a esta pregunta puede observarse en las gráficas de barras tituladas `Número de vacunados por región` y `Porcentaje de electores hábiles vacunados según región` ubicadas en la sección descriptiva de la variable `DEPARTAMENTO` de la base de datos `VACUNAS`. En la primera gráfica se puede observar los números exactos de vacunados por cada región y en la segunda gráfica se puede observar los porcentajes de vacunados en cada región respecto a su población total.</p>  
+
+</br>
+
+**Exploratorias:** 
+
+- ¿Existe menor gasto de oxígeno en las regiones fuera de Lima comparado con Lima?  
+```{r}
+Region_Vol_consum<-aggregate(OXIGENO$CIL_VOL_M3_CU24,by=list(Region=OXIGENO$REGION), FUN = sum)
+Interior_pais <- sum(Region_Vol_consum[Region_Vol_consum$Region!="LIMA" & Region_Vol_consum$Region!="CALLAO",2])
+Lima_Callao <- sum(Region_Vol_consum[Region_Vol_consum$Region=="LIMA",2], Region_Vol_consum[Region_Vol_consum$Region=="CALLAO",2])
+Interior_pais
+Lima_Callao
+```
+
+<p style="text-align: justify;">Como se puede observar, el gasto de oxígeno es mayor al interior del país (1 517 308 $m^3$) en comparación con Lima y Callao (482 123 $m^3$) durante el periodo de estudio. Aunque Lima tenga la mayor cantidad de IPRESS y tenga el mayor volumen disponible de oxígeno a nivel nacional, su consumo no es tan significativo como el de las regiones al interior de país. Esto se debe a que el número total de IPRESS al interior del país es de 338 en comparación con las 130 de Lima y Callao. Estos números nos dan una idea de la proporción del consumo de oxígeno a pesar de que otros factores como el nivel de la IPRESS influya en los valores de esta variable.</p>  
+
+</br>
+
+**Inferenciales:**  
+
+- ¿Ha disminuido la demanda de oxígeno a nivel regional con respecto a la gente vacunada?  
+
+<p style="text-align: justify;">En términos generales, la respuesta a esta pregunta sería "Sí". Como se puede observar en las gráficas tituladas `Evolución en el tiempo del consumo de oxígeno (metros cúbicos) en el país` y `Evolución en el tiempo del número de vacunados en el país` ubicadas en la sección `Interacción entre variables` de la base de datos `OXIGENO` y `VACUNAS` respectivamente, el consumo de oxígeno se ha reducido ligeramente a medida que el número de vacunados aumentaba. Sin embargo, cabe destacar que esto ocurre al menos en nuestro periodo de estudio con nuestros datos en específico y estas tendencias podrían cambiar más adelante en el tiempo por diversos factores. Por lo tanto, este hallazgo sería válido solo para el periodo de tiempo que estamos estudiando y además nos puede servir para hacer algunas predicciones respecto a estas variables. Para comprobar su relación directa, podemos plantear la hipótesis de que el aumento en el número de vacunados implica necesariamente una reducción en el consumo de oxígeno.  
+
+De acuerdo con la prueba de hipótesis planteada en el modelo de regresión, esta variable se explica solo en un bajo porcentaje con la otra variable. Por lo que, esta hipótesis no es necesariamente cierta y están implicadas otras variables para describir su comportamiento.</p>  
+
+</br>
+
+**Predictivas:**  
+
+- ¿Es posible predecir si en los próximos meses la demanda de oxígeno aumentará?  
+<p style="text-align: justify;">No, esto debido a que el modelo del consumo de oxígeno no solo obedece a variables como la gente vacunada y para predecir su comportamiento es necesario evaluar también otras variables que no estamos considerando.</p>  
+
+</br> 
+  
+
+#### **13. Conclusiones**  
+
+* Las regiones Tumbes, Ica y Pasco son las mejores preparadas en servicios de salud, ya que cada una de ellas tiene al menos 3 IPRESS disponibles para atender a 100 000 habitantes.  
+* El gasto de oxígeno es mayor al interior del país (1 517 308 $m^3$) en comparación con Lima y Callao (482 123 $m^3$) durante el periodo de estudio.  
+* La demanda en el consumo de oxígeno se mantiene constante a pesar de que el número de vacunados en el país aumente. Esto se debe a que existen otros factores que explican este comportamiento.  
+* No es posible predecir si el volumen de oxígeno consumido aumentará en los próximos meses debido a que el comportamiento de esta variable está influido por otras variables desconocidas.  
+* Las IPRESS de nivel 1 y 2 producen/reciben la misma cantidad de oxígeno al iniciar el día y también tienen el mismo volumen sobrante.  
+* A medida que el número de vacunados aumenta, el ratio del número de cilindros propios respecto a los cilindros totales también aumenta. Esto puede indicarnos que la proporción de cilindros tercerizados está disminuyendo, lo que implica que la demanda de oxígeno en las IPRESS se ha reducido pues ya no es muy común la entrada de cilindros de oxígeno de fuentes externas.  
+* Es posible predecir el `ratio de cilindros propios respecto a los cilindros totales` a partir del número de vacunados con cierto grado de error porque es posible que otros parámetros también influyan en el comportamiento de la cantidad de cilindros de oxígeno.
+
+</br>
+
+#### **14. Factibilidad**
+
+<p style="text-align: justify;">Para validar la factibilidad del proyecto en el tiempo, se realizó un diagrama de Gantt con las actividades a realizarse y sus tiempos límite.</p>  
+</br>
+```{r echo=FALSE, out.width = '100%'}
+knitr::include_graphics("Diagrama de Gantt.jpg")
+```
+</br>
+  
+<p style="text-align: justify;">Este puede ser visualizado con más detalle en el siguiente link:  
+https://docs.google.com/spreadsheets/d/1RXhSDMx1nmBzVHUCL0tfNYMDOmJ0J0envJsofJFc3n4/edit?usp=sharing</p>
+</br>
+
+#### **15. Referencias**  
+
+<p style="text-align: justify;">- El Peruano. (18 de enero 2021). *Aniversario de Lima: población de la capital supera los 9.8 millones de habitantes.* Recuperado de https://elperuano.pe/noticia/113676-aniversario-de-lima-poblacion-de-la-capital-supera-los-98-millones-de-habitantes#:~:text=17%2F01%2F2021%20La%20capital,29%2C8%25%20de%20la%20poblaci%C3%B3n  
+
+- Plataforma digital única del Estado Peruano. (22 de Julio del 2021). *Contador de vacunados*. Recuperado de https://www.gob.pe/pongoelhombro  </p>
+
