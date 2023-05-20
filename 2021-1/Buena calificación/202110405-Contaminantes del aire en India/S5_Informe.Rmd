@@ -1,0 +1,1483 @@
+---
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+# title: **"S5 Contaminantes del aire en India"** 
+
+------------------------------------------------------------------------
+
+# Índice
+
+1.  Introducción
+2.  Objetivos
+3.  Marco teórico
+4.  Descriptores numéricos y gráficos
+5.  Planificación
+
+## 1. Introducción
+
+### Justificación
+
+¿Por qué realizar un estudio sobre este tema?
+
+En los últimos años el calentamiento global ha ido incrementando por
+diversos factores, uno de ellos son los gases contaminantes, que no solo
+perjudican a la naturaleza sino a los seres humanos ya que la calidad
+del aire debe ser controlada. En ese sentido, utilizaremos distintas
+bases de datos de India sobre las ciudades más pobladas respecto a la
+producción de gases contaminantes por ciudades, días, horas y
+estaciones, a partir del año 2014 a 2020. A partir de ello, se busca
+analizar el incremento de la producción de gases respecto a los años,
+determinar los horarios o días en que se produce mayor producción de
+gases contaminantes, así como determinar la cantidad de gases producidos
+por años y poder compararlo con los estándares permitidos por la OMS, de
+esa manera predecir el año en el cual se superaría los dichos estándares
+entre muchas otros. Estos resultados nos brindan un panorama claro del
+incremento de la producción de CO2, NO2, NHx, NH3, SO2 en uno de los
+países con gran población.
+
+### Importancia
+
+Controlar la calidad del aire es de vital importancia, en vista a que sí
+existen una gran cantidad de contaminantes puede afectar gravemente a
+los seres humanos y al medio ambiente, con el paso de los años la
+industrialización se ha ido expandiendo a gran escala lo cual a su vez
+genera una gran producción de gases que ha ido incrementando. En ese
+sentido es necesario conocer y controlar dichas producciones, con lo
+cual podemos considerar si el aire está contaminado según ciertos
+estándares internacionales o identificar el incremento anual que se
+produce, en caso resulte ser un cambio muy grande se pueden producir
+problemas en los próximos años, pero conociendo los valores se puede
+tomar medidas para poder reducir la producción de gases, así como el
+impacto negativo.
+
+### Factibilidad
+
+Es factible porque trabajamos con distintos data frames los cuales están
+sistematizados por ciudades y las variables muestran la cantidad de
+producción de distintos gases respecto a las fechas (día, mes y año),
+horas y estaciones, lo que proporciona una gran cantidad de información
+para cumplir con los objetivos escritos a continuación.
+
+### Objetivos:
+
+-   Determinar la variación de producción de gases contaminantes
+    respecto a los años y/o ciudades para poder interpretar futuros
+    valores y poder determinar si la calidad del aire cumple con los
+    parámetros internacionales. -\> O.P.
+-   Determinar los horarios donde se producen más contaminantes respecto
+    a las ciudades. Tabular y analizar el AQI (Índice de calidad del
+    aire) diario de la ciudad de Delhi en los años 2019 y 2020.
+-   Tabular y analizar AQI bucket definido como "muy pobre" y
+    "satisfactorio" para reconocer posibles impactos en la salud de los
+    habitantes de las ciudades en estudio.
+-   Tabular y analizar AQI bucket definido como "muy pobre" y
+    "satisfactorio" para reconocer posibles impactos en la salud de los
+    habitantes respecto a los meses.
+
+### Preguntas:
+
+1.  ¿Cuáles son los AQI bucket mensuales más recurrentes en la ciudad de
+    Delhi en los años 2019 y 2020? (mosaico)
+
+2.  ¿Qué horas no son recomendables debido a la cantidad de gases
+    contaminantes según el AQI (Índice de calidad del aire) diario de la
+    ciudad de Delhi (capital de India)?
+
+3.  ¿Cuáles son las horas donde se producen más gases contaminantes
+    respecto a cada ciudad entre los años 2015 - 2020?
+
+4.  ¿Qué ciudades producen más gases contaminantes en los años
+    2015-2020?
+
+5.   ¿Cuál es la ciudad con mayor AQI por años (2015-2020)?
+
+6.   ¿Cuál es el contaminante más presente entre los años 2019 y 2020?
+
+```{r Lectura de base de datos}
+#install.packages("timevis")
+
+library("readr")
+library("dplyr")
+library("stringr")
+library("modeest")
+library("timevis")
+```
+
+
+```{r}
+CH<-read_csv("city_hour.csv")
+```
+
+\#Arreglando CH
+
+```{r}
+library(readr)
+city_hour <- read_csv("city_hour.csv", 
+    col_types = cols(PM2.5 = col_double(), 
+        PM10 = col_double(), NH3 = col_double(), 
+        AQI = col_double(), AQI_Bucket = col_character(),Year= col_double()))
+```
+
+```{r}
+CH1<-city_hour %>% filter(complete.cases(.))
+```
+
+## 3. Marco Teórico
+
+El aire es un recurso indispensable para la vida de los seres vivos. El
+monitoreo y control de la calidad del aire, es por tanto importante para
+tomar acciones preventivas y de control en favor de la salud de las
+personas. Según la Organización Mundial de la Salud (OMS), mediante la
+disminución de los niveles de contaminación del aire los países pueden
+reducir la carga de morbilidad derivada de accidentes cerebrovasculares,
+cánceres de pulmón y neumopatías crónicas y agudas, entre ellas el asma.
+Este proyecto toma a India como país de estudio. Esto se debe a que
+el país está calificado como uno de los territorios con la peor calidad
+del aire. India ha registrado niveles peligrosos de contaminación del
+aire para la salud. La polución es precisamente la tercera causa de
+muertes en el país según el informe State of Global Air 2019 producido
+por la corporación independiente Health Effects Institute. Fuente:
+<https://www.who.int/topics/air_pollution/es/> El Índice de la Calidad
+del Aire (AQI) es un indicador que cuantifica la calidad del aire en un
+determinado espacio. La tabla se muestra así: Table: Eliminación de
+variables
+
+| AQI     | Remark        | Color de código | Posible impacto a la salud                                                                 |
+|---------|---------------|-----------------|--------------------------------------------------------------------------------------------|
+| 0-50    | Bueno         | Verde           | Impacto mínimo                                                                             |
+| 51-100  | Satisfactorio | Verde claro     | Molestias respiratorias leves para personas sensibles                                      |
+| 101-200 | Moderado      | Amarillo        | Molestias respiratorias para las personas con enfermedades pulmonares, asma y cardíacas.  |
+| 201-300 | Pobre         | Naranja         | Incomodidad respiratoria para la mayoría de las personas con exposición prolongada.        |
+| 301-400 | Muy pobre     | Rojo            | Molestias respiratorias para las personas con enfermedades pulmonares, asma y cardíacas.   |
+| 401-500 | Severo        | Rojo oscuro     | Afecta a las personas sanas y afecta gravemente a quienes padecen enfermedades existentes. |
+
+\*Tabla adaptada de:<https://app.cpcbccr.com/AQI_India/>
+
+### Población
+
+Componentes del aire en ciudades de India
+
+### Muestra
+
+Muestras de aire en las ciudades de: Amaravati, Amritsar, Chandigarh,
+Delhí, Gurugram, Hyderabad, Kolkata, Patna, Visakhapatnam
+
+### Tipo de muestreo
+
+Muestreo aleatorio sin reemplazo
+
+## Variables
+
+Tabla: Significado de las variables
+
++-----------------------------------+----------------------------------------+
+| **Variables**                     | **Significado**                        |
++===================================+========================================+
+| *city*                            | Ciudad de la India                     |
++-----------------------------------+----------------------------------------+
+| *hour*                            | Hora                                   |
++-----------------------------------+----------------------------------------+
+| *day*                             | Día                                    |
++-----------------------------------+----------------------------------------+
+| *month*                           | Mes                                    |
++-----------------------------------+----------------------------------------+
+| *year*                            | Año                                    |
++-----------------------------------+----------------------------------------+
+| *PM10*                            | Partículas con diámetro menor a 10 µm  |
++----------------------------------------------------------------------------+
+| *PM2.5*                           | Partículas con diámetro menor a 2.5 µm |
++----------------------------------------------------------------------------+
+| *NO*                              | Óxido de nitrógeno en ug / m3          |
++-----------------------------------+----------------------------------------+
+| *NO2*                             | Dióxido de nitrógeno en ug / m3        |
++-----------------------------------+----------------------------------------+
+| *NH3*                             | Amoniaco en ug / m3                    |
++-----------------------------------+----------------------------------------+
+| *C_O*                             | Monóxido de carbono en ug / m3         |
++-----------------------------------+----------------------------------------+
+| *SO2*                             | Dióxido de azufre en ug / m3           |
++-----------------------------------+----------------------------------------+
+| *O3*                              | Ozono en ug / m3                       |
++-----------------------------------+----------------------------------------+
+| *Benzene*                         | Benceno en ug / m3                     |
++-----------------------------------+----------------------------------------+
+| *Toulene*                         | Tolueno en ug / m3                     |
++-----------------------------------+----------------------------------------+
+| *Xilene*                          | Xileno en ug / m3                      |
++-----------------------------------+----------------------------------------+
+| *AQI*                             | Índice de calidad del aire a nivel     |
+|                                   | horario y diario de varias estaciones  |
+|                                   | en varias ciudades de India.           |
++-----------------------------------+----------------------------------------+
+| *AQI_Bucket*                      | Índex del índice de calidad del        |
+|                                   | aire                                   |
++-----------------------------------+----------------------------------------+
+
+```{r, echo= FALSE, results=FALSE}
+DFCH1<-CH1%>% mutate(C_O =CO*1000 )
+DFCH1<- DFCH1 %>% select(-CO)
+DFCH1 #DF Nuevo y final
+```
+
+| **Variables** | **Tipo de variable**  | **Nivel de medición** |
+|---------------|-----------------------|-----------------------|
+| *city*        | cualitativa           | nominal               |
+| *hour*        | cualitativa           | ordinal               |
+| *day*         | cualitativa           | ordinal               |
+| *month*       | cualitativa           | nominal               |
+| *year*        | cualitativa           | ordinal               |
+| *PM10*        | cuantitativa continua | razón                 |
+| *PM2.5*       | cuantitativa continua | razón                 |
+| *NO*          | cuantitativa continua | razón                 |
+| *NO2*         | cuantitativa continua | razón                 |
+| *NH3*         | cuantitativa continua | razón                 |
+| *C_O*         | cuantitativa continua | razón                 |
+| *SO2*         | cuantitativa continua | razón                 |
+| *O3*          | cuantitativa continua | razón                 |
+| *Benzene*     | cuantitativa continua | razón                 |
+| *Toluene*     | cuantitativa continua | razón                 |
+| *Xylene*      | cuantitativa continua | razón                 |
+| *AQI*         | cuantitativa continua | razón                 |
+| *AQI_Bucket*  | cualitativa           | ordinal               |
+
+### Limpieza de datos
+
++-----------------------------------+-----------------------------------+
+| **Variable**                      | **¿Por qué no es relevante?**     |
++===================================+===================================+
+| *NOx*                             | Porque no hay unidades exactas de |
+|                                   | los datos de los distintos óxidos |
+|                                   | de nitrógeno en el aire tomados   |
+|                                   | por las estaciones                |
++-----------------------------------+-----------------------------------+
+
+Eliminación de variables:
+
+```{r}
+sum(complete.cases(DFCH1))
+sum(is.na(DFCH1))
+
+DFCH1<- DFCH1 %>% select(-NOx)
+```
+
+## 4. Descriptores numéricos y gráficos
+
+### Descriptores numéricos
+
+#### Variable: NO
+
+```{r}
+round(mean(DFCH1$NO, na.rm=1),2)
+round(median(DFCH1$NO, na.rm=1),2)
+round(mfv(DFCH1$NO, na_rm=1),2)
+round(range(DFCH1$NO, na.rm=1),2)
+round(var(DFCH1$NO, na.rm=1),2)
+round(sd(DFCH1$NO, na.rm=1),2)
+round(IQR(DFCH1$NO, na.rm=1),2)
+```
+
+#### Variable: NO2
+
+```{r}
+round(mean(DFCH1$NO2, na.rm=1),2)
+round(median(DFCH1$NO2, na.rm=1),2)
+round(mfv(DFCH1$NO2, na_rm=1),2)
+round(range(DFCH1$NO2, na.rm=1),2)
+round(var(DFCH1$NO2, na.rm=1),2)
+round(sd(DFCH1$NO2, na.rm=1),2)
+round(IQR(DFCH1$NO2, na.rm=1),2)
+```
+
+#### Variable: C_O
+
+```{r}
+round(mean(DFCH1$C_O, na.rm=1),2)
+round(median(DFCH1$C_O, na.rm=1),2)
+round(mfv(DFCH1$C_O, na_rm=1),2)
+round(range(DFCH1$C_O, na.rm=1),2)
+round(var(DFCH1$C_O, na.rm=1),2)
+round(sd(DFCH1$C_O, na.rm=1),2)
+round(IQR(DFCH1$C_O, na.rm=1),2)
+
+```
+
+#### Variable: SO2
+
+```{r}
+round(mean(DFCH1$SO2, na.rm=1),2)
+round(median(DFCH1$SO2, na.rm=1),2)
+round(mfv(DFCH1$SO2, na_rm=1),2)
+round(range(DFCH1$SO2, na.rm=1),2)
+round(var(DFCH1$SO2, na.rm=1),2)
+round(sd(DFCH1$SO2, na.rm=1),2)
+round(IQR(DFCH1$SO2, na.rm=1),2)
+```
+
+#### Variable: O3
+
+```{r}
+round(mean(DFCH1$O3, na.rm=1),2)
+round(median(DFCH1$O3, na.rm=1),2)
+round(mfv(DFCH1$O3, na_rm=1),2)
+round(range(DFCH1$O3, na.rm=1),2)
+round(var(DFCH1$O3, na.rm=1),2)
+round(sd(DFCH1$O3, na.rm=1),2)
+round(IQR(DFCH1$O3, na.rm=1),2)
+```
+
+#### Variable: Benzene
+
+```{r}
+round(mean(DFCH1$Benzene, na.rm=1),2)
+round(median(DFCH1$Benzene, na.rm=1),2)
+round(mfv(DFCH1$Benzene, na_rm=1),2)
+round(range(DFCH1$Benzene, na.rm=1),2)
+round(var(DFCH1$Benzene, na.rm=1),2)
+round(sd(DFCH1$Benzene, na.rm=1),2)
+round(IQR(DFCH1$Benzene, na.rm=1),2)
+```
+
+#### Variable: Toluene
+
+```{r}
+round(mean(DFCH1$Toluene, na.rm=1),2)
+round(median(DFCH1$Toluene, na.rm=1),2)
+round(mfv(DFCH1$Toluene, na_rm=1),2)
+round(range(DFCH1$Toluene, na.rm=1),2)
+round(var(DFCH1$Toluene, na.rm=1),2)
+round(sd(DFCH1$Toluene, na.rm=1),2)
+round(IQR(DFCH1$Toluene, na.rm=1),2)
+```
+
+#### Variable: Xylene
+
+```{r}
+round(mean(DFCH1$Xylene, na.rm=1),2)
+round(median(DFCH1$Xylene, na.rm=1),2)
+round(mfv(DFCH1$Xylene, na_rm=1),2)
+round(range(DFCH1$Xylene, na.rm=1),2)
+round(var(DFCH1$Xylene, na.rm=1),2)
+round(sd(DFCH1$Xylene, na.rm=1),2)
+round(IQR(DFCH1$Xylene, na.rm=1),2)
+```
+
+#### Variable: PM2.5
+
+```{r}
+round(mean(DFCH1$PM2.5, na.rm=1),2)
+round(median(DFCH1$PM2.5, na.rm=1),2)
+round(mfv(DFCH1$PM2.5, na_rm=1),2)
+round(range(DFCH1$PM2.5, na.rm=1),2)
+round(var(DFCH1$PM2.5, na.rm=1),2)
+round(sd(DFCH1$PM2.5, na.rm=1),2)
+round(IQR(DFCH1$PM2.5, na.rm=1),2)
+```
+
+#### Variable: PM10
+
+```{r}
+round(mean(DFCH1$PM10, na.rm=1),2)
+round(median(DFCH1$PM10, na.rm=1),2)
+round(mfv(DFCH1$PM10, na_rm=1),2)
+round(range(DFCH1$PM10, na.rm=1),2)
+round(var(DFCH1$PM10, na.rm=1),2)
+round(sd(DFCH1$PM10, na.rm=1),2)
+round(IQR(DFCH1$PM10, na.rm=1),2)
+```
+
+### Descriptores gráficos
+
+```{r}
+#Suma total de contaminantes por fila
+DFCH1<-DFCH1 %>% mutate(ST = NO+NO2+NH3+C_O+SO2+O3+Benzene+Toluene+Xylene)
+```
+
+#### Horas donde se producen más sustancias contaminantes en Delhi entre los años 2015 - 2020
+
+Observación: Nuestras 4 graficas muestran los mismos incrementos y
+decrementos de contaminantes entre los años 2017 - 2020. Hipótesis: A
+partir de las 18:00 horas se nota un incremento en la cantidad de
+sustancias contaminantes debido a que las horas de estudio de la
+población culminan a las 3 pm, coincidiendo con un rango de dos horas
+dedicado al tiempo libre para luego dedicarse a los propios negocios de
+cada persona. Pues el 70% a 80% del mercado pertenece al sector informal
+y solo el 20% al sector formal. Lo que implica un consumo independiente
+de recursos que generan más contaminantes diarios y por horas. Asimismo,
+este incremento se mantiene durante horas de la madrugada entre las 0 -
+5 am. Horas donde la mayoría de las industrias emiten sus gases
+contaminantes al exterior aprovechando que la población está dormida
+para causar el menor impacto sanitario posible.
+
+```{r}
+DH<- DFCH1%>%filter(City=="Delhi")
+
+#AÑO 2017
+DH17<-DH%>% filter(Year==2017)%>% group_by(Time) %>% summarise(prom_sust=mean(ST))
+plot(DH17$Time, DH17$prom_sust,xlab="hora",ylab="Cantidad de sustancias Promedio (ug/m^3)",col="grey",type="s",main="Cantidad promedio de contaminantes por hora en Delhi en 2017")
+
+#AÑO 2018
+DH18<-DH%>% filter(Year==2018)%>% group_by(Time) %>% summarise(prom_sust=mean(ST))
+plot(DH18$Time, DH18$prom_sust,xlab="hora",ylab="Cantidad de sustancias Promedio (ug/m^3)",col="grey",type="s",main="Cantidad promedio de contaminantes por hora en Delhi en 2018")
+
+#AÑO 2019
+DH19<-DH%>% filter(Year==2019)%>% group_by(Time) %>% summarise(prom_sust=mean(ST))
+plot(DH19$Time, DH19$prom_sust,xlab="hora",ylab="Cantidad de sustancias Promedio (ug/m^3)",col="grey",type="s",main="Cantidad promedio de contaminantes por hora en Delhi en 2019")
+
+#AÑO 2020
+DH20<-DH%>% filter(Year==2020)%>% group_by(Time) %>% summarise(prom_sust=mean(ST))
+plot(DH20$Time, DH20$prom_sust,xlab="hora",ylab="Cantidad de sustancias Promedio (ug/m^3)",col="grey",type="s",main="Cantidad promedio de contaminantes por hora en Delhi en 2020")
+```
+
+#### ¿Qué ciudades producen más gases contaminantes en los años 2015-2020?
+
+```{r}
+C_T <- DFCH1 %>% group_by(Year) %>% summarise(City,ST)
+
+#2017
+C_T_2017 <- C_T %>% filter(Year==2017)
+C_T_2017 <- C_T_2017 %>% group_by(City) %>% summarise(mean(ST))
+C_T_2017 <- C_T_2017 %>% rename("MeanST"="mean(ST)")
+
+
+#2018
+C_T_2018 <- C_T %>% filter(Year==2018)
+C_T_2018 <- C_T_2018 %>% group_by(City) %>% summarise(mean(ST))
+C_T_2018 <- C_T_2018 %>% rename("MeanST"="mean(ST)")
+
+
+#2019
+C_T_2019 <- C_T %>% filter(Year==2019,City==c("Amaravati","Amritsar","Delhi","Hyderabad","Visakhapatnam"))
+C_T_2019 <- C_T_2019 %>% group_by(City) %>% summarise(mean(ST))
+C_T_2019 <- C_T_2019 %>% rename("MeanST"="mean(ST)")
+
+
+
+#2020
+
+C_T_2020 <- C_T %>% filter(Year==2020,City==c("Amaravati","Amritsar","Delhi","Hyderabad","Visakhapatnam"))
+C_T_2020 <- C_T_2020 %>% group_by(City) %>% summarise(mean(ST))
+C_T_2020 <- C_T_2020 %>% rename("MeanST"="mean(ST)")
+
+
+Anios<-c("2017","2018","2019","2020")
+Amaravati<-c(C_T_2017$MeanST[1],C_T_2018$MeanST[1],C_T_2019$MeanST[1],C_T_2020$MeanST[1])
+Amritsar<-c(C_T_2017$MeanST[2],C_T_2018$MeanST[2],C_T_2019$MeanST[2],C_T_2020$MeanST[2])
+Delhi<-c(C_T_2017$MeanST[3],C_T_2018$MeanST[3],C_T_2019$MeanST[3],C_T_2020$MeanST[3])
+Hyderabad<-c(C_T_2017$MeanST[4],C_T_2018$MeanST[4],C_T_2019$MeanST[4],C_T_2020$MeanST[4])
+Visakhapatnam<-c(C_T_2017$MeanST[5],C_T_2018$MeanST[5],C_T_2019$MeanST[5],C_T_2020$MeanST[5])
+
+Ciudades<-c(Amaravati,Amritsar,Delhi,Hyderabad,Visakhapatnam)
+CxA<-data.frame(Anios, Amaravati,Amritsar,Delhi,Hyderabad,Visakhapatnam)
+library(ggplot2)
+ggplot(data=CxA,mapping = aes(x=Anios))+geom_line(data=CxA,mapping = aes(y=Amaravati,color="Amaravati"),group=1)+geom_point(mapping = aes(y=Amaravati,color="Amaravati"))+geom_line(mapping = aes(y=Amritsar,color="Amritsar"),group=1)+geom_point(mapping = aes(y=Amritsar,color="Amritsar"))+geom_line(mapping = aes(y=Delhi,color="Delhi"),group=1)+geom_point(mapping = aes(y=Delhi,color="Delhi"))+geom_line(mapping = aes(y=Hyderabad,color="Hyderabad"),group=1)+geom_point(mapping = aes(y=Hyderabad,color="Hyderabad"))+geom_line(mapping = aes(y=Visakhapatnam,color="Visakhapatnam"),group=1)+geom_point(mapping = aes(y=Visakhapatnam,color="Visakhapatnam"))+ggtitle("Producción de contaminantes por ciudad en los años 2017-2020") + 
+    labs(y= "Cantidad de contaminantes (µg/m^3)", x="Años", color="")
+```
+
+##### Ciudad con mayor cantidad de contaminantes respecto a los años
+
+Observación: Se puede reconocer que la ciudad de Delhi es la ciudad que
+tiene los mayores valores de contaminantes a lo largo de los años. De
+los 4 años en estudio 3 tienen a Delhi como la ciudad que emite más
+contaminantes en promedio.
+
+Hipótesis: La capital de India tiene una población estimada de 20 758
+501. Si comparamos la población de esta ciudad con el resto de ciudades
+de India, se puede ver que es la ciudad más poblada y con mayor densidad
+poblacional de India. Esto se relaciona con los valores elevados de
+gases, pues debido a la concentración de población la cantidad de gases
+aumenta.
+
+```{r}
+Cmax2017<-C_T_2017[which.max(C_T_2017$MeanST),]
+Cmax2018<-C_T_2018[which.max(C_T_2018$MeanST),]
+Cmax2019<-C_T_2019[which.max(C_T_2019$MeanST),]
+Cmax2020<-C_T_2020[which.max(C_T_2020$MeanST),]
+
+Ciudades<-c("Amritsar","Delhi","Delhi","Delhi")
+Cantidades<-c(Cmax2017$MeanST,Cmax2018$MeanST,Cmax2019$MeanST,Cmax2020$MeanST)
+
+CxC<-data.frame(Ciudades,Cantidades)
+
+barplot(CxC$Cantidades,names.arg =CxC$Ciudades,main="Ciudades con mayor cantidad promedio de contaminantes por años",xlab="Ciudades",ylab="Cantidad promedio de contaminantes (ug/m^3)",col=c("red","yellow","green","blue"))
+
+legend(x = "topright", legend = c("2017","2018","2019","2020"), title = "Leyenda",col=c("red","yellow","green","blue"),lwd = 5,cex=0.8)
+```
+
+### ¿Cuál es la cantidad promedio de cada contaminante entre los años 2015-2020?
+
+En los gases contaminantes se puede identificar al PM2.5, PM10, CO,
+benceno y xileno, que se van reduciendo con el pasar de los años. Por otro lado el
+tolueno y NO2, aumentan, aunque disminuyen en algunos años. Asimismo, el
+resto de Contaminante no tiene un patrón definido, sino que varia
+dependiendo del año. Un agregado es que a la mayoría de los
+contaminantes a partir del 2015 se reducen en los siguientes años.
+
+Hipótesis: A partir del 2015 se tomaron medidas para la
+contaminación del aire en India porque en los años pasados, según la OMS,
+era uno de los lugares con grandes cantidades de contaminantes, que
+generan una mortalidad alta, frente a ello se tomaron medidas y los
+gases más dañinos para la salud se fueron regulando.
+
+Información: Los gases contaminantes y más presentes en India son el
+pm2.5 y CO. La concentración anual de partículas finas (PM-2,5)
+---contaminante principal del aire--- en años pasados hasta el 2015 eran
+aproximadamente 150 microgramos por metro cubico, 15 veces lo
+recomendado, a partir de ese año se tomaron medidas que si bien
+redujeron la contaminación, siguen siendo dañinos porque no está en
+valores recomendables. Asimismo, el CO proviene de los carros, puestos
+industriales y tiendas, al tener una gran densidad poblacional la
+producción de este gas es muy grande a comparación del resto.
+
+
+
+#### Contaminantes por año
+
+La siguiente gráfica de barras es respecto a todos los contaminantes por
+años. Nos ayuda a ver la variación entre cada contaminante por año, de
+la cual se puede identificar relaciones. Por ejemplo, se puede identificar
+que el CO es el contaminante con mayor cantidad respecto al resto y su
+cantidad varia entre los años en un intervalo de 750-850 ug/m3. Asimismo,
+respecto al resto de contaminantes, se puede identificar que algunos
+incrementan y otros disminuyen, hecho analizado anteriormente.
+
+```{r}
+COnA<-DFCH1%>% group_by(Year)%>%summarise(mean(C_O),mean(Toluene),mean(NO),mean(NO2),mean(NH3),mean(SO2),mean(O3),mean(Benzene),mean(Xylene))
+Nomcon=c("CO","TOLUENE","NO","NO2","NH3","SO2","O3","BENZENE","XYLENE")
+
+#2016
+CON_16<-COnA%>% filter(Year==2016)
+
+#2017
+CON_17<-COnA%>% filter(Year==2017)
+
+#2018
+CON_18<-COnA%>% filter(Year==2018)
+
+#2019
+CON_19<-COnA%>% filter(Year==2019)
+
+#2020
+CON_20<-COnA%>% filter(Year==2020)
+
+
+TOLUENE<-c(CON_16$`mean(Toluene)`,CON_17$`mean(Toluene)`,CON_18$`mean(Toluene)`,CON_19$`mean(Toluene)`,CON_20$`mean(Toluene)`)
+NO<-c(CON_16$`mean(NO)`,CON_17$`mean(NO)`,CON_18$`mean(NO)`,CON_19$`mean(NO)`,CON_20$`mean(NO)`)
+NO2<-c(CON_16$`mean(NO2)`,CON_17$`mean(NO2)`,CON_18$`mean(NO2)`,CON_19$`mean(NO2)`,CON_20$`mean(NO2)`)
+NH3<-c(CON_16$`mean(NH3)`,CON_17$`mean(NH3)`,CON_18$`mean(NH3)`,CON_19$`mean(NH3)`,CON_20$`mean(NH3)`)
+SO2<-c(CON_16$`mean(SO2)`,CON_17$`mean(SO2)`,CON_18$`mean(SO2)`,CON_19$`mean(SO2)`,CON_20$`mean(SO2)`)
+O3<-c(CON_16$`mean(O3)`,CON_17$`mean(O3)`,CON_18$`mean(O3)`,CON_19$`mean(O3)`,CON_20$`mean(O3)`)
+BENZENE<-c(CON_16$`mean(Benzene)`,CON_17$`mean(Benzene)`,CON_18$`mean(Benzene)`,CON_19$`mean(Benzene)`,CON_20$`mean(Benzene)`)
+XYLENE<-c(CON_16$`mean(Xylene)`,CON_17$`mean(Xylene)`,CON_18$`mean(Xylene)`,CON_19$`mean(Xylene)`,CON_20$`mean(Xylene)`)
+Anios<-c("2016","2017","2018","2019","2020")
+
+tot_conta=data.frame(Anios,TOLUENE,NO,NO2,NH3,SO2,O3,BENZENE,XYLENE)
+tot_conta
+
+library(ggplot2)
+ggplot(data=tot_conta,mapping = aes(x=Anios))+geom_line(mapping = aes(y=TOLUENE,color="TOLUENE"),group=1)+geom_point(mapping = aes(y=TOLUENE,color="TOLUENE"))+geom_line(mapping = aes(y=NO,color="NO"),group=1)+geom_point(mapping = aes(y=NO,color="NO"))+geom_line(mapping = aes(y=NO2,color="NO2"),group=1)+geom_point(mapping = aes(y=NO2,color="NO2"))+geom_line(mapping = aes(y=NH3,color="NH3"),group=1)+geom_point(mapping = aes(y=NH3,color="NH3"))+geom_line(mapping = aes(y=SO2,color="SO2"),group=1)+geom_point(mapping = aes(y=SO2,color="SO2"))+geom_line(mapping = aes(y=O3,color="O3"),group=1)+geom_point(mapping = aes(y=O3,color="O3"))+geom_line(mapping = aes(y=BENZENE,color="BENZENE"),group=1)+geom_point(mapping = aes(y=BENZENE,color="BENZENE"))+geom_line(mapping = aes(y=XYLENE,color="XYLENE"),group=1)+geom_point(mapping = aes(y=XYLENE,color="XYLENE"))+
+  ggtitle("Producción de contaminantes en los años 2016-2020") + 
+    labs(y= "Cantidad de contaminantes (µg/m^3)", x="Años", color="")
+```
+
+#### Cantidad totales de contaminantes, bigotes ver la variación y datos atípicos
+
+En la gráfica se observa una gran cantidad de valores atípicos. Asimismo
+se muestra que el año 2017 consta de una mayor cantidad total de
+contaminantes con respecto a los demás años, ello debido al fuerte
+incremento de la contaminación doméstica relacionada con el uso de
+combustibles sólidos para cocinar y el smog.
+
+```{r}
+C_T <- DFCH1 %>% group_by(Year) %>% summarise(City,ST)
+C_T <-C_T %>% filter(Year==c("2016","2017","2018","2019","2020"))
+C_T_1 <- C_T %>% group_by(Year) %>% summarise(ST)
+C_T_1 <- C_T_1[-which.max(C_T_1$ST),]
+
+boxplot(ST ~ Year,data=C_T_1,ylab="Año",xlab="Cantidad total de contaminantes (ug/m^3)",main="Cantidad total de contaminantes por año",horizontal = T,col=c("red","orange","yellow","green","skyblue","pink"))
+
+```
+
+#### Cantidad de AQI mensual
+
+Observación: De la gráfica podemos observar que los meses en los cuales
+se presenta un mayor AQI son entre noviembre y febrero.
+
+Hipótesis: Entre esos meses es la época de invierno en India, en la cual
+aumenta el uso de automóviles y se realiza la quema de los cultivos que
+no pudieron resistir el clima frío. Asimismo, en el mes de noviembre se
+celebra el Diwali, donde suelen prender fuegos artificiales. Esto genera
+el aumento de gases contaminantes.
+
+```{r}
+M1<-DFCH1  %>% filter(Month=="01")%>% summarise(mean(AQI))
+M2<-DFCH1 %>% filter(Month=="02")%>% summarise(mean(AQI))
+M3<-DFCH1 %>% filter(Month=="03")%>% summarise(mean(AQI))
+M4<-DFCH1 %>% filter(Month=="04")%>% summarise(mean(AQI))
+M5<-DFCH1 %>% filter(Month=="05")%>% summarise(mean(AQI))
+M6<-DFCH1 %>% filter(Month=="06")%>% summarise(mean(AQI))
+M7<-DFCH1 %>% filter(Month=="07")%>% summarise(mean(AQI))
+M8<-DFCH1 %>% filter(Month=="08")%>% summarise(mean(AQI))
+M9<-DFCH1 %>% filter(Month=="09")%>% summarise(mean(AQI))
+M10<-DFCH1 %>% filter(Month=="10")%>% summarise(mean(AQI))
+M11<-DFCH1 %>% filter(Month=="11")%>% summarise(mean(AQI))
+M12<-DFCH1 %>% filter(Month=="12")%>% summarise(mean(AQI))
+
+AQI_M<-c("En","Feb","Mar","Ab","May","Jun","Jul","Ag","Sep","Oct","Nov","Dic")
+AQI_C<-c(M1$`mean(AQI)`,M2$`mean(AQI)`,M3$`mean(AQI)`,M4$`mean(AQI)`,M5$`mean(AQI)`,M6$`mean(AQI)`,M7$`mean(AQI)`,M8$`mean(AQI)`,M9$`mean(AQI)`,M10$`mean(AQI)`,M11$`mean(AQI)`,M12$`mean(AQI)`)
+
+MxC<-data.frame(AQI_M,AQI_C)
+
+barplot(MxC$AQI_C,names.arg =MxC$AQI_M, main="AQI vs meses",col=c("red","orange","yellow","green","darkgreen","skyblue","blue","pink","purple","grey","black","brown"),xlab="Meses",ylab="AQI")
+```
+
+#### Cantidad de AQI mensual por años
+
+Entre los años 2016 y 2019 se mantiene que entre los meses de noviembre
+y febrero se presenta la mayor cantidad de AQI. En 2015 se muestra un
+mayor de AQI porque ocurrió un golpe calor que hizo que se intensificara
+la emisión de gases contaminantes. En 2020 se muestra una disminución de
+AQI porque el confinamiento ocurrió aproximadamente en marzo de ese año,
+por lo que disminuyó la emisión de gases contaminantes.
+
+```{r}
+#2015
+A2015<-DFCH1 %>% filter(Year==2015)
+A1_15<-A2015  %>% filter(Month=="01")%>% summarise(mean(AQI))
+A2_15<-A2015 %>% filter(Month=="02")%>% summarise(mean(AQI))
+A3_15<-A2015 %>% filter(Month=="03")%>% summarise(mean(AQI))
+A4_15<-A2015 %>% filter(Month=="04")%>% summarise(mean(AQI))
+A5_15<-A2015 %>% filter(Month=="05")%>% summarise(mean(AQI))
+A6_15<-A2015 %>% filter(Month=="06")%>% summarise(mean(AQI))
+A7_15<-A2015 %>% filter(Month=="07")%>% summarise(mean(AQI))
+A8_15<-A2015 %>% filter(Month=="08")%>% summarise(mean(AQI))
+A9_15<-A2015 %>% filter(Month=="09")%>% summarise(mean(AQI))
+A10_15<-A2015 %>% filter(Month=="10")%>% summarise(mean(AQI))
+A11_15<-A2015 %>% filter(Month=="11")%>% summarise(mean(AQI))
+A12_15<-A2015 %>% filter(Month=="12")%>% summarise(mean(AQI))
+
+AQI_M<-c("En","Feb","Mar","Ab","May","Jun","Jul","Ag","Sep","Oct","Nov","Dic")
+
+AQI_C15<-c(A1_15$`mean(AQI)`,A2_15$`mean(AQI)`,A3_15$`mean(AQI)`,A4_15$`mean(AQI)`,A5_15$`mean(AQI)`,A6_15$`mean(AQI)`,A7_15$`mean(AQI)`,A8_15$`mean(AQI)`,A9_15$`mean(AQI)`,A10_15$`mean(AQI)`,A11_15$`mean(AQI)`,A12_15$`mean(AQI)`)
+
+MxC_15<-data.frame(AQI_M,AQI_C15)
+
+barplot(MxC_15$AQI_C,names.arg =MxC_15$AQI_M, main="AQI mensual del año 2015",col=c("red","orange","yellow","green","darkgreen","skyblue","blue","pink","purple","grey","black","brown"),xlab="Meses",ylab="AQI")
+
+
+#2016
+A2016<-DFCH1 %>% filter(Year==2016)
+A1_16<-A2016  %>% filter(Month=="01")%>% summarise(mean(AQI))
+A2_16<-A2016  %>% filter(Month=="02")%>% summarise(mean(AQI))
+A3_16<-A2016  %>% filter(Month=="03")%>% summarise(mean(AQI))
+A4_16<-A2016  %>% filter(Month=="04")%>% summarise(mean(AQI))
+A5_16<-A2016 %>% filter(Month=="05")%>% summarise(mean(AQI))
+A6_16<-A2016  %>% filter(Month=="06")%>% summarise(mean(AQI))
+A7_16<-A2016  %>% filter(Month=="07")%>% summarise(mean(AQI))
+A8_16<-A2016  %>% filter(Month=="08")%>% summarise(mean(AQI))
+A9_16<-A2016  %>% filter(Month=="09")%>% summarise(mean(AQI))
+A10_16<-A2016  %>% filter(Month=="10")%>% summarise(mean(AQI))
+A11_16<-A2016  %>% filter(Month=="11")%>% summarise(mean(AQI))
+A12_16<-A2016  %>% filter(Month=="12")%>% summarise(mean(AQI))
+
+
+AQI_C16<-c(A1_16$`mean(AQI)`,A2_16$`mean(AQI)`,A3_16$`mean(AQI)`,A4_16$`mean(AQI)`,A5_16$`mean(AQI)`,A6_16$`mean(AQI)`,A7_16$`mean(AQI)`,A8_16$`mean(AQI)`,A9_16$`mean(AQI)`,A10_16$`mean(AQI)`,A11_16$`mean(AQI)`,A12_16$`mean(AQI)`)
+
+MxC_16<-data.frame(AQI_M,AQI_C16)
+
+barplot(MxC_16$AQI_C,names.arg =MxC_16$AQI_M, main="AQI mensual del año 2016",col=c("red","orange","yellow","green","darkgreen","skyblue","blue","pink","purple","grey","black","brown"),xlab="Meses",ylab="AQI")
+
+
+#2017
+A2017<-DFCH1 %>% filter(Year==2017)
+A1_17<-A2017  %>% filter(Month=="01")%>% summarise(mean(AQI))
+A2_17<-A2017  %>% filter(Month=="02")%>% summarise(mean(AQI))
+A3_17<-A2017  %>% filter(Month=="03")%>% summarise(mean(AQI))
+A4_17<-A2017  %>% filter(Month=="04")%>% summarise(mean(AQI))
+A5_17<-A2017 %>% filter(Month=="05")%>% summarise(mean(AQI))
+A6_17<-A2017  %>% filter(Month=="06")%>% summarise(mean(AQI))
+A7_17<-A2017  %>% filter(Month=="07")%>% summarise(mean(AQI))
+A8_17<-A2017  %>% filter(Month=="08")%>% summarise(mean(AQI))
+A9_17<-A2017  %>% filter(Month=="09")%>% summarise(mean(AQI))
+A10_17<-A2017  %>% filter(Month=="10")%>% summarise(mean(AQI))
+A11_17<-A2017  %>% filter(Month=="11")%>% summarise(mean(AQI))
+A12_17<-A2017  %>% filter(Month=="12")%>% summarise(mean(AQI))
+
+AQI_C17<-c(A1_17$`mean(AQI)`,A2_17$`mean(AQI)`,A3_17$`mean(AQI)`,A4_17$`mean(AQI)`,A5_17$`mean(AQI)`,A6_17$`mean(AQI)`,A7_17$`mean(AQI)`,A8_17$`mean(AQI)`,A9_17$`mean(AQI)`,A10_17$`mean(AQI)`,A11_17$`mean(AQI)`,A12_17$`mean(AQI)`)
+
+MxC_17<-data.frame(AQI_M,AQI_C17)
+
+barplot(MxC_17$AQI_C,names.arg =MxC_17$AQI_M, main="AQI mensual del año 2017",col=c("red","orange","yellow","green","darkgreen","skyblue","blue","pink","purple","grey","black","brown"),xlab="Meses",ylab="AQI")
+
+
+#2018
+
+A2018<-DFCH1 %>% filter(Year==2018)
+A1_18<-A2018  %>% filter(Month=="01")%>% summarise(mean(AQI))
+A2_18<-A2018  %>% filter(Month=="02")%>% summarise(mean(AQI))
+A3_18<-A2018  %>% filter(Month=="03")%>% summarise(mean(AQI))
+A4_18<-A2018  %>% filter(Month=="04")%>% summarise(mean(AQI))
+A5_18<-A2018 %>% filter(Month=="05")%>% summarise(mean(AQI))
+A6_18<-A2018  %>% filter(Month=="06")%>% summarise(mean(AQI))
+A7_18<-A2018  %>% filter(Month=="07")%>% summarise(mean(AQI))
+A8_18<-A2018  %>% filter(Month=="08")%>% summarise(mean(AQI))
+A9_18<-A2018  %>% filter(Month=="09")%>% summarise(mean(AQI))
+A10_18<-A2018  %>% filter(Month=="10")%>% summarise(mean(AQI))
+A11_18<-A2018  %>% filter(Month=="11")%>% summarise(mean(AQI))
+A12_18<-A2018  %>% filter(Month=="12")%>% summarise(mean(AQI))
+
+AQI_C18<-c(A1_18$`mean(AQI)`,A2_18$`mean(AQI)`,A3_18$`mean(AQI)`,A4_18$`mean(AQI)`,A5_18$`mean(AQI)`,A6_18$`mean(AQI)`,A7_18$`mean(AQI)`,A8_18$`mean(AQI)`,A9_18$`mean(AQI)`,A10_18$`mean(AQI)`,A11_18$`mean(AQI)`,A12_18$`mean(AQI)`)
+
+MxC_18<-data.frame(AQI_M,AQI_C18)
+
+barplot(MxC_18$AQI_C,names.arg =MxC_18$AQI_M, main="AQI mensual del año 2018",col=c("red","orange","yellow","green","darkgreen","skyblue","blue","pink","purple","grey","black","brown"),xlab="Meses",ylab="AQI")
+
+
+#2019
+A2019<-DFCH1 %>% filter(Year==2019)
+A1_19<-A2019  %>% filter(Month=="01")%>% summarise(mean(AQI))
+A2_19<-A2019  %>% filter(Month=="02")%>% summarise(mean(AQI))
+A3_19<-A2019  %>% filter(Month=="03")%>% summarise(mean(AQI))
+A4_19<-A2019  %>% filter(Month=="04")%>% summarise(mean(AQI))
+A5_19<-A2019 %>% filter(Month=="05")%>% summarise(mean(AQI))
+A6_19<-A2019  %>% filter(Month=="06")%>% summarise(mean(AQI))
+A7_19<-A2019  %>% filter(Month=="07")%>% summarise(mean(AQI))
+A8_19<-A2019  %>% filter(Month=="08")%>% summarise(mean(AQI))
+A9_19<-A2019  %>% filter(Month=="09")%>% summarise(mean(AQI))
+A10_19<-A2019  %>% filter(Month=="10")%>% summarise(mean(AQI))
+A11_19<-A2019  %>% filter(Month=="11")%>% summarise(mean(AQI))
+A12_19<-A2019  %>% filter(Month=="12")%>% summarise(mean(AQI))
+
+AQI_C19<-c(A1_19$`mean(AQI)`,A2_19$`mean(AQI)`,A3_19$`mean(AQI)`,A4_19$`mean(AQI)`,A5_19$`mean(AQI)`,A6_19$`mean(AQI)`,A7_19$`mean(AQI)`,A8_19$`mean(AQI)`,A9_19$`mean(AQI)`,A10_19$`mean(AQI)`,A11_19$`mean(AQI)`,A12_19$`mean(AQI)`)
+
+MxC_19<-data.frame(AQI_M,AQI_C19)
+
+barplot(MxC_19$AQI_C,names.arg =MxC_19$AQI_M, main="AQI mensual del año 2019",col=c("red","orange","yellow","green","darkgreen","skyblue","blue","pink","purple","grey","black","brown"),xlab="Meses",ylab="AQI")
+
+
+#2020
+A2020<-DFCH1 %>% filter(Year==2020)
+A1_20<-A2020  %>% filter(Month=="01")%>% summarise(mean(AQI))
+A2_20<-A2020  %>% filter(Month=="02")%>% summarise(mean(AQI))
+A3_20<-A2020  %>% filter(Month=="03")%>% summarise(mean(AQI))
+A4_20<-A2020  %>% filter(Month=="04")%>% summarise(mean(AQI))
+A5_20<-A2020 %>% filter(Month=="05")%>% summarise(mean(AQI))
+A6_20<-A2020  %>% filter(Month=="06")%>% summarise(mean(AQI))
+A7_20<-A2020  %>% filter(Month=="07")%>% summarise(mean(AQI))
+A8_20<-A2020  %>% filter(Month=="08")%>% summarise(mean(AQI))
+A9_20<-A2020  %>% filter(Month=="09")%>% summarise(mean(AQI))
+A10_20<-A2020  %>% filter(Month=="10")%>% summarise(mean(AQI))
+A11_20<-A2020  %>% filter(Month=="11")%>% summarise(mean(AQI))
+A12_20<-A2020  %>% filter(Month=="12")%>% summarise(mean(AQI))
+
+
+AQI_C20<-c(A1_20$`mean(AQI)`,A2_20$`mean(AQI)`,A3_20$`mean(AQI)`,A4_20$`mean(AQI)`,A5_20$`mean(AQI)`,A6_20$`mean(AQI)`,A7_20$`mean(AQI)`,A8_20$`mean(AQI)`,A9_20$`mean(AQI)`,A10_20$`mean(AQI)`,A11_20$`mean(AQI)`,A12_20$`mean(AQI)`)
+
+MxC_20<-data.frame(AQI_M,AQI_C20)
+
+barplot(MxC_20$AQI_C,names.arg =MxC_20$AQI_M, main="AQI mensual del año 2020",col=c("red","orange","yellow","green","darkgreen","skyblue","blue","pink","purple","grey","black","brown"),xlab="Meses",ylab="AQI")
+```
+
+#### Cantidad (%) de AQI bucket por año
+
+```{r}
+YA<-DFCH1 %>% select(Year,AQI_Bucket)
+YA_15<-YA %>% filter(Year==2015)
+YA_16<-YA %>% filter(Year==2016)
+YA_17<-YA %>% filter(Year==2017)
+YA_18<-YA %>% filter(Year==2018)
+YA_19<-YA %>% filter(Year==2019)
+YA_20<-YA %>% filter(Year==2020)
+
+YA_15<-data.frame(table(YA_15))
+YA_16<-data.frame(table(YA_16))
+YA_17<-data.frame(table(YA_17))
+YA_18<-data.frame(table(YA_18))
+YA_19<-data.frame(table(YA_19))
+YA_20<-data.frame(table(YA_20))
+
+YA_15<-YA_15 %>% mutate(Cantidad=round(Freq/sum(Freq)*100,2))%>%select(-Freq)
+YA_16<-YA_16 %>% mutate(Cantidad=round(Freq/sum(Freq)*100,2))%>%select(-Freq)
+YA_17<-YA_17 %>% mutate(Cantidad=round(Freq/sum(Freq)*100,2))%>%select(-Freq)
+YA_18<-YA_18 %>% mutate(Cantidad=round(Freq/sum(Freq)*100,2))%>%select(-Freq)
+YA_19<-YA_19 %>% mutate(Cantidad=round(Freq/sum(Freq)*100,2))%>%select(-Freq)
+YA_20<-YA_20 %>% mutate(Cantidad=round(Freq/sum(Freq)*100,2))%>%select(-Freq)
+
+#Agregando una fila a YA_15
+F1<-data.frame("2015","Good",0)
+F1<-F1%>% rename("Year"="X.2015.","AQI_Bucket"="X.Good.","Cantidad"="X0")
+YA_15<-rbind(YA_15,F1)
+
+Y_15<-c(YA_15$Cantidad)
+Y_16<-c(YA_16$Cantidad)
+Y_17<-c(YA_17$Cantidad)
+Y_18<-c(YA_18$Cantidad)
+Y_19<-c(YA_19$Cantidad)
+Y_20<-c(YA_20$Cantidad)
+
+DF1<-data.frame(YA_15$AQI_Bucket,Y_15,Y_16,Y_17,Y_18,Y_19,Y_20)
+
+#Para cada año
+#2015
+p15=c(DF1$Y_15)
+etiq15<-paste(p15,"%",sep=" ")
+
+pie(p15,labels=etiq15,col=c("yellow","orange","olivedrab1","orangered4","red2"),main="Cantidad de AQI_Bucket en el año 2015")
+legend(x = "topleft", legend = c("Moderate","Poor","Satisfactory","Severe","Very Poor","Good"), title = "Leyenda",col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),lwd = 5)
+
+#2016
+p16=c(DF1$Y_16)
+etiq16<-paste(p16,"%",sep=" ")
+pie(p16,labels=etiq16,col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),main="Cantidad de AQI_Bucket en el año 2016")
+legend(x = "topleft", legend = c("Moderate","Poor","Satisfactory","Severe","Very Poor","Good"), title = "Leyenda",col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),lwd = 5)
+
+#2017
+p17=c(DF1$Y_17)
+etiq17<-paste(p17,"%",sep=" ")
+pie(p17,labels=etiq17,col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),main="Cantidad de AQI_Bucket en el año 2017")
+legend(x = "topleft", legend = c("Moderate","Poor","Satisfactory","Severe","Very Poor","Good"), title = "Leyenda",col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),lwd = 5)
+
+#2018
+p18=c(DF1$Y_18)
+etiq18<-paste(p18,"%",sep=" ")
+pie(p18,labels=etiq18,col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),main="Cantidad de AQI_Bucket en el año 2018")
+legend(x = "topleft", legend = c("Moderate","Poor","Satisfactory","Severe","Very Poor","Good"), title = "Leyenda",col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),lwd = 5)
+
+#2019
+p19=c(DF1$Y_19)
+etiq19<-paste(p19,"%",sep=" ")
+pie(p19,labels=etiq19,col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),main="Cantidad de AQI_Bucket en el año 2019")
+legend(x = "topleft", legend = c("Moderate","Poor","Satisfactory","Severe","Very Poor","Good"), title = "Leyenda",col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),lwd = 5)
+
+#2020
+p20=c(DF1$Y_20)
+etiq20<-paste(p20,"%",sep=" ")
+pie(p20,labels=etiq20,col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),main="Cantidad de AQI_Bucket en el año 2020")
+legend(x = "topleft", legend = c("Moderate","Poor","Satisfactory","Severe","Very Poor","Good"), title = "Leyenda",col=c("yellow","orange","olivedrab1","orangered4","red2","green4"),lwd = 5)
+
+```
+
+En la gráfica se muestra la proporción de la cantidad de AQI_Bucket en
+las ciudades analizadas por cada año. En el año 2015, se observa un
+alarmante resultado que indica graves molestias respiratorias para las
+personas con enfermedades pulmonares. Entre los años 2016-2018, este
+efecto baja considerablemente al indicador "pobre" en el que las
+personas presentan cierta incomodidad respiratoria con exposición
+prolongada. Sin embargo, la gráfica muestra que en el año 2019 y 2020,
+la contaminación incrementó a tal punto de afectar a gran parte de las
+ciudades de India y a las personas que no necesariamente padecen de
+enfermedades respiratorias, debido a la gran proporción del indicador
+"severo".
+
+Hipótesis: En el año 2020, debido a la cantidad de contaminantes en los
+primeros meses, los cuales son mayores en todos los años debido a las
+festividades, el porcentaje del AQI_Bucket se ve incrementado. Además,
+el confinamiento por COVID-19 en India inició en marzo-2020 por lo que a
+partir de ese mes que la cantidad de contaminantes reduce.
+
+
+```{r}
+#Cantidad totales de contaminanteS por AÑO por AQI 
+DFCH1$Year<- as.factor(DFCH1$Year)
+plot(x=DFCH1$Year, y=DFCH1$AQI, main="AQI por años",xlab="Año", ylab="AQI",col = c("orange", "yellowgreen", "yellow", "yellow1","yellow2","yellow2"),horizontal=T)
+
+#BIGOTES por CIUDADES AQI 
+DFCH1$City<-as.factor(DFCH1$City)
+str(DFCH1$City)
+plot(x=DFCH1$City, y=DFCH1$AQI,main="AQI por ciudades en el periodo 2015-2020",xlab="Ciudad", ylab="AQI", col = c("yellow", "yellow3", "yellow", "orange","yellow2", "yellow4", "yellow","yellow1","yellowgreen"),horizontal=T)
+
+#Bigotes por meses
+DFCH1$Month<-as.factor(DFCH1$Month)
+plot(x=DFCH1$Month, y=DFCH1$AQI, main="AQI por meses",xlab="Meses", ylab="AQI en la ciudad de DELHI",col = c("yellow", "yellow3", "yellow", "yellowgreen","yellow2", "yellow4", "yellow","yellow1","yellowgreen","yellow","yellow"),horizontal=T)
+```
+
+### Correlación entre variables numéricas
+
+Vemos un patrón de correlación entre las variables PM10 y PM2.5 con AQI.
+Esto debido a que todas estas son un conjunto de sustancias que cumplen
+con condiciones como: medir un diámetro menor a 2.5 micras o 10 micras.
+Por tanto, si hay un incremento de sustancias habrá un incremento de
+PM2.5 o PM10 y también del AQI ya que este último es un indicador de
+contaminación.
+
+
+```{r}
+
+#CORRELACION ENTRE VARIABLES NUMERICAS
+
+PARACOR<-DFCH1%>%select(PM2.5, PM10, AQI)
+cor(PARACOR)
+pairs(PARACOR)
+
+```
+
+
+
+## Análisis descriptivo
+
+## Distribución para las variables en estudio
+
+## Gráfica para PM2.5
+
+```{r ,echo=FALSE,message=FALSE}
+x_PM2.5=mean(DFCH1$PM2.5)
+hist(DFCH1$PM2.5, freq=FALSE, main="Histograma de distribución exponencial de PM2.5")
+
+curve(dexp(x, 1/x_PM2.5),from = 0, to= 1000, add = TRUE)
+```
+
+## Gráfica para NO
+
+```{r,echo=FALSE,message=FALSE}
+x_NO = mean(DFCH1$NO)
+hist(DFCH1$NO, freq=FALSE, main="Histograma de distribución exponencial de NO")
+
+curve(dexp(x, 1/x_NO),from = 0, to= 1000, add = TRUE)
+```
+
+## Gráfica para SO2
+
+```{r,echo=FALSE,message=FALSE}
+x_SO2 = mean(DFCH1$SO2)
+hist(DFCH1$SO2, freq=FALSE, main="Histograma de distribución exponencial de SO2")
+
+curve(dexp(x, 1/x_SO2),from = 0, to= 200, add = TRUE)
+```
+
+## Gráfica para CO
+
+```{r,echo=FALSE,message=FALSE}
+x_CO = mean(DFCH1$C_O)
+hist(DFCH1$C_O, freq=FALSE, main="Histograma de distribución exponencial de CO")
+
+curve(dexp(x, 1/x_CO),from = 0, to= 17500, add = TRUE)
+```
+
+## 
+
+```{r,echo=FALSE,message=FALSE}
+library("Rlab")
+BERNODF <- DFCH1 %>% select(AQI_Bucket)
+
+
+AQI_Bueno <- sum(BERNODF$AQI_Bucket=="Good",BERNODF$AQI_Bucket=="Satisfactory",BERNODF$AQI_Bucket=="Moderate")
+AQI_Malo <-sum(BERNODF$AQI_Bucket=="Poor",BERNODF$AQI_Bucket=="Very Poor", BERNODF$AQI_Bucket=="Severe")
+
+AQI_BERN <- c(AQI_Bueno, AQI_Malo)
+AQI_BERN[1]
+nber <-129777
+p_barra <- 101909/nber
+dbern(129777,p_barra)
+sd(AQI_BERN[1])
+
+
+#experimento que mira
+BINBM = rbinom(1000,nber,p_barra)
+hist(BINBM, main="Histograma de dist binomial del AQI", xlab="numero de pruebas con AQI bueno", ylab="Frecuencia", breaks=20,col="green")
+
+
+```
+
+
+
+
+
+
+Nivel de confianza: 95%
+Utilizamos como referencia la guía de calidad de aire de la OMS en donde usan un nivel de confianza del 95%, lo cual indica que dentro del rango dado se encuentra el valor real de un parámetro con 95% de certeza para un tamaño de muestra suficientemente grande.
+
+Bien sabemos que el tamaño de muestra es directamente proporcional al estadístico de prueba. Asimismo, al usar un tamaño de muestra muy grande, el estadístico de prueba correspondiente será también grande.
+
+
+# Prueba de hipotésis
+
+Función para hallar el estadístico de prueba
+
+```{r Función estadistico}
+estadistico =function (xbarra,s,n,u){
+  est=(xbarra-u)/(s/n^0.5)
+  return (est)
+}
+```
+
+Función para hallar el intervalo de confianza para medias
+
+```{r}
+int_conf =function (xbarra,s,t,n){
+  a=round(xbarra-t*(s/(n^0.5)),2)
+  b=round(xbarra+t*(s/(n^0.5)),2)
+  return (c(a,b))
+}
+```
+
+
+
+Hipótesis: La cantidad promedio de PM2.5 anual es mayor a 10 ug/m3.
+
+Pregunta: ¿La cantidad promedio de PM2.5 anual sobrepasa el límite permisible de 10 ug/m3?
+
+## Prueba de hipótesis sobre PM2.5 entre los años 2017-2019
+
+$$H_0:µ<=10$$ 
+
+$$H_1:µ>10$$
+
+```{r echo=F,fig.cap='pdf',out.width = '100%',fig.align='center'}
+knitr::include_graphics("2.5.png")
+```
+
+
+## Año 2017
+
+```{r PM2.5}
+DF17 <- DFCH1 %>% filter(Year=='2017')
+DF18 <- DFCH1 %>% filter(Year=='2018')
+DF19 <- DFCH1 %>% filter(Year=='2019')
+
+xbarra_PM2.5_17 = mean(DF17$PM2.5)
+s_PM2.5_17 = sd(DF17$PM2.5)
+alpha = 0.05
+n_17 = nrow(DF17)
+valor_critico_17 = qt(1-alpha,n_17-1)
+est_PM2.5_17 = estadistico(xbarra_PM2.5_17,s_PM2.5_17,n_17,10)
+
+valor_critico_17
+est_PM2.5_17
+range(DF17$PM2.5)
+int_conf(xbarra_PM2.5_17,s_PM2.5_17,valor_critico_17,n_17)
+```
+$$[78.15,80.20]$$
+
+## Año 2018
+
+```{r}
+xbarra_PM2.5_18 = mean(DF18$PM2.5)
+s_PM2.5_18 = sd(DF18$PM2.5)
+n_18 = nrow(DF18)
+valor_critico_18 = qt(1-alpha,n_18-1)
+est_PM2.5_18 = estadistico(xbarra_PM2.5_18,s_PM2.5_18,n_18,10)
+
+valor_critico_18
+est_PM2.5_18
+range(DF18$PM2.5)
+int_conf(xbarra_PM2.5_18,s_PM2.5_18,valor_critico_18,n_18)
+```
+$$[69.03,70.28]$$
+
+## Año 2019
+
+```{r}
+xbarra_PM2.5_19 = mean(DF19$PM2.5)
+s_PM2.5_19 = sd(DF19$PM2.5)
+n_19 = nrow(DF19)
+valor_critico_19 = qt(1-alpha,n_19-1)
+est_PM2.5_19 = estadistico(xbarra_PM2.5_19,s_PM2.5_19,n_19,10)
+
+valor_critico_19
+est_PM2.5_19
+range(DF19$PM2.5)
+int_conf(xbarra_PM2.5_19,s_PM2.5_19,valor_critico_19,n_19)
+```
+$$[60.16,61.19]$$
+
+Conclusión:
+Sí rechazamos H0, porque el estadístico de prueba está en la zona de rechazo.
+Además, se observa que nuestra media poblacional sobrepasa el límite permisivo anual establecido por la OMS de 10 ug/m3, lo que ocasiona que los habitantes de India corran el riesgo de desarrollar enfermedades cardiovasculares y respiratorias, así como cáncer de pulmón.
+
+Según el informe de la Green Peace:
+Dato: La cantidad de PM2.5 promedio en Delhi en 2020 fue casi 6 veces superior al límite permisible por la OMS.
+
+Según la publicación médica de The Lancet:
+Al rededor de 1.67 millones de vidas se perdieron en India por aire tóxico.
+
+Extraído de: https://bit.ly/3hWbkfQ
+https://reut.rs/3eOLKaI
+
+
+
+
+Hipótesis: La cantidad promedio de PM10 anual es mayor a 20 ug/m3.
+
+Pregunta: ¿La cantidad promedio de PM10 anual sobrepasa el límite permisible de 20 ug/m3?
+
+## Prueba de hipótesis sobre PM10 entre los años 2017-2019
+
+$$H_0:µ<=20$$ 
+$$H_1:µ>20$$ 
+
+```{r echo=F,fig.cap='pdf',out.width = '100%',fig.align='center'}
+knitr::include_graphics("pm10.png")
+```
+
+
+## Año 2017
+
+```{r}
+xbarra_PM10_17 = mean(DF17$PM10)
+s_PM10_17 = sd(DF17$PM10)
+est_PM10_17 = estadistico(xbarra_PM10_17,s_PM10_17,n_17,20)
+
+valor_critico_17
+est_PM10_17
+range(DF17$PM10)
+int_conf(xbarra_PM10_17,s_PM10_17,valor_critico_17,n_17)
+```
+$$[142.89,145.76]$$
+
+## Año 2018
+
+```{r}
+xbarra_PM10_18 = mean(DF18$PM10)
+s_PM10_18 = sd(DF18$PM10)
+est_PM10_18 = estadistico(xbarra_PM10_18,s_PM10_18,n_18,20)
+
+valor_critico_18
+est_PM10_18
+range(DF18$PM10)
+int_conf(xbarra_PM10_18,s_PM10_18,valor_critico_18,n_18)
+```
+$$[150.31,152.48]$$
+
+## Año 2019
+
+```{r}
+xbarra_PM10_19 = mean(DF19$PM10)
+s_PM10_19 = sd(DF19$PM10)
+est_PM10_19 = estadistico(xbarra_PM10_19,s_PM10_19,n_19,20)
+
+valor_critico_19
+est_PM10_19
+range(DF19$PM10)
+int_conf(xbarra_PM10_19,s_PM10_19,valor_critico_19,n_19)
+```
+$$[123.39,125.06]$$
+
+Conclusión:
+Sí rechazamos H0, porque el estadístico de prueba está en la zona de rechazo. Además, se observa que para un nivel de confianza de 95%, para el año 2017 el estadístico de prueba es muy cercano al intervalo de confianza para la cantidad promedio de PM10.
+En todos los años se cumple que la cantidad de promedio de PM10 sobrepasa el límite permisible de 20 ug/m3, por lo que los habitantes pueden percibir una exposición crónica a las partículas que agrava el riesgo de desarrollar cardiopatías y neumopatías, así como cáncer de pulmón
+
+Extraído de: https://bit.ly/3y1jVUf
+
+
+
+
+Hipótesis: La cantidad promedio de NO2 anual es mayor a 40 ug/m3.
+
+Pregunta: ¿La cantidad promedio de NO2 anual sobrepasa el límite permisible de 40 ug/m3?
+
+## Prueba de hipótesis sobre NO2 entre los años 2017-2019
+
+$$H_0:µ<=40$$ 
+$$H_1:µ>40$$ 
+
+```{r echo=F,fig.cap='pdf',out.width = '100%',fig.align='center'}
+knitr::include_graphics("N02.png")
+```
+
+
+## Año 2017
+
+```{r}
+xbarra_NO2_17 = mean(DF17$NO2)
+s_NO2_17 = sd(DF17$NO2)
+est_NO2_17 = estadistico(xbarra_NO2_17,s_NO2_17,n_17,40)
+
+valor_critico_17
+est_NO2_17
+range(DF17$NO2)
+int_conf(xbarra_NO2_17,s_NO2_17,valor_critico_17,n_17)
+```
+$$[35.96,36.58]$$
+
+## Año 2018
+
+```{r}
+xbarra_NO2_18 = mean(DF18$NO2)
+s_NO2_18 = sd(DF18$NO2)
+est_NO2_18 = estadistico(xbarra_NO2_18,s_NO2_18,n_18,40)
+
+valor_critico_18
+est_NO2_18
+range(DF18$NO2)
+int_conf(xbarra_NO2_18,s_NO2_18,valor_critico_18,n_18)
+```
+$$[39.65,40.10]$$
+
+
+## Año 2019
+
+```{r}
+xbarra_NO2_19 = mean(DF19$NO2)
+s_NO2_19 = sd(DF19$NO2)
+est_NO2_19 = estadistico(xbarra_NO2_19,s_NO2_19,n_19,40)
+
+valor_critico_19
+est_NO2_19
+range(DF19$NO2)
+int_conf(xbarra_NO2_19,s_NO2_19,valor_critico_19,n_19)
+```
+$$[30.76,31.14]$$
+
+Conclusión:
+No rechazamos H0, porque el estadístico de prueba no está en la zona de rechazo. En los años 2017 y 2019 se cumple que la cantidad promedio poblacional de NO2 es menor al límite permisible de 40 ug/m3 establecido por la OMS. Por otro lado, en el año 2018, puede que la media poblacional sobrepase el límite permisible de NO2.
+Por ahora, los habitantes no están expuestos a cantidades dañinas para su salud, por lo que no desarrollarán posibles quemaduras, espasmos y/o dilataciones de los tejidos en la garganta y las vías respiratorias superiores, evitando así reducir la oxigenación de sus tejidos del cuerpo y producir acumulación del líquido en los pulmones y la muerte.
+
+Extraído de: https://bit.ly/3eQ4BCe
+
+
+
+### Relaciones 
+
+Respecto a las relaciones que encontramos anteriormente entre la variables, buscamos su regresión lineal.
+
+#### PM10 Y  AQI
+
+La correlación entre el PM10 y el AQI es:
+
+```{r, echo=FALSE, message=FALSE}
+cor(DFCH1$PM10,DFCH1$AQI)
+```
+
+Con eso podemos determinar que existe una buena correlación entre variables; asimismo, con ello buscamos un modelo que explique la correlación entre las variables. En ese sentido determinamos lo siguiente:
+
+Variable predicha: PM10
+Variable predictora:AQI
+
+
+```{r, echo=FALSE, message=FALSE}
+
+modelo1=lm(AQI ~ PM10,DFCH1) #PM10 VARIABLE PREDICHA  Y AQI VARIABALE PREDICTORA
+summary(modelo1) #Rechazar hipótesis nula p<0.05 #R^2 indica cuanto porcentaje de la variable AQI es explicada con PM10 
+
+
+
+modelo1$coefficients # se plantea la función que describe la regresión lineal y podemos hallar valores #intercepto es b y DF es a               por lo tanto   y= ax+b
+```
+
+Variable - PM10
+
+$$H_0:\beta_1=0$$
+$$H_1:\beta_1≠0$$
+
+
+Análisis:
+Respecto a los coeficientes, el intercepto tiene un p value de 2e-16 y la variable PM10 tiene un p value de 2e-16, lo cual es menor al nivel de significancia (0.05) y por tanto rechazamos la hipótesis nula, lo que muestra que tanto el intercepto como la variable PM10 sí aportan al modelo propuesto.
+
+Modelo:
+
+Respecto al modelo, se tiene un p value de 2.2e-16, lo cual es menor al nivel de significancia (0.05), lo que muestra que el modelo sí es significativo.
+
+
+Función:
+$$Y = 0.7912247x + 43.9077628$$
+Donde:
+x : Valor de PM 10
+y: Valor de AQI
+
+$$R^2=0.657$$
+
+0.657 de la variación del AQI está representado por la variación del valor del PM10.
+
+
+```{r}
+plot(DFCH1$PM10,DFCH1$AQI,main="Relación PM10 Y AQI",xlab="PM10",ylab="AQI",col=c("green","blue")) #Grafico
+abline(modelo1,col="red")
+
+
+#residuos
+residuos1=rstandard(modelo1)
+valoresajustados1=fitted(modelo1)
+plot(valoresajustados1,residuos1,col=c("orange","skyblue"))
+abline(h=0,col="red")
+
+#normalidad
+qqnorm(residuos1,col=c("orange","skyblue"))
+qqline(residuos1,col="red")
+```
+
+
+#### PM2.5 Y AQI
+
+La correlación entre el PM2.5 y el AQI es:
+
+```{r, echo=FALSE, message=FALSE}
+cor(DFCH1$PM2.5,DFCH1$AQI)
+```
+
+Variable predicha: PM2.5
+Variable predictora:AQI
+
+```{r, echo=FALSE, message=FALSE}
+cor(DFCH1$PM2.5,DFCH1$AQI) 
+cor.test(DFCH1$PM2.5,DFCH1$AQI) 
+modelo4=lm(DFCH1$AQI ~ DFCH1$PM2.5) 
+summary(modelo4) 
+
+modelo4$coefficients
+```
+
+Variable - PM2.5
+
+$$H_0:\beta_1=0$$
+$$H_1:\beta_1≠0$$
+
+
+Análisis:
+Respecto a los coeficientes, el intercepto tiene un p value de 2e-16 y la variable PM2.5 tiene un p value de 2e-16, lo cual es menor al nivel de significancia (0.05) y por tanto rechazamos la hipótesis nula, lo que muestra que tanto el intercepto como la variable PM10 sí aportan al modelo propuesto.
+
+Modelo:
+
+H0: El modelo no es significativo.
+
+Respecto al modelo, se tiene un p value de 2.2e-16, lo cual es menor al nivel de significancia (0.05) y por tanto rechazamos la hipótesis nula, lo que muestra que el modelo sí es significativo.
+
+
+Función:
+$$Y = 1.269942x +64.230010$$
+Donde:
+x : Valor de PM2.5
+y: Valor de AQI
+
+$$R^2=0.662$$
+
+0.662 de la variación del AQI está representado por la variación del valor del PM2.5.
+
+```{r}
+plot(DFCH1$PM2.5,DFCH1$AQI,main="Relación PM2.5 Y AQI",xlab="PM2.5",ylab="AQI",col=c("green","blue")) 
+abline(modelo4,col="red")
+#residuos
+residuos4=rstandard(modelo4)
+valoresajustados4=fitted(modelo4)
+plot(valoresajustados4,residuos4,col=c("orange","skyblue"))
+abline(h=0,col="red")
+
+#normalidad
+qqnorm(residuos4,col=c("orange","skyblue"))
+qqline(residuos4,col="red")
+```
+
+
+
+
+#### PM10 Y PM2.5 
+La correlación entre el PM10 y el PM2.5 es:
+
+```{r, echo=FALSE, message=FALSE}
+cor(DFCH1$PM10,DFCH1$PM2.5)
+```
+
+Variable predicha: PM10
+Variable predictora: PM2.5
+
+
+```{r, echo=FALSE, message=FALSE}
+cor(DFCH1$PM2.5,DFCH1$PM10) 
+cor.test(DFCH1$PM10,DFCH1$PM2.5) 
+modelo2=lm(DFCH1$PM2.5 ~ DFCH1$PM10) 
+summary(modelo2) 
+modelo2$coefficients
+```
+
+Variable - PM10
+
+$$H_0:\beta_1=0$$
+$$H_1:\beta_1≠0$$
+
+
+Análisis:
+Respecto a los coeficientes, el intercepto tiene un p value de 2e-16 y la variable PM10 tiene un p value de 2e-16, lo cual es menor al nivel de significancia (0.05) y por tanto rechazamos la hipótesis nula, lo que muestra que tanto el intercepto como la variable PM10 sí aportan al modelo propuesto.
+
+Modelo:
+
+Respecto al modelo, se tiene un p value de 2.2e-16, lo cual es menor al nivel de significancia (0.05) y por tanto rechazamos la hipótesis nula, lo que muestra que el modelo sí es significativo.
+
+
+Función:
+$$Y = 0.5394843x -5.2840161$$
+Donde:
+x : Valor de PM10
+y: Valor de PM2.5
+
+$$R^2=0.7441$$
+
+0.7741 de la variación del PM2.5 está representado por la variación del valor del PM10.
+
+```{r}
+plot(DFCH1$PM10,DFCH1$PM2.5,main="Relación PM10 Y PM2.5",xlab="PM10",ylab="PM2.5",col=c("green","blue")) 
+abline(modelo2,col="red")
+
+#residuos
+residuos2=rstandard(modelo2)
+valoresajustados2=fitted(modelo2)
+plot(valoresajustados2,residuos2,col=c("orange","skyblue"))
+abline(h=0,col="red")
+
+#normalidad
+qqnorm(residuos2,col=c("orange","skyblue"))
+qqline(residuos2,col="red")
+```
+
+
+
+
+Regresión múltiple
+```{r, echo=FALSE, message=FALSE}
+
+
+modelo5=lm(DFCH1$AQI ~ DFCH1$PM2.5+DFCH1$PM10) 
+summary(modelo5) 
+modelo5$coefficients 
+
+```
+
+
+Variable 1 (PM2.5)
+
+$$H_0:\beta_1=0$$
+$$H_1:\beta_1≠0$$
+
+Variable 2 (PM10)
+
+$$H_0:\beta_2=0$$
+$$H_1:\beta_2≠0$$
+
+Análisis:
+Respecto a los coeficientes, el intercepto tiene un p value de 2e-16, la variable PM10 tiene un p value de 2e-16 y la variable PM2.5 tiene un p value de 2e-16, los cuales son menores al nivel de significancia (0.05) y por tanto rechazamos la hipótesis nula, lo que muestra que tanto el intercepto como la variable PM10 y la variable PM2.5 sí aportan al modelo propuesto.
+
+Modelo:
+
+Respecto al modelo, se tiene un p value de 2.2e-16, lo cual es menor al nivel de significancia (0.05) y por tanto rechazamos la hipótesis nula, lo que muestra que el modelo sí es significativo.
+
+
+Función:
+$$Y = 0.41146288x_2 +0.6980665x_1 +47.5963574$$
+Donde:
+x_1 : Valor de PM2.5
+x_2 : valor de PM10 
+y: Valor de AQI
+
+$$R^2=0.7081$$
+
+0.7081 de la variación del AQI está representado por la variación del valor del PM2.5 y la variación del valor del PM10.
+
+
+## 5. Conclusiones
+Los horarios que no son recomendables son de las 20:00 horas a 04:00 horas puesto que se observa una tendencia en todos los años ya que entre estas horas se produce una gran cantidad de contaminantes, aproximadamente 2000 ug/m3. Todo ello se debe a la gran actividad que realizan las empresas, así como tiendas nocturnas que conllevan a la liberación de gases contaminantes. Asimismo, se determinó que el principal contaminante en India es el CO y que los meses donde se producen más contaminantes son enero, febrero, noviembre y diciembre. Esto se debe a que hay diversas festividades y fenómenos naturales que se producen en India. Por otro lado, dado las pruebas de hipótesis planteadas, se concluye que los límites establecidos por la OMS son ampliamente superados para los contaminantes PM2.5 y PM10. Además, se detectó que la ciudad más contaminada en India es Delhi, debido a la gran cantidad de población que posee a comparación de las demás ciudades. Por último, se encontró una correlación positiva y fuerte entre las variables PM2.5, PM10 y el AQI con un valor de aproximadamente 0.80. En el cual, se pudo identificar distintos modelos para la regresión entre variables que nos ayudarán a predecir nuevos valores.
+
+
+## 6. Planificación
+
+```{r, echo=FALSE, message=FALSE}
+data <- data.frame(
+  id      = 1:7,
+  content = c("Búsqueda de base de datos"  , "LLuvia de ideas"  ,"PRE-ENTREGA", "ENTREGA 1","ENTREGA 2","ENTREGA 3","ENTREGA 4"),
+  start   = c("2021-04-18", "2021-04-28","2021-04-30" , "2021-04-30", "2021-05-21","2021-06-11","2021-07-03"),
+
+  end     = c(NA          ,           NA, NA, "2021-05-21","2021-06-11" , "2021-06-23", "2021-07-07")
+)
+
+timevis(data)
+
+```
