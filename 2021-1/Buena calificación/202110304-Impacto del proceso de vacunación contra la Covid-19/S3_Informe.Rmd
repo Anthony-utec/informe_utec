@@ -1,0 +1,653 @@
+---
+title: "Impacto del proceso de vacunación contra la Covid-19"
+date: "August 7th 2021"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: journal
+---
+
+# Importancia de la investigación
+El estudio busca sensibilizar e informar a la población sobre los efectos generados por el proceso de vacunación contra la Covid-19 en las regiones del Perú, por lo que se considera un tema de interés público debido al contexto actual.
+
+# Cargamos librerías
+```{r}
+library(readr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(stringr)
+library(scales)
+library(lubridate)
+library(modeest)
+library(viridis)
+library(lubridate)
+```
+
+# Utilities 
+```{r echo=FALSE}
+getEtapa <- function(edad) 
+{
+  ifelse(edad>60,"Adulto Mayor",ifelse(edad>29,"Adulto",ifelse(edad>17,"Joven","Niño")))
+}
+```
+
+```{r warning=FALSE, include=FALSE}
+# Verifica si es que la variable es integer(0) o no
+fun_int0 <- function(my_data) {    # Create user-defined function
+ 
+  if(length(my_data) == 0 & is.integer(my_data)) {
+ 
+    return(FALSE)
+# [1] "The data object is integer(0)."
+ 
+  } else {
+ 
+    return(TRUE)
+# [1] "The data object is NOT integer(0)."
+  }
+}
+```
+
+```{r warning=FALSE, include=FALSE}
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  numPlots = length(plots)
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+ if (numPlots==1) {
+    print(plots[[1]])
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+```
+
+
+# Asignar DF's con los datos raw de los archivos
+```{r}
+DFFallecidosRAW <- read_csv("fallecidos_covid.csv")
+DFVacunadosRAW <- read_csv("vacunas_covid.csv")
+```
+
+# Asignar DF con las proporciones por departamento
+```{r}
+DFProporciones <- read_csv("PoblacionTotal.csv")
+```
+
+
+# Limpieza tabla DFVacunados
+```{r echo = FALSE}
+DFVacunadosCLEAN<-subset(DFVacunadosRAW,select = -c(FECHA_CORTE,UUID,DIRESA,PROVINCIA,DISTRITO))
+DFVacunadosCLEAN %>% rename("GRUPO"="GRUPO_RIESGO")-> DFVacunadosCLEAN
+vector<-DFVacunadosCLEAN$FECHA_VACUNACION
+dia<-str_sub(vector,-2,-1) #dia
+mes<-str_sub(vector,-4,-3) #mes
+anio<-str_sub(vector, end = 4) #anio
+date = paste(anio,"-",mes,"-",dia, sep = "")
+DFVacunadosCLEAN$FECHA_VACUNACION<- lubridate::ymd(date)
+```
+
+# Limpieza tabla DFFallecidos
+```{r echo = FALSE}
+DFFallecidosCLEAN<-subset(DFFallecidosRAW,select = -c(FECHA_CORTE,UUID,UBIGEO,PROVINCIA,DISTRITO))
+DFFallecidosCLEAN %>% rename("EDAD"= "EDAD_DECLARADA")-> DFFallecidosCLEAN
+vector<-DFFallecidosCLEAN$FECHA_FALLECIMIENTO
+dia<-str_sub(vector,-2,-1) #dia
+mes<-str_sub(vector,-4,-3) #mes
+anio<-str_sub(vector, end = 4) #anio
+date = paste(anio,"-",mes,"-",dia, sep = "")
+DFFallecidosCLEAN$FECHA_FALLECIMIENTO<- lubridate::ymd(date)
+DFFallecidosCLEAN<-filter(DFFallecidosCLEAN,SEXO != "INDETERMINADO")
+DFFallecidosCLEAN<-filter(DFFallecidosCLEAN,SEXO != "INDETERMINAD")
+```
+
+```{r}
+#suma <- (sum(DFProporciones$POBLACION * 1000))/100
+tablaVacunados <- table(DFVacunadosCLEAN$DEPARTAMENTO)
+tablaFallecidos <- table(DFFallecidosCLEAN$DEPARTAMENTO)
+DFProporciones <-mutate(DFProporciones, porcentajeVacunados = as.double((tablaVacunados[DFProporciones$DEPARTAMENTO])*100/(DFProporciones$POBLACION*1000))/100)
+DFProporciones <-mutate(DFProporciones, porcentajeFallecidos = as.double((tablaFallecidos[DFProporciones$DEPARTAMENTO])*100/(DFProporciones$POBLACION*1000))/100)
+```
+
+# Parámetros de estudio
+
+- Nivel de confianza: 95%
+
+## Tamaño de la muestra
+- Datos sobre vacunados:
+  - Observaciones completas: 11 039 761
+- Datos sobre fallecidos:
+  - Observaciones completas: 194843 
+
+Data tomada hasta el 14 de julio del 2021
+
+# Objetivos
+Al inicio de este proyecto se plantea los siguientes objetivos, estos serán discutidos una vez finalizado el análisis.
+- Analizar la cantidad de fallecidos en el periodo de la segunda ola.
+- Hallar la comparación del impacto de la vacunación en los diferentes departamentos del país.
+- Visualizar la curva de fallecidos desde el inicio de la vacunación según la etapa de vida.
+- Determinar si es que existe relación entre las distintas vacunas con la cantidad de fallecidos en los distintos departamentos.
+
+# Análisis descriptivo
+
+## Descriptores Gráficos
+
+### Cantidad de fallecidos por día
+
+Podemos observar claramente cómo han habido dos olas en las que hubo una gran cantidad de fallecidos por día. El gráfico aparenta que el decremento de fallecidos en la segunda ola ha sido más rápido y el número de fallecidos por día ha llegado a niveles inferiores a los de la primera ola. Este descriptor es importante ya que el decremento de fallecimientos de la segunda ola coincide con la llegada de las vacunas al Perú, lo que nos permite estudiar la influencia del proceso de vacunación en el número de fallecimientos.
+```{r echo=FALSE, warning=FALSE}
+DFFechaFallecidos <- as.data.frame(table(DFFallecidosCLEAN$FECHA_FALLECIMIENTO))
+ggplot(data = DFFallecidosCLEAN, aes(FECHA_FALLECIMIENTO)) + 
+  geom_freqpoly() + 
+  scale_x_date(date_breaks = "2 month", labels = date_format("%b %Y"), limits = as.Date(c('2020-03-03','2021-07-14'))) +
+  labs(title = "Polígono de dispersión de fallecidos por COVID-19",
+       x = "Fecha",
+       y = "Cantidad de fallecidos")
+```
+
+
+### Edades de personas fallecidas por Covid-19
+En el diagrama podemos observar en términos de frecuencia las edades que tenían las personas fallecidas por covid. Se visualiza que las edades de las personas que más han fallecido por la pandemia tenían entre 60 y 75 años. Sin embargo, esto no quita el hecho de que gran cantidad de los fallecidos sean personas mayores de 40 años. Esta gráfica nos permite entender cuáles son los rangos de edades más afectados por covid 19 para de esa forma poder enfocar gran parte del estudio en ese sector.
+```{r, echo=FALSE, warning=FALSE}
+ggplot(data = DFFallecidosCLEAN, aes(x=EDAD)) + 
+  geom_histogram(aes(fill=..count..)) + 
+  scale_fill_viridis("Frecuencia", discrete=F) + 
+  labs(title="Edades de personas fallecidas por COVID-19",
+       x="Edad(años)",
+       y="Frecuencia")
+```
+
+
+### Edades por día de vacunación
+En esta gráfica observamos la edad de personas vacunadas en promedio por día. Podemos ver que al inicio del proceso de vacunación las edades en promedio eran de entre 30 y 55 años aproximadamente, esto se explica porque al inicio del proceso de vacunación se priorizó la inoculación de la vacuna a las personas que se encontraban en la primera línea de emergencia; lo cual abarcaba a doctores, enfermeros, bomberos, militares y policías. Esto ocurrió hasta inicios de abril en donde comenzó terminó la vacunación de personal de primera línea y empezó la vacunación de personas mayores, iniciando con los rangos más altos de edad, para lo cual en mayo se puede observar el pico de promedio de edad más alto registrado. Después de esta fecha el promedio ha decrecido a un ritmo parecido a un modelo lineal, aunque conforme pasa el tiempo, disminuye la edad promedio de fallecidos por día y la pendiente de la gráfica tmb se vuelve menos empinada, esto debido a que conforme la edad promedio de vacunados es menor, existe una mayor cantidad de personas a las cuales vacunar para seguir disminuyendo el promedio.
+```{r echo=FALSE, warning=FALSE}
+DFFechaVacunados <- as.data.frame(table(DFVacunadosCLEAN$FECHA_VACUNACION))
+ggplot(data = DFVacunadosCLEAN, aes(x= FECHA_VACUNACION, y = EDAD)) + 
+  geom_line(color="indianred3", size=1) +
+  geom_smooth()+ 
+  scale_x_date(date_breaks = "1 month", labels = date_format("%b %Y"), limits = as.Date(c('2021-02-09','2021-07-14'))) +
+  labs(title = "Polígono de frecuencia de fecha de vacunacion y edad contra la COVID-19",
+       x = "Fecha de vacunacion",
+       y = "Edad") +
+  ylim(0,120)
+```
+
+
+### Sexo de personas fallecidas por Covid-19
+En este gráfico se aprecia de forma simple y concisa que la cantidad de personas fallecidas por Covid - 19 han sido en su mayoría hombres, siendo que alrededor de 120,000 decesos ocurridos han sido de hombres mientras que menos de 80,000 fueron de mujeres. Esto es útil para estudiar posteriormente el impacto de la vacunación por sexo en los fallecimientos ya que podría haber distinción de este efecto según el sexo.
+```{r, echo=FALSE, warning=FALSE}
+options(scipen=999)
+barplot(table(DFFallecidosCLEAN$SEXO),
+        main="Sexo de personas fallecidas por COVID-19",
+        col=c("orange", "blue"),
+        legend.text=c("Mujeres", "Hombres"),
+        ylim = c(0,150000),
+        ylab = "Frecuencia"
+)
+```
+
+### Porcentaje de fallecidos por departamento en proporción a su cantidad de habitantes
+La siguiente gráfica muestra el porcentaje de fallecidos con respecto al tamaño poblacional de cada departamento. Observamos como a pesar de que Lima es la región con mayor cantidad de fallecidos, no es el departamento que se ha visto más afectado en términos de densidad poblacional. Vemos como departamentos como Moquegua, cuya población es significativamente menor posee casi el mismo porcentaje de fallecidos que Lima. Asimismo Ica cuya población es mayor a la de Moquegua pero menor a la de Lima ha sido el departamento más afectado tomando en cuenta el número de víctimas fatales por habitantes. Esta gráfica es importante para nuestro estudio dado que estudiar los fallecimientos únicamente tomando en cuenta las cantidades totales, muestran una falsa impresión de que Lima es el departamento más afectado y con creces. En cambio estudiar los fallecimientos en términos de proporciones por departamento nos permite ver más fácilmente el impacto real de la pandemia en cada uno de ellos.
+```{r, echo=FALSE, warning=FALSE}
+DFProporciones  %>% select(DEPARTAMENTO, porcentajeFallecidos) -> DF_PROP_FILTER
+# Podemos mejorar con una gráfica por cada departamento
+#ggplot(data = DF_PROP_FILTER , aes(x=porcentajeFallecidos,y=DEPARTAMENTO)) + 
+#  geom_histogram(aes(fill=..count..), stat = "count") + 
+#  scale_fill_viridis("Frecuencia", discrete=F) + 
+#  labs(title="Departamentos de fallecidos por COVID-19",
+#       x="Departamento",
+#       y="Proporcion")
+ggplot( data = DF_PROP_FILTER , aes(y=porcentajeFallecidos, x=DEPARTAMENTO)) +
+    geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("") +
+    theme_bw()
+```
+
+
+
+
+### Cantidad de personas vacunadas por sexo
+En este gráfico se observa que la cantidad de personas vacunadas del sexo femenino es superior a la del sexo masculino, siendo que las personas de sexo femenino han recibido alrededor de 6,000,000 de dosis y las de sexo masculino un número inferior pero entre las 5,500,000 y las 6,000,000 por lo que podríamos decir que la diferencia no es considerable Este gráfico es importante ya que nos indica que el proceso de vacunación se está llevando a cabo de manera prácticamente uniforme en términos de sexo, al menos desde un punto de vista general y no regional.
+```{r, echo=FALSE}
+options(scipen=999)
+barplot(table(DFVacunadosCLEAN$SEXO),
+        main="Sexo de personas vacunadas por COVID-19",
+        col=c("orange", "blue"),
+        legend.text=c("Mujeres", "Hombres"),
+        ylim = c(0,6000000),
+        ylab = "Frecuencia"
+)
+```
+
+
+### Cantidad de personas con 1 o 2 dosis
+En el gráfico se observa que la cantidad de personas que han recibido una dosis supera a la que han recibido 2, lo que es totalmente normal considerando que existe una diferencia de días que se deben dar para poder aplicarse la segunda dosis. En específico, la cantidad de personas que han recibido una dosis son alrededor de 7 millones mientras que alrededor de 4 millones han recibido ambas dosis, es decir, que el aproximadamente el 36% de la población vacunada cuenta con ambas dosis. Estos datos son útiles para analizar correctamente el impacto de la vacunación según el número de dosis aplicadas.
+```{r echo=FALSE, warning=FALSE}
+ggplot(data = DFVacunadosCLEAN, aes(x=DOSIS)) + 
+  geom_histogram(aes(fill=..count..), stat = "count") + 
+  scale_fill_viridis("Frecuencia", discrete=F) + 
+  labs(title="Dosis de vacunas por COVID-19",
+       x="Dosis",
+       y="Frecuencia")
+```
+
+
+### Cantidad de vacunas inoculadas por fabricante
+El siguiente gráfico de frecuencias muestra la cantidad de dosis que se han aplicado según el respectivo fabricante de vacunas. Se observa que el fabricante Pfizer, ha sido el principal proveedor de dosis, siendo que en el proceso se han utilizado alrededor de 8 millones de dosis es esta compañía. Muy por debajo, se encuentran los fabricantes Astrazeneca y Sinopharm, cuyas dosis han sido partícipes de alrededor de 2 millones y medio millón  de aplicaciones respectivamente. Esta información es importante ya que nos permite saber cuál ha sido la vacuna más aplicada y su proporción respecto al porcentaje de aplicaciones totales.
+```{r, echo=FALSE, warning=FALSE}
+DFVacunadosCLEAN<-filter(DFVacunadosCLEAN,FABRICANTE != "NA")
+ggplot(data = DFVacunadosCLEAN, aes(x=FABRICANTE)) + 
+  geom_histogram(aes(fill=..count..), stat = "count") + 
+  scale_fill_viridis("Frecuencia", discrete=F) + 
+  labs(title="Fabricantes de vacunas por COVID-19",
+       x="Fabricante",
+       y="Frecuencia")
+```
+
+
+### Porcentaje de vacunados por departamento en proporción a su cantidad de habitantes
+En esta gráfica observamos los porcentajes de personas vacunadas por departamento en proporción a su densidad poblacional. Si bien sabemos que Lima es el departamento con el mayor número de vacunados, a nivel de porcentajes es superado por Tacna que ya superó el 50% de población inmunizada. En el caso de Puno observamos que el proceso de vacunación es el más lento a comparación del resto de departamento, con solo el 13% de su población inmunizada. Esta gráfica es importante para nuestro estudio porque observamos que el proceso de vacunación no se está llevando a cabo de manera uniforme con respecto a la densidad poblacional de cada departamento.
+```{r, echo=FALSE}
+DFProporciones  %>% select(DEPARTAMENTO, porcentajeVacunados) -> DF_PROP_FILTER_VAC
+ggplot( data = DF_PROP_FILTER_VAC, aes(y=porcentajeVacunados, x=DEPARTAMENTO)) +
+    geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("") +
+    theme_bw()
+```
+
+
+# Descriptores numéricos 
+
+### Edad promedio de fallecidos por Covid-19
+Conocer la edad promedio de los fallecidos por Covid-19 nos ayuda a determinar el grupo de edad el cual concentra una mayor cantidad de personas con consecuencias letales durante la pandemia. En nuestro caso obtuvimos que la edad promedio es 66 años, lo que indica que el sector más afectado por la pandemia son los adultos mayores o de tercera edad. Esta información es útil para nuestro estudio ya que podemos saber cuál fue el sector en el que se debió enfocar la atención y recursos médicos durante la emergencia.
+```{r echo=FALSE}
+round(mean(DFFallecidosCLEAN$EDAD), digits = 0)
+```
+
+### Rango de edad de personas fallecidas a causa de Covid-19
+El rango de edad de personas fallecidas a causa de Covid-19 nos indica todas las edades las cuales abarca nuestra muestra. Determinado por el máximo y mínimo de edad, un rango de 117 años. Este dato nos sirve para confirmar que estamos tomando en cuenta todos los datos de fallecidos para cada una de nuestras gráficas en las que utilizamos este dato.
+```{r, echo=F}
+sprintf("Edad máxima: %s", max(DFFallecidosCLEAN$EDAD))
+sprintf("Edad mínima: %s", min(DFFallecidosCLEAN$EDAD))
+sprintf("Rango: %s", max(DFFallecidosCLEAN$EDAD) - min(DFFallecidosCLEAN$EDAD))
+```
+### Edad promedio de vacunados contra Covid-19
+La edad promedio de vacunados contra Covid-19 nos indica en qué sector de la población se han realizado la mayor cantidad de vacunas, por ende a cual sector se le ha dado prioridad en esta pandemia. En nuestra muestra la edad promedio de vacunados resultó 60 años, lo que indica que fueron priorizados los adultos mayores en el proceso de vacunación.
+```{r, echo=F}
+round(mean(DFVacunadosCLEAN$EDAD, na.rm = TRUE), digits = 0)
+```
+
+### Rango de edad de personas vacunadas contra Covid-19
+El rango de edad de personas vacunadas contra Covid-19 nos indica qué tanto abarca la edad de vacunados en nuestra muestra, con esta información podemos saber cuales son las edades mínima y máxima que fueron vacunadas, y gracias a la información de nuestro dataframe, también podemos saber el motivo de la vacunación de alguna persona menor a la edad de vacunación programada a día de hoy por el MINSA. En nuestra muestra obtuvimos una edad mínima de 17 años, una edad máxima de 134 años y respectivamente un rango de edad de vacunados de 117 años.
+```{r, echo=FALSE}
+sprintf("Edad máxima: %s", max(DFVacunadosCLEAN$EDAD, na.rm = TRUE))
+sprintf("Edad mínima: %s", min(DFVacunadosCLEAN$EDAD, na.rm = TRUE))
+sprintf("Rango: %s", max(DFVacunadosCLEAN$EDAD, na.rm = TRUE) - min(DFVacunadosCLEAN$EDAD, na.rm = TRUE))
+```
+
+#### Maxima y mínima cantidad de fallecidos
+La edad máxima y mínima de fallecidos es útil para nuestro estudio ya que determina el rango máximo y mínimo de edad de nuestra muestra. En nuestra muestra obtuvimos como edad máxima 117 años; como edad mínima 0 años, lo cual indica que hubo menores de edad fallecidos con menos de 1 año de edad. Podemos utilizar estos datos con la edad promedio de fallecidos por covid para determinar cuantos y cuales rangos de edad se han visto seriamente afectados por la Covid-19.
+```{r, echo=F}
+max(DFFechaFallecidos$Freq)
+min(DFFechaFallecidos$Freq)
+```
+
+### Edad máxima y mínima de los fallecidos
+La edad máxima y mínima de fallecidos es útil para nuestro estudio ya que determina el rango máximo y mínimo de edad de nuestra muestra. En nuestra muestra obtuvimos como edad máxima 117 años; como edad mínima 0 años, lo cual indica que hubo menores de edad fallecidos con menos de 1 año de edad. Podemos utilizar estos datos con la edad promedio de fallecidos por covid para determinar cuantos y cuales rangos de edad se han visto seriamente afectados por la Covid-19.
+```{r, echo=F}
+max(DFFallecidosCLEAN$EDAD,na.rm = TRUE)
+min(DFFallecidosCLEAN$EDAD,na.rm = TRUE)
+```
+
+
+### Mayor y menor cantidad de vacunados en un día
+Esta información es útil para nuestro estudio porque obteniendo estos límites, podemos calcular cuál ha sido el pico mayor de vacunados en un solo día y comparar dicho extremo con la cantidad mínima de vacunados por día. En nuestra muestra la mayor cantidad de vacunados en un día fue 279826 vacunados, esto recientemente gracias al Vacunaton realizado por MINSA y una cantidad mínima de 90 vacunados, en el día de las elecciones presidenciales. Obteniendo la cantidad promedio de vacunados por día de un determinado periodo podemos hallar la eficacia del estado para suministrar las vacunas a la población. Debido a que la cantidad de vacunados por día es un indicador directo de la eficiencia del estado para enfrentar la pandemia.
+```{r, echo=F}
+max(DFFechaVacunados$Freq)
+min(DFFechaVacunados$Freq)
+```
+
+# Análisis inferencial
+
+## Es verdad que la media de edad de fallecidos es igual a la de vacunados
+
+* Nivel de confianza: 98%.
+* Significancia($\alpha$): 0.02
+H0: La media verdadera de la edad de fallecidos es igual a la de vacunados
+
+```{r, echo=T}
+FC <- DFFallecidosCLEAN$EDAD
+V <- DFVacunadosCLEAN$EDAD
+t.test(x=FC, y=V, conf.level=0.98)
+```
+En este caso el es menor $p$-value al nivel de significacia $\alpha = 0.02$. Por lo tanto, la hipótesis nula se rechaza. 
+Con un 98% de confianza, podemos decir que la media de edad de fallecidos no es igual a la de vacunados.
+
+
+## Es verdad que al día el por lo menos 45% de vacunados son adultos mayores, al 95%.
+
+* Nivel de confianza: 95%.
+* Significancia($\alpha$): 0.05
+
+* Ha: La media verdadera de la cantidad de vacunados adultos mayores es menor al 45% de los vacunados. ($45 > \mu$)
+* H0: La media verdadera de la cantidad de vacunados adultos mayores es mayor o igual al 45% de los vacunados. ($45 <= \mu$)
+
+```{r warning=FALSE, include=FALSE}
+DFVacunadosCLEAN %>% mutate(ETAPA = getEtapa(EDAD))%>% group_by(FECHA_VACUNACION) %>% summarize(n = n()) %>% arrange(FECHA_VACUNACION,n) %>% filter(FECHA_VACUNACION > "2021-02-08")-> DF_DIA_ETVIDA_DIA
+DFVacunadosCLEAN %>% mutate(ETAPA = getEtapa(EDAD))%>% filter(ETAPA == "Adulto Mayor") %>% group_by(FECHA_VACUNACION) %>% summarize(n = n()) %>% arrange(FECHA_VACUNACION,n) -> DF_VAC_DIA_ADULMAY
+DF_VAC_DIA_ADULMAY <- cbind(DF_VAC_DIA_ADULMAY, PROPORCION=(round(DF_VAC_DIA_ADULMAY$n / DF_DIA_ETVIDA_DIA$n, 2)))
+```
+
+```{r, echo=T}
+t.test(x = DF_VAC_DIA_ADULMAY$PROPORCION, mu=0.45, alternative = "greater", conf.level = 0.95)
+```
+En este caso el no es menor $p$-value al nivel de significacia $\alpha = 0.05$. Por lo tanto, la hipótesis nula no se rechaza. 
+Con un 95% de confia4za, podemos decir que la media del porcentaje de vacunados al día de adultos mayores es mayor al 45%. 
+
+
+## Es cierto que al día Lima tiene por lo menos 50% de los vacunados
+Al ser Lima uno de los principales focos de contagio del Covid-19(según la gráfica de "Porcentaje de vacunados por departamento en proporción a su cantidad de habitantes"). 
+Es importante analizar la cantidad de vacunados que se realizan diariamente en Lima. Por esta razón, planteamos que 
+Lima por lo menos debería de las regiones que más vacunados tiene diariamente. 
+
+* Nivel de confianza: 95%.
+* Significancia($\alpha$): 0.05
+
+* Ha: La media verdadera de la cantidad de vacunados en Lima es menor al 50% de los vacunados. (50 > u)
+* H0:  La media verdadera de la cantidad de vacunados en Lima es igual (mayor) al 50% de los vacunados. (50 <= u)
+```{r warning=FALSE, include=FALSE}
+DFVacunadosCLEAN %>% group_by(FECHA_VACUNACION) %>% summarize(n = n()) %>% arrange(FECHA_VACUNACION,n) -> DF_FECH_VAC
+DFVacunadosCLEAN %>% filter(DEPARTAMENTO == "LIMA") %>% group_by(FECHA_VACUNACION) %>% summarize(n = n()) %>% arrange(FECHA_VACUNACION,n) -> DF_VAC_LIMA
+DF_VAC_LIMA <- cbind(DF_VAC_LIMA, PROPORCION=(round(DF_VAC_LIMA$n / DF_FECH_VAC$n, 2)))
+```
+
+```{r,echo=T}
+t.test(x = DF_VAC_LIMA$PROPORCION, mu=0.50, alternative = "greater", conf.level = 0.95)
+```
+
+En este caso el no es menor $p$-value al nivel de significacia $\alpha = 0.05$. Por lo tanto, la hipótesis nula no se rechaza. 
+Con un 95% de confianza, podemos decir que Lima tiene por lo menos 50% de los vacunados.
+
+# Relaciones entre variables
+
+## Primera relación
+### Cantidad de fallecidos en la 2da ola por etap  de vida x Cantidad de vacunados en la 2da ola por etapa de vida
+
+Etapas de vida:
+
+- Niños(0-11 años)
+- Adolescentes (12 - 17 años)
+- Jóvenes(18 - 29 años)
+- Adultos (30 -59 años)
+- Adulto Mayor(60 a más)
+
+### Creamos dataset cantidad de fallecidos agrupados por etapa de vida
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+na.exclude(DFVacunadosCLEAN) %>% mutate(ETAPA = getEtapa(EDAD))%>% group_by(ETAPA,FECHA_VACUNACION) %>% summarize(n = n()) %>% arrange(FECHA_VACUNACION,n)%>% filter(FECHA_VACUNACION>="2021-01-13") -> DFVacEtVida
+na.exclude(DFFallecidosCLEAN) %>% mutate(ETAPA= getEtapa(EDAD) ) %>% group_by(ETAPA,FECHA_FALLECIMIENTO) %>% summarize(n = n()) %>%
+  arrange(FECHA_FALLECIMIENTO,n) %>% filter(FECHA_FALLECIMIENTO>="2021-01-13") -> DFFallEtVida
+```
+
+#### Para adultos mayores
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+DFFallEtVida %>% filter(ETAPA == "Adulto Mayor") %>% 
+  filter(FECHA_FALLECIMIENTO >= "2021-02-09" ) -> DFFallAdulMay2daOla
+DFVacEtVida %>% filter(ETAPA == "Adulto Mayor") %>%
+  filter(FECHA_VACUNACION < "2021-07-15")-> DFVacAdulMay2daOla
+DFVacAdulMay2daOla <- mutate(DFVacAdulMay2daOla, frecAcumulativa = cumsum(n))
+```
+
+
+#### Gráfica de regresión lineal Adultos Mayores
+
+La siguiente gráfica nos muestra la regresión lineal para el caso de los adultos mayores durante la segunda ola de la pandemia. En el eje X se encuentra la frecuencia acumulada de adultos mayores vacunados y en el eje Y la cantidad de adultos mayores fallecidos por día. Con esta gráfica observamos que la pendiente de la línea es significativa, lo que indica que existe una relación entre la cantidad de adultos mayores vacunados en total y la cantidad de adultos mayores fallecidos diariamente. Esta relación nos indica que a mayor cantidad de adultos mayores vacunados en total, la cantidad de adultos mayores que fallecen diariamente por Covid-19 disminuye. Cada uno de los puntos de la gráfica de dispersión nos indica un día en el cual son comparados ambos parámetros, estos días avanzan cronológicamente de izquierda a derecha. Esto se puede observar en la gráfica debido a que al inicio de la pandemia la cantidad de adultos mayores vacunados era muy pequeña. Por ello, podemos encontrar una acumulación de puntos en el lado izquierdo de la gráfica por el pequeño aumento de vacunados diarios al inicio de la segunda ola. Por otro lado, en los puntos del extremo derecho de la gráfica observamos que los puntos se encuentran más separados en el eje X. Esta información se traduce como una mayor cantidad de adultos mayores vacunados diariamente.  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(DFVacAdulMay2daOla$frecAcumulativa, DFFallAdulMay2daOla$n, pch=20, col=rgb(0,0,0,0.2))
+lm1<- lm(DFFallAdulMay2daOla$n ~ DFVacAdulMay2daOla$frecAcumulativa)
+abline(lm1, col = "red")
+```
+
+```{r echo=FALSE, warning=FALSE}
+summary(lm1)
+```
+
+
+
+
+#### Para adultos 
+```{r echo=T}
+DFFallEtVida %>% filter(ETAPA == "Adulto") %>% 
+  filter(FECHA_FALLECIMIENTO >= "2021-02-09" ) -> DFFallAdul2daOla
+DFVacEtVida %>% filter(ETAPA == "Adulto") %>%
+  filter(FECHA_VACUNACION < "2021-07-14")-> DFVacAdul2daOla
+DFVacAdul2daOla <- mutate(DFVacAdul2daOla, frecAcumulativa = cumsum(n))
+```
+
+
+#### Gráfica de regresión lineal Adultos
+
+En la siguiente gráfica se observa el resultado de aplicar el método de regresión lineal, donde los valores del eje Y son la cantidad de adultos fallecidos en la segunda ola, mientras que los valores del eje X son la frecuencia acumulada de personas vacunadas pertenecientes al mismo rango de edad durante la segunda ola. La impresión que nos da la gráfica es que si bien al inicio hubo un periodo en el que la cantidad de adultos que fallecían aumentó considerablemente, luego de ello la tendencia que se marca es que la cantidad de fallecidos, a medida que hay un mayor número de personas vacunadas, disminuya.
+
+```{r echo=FALSE, warning=FALSE}
+plot(DFVacAdul2daOla$frecAcumulativa, DFFallAdul2daOla$n, pch=20, col=rgb(0,0,0,0.2))
+lm2<- lm(DFFallAdul2daOla$n ~ DFVacAdul2daOla$frecAcumulativa)
+abline(lm2, col = "red")
+```
+
+```{r echo=FALSE, warning=FALSE}
+summary(lm2)
+```
+
+#### Para jovenes 
+```{r echo=TRUE, warning=FALSE}
+DFFallEtVida %>% filter(ETAPA == "Joven") %>% 
+  filter(FECHA_FALLECIMIENTO >= "2021-02-09" ) -> DFFallJov2daOla
+# Limpiamos los datos
+s <- as.Date("2021-02-09")
+e <- as.Date("2021-07-14")
+daysComplete <- seq(from=s, to=e, by=1)
+fallComplete <- c()
+theDate <- s
+while (theDate <= e){
+  toSearch <- grep(theDate, DFFallJov2daOla$FECHA_FALLECIMIENTO)
+  if(!fun_int0(toSearch)){
+    fallComplete <- c(fallComplete, 0)
+  } else {
+    fallComplete <- c(fallComplete, DFFallJov2daOla$n[toSearch])
+  }
+  theDate <- theDate + 1 
+}
+# dataset final de vacunados en la segunda ola completo
+DFFallJov2daOla <- data.frame(FECHA_FALLECIMIENTO=daysComplete, 
+                              n=fallComplete)
+DFVacEtVida %>% filter(ETAPA == "Joven") %>%
+  filter(FECHA_VACUNACION <= "2021-07-14")-> DFVacJov2daOla
+DFVacJov2daOla <- mutate(DFVacJov2daOla, frecAcumulativa = cumsum(n))
+```
+
+
+#### Gráfica de regresión lineal Jovenes
+
+En la gráfica mostrada se observa el resultado al aplicar el método de regresión lineal, donde los ejes X e Y representa la frecuencia acumulada de la población joven vacunada durante la segunda ola y la cantidad de personas fallecidas pertenecientes a ese rango, respectivamente. Al visualizar los puntos en la gráfica, que representan los días de la segunda ola, podemos atestiguar la estrategia de vacunación utilizada por el Estado donde la población de primera línea era prioridad y mayoritariamente este rango poblacional no pertenece a la misma, por lo que los puntos se encuentran dispersos y da la impresión que existe un relación baja entre ambos ejes evaluados, esto se da debido a que la región poblacional analizada no ha sido prioridad en el proceso de vacunación en el caso de no poseer ninguna comorbilidad o ser parte de un grupo de riesgo.
+
+```{r echo=FALSE, warning=FALSE}
+plot(DFVacJov2daOla$frecAcumulativa, DFFallJov2daOla$n, pch=20, col=rgb(0,0,0,0.2))
+lm3<- lm(DFFallJov2daOla$n ~ DFVacJov2daOla$frecAcumulativa)
+abline(lm3, col = "red")
+```
+
+```{r echo=FALSE, warning=FALSE}
+summary(lm3)
+```
+
+
+
+
+## Segunda relación
+### Cantidad de fallecidos por departamento en la 2da ola x Cantidad de vacunados por departamento en la 2da ola en el departamento con más vacunados
+
+Calculamos las regiones más vacunados
+```{r echo=FALSE}
+table(DFVacunadosCLEAN$DEPARTAMENTO)
+which.max(table(DFVacunadosCLEAN$DEPARTAMENTO))
+```
+Vemos que Lima es el departamento que tiene más vacunados, y Madre de Dios es que el tiene menos vacunados.
+
+#### Para Lima
+```{r warning=FALSE}
+# Calculamos fallecidos por departamento
+DFFallecidosCLEAN %>% select(DEPARTAMENTO, FECHA_FALLECIMIENTO) %>% 
+  filter(DEPARTAMENTO =="LIMA") %>% 
+  filter(FECHA_FALLECIMIENTO >= as.Date("2021-02-09")) -> fall2daOlaLima
+DFfall2daOlaLima <- as.data.frame(table(fall2daOlaLima$FECHA_FALLECIMIENTO), 
+                              col.names = c("FECHAS", "CANT_FALLECIDOS"))
+# Calculamos vacunados por departamento
+DFVacunadosCLEAN %>% select(DEPARTAMENTO, FECHA_VACUNACION) %>% 
+  filter(DEPARTAMENTO =="LIMA") %>% 
+  filter(FECHA_VACUNACION >= as.Date("2021-02-09") &
+         FECHA_VACUNACION <= as.Date("2021-07-14")) -> vac2daOlaLima
+DFvac2daOlaLima <- as.data.frame(table(vac2daOlaLima$FECHA_VACUNACION), 
+                              col.names = c("FECHAS", "CANT_VACUNADOS"))
+DFvac2daOlaLima <- mutate(DFvac2daOlaLima, frecAcumulativa = cumsum(Freq))
+```
+
+
+#### Gráfica de regresión Vacunados y Fallecidos en Lima
+
+En la siguiente gráfica tenemos la comparación entre la cantidad total de personas vacunadas en Lima y la cantidad de personas fallecidas por día en Lima durante la segunda ola de la pandemia. Como podemos observar existe una relación ya que la pendiente de la línea de mínimos cuadrados es importante. Esto significa que a mayor cantidad de vacunados totales en Lima, el número de personas fallecidas diariamente se redujo.
+
+```{r echo=FALSE, warning=FALSE}
+plot(DFvac2daOlaLima$frecAcumulativa, DFfall2daOlaLima$Freq, pch=20, col=rgb(0,0,0,0.2))
+lm4<- lm(DFfall2daOlaLima$Freq ~ DFvac2daOlaLima$frecAcumulativa)
+abline(lm4, col = "red")
+```
+
+```{r echo=FALSE, warning=FALSE}
+summary(lm4)
+```
+
+
+
+## Tercera relación
+### Cantidad de fallecidos por departamento en la 2da ola x Cantidad de vacunados por departamento en la 2da ola en el departamento con menos vacunados
+
+```{r echo=T}
+table(DFVacunadosCLEAN$DEPARTAMENTO)
+which.min(table(DFVacunadosCLEAN$DEPARTAMENTO))
+```
+Vemos que Madre de Dios es el departamento que menos vacunados.
+
+#### Para Madre de Dios
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Calculamos fallecidos por departamento
+DFFallecidosCLEAN %>% select(DEPARTAMENTO, FECHA_FALLECIMIENTO) %>% 
+  filter(DEPARTAMENTO =="MADRE DE DIOS") %>% 
+  filter(FECHA_FALLECIMIENTO >= as.Date("2021-02-09") &
+           FECHA_FALLECIMIENTO <= as.Date("2021-07-14") ) -> fall2daOlaMadDios
+DFfall2daOlaMadDios <- as.data.frame(table(fall2daOlaMadDios$FECHA_FALLECIMIENTO), 
+                              col.names = c("FECHAS", "CANT_FALLECIDOS"))
+# Limpiamos los datos
+s <- as.Date("2021-02-11")
+e <- as.Date("2021-07-14")
+daysCompleteMadDios <- seq(from=s, to=e, by=1)
+fallCompleteMadDios <- c()
+theDate <- s
+while (theDate <= e){
+  toSearch <- grep(theDate, DFfall2daOlaMadDios$Var1)
+  if(!fun_int0(toSearch)){
+    fallCompleteMadDios <- c(fallCompleteMadDios, 0)
+  } else {
+    fallCompleteMadDios <- c(fallCompleteMadDios, DFfall2daOlaMadDios$Freq[toSearch])
+  }
+  theDate <- theDate + 1 
+}
+# dataset final de vacunados en la segunda ola completo
+DFfall2daOlaMadDiosComplete <- data.frame(FECHAS=daysCompleteMadDios, 
+                                          CANTIDAD=fallCompleteMadDios)
+# Calculamos vacunados por departamento
+DFVacunadosCLEAN %>% select(DEPARTAMENTO, FECHA_VACUNACION) %>% 
+  filter(DEPARTAMENTO =="MADRE DE DIOS") %>% 
+  filter(FECHA_VACUNACION >= as.Date("2021-02-09") &
+         FECHA_VACUNACION <= as.Date("2021-07-14")) -> vac2daOlaMadDios
+DFvac2daOlaMadDios <- as.data.frame(table(vac2daOlaMadDios$FECHA_VACUNACION), 
+                              col.names = c("FECHAS", "CANT_VACUNADOS"))
+# Limpiamos los datos
+s <- as.Date("2021-02-11")
+e <- as.Date("2021-07-14")
+daysCompleteMadDios <- seq(from=s, to=e, by=1)
+vacCompleteMadDios <- c()
+theDate <- s
+while (theDate <= e){
+  toSearch <- grep(theDate, DFvac2daOlaMadDios$Var1)
+  if(!fun_int0(toSearch)){
+    vacCompleteMadDios <- c(vacCompleteMadDios, 0)
+  } else {
+    print(DFvac2daOlaMadDios$Freq[toSearch])
+    vacCompleteMadDios <- c(vacCompleteMadDios, DFvac2daOlaMadDios$Freq[toSearch])
+  }
+  theDate <- theDate + 1 
+}
+# dataset final de vacunados en la segunda ola completo
+DFvac2daOlaMadDiosComplete <- data.frame(FECHAS=daysCompleteMadDios, 
+                                          CANTIDAD=vacCompleteMadDios)
+DFvac2daOlaMadDiosComplete <- mutate(DFvac2daOlaMadDiosComplete, frecAcumulativa = cumsum(CANTIDAD))
+```
+
+
+
+#### Gráfica de regresión Vacunados y Fallecidos en Madre De Dios
+
+En esta gráfica de regresión lineal observamos la comparación entre la cantidad total de personas vacunadas en Madre De Dios y la cantidad de personas fallecidas en Madre De Dios por día. La gráfica nos muestra una gran cantidad de puntos dispersos, principalmente al inicio del proceso de vacunación, lo cual dificulta encontrar una gráfica ideal de mínimos cuadrados. A pesar de ello obtenemos en el modelo lineal una pendiente negativa, lo que indica que a mayor número de personas vacunadas en Madre De Dios, disminuye la cantidad de personas fallecidas por día en este departamento.
+
+```{r echo=FALSE, warning=FALSE}
+plot(DFvac2daOlaMadDiosComplete$frecAcumulativa, DFfall2daOlaMadDiosComplete$CANTIDAD, pch=20, col=rgb(0,0,0,0.2))
+lm5<- lm(DFfall2daOlaMadDiosComplete$CANTIDAD ~ DFvac2daOlaMadDiosComplete$frecAcumulativa)
+abline(lm5, col = "red")
+```
+
+```{r echo=FALSE}
+summary(lm5)
+```
+# Reflexiones
+Con la data abierta proporcionada por el Estado con respecto al proceso de vacunación y los fallecidos se logro realizar procesos de análisis con respecto a nuestros objetivos propuestos.
+
+A través del análisis inferencial donde se comparo la situación en las distintas regiones del Perú, por ejemplo: los departamentos extremos situacionalmente, dígase mayor y menor número de vacunados observamos grandes diferencias entre ambas dónde en la primera existe una clara relación entre las variables pero en la segunda existe un nivel alto de dispersión, lo que pone en evidencia las distintas estrategias tomadas por el Estado para la lucha contra el covid-19.
+
+
+
+# Conclusiones
+
+En primer lugar, se pudo analizar la cantidad de fallecidos en el periodo de la segunda ola y a su vez obtener un gráfico para la visualización de la misma por región y edad.
+
+Por otra parte, a través de la relación entre el numero de fallecidos y vacunados, se pudo realizar un análisis de regresión lineal logrando visualizar el impacto en cada proceso por región.
+
+A su vez, se logró visualizar la cantidad de fallecidos según las olas de contagio por covid-19.
+Finalmente, no se pudo determinar la relación entre distintos fabricantes de vacunas, sin embargo se logró visualizar el proceso de vacunación en proporción a su población con la finalidad de observar el avance en todo el país.

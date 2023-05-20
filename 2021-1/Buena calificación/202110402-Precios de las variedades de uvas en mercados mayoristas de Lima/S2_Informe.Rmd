@@ -1,0 +1,1719 @@
+---
+title: "S2 Precios de las variedades de uvas en mercados mayoristas de Lima"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r ,message = FALSE, echo = FALSE, results = FALSE, warning=FALSE}
+library("readr")
+library("utf8")
+library("modeest")
+library("dplyr")
+library("ggplot2")
+library("plotly")
+```
+
+# 1 Introducción
+El tema a tratar es la diferencia de precios y cantidad total de ingreso de las variedades de uva, durante diferentes meses del año en el *Mercado Mayorista N°2* que es uno de los mercados mayoristas más importantes de la ciudad de Lima.
+
+## 1.1 Importancia
+Nuestro trabajo de investigación es importante ya que estos productos agrícolas se encuentran en una gran cantidad de negocios dentro de la ciudad más poblada del país, como los son las bodegas y los supermercados. Además estos alimentos presentan un consumo habitual dentro de la dieta de los pobladores volviendo el mercado agrícola bastante grande y competitivo. Así pues, esta alta demanda provoca que la posibilidad de encontrar tendencias dentro de los precios que puedan ayudar a microempresarios minoristas a realizar decisiones dentro de sus negocios resulte relevante.
+
+## 1.2 Objetivos del estudio
+Nuestros objetivos se pueden resumir en tres:
+Hallar relaciones entre los precios de los productos agrícolas según los meses.
+Proporcionar información acerca de los comportamientos en cualquier temporada de las uvas dentro del Mercado Mayorista N°2.
+Realizar predicciones que puedan ser de utilidad para la toma de decisiones de microempresarios minoristas.
+
+## 1.3 Factibilidad
+Vemos el proyecto realizable gracias a la gran cantidad de información fiable proporcionada por el Ministerio de Desarrollo Agrario y Riego (MIDAGRI) dentro de los boletines diarios que son de alcance público. En efecto, estos datos limitados a nuestro mercado de estudio nos abastece tanto de información actualizada de los precios tanto como la cantidad de ingreso del producto al Mercado Mayorista N°2.
+
+
+```{r,message = FALSE, echo = FALSE, results = FALSE, warning=FALSE}
+addData = function(DF,CSV,Mes,Fecha,Año,comp){
+DF1 = read_csv(CSV)
+DF1$Producto = iconv(DF1$Producto, to = "UTF-8")
+DF1 = filter(DF1,DF1$Producto == "Uva Alfonso Lavalett"|DF1$Producto == "Uva Arra"|DF1$Producto == "Uva Italia"|DF1$Producto == "Uva Magenta"|DF1$Producto == "Uva Palestina"|DF1$Producto == "Uva Pirovano"|DF1$Producto == "Uva Quebranta/Moscatel"|DF1$Producto == "Uva Red Globe"|DF1$Producto == "Uva Rosada"|DF1$Producto == "Uva Sultanina"|DF1$Producto == "Uva Superior"|DF1$Producto == "Uva Zafiro"|DF1$Producto == "Uva Fley"|DF1$Producto == "Uva Borgoña"|DF1$Producto == "Uva Flame")
+DF1$Mes = apply(DF1,1,function(x) x = Mes)
+DF1$Fecha = apply(DF1,1,function(x) x = Fecha)
+DF1$Año = apply(DF1,1,function(x) x = Año)
+DF1$Añocompleto = apply(DF1,1,function(X) x = comp)
+DF1$Productos = apply(DF1,1,function(x) x = nrow(DF1))
+DF = rbind(DF,DF1)
+return (DF)
+}
+
+DF1 = read_csv("Enero-2019-03.csv")
+DF1$Producto = iconv(DF1$Producto, to = "UTF-8")
+DF1$Mes = apply(DF1,1,function(x) x = "Enero")
+DF1$Fecha = apply(DF1,1,function(x) x = 03)
+DF1$Año = apply(DF1,1,function(x) x = 2019)
+DF1$Añocompleto = apply(DF1,1,function(X) x = "2019/01/03")
+DF = filter(DF1,DF1$Producto == "Uva Alfonso Lavalett"|DF1$Producto == "Uva Arra"|DF1$Producto == "Uva Italia"|DF1$Producto == "Uva Magenta"|DF1$Producto == "Uva Palestina"|DF1$Producto == "Uva Pirovano"|DF1$Producto == "Uva Quebranta/Moscatel"|DF1$Producto == "Uva Red Globe"|DF1$Producto == "Uva Rosada"|DF1$Producto == "Uva Sultanina"|DF1$Producto == "Uva Superior"|DF1$Producto == "Uva Zafiro"|DF1$Producto == "Uva Fley"|DF1$Producto == "Uva Borgoña"|DF1$Producto == "Uva Flame")
+DF$Productos = apply(DF,1,function(x) x = nrow(DF))
+
+
+DF = addData(DF,"Enero-2019-15.csv","Enero",15,2019,"2019/01/15")
+DF = addData(DF,"Enero-2019-31.csv","Enero",31,2019,"2019/01/31")
+DF = addData(DF,"Febrero-2019-04.csv","Febrero",04,2019,"2019/02/04")
+DF = addData(DF,"Febrero-2019-15.csv","Febrero",15,2019,"2019/02/15")
+DF = addData(DF,"Febrero-2019-28.csv","Febrero",28,2019,"2019/02/28")
+DF = addData(DF,"Marzo-2019-04.csv","Marzo",04,2019,"2019/03/04")
+DF = addData(DF,"Marzo-2019-15.csv","Marzo",15,2019,"2019/03/15")
+DF = addData(DF,"Marzo-2019-29.csv","Marzo",29,2019,"2019/03/29")
+DF = addData(DF,"Abril-2019-03.csv","Abril",03,2019,"2019/04/03")
+DF = addData(DF,"Abril-2019-15.csv","Abril",15,2019,"2019/04/15")
+DF = addData(DF,"Abril-2019-26.csv","Abril",26,2019,"2019/04/26")
+DF = addData(DF,"Mayo-2019-03.csv","Mayo",03,2019,"2019/05/03")
+DF = addData(DF,"Mayo-2019-15.csv","Mayo",15,2019,"2019/05/15")
+DF = addData(DF,"Mayo-2019-31.csv","Mayo",31,2019,"2019/05/31")
+DF = addData(DF,"Junio-2019-04.csv","Junio",04,2019,"2019/06/04")
+DF = addData(DF,"Junio-2019-14.csv","Junio",14,2019,"2019/06/14") 
+DF = addData(DF,"Junio-2019-28.csv","Junio",28,2019,"2019/06/28")
+DF = addData(DF,"Julio-2019-03.csv","Julio",03,2019,"2019/07/03")
+DF = addData(DF,"Julio-2019-16.csv","Julio",16,2019,"2019/07/16")
+DF = addData(DF,"Julio-2019-31.csv","Julio",31,2019,"2019/07/31")
+DF = addData(DF,"Agosto-2019-02.csv","Agosto",02,2019,"2019/08/02")
+DF = addData(DF,"Agosto-2019-15.csv","Agosto",15,2019,"2019/08/15")
+DF = addData(DF,"Agosto-2019-28.csv","Agosto",28,2019,"2019/08/28")
+DF = addData(DF,"Setiembre-2019-03.csv","Setiembre",03,2019,"2019/09/03")
+DF = addData(DF,"Setiembre-2019-16.csv","Setiembre",16,2019,"2019/09/16")
+DF = addData(DF,"Setiembre-2019-30.csv","Setiembre",30,2019,"2019/09/30")
+DF = addData(DF,"Octubre-2019-03.csv","Octubre",03,2019,"2019/10/03")
+DF = addData(DF,"Octubre-2019-15.csv","Octubre",15,2019,"2019/10/15")
+DF = addData(DF,"Octubre-2019-30.csv","Octubre",30,2019,"2019/10/30")
+DF = addData(DF,"Noviembre-2019-04.csv","Noviembre",04,2019,"2019/11/04")
+DF = addData(DF,"Noviembre-2019-15.csv","Noviembre",15,2019,"2019/11/15")
+DF = addData(DF,"Noviembre-2019-29.csv","Noviembre",29,2019,"2019/11/29")
+DF = addData(DF,"Diciembre-2019-03.csv","Diciembre",03,2019,"2019/12/03")
+DF = addData(DF,"Diciembre-2019-16.csv","Diciembre",16,2019,"2019/12/16")
+DF = addData(DF,"Diciembre-2019-30.csv","Diciembre",30,2019,"2019/12/30")
+DF = addData(DF,"Enero-2020-03.csv","Enero",03,2020,"2020/01/03")
+DF = addData(DF,"Enero-2020-15.csv","Enero",15,2020,"2020/01/15")
+DF = addData(DF,"Enero-2020-30.csv","Enero",30,2020,"2020/01/30")
+DF = addData(DF,"Febrero-2020-03.csv","Febrero",03,2020,"2020/02/03")
+DF = addData(DF,"Febrero-2020-14.csv","Febrero",14,2020,"2020/02/14")
+DF = addData(DF,"Febrero-2020-28.csv","Febrero",28,2020,"2020/02/28")
+DF = addData(DF,"Marzo-2020-04.csv","Marzo",04,2020,"2020/03/04")
+DF = addData(DF,"Marzo-2020-16.csv","Marzo",16,2020,"2020/03/16")
+DF = addData(DF,"Marzo-2020-30.csv","Marzo",30,2020,"2020/03/30")
+DF = addData(DF,"Abril-2020-06.csv","Abril",06,2020,"2020/04/06")
+DF = addData(DF,"Abril-2020-15.csv","Abril",15,2020,"2020/04/15")
+DF = addData(DF,"Abril-2020-29.csv","Abril",29,2020,"2020/04/29")
+DF = addData(DF,"Mayo-2020-06.csv","Mayo",06,2020,"2020/05/06")
+DF = addData(DF,"Mayo-2020-11.csv","Mayo",11,2020,"2020/05/11")
+DF = addData(DF,"Mayo-2020-15.csv","Mayo",15,2020,"2020/05/15")
+DF = addData(DF,"Junio-2020-15.csv","Junio",15,2020,"2020/06/15")
+DF = addData(DF,"Junio-2020-19.csv","Junio",19,2020,"2020/06/19")
+DF = addData(DF,"Junio-2020-30.csv","Junio",30,2020,"2020/06/30")
+DF = addData(DF,"Julio-2020-08.csv","Julio",08,2020,"2020/07/08")
+DF = addData(DF,"Julio-2020-15.csv","Julio",15,2020,"2020/07/15")
+DF = addData(DF,"Julio-2020-29.csv","Julio",29,2020,"2020/07/29")
+DF = addData(DF,"Agosto-2020-05.csv","Agosto",05,2020,"2020/08/05")
+DF = addData(DF,"Agosto-2020-14.csv","Agosto",14,2020,"2020/08/14")
+DF = addData(DF,"Agosto-2020-27.csv","Agosto",27,2020,"2020/08/27")
+DF = addData(DF,"Setiembre-2020-04.csv","Setiembre",04,2020,"2020/09/04")
+DF = addData(DF,"Setiembre-2020-15.csv","Setiembre",15,2020,"2020/09/15")
+DF = addData(DF,"Setiembre-2020-29.csv","Setiembre",29,2020,"2020/09/29")
+DF = addData(DF,"Octubre-2020-06.csv","Octubre",06,2020,"2020/10/06")
+DF = addData(DF,"Octubre-2020-20.csv","Octubre",20,2020,"2020/10/20")
+DF = addData(DF,"Octubre-2020-27.csv","Octubre",27,2020,"2020/10/27")
+DF = addData(DF,"Noviembre-2020-04.csv","Noviembre",04,2020,"2020/11/04")
+DF = addData(DF,"Noviembre-2020-10.csv","Noviembre",10,2020,"2020/11/10")
+DF = addData(DF,"Noviembre-2020-13.csv","Noviembre",13,2020,"2020/11/13")
+DF = addData(DF,"Diciembre-2020-07.csv","Diciembre",07,2020,"2020/12/07")
+DF = addData(DF,"Diciembre-2020-16.csv","Diciembre",15,2020,"2020/12/15")
+DF = addData(DF,"Diciembre-2020-28.csv","Diciembre",28,2020,"2020/12/28")
+DF = addData(DF,"Enero-2021-06.csv","Enero",06,2021,"2021/01/06")
+DF = addData(DF,"Enero-2021-21.csv","Enero",21,2021,"2021/01/21")
+DF = addData(DF,"Enero-2021-29.csv","Enero",29,2021,"2021/01/29")
+DF = addData(DF,"Febrero-2021-05.csv","Febrero",05,2021,"2021/02/05")
+DF = addData(DF,"Febrero-2021-15.csv","Febrero",15,2021,"2021/02/15")
+DF = addData(DF,"Febrero-2021-22.csv","Febrero",22,2021,"2021/02/22")
+DF = addData(DF,"Marzo-2021-04.csv","Marzo",04,2021,"2021/03/04")
+DF = addData(DF,"Marzo-2021-15.csv","Marzo",15,2021,"2021/03/15")
+DF = addData(DF,"Marzo-2021-22.csv","Marzo",22,2021,"2021/03/22")
+DF = addData(DF,"Abril-2021-06.csv","Abril",06,2021,"2021/04/06")
+DF = addData(DF,"Abril-2021-16.csv","Abril",16,2021,"2021/04/16")
+DF = addData(DF,"Abril-2021-23.csv","Abril",23,2021,"2021/04/23")
+DF = addData(DF,"Mayo-2021-03.csv","Mayo",03,2021,"2021/05/03")
+DF = addData(DF,"Mayo-2021-13.csv","Mayo",13,2021,"2021/05/13")
+DF = addData(DF,"Mayo-2021-20.csv","Mayo",20,2021,"2021/05/20")
+
+DF2 = DF[,1:3]
+DF2[,4] = DF[,6]
+DF2[,5:6] = DF[,8:9]
+DF2[,7:11] = DF[,11:15]
+DF = DF2
+remove(DF2)
+```
+
+
+## 1.4 Preguntas para el análisis
+### Exploratorias:
+1. ¿Existe un comportamiento anual seguido generalmente por el precio de todas las  uvas?
+2. ¿Existe un comportamiento anual seguido generalmente por el volumen de ingreso de todas las uvas?
+
+### Mecánicas:
+1. ¿Cómo afecta el mes del año al volumen de ingreso de cada variedad de uva?
+2. ¿Cómo afecta el mes del año al precio de cada variedad de uva?
+
+### Predictivas:
+1. ¿Es posible predecir el precio de una variedad de uva en base a su volumen de ingreso?
+
+### Inferenciales:
+1. ¿Las 3 uvas con mayor precio promedio no pasarán el 50% de las veces el volumen de ingreso promedio en sus días de medición correspondientes?
+2. ¿Las 3 uvas con mayor volumen de ingreso no pasarán el 50% de las veces el precio promedio en sus días de medición correspondientes?
+3. ¿Existe correlación entre el precio promedio y volumen de ingreso para el estudio en general?
+4. ¿Existe la correlación entre el número de variedades de uvas disponibles en el día de la medición y el precio de la uva medida?
+5. ¿La correlación de volumen de ingreso en el día anterior a la medición con el precio promedio en el día de la medición es diferente a la correlación del precio promedio y volumen de ingreso en el estudio? 
+
+### Descriptivas:
+1. ¿Cuáles son las uvas con mayor y menor volumen de ingreso promedio?
+2. ¿Cuáles son las uvas con mayor y menor precio promedio?
+3. ¿Cuántas observaciones tenemos de cada uva?
+4. ¿Cuál es el volumen de ingreso promedio de todas las uvas de la muestra?
+5. ¿Cuál es el precio promedio de todas las uvas de la muestra?
+
+# 2 Presentación de las variables y parámetros de estudio
+
+## 2.1 Variables del estudio
+
+### Producto
+Hace referencia del producto al cual pertenecen los datos. Son los principales objetos del estudio. Sus valores están definidos por los productos del mercado presentado. Se han considerado aquellos que hayan estado en los dos años del estudio. Es una variable categórica nominal. Las variedades de uvas a considerar son las siguientes:
+```{r}
+Productos = unique(DF$Producto)
+as.data.frame(Productos)
+```
+
+### VolAyer
+También referido como volumen de ingreso o masa de ingreso, significa la cantidad de toneladas del producto que ingresaron un día anterior a la medición al mercado. Es importante porque nos permite ver la oferta del producto en un día no registrado. Su valor es positivo y entero. Es una variable numérica continua a pesar de sólo tener valores enteros en la muestra dado que sí se puede interpretar un valor decimal de esta variable.
+
+### VolHoy
+También referido como volumen de ingreso o masa de ingreso, significa las toneladas que ingresaron el día de la medición al mercado. Es importante porque nos deja ver la oferta del producto. Su valor es positivo y entero. Es una variable numérica continua a pesar de sólo tener valores enteros en la muestra dado que sí se puede interpretar un valor decimal de esta variable.
+
+### Unidad
+Significa la unidad en la que se realiza las medidas del precio. Hace referencia a la modalidad en cómo se venden los productos. Sus valores son posibles son cajón y jaba. Ambas unidades equivalen a 12 kg. Es una variable categórica nominal.
+
+### PrePromAyer
+Hace referencia al precio por cada unidad del producto en soles. Es importante para ver un estimado del precio del producto en un día no registrado dentro de los boletines del MIDAGRI que estamos tomando como fuente de los datos. Su valor es positivo y se aproxima a dos decimales. Es una variable numérica continua.
+
+### PrePromHoy
+Hace referencia al precio por cada unidad del producto en soles. Es importante para ver el estimado del precio del producto en el día del estudio y poder encontrar posibles relaciones entre él y las otras variables del estudio. Su valor es positivo y se aproxima a dos decimales. Es una variable numérica continua.
+
+### Mes
+Se refiere al mes del cual proviene la observación. Esta variable nos sirve para comparar el tiempo de la proveniencia de los datos, considerando que los meses corresponden a diferentes estaciones que pueden alterar el comportamiento del precio y volumen de ingreso de las uvas. Puede tomar valores Enero, Febrero, Marzo, Abril, Mayo, Junio, Julio, Agosto, Setiembre, Octubre, Noviembre, Diciembre. Es una variable categórica ordinal.
+
+### Fecha
+Se refiere al día en el que se hizo la observación. Es necesario para poder organizar los datos. Sus valores son números enteros positivos entre 1 y 30. Es una variable numérica discreta.
+
+### Año
+Se refiere al año del cual proviene la observación. Esta variable es necesaria para identificar tendencias anuales y considerarlas para establecer conclusiones que se puedan aplicar para todos los años. Sus valores son 2019, 2020 y 2021. Es una variable categórica ordinal.
+
+### Añocompleto
+Expresa de modo numérico el día de la medición, el mes y el año y se requiere para poder clasificar observaciones. Sus valores tienen la forma "DD/MM/AAAA". Es una variable categórica ordinal.
+
+### Productos
+Hace referencia a la cantidad de variedades de uvas que hubieron en el día de la medición de una observación. Nos brinda información acerca de la oferta de las distintas uvas, el cual es un importante factor al momento de determinar el precio. Es una variable numérica discreta.
+
+### Cuadro resumido de los tipos de cada variable
+```{r}
+tipo = c("Categórica nominal","Numérica continua","Numérica continua","Categórica nominal","Numérica continua","Numérica continua","Categórica ordinal","Categórica ordinal","Numérica discreta","Categórica ordinal","Numérica discreta")
+nombres = c(names(DF))
+variables = c(names(DF))
+nom = data.frame(variables,tipo)
+nom
+```
+
+## 2.2 Parámetros del estudio
+
+### Nivel de confianza
+Vamos a utilizar un nivel de confianza del 95%, lo que implica un nivel de significancia del 5%. Hemos elegido este nivel de confianza sobre uno menor como 90%, el cual es comúnmente usado, dado que queremos reducir la probabilidad de rechazo de hipótesis cuando esta es verdadera o no rechazo cuando es falsa. Además, hay que tener en cuenta que no se necesitan hacer estimaciones estrictamente precisas en este ámbito, dado que las variables como el precio y el volumen de ingreso dependen de varios factores que suelen estar fuera de nuestro control como el clima, desastres naturales o la inflación. Así pues,  decidimos el 95% ya que cambia parte de esta precisión con la finalidad de hacer una prueba de hipótesis más fiable. Por el otro lado no hemos considerado el nivel de confianza de 99%, que es otro comúnmente usado, dado que nos daría un margen de error muy elevado, a cambio de una ligera reducción del nivel de significancia.
+
+### Número de observaciones y composición de la muestra
+En el estudio contamos con 736 observaciones en total. La información acerca de los datos incompletos se encuentra a continuación:
+```{r}
+dat = c(sum(is.na(DF)),sum(complete.cases(DF)))
+nomb = c("Datos incompletos","Observaciones completas")
+data.frame(nomb,dat)
+
+```
+
+Lo cual nos deja con un 0.4% de datos incompletos y un 97% de observaciones completas. A continuación veremos cómo es que se distribuyen por cada variable de la muestra.
+```{r}
+NúmeroNA = colSums(is.na(DF))
+DFNA = as.data.frame(NúmeroNA)
+DFNA$Porcentaje = round(DFNA$NúmeroNA/sum(DFNA$NúmeroNA) * 100,2)
+show(DFNA)
+```
+De lo cual concluimos que la variable con mayor cantidad de datos incompletos es "VolHoy".
+
+Además, respondiendo a la pregunta descriptiva número 3, la siguiente tabla muestra la cantidad de observaciones que tenemos para cada variedad de uva:
+```{r}
+as.data.frame(table(DF$Producto))
+```
+Para facilitar la visualización de los datos hemos propuesto el siguiente gráfico de barras. El gráfico de barras cumple un papel descriptivo dado que pretende presentar información dentro de lo recogido acerca de la cantidad de observaciones que tenemos para cada uva.
+```{r}
+ggplot(data = DF)+geom_bar(aes(x = Producto))+ggtitle(label = "Frecuencia de los distintos tipos de Uvas")+ theme_bw()+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Saber de que uvas poseemos más datos nos permite tener una idea de con qué uvas podemos hacer afirmaciones con una mayor seguridad. Además el número de apariciones nos permite saber qué productos tienen una aparición poco constante dentro del MMF2 y cuales tienen una constancia elevada. Elegimos utilizar un gráfico de barras dado que se busca expresar las apariciones de la variable categórica nominal producto dentro del estudio.
+
+## 2.3 Estimación 
+Para responder a la preguntas descriptivas 4 y 5 hemos agrupado tanto los valores de las variables VolHoy con VolAyer y PrePromHoy con PrePromAyer para realizar una estimación por intervalo de la media. Para ambos casos hallar la media cumple un papel descriptivo ya que es un dato obtenido a partir de la muestra que nos permite hacer conclusiones respecto a ella.
+
+### Media Volumen de ingreso
+Para estimar el parámetro poblacional de la media del volumen de ingreso vamos a delimitar un intervalo de confianza. Considerando las variables VolHoy y VolAyer tenemos una muestra  de 1448 observaciones. Este histograma cumple un papel descriptivo dado que pretende presentar información proveniente de la muestra acerca de la frecuencia de distintos volúmenes de ingreso en intervalos para permitirnos aproximar una distribución. 
+```{r}
+Volumenes = c(DF[complete.cases(DF$VolAyer),]$VolAyer,DF[complete.cases(DF$VolHoy),]$VolHoy)
+hist(Volumenes,freq=FALSE,breaks = 16,xlab = "Volumen de ingreso (tn)", ylab = "Frequencia relativa", main = "Histograma volúmenes de ingreso observados",col = "orange", xlim = c(3,70), ylim = c(0,0.09))
+x = seq(0,70,by = 0.0001)
+par(new = TRUE)
+plot(x,dlnorm(x,2.3084006,0.6736767),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(3,70), ylim = c(0,0.09))
+
+```
+En este caso planteamos al volumen de ingreso como una variable log-normal, aproximando la media a 10.0583 tn y la desviación estándar a 1.9614 tn cuya gráfica es la curva que se puede ver en el histograma. En este caso el intervalo de confianza a un nivel de confianza de 0.95 es desde 9.715015 tn a 10.41377 tn. La precisión alcanzada es de 0.343285 tn
+```{r }
+Volumenes = c(DF[complete.cases(DF$VolAyer),]$VolAyer,DF[complete.cases(DF$VolHoy),]$VolHoy)
+mmv = (1/length(Volumenes)) * sum(log(Volumenes))
+vmv = (1/length(Volumenes)) * sum((log(Volumenes) - mmv)^2)
+smv = sqrt(vmv)
+a = 0.05
+t = qt(1-a/2,length(Volumenes)-1)
+e = smv*t/sqrt(length(Volumenes))
+b0 = mmv - e
+b1 = mmv + e
+a0 = exp(b0)
+a1 = exp(b1)
+```
+
+### Media del precio
+Para estimar el parámetro poblacional de la media del precio vamos a delimitar un intervalo de confianza.Tomando en cuenta las variables "PrePromHoy" y "PrePromAyer" tenemos una muestra de 1464 observaciones. Para identificar con cual variable aleatoria podemos modelar la variable "Precio" vamos a ayudarnos del siguiente histograma. Este histograma cumple un papel descriptivo dado que nos brinda información proveniente de la muestra acerca de la frecuencia de precios agrupados en intervalos para poder aproximar una distribución.
+```{r }
+Precios = c(DF[complete.cases(DF$PrePromHoy),]$PrePromHoy,DF[complete.cases(DF$PrePromAyer),]$PrePromAyer)
+hist(Precios,freq = FALSE,breaks = 15, xlab = "Precio por 12 kg (S/)", ylab = "Frecuencia relativa",main="Histograma precios observados",col = "Lightgreen", xlim = c(14.01,48), ylim = c(0,0.08))
+x = seq(14.01,48,by = 0.0001)
+par(new = TRUE)
+plot(x,dlnorm(x,3.330320,0.2275965),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(14.01,48), ylim = c(0,0.08))
+```
+En ese caso vamos a aproximar la variable a una distribución log-normal, aproximando una media S/27.94 y de desviación estándar de S/1.26 cuya gráfica es la curva que se encuentra en el histograma. En este caso el intervalo de confianza a un nivel de confianza de 0.95 sería desde S/27.62 hasta S/28.27. La presición alcanzada es de S/0.32
+
+```{r ,message = FALSE, echo = FALSE, results = FALSE, warning=FALSE}
+
+Precios = c(DF[complete.cases(DF$PrePromHoy),]$PrePromHoy,DF[complete.cases(DF$PrePromAyer),]$PrePromAyer)
+mmv = (1/length(Precios)) * sum(log(Precios))
+vmv = (1/length(Precios)) * sum((log(Precios) - mmv)^2)
+smv = sqrt(vmv)
+a = 0.05
+t = qt(1-a/2,length(Precios)-1)
+e = smv*t/sqrt(length(Precios))
+b0 = mmv - e
+b1 = mmv + e
+a0 = exp(b0)
+a1 = exp(b1)
+```
+
+
+# 3 Descriptores gráficos propuestos
+
+### 3.1 Gráfico de caja precios promedio por mes por año
+Estas gráficas nos permiten hallar cómo es la distribución de los precios de las variedades de uvas del estudio según el mes, dándonos así unas primeras nociones de cómo pueden variar los precios de las uvas como conjunto y si existen patrones que se repitan anualmente como plantea la pregunta exploratoria 1. Escogimos gráficos de caja dado que es una de las maneras más sencillas de visualizar la distribución de los datos, considerando que nuestro objetivo con este descriptor gráfico no es hallar valores numéricos exactos. El papel que cumplen estos gráficos de caja es descriptivo ya que tiene como función presentar la información recogida para permitirnos identificar un patrón.
+```{r}
+PrePromProdMes = function(DF,mes){
+  DFAux   = filter(DF,DF$Mes == mes)
+  DFAux$PrePromAyer[is.na(DFAux$PrePromAyer)] <- round(mean(DFAux$PrePromAyer,na.rm = TRUE),2)
+  DFAux$PrePromHoy[is.na(DFAux$PrePromHoy)] <- round(mean(DFAux$PrePromHoy,na.rm = TRUE),2)
+  DFAux$PreDia <- rowMeans(DFAux[,c("PrePromAyer","PrePromHoy")])
+  PrePromMes  = c(
+  round(mean(DFAux[which(DFAux$Producto == "Uva Alfonso Lavalett"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Arra"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Italia"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Magenta"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Palestina"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Pirovano"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Quebranta/Moscatel"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Red Globe"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Rosada"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Sultanina"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Superior"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Zafiro"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Flame"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Borgoña"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Fley"),]$PreDia,na.rm=TRUE),3))
+  return(
+    PrePromMes
+  )
+}
+```
+
+```{r}
+DFAUX = DF[which(DF$Año == 2019),]
+boxplot(PrePromProdMes(DFAUX,"Enero"),PrePromProdMes(DFAUX,"Febrero"),PrePromProdMes(DFAUX,"Marzo"),PrePromProdMes(DFAUX,"Abril"),PrePromProdMes(DFAUX,"Mayo"),
+        PrePromProdMes(DFAUX,"Junio"),PrePromProdMes(DFAUX,"Julio"),PrePromProdMes(DFAUX,"Agosto"),
+        PrePromProdMes(DFAUX,"Setiembre"),PrePromProdMes(DFAUX,"Octubre"),PrePromProdMes(DFAUX,"Noviembre"),PrePromProdMes(DFAUX,"Diciembre"),  main = "Precios de las uvas por meses-2019 (S/)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"),ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+En el 2019 podemos notar que la mediana mínima se encuentra en febrero, luego comienza a crecer hasta agosto, reduciendo su ritmo de crecimiento a mediados de otoño e inicios de invierno. Finalmente la mediana comienza a reducirse hasta diciembre con la única excepción siendo un alza en noviembre.
+```{r}
+DFAUX = DF[which(DF$Año == 2020),]
+boxplot(PrePromProdMes(DFAUX,"Enero"),PrePromProdMes(DFAUX,"Febrero"),PrePromProdMes(DFAUX,"Marzo"),PrePromProdMes(DFAUX,"Abril"),PrePromProdMes(DFAUX,"Mayo"),
+        PrePromProdMes(DFAUX,"Junio"),PrePromProdMes(DFAUX,"Julio"),PrePromProdMes(DFAUX,"Agosto"),
+        PrePromProdMes(DFAUX,"Setiembre"),PrePromProdMes(DFAUX,"Octubre"),PrePromProdMes(DFAUX,"Noviembre"),PrePromProdMes(DFAUX,"Diciembre"),  main = "Precios de las uvas por meses-2020 (S/)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"),ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+En el año 2020, al igual que en el 2019 podemos notar que la mediana mínima se da en el mes de febrero. Luego permanece la tendencia de crecer, pero esta vez alcanza su máximo en setiembre aunque permanece el decrecimiento en julio.
+
+```{r}
+DFAUX = DF[which(DF$Año == 2021),]
+boxplot(PrePromProdMes(DFAUX,"Enero"),PrePromProdMes(DFAUX,"Febrero"),PrePromProdMes(DFAUX,"Marzo"),PrePromProdMes(DFAUX,"Abril"),PrePromProdMes(DFAUX,"Mayo"),main = "Precios de las uvas por meses-2021 (S/)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"),ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+En los datos que tenemos del año 2021 podemos ver que la mediana de precios mínima se sigue encontrando en febrero y sigue creciendo conforme avanza el año. No obstante notamos un ligero decrecimiento de la mediana de abril a mayo.
+```{r}
+boxplot(PrePromProdMes(DF,"Enero"),PrePromProdMes(DF,"Febrero"),PrePromProdMes(DF,"Marzo"),PrePromProdMes(DF,"Abril"),PrePromProdMes(DF,"Mayo"),
+        PrePromProdMes(DF,"Junio"),PrePromProdMes(DF,"Julio"),PrePromProdMes(DF,"Agosto"),
+        PrePromProdMes(DF,"Setiembre"),PrePromProdMes(DF,"Octubre"),PrePromProdMes(DF,"Noviembre"),PrePromProdMes(DF,"Diciembre"),  main = "Precios de las uvas por meses en todo el estudio (S/)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"), ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+#### Patrones observados para todo el estudio
+Respondiendo a la pregunta exploratoria 1, podemos notar que en los años completos se sigue un comportamiento similar a una función trigonométrica en los precios. En los meses de verano se da una reducción de los precios, luego el precio presenta un aumento en otoño, se llegan a alcanzar los máximos precios en agosto, setiembre u octubre y los precios vuelven a reducirse en noviembre y diciembre para que se repita el ciclo. En los meses del año 2021 podemos observar que parece que esta tendencia se va a conservar.
+
+#### Explicación del patrón
+Para poder explicar el comportamiento estacional debemos tener en cuenta que las condiciones óptimas para el crecimiento de la uva son en temperaturas de 7°C a 24°C con una humedad relativa del 70% al 80%. En efecto, en los meses de otoño e invierno la temperatura baja y aumenta la humedad relativa, provocando que sólo se puedan cultivar uvas resistentes a estas condiciones como lo es la *Uva Red Globe*. En la temporada de verano existe una gran variedad de uvas, por lo que disminuyen los precios por una mayor oferta. En otoño e invierno ocurre el efecto contrario y se presenta una menor oferta, por lo que aumenta la demanda y el precio. En primavera los precios se mantienen altos dado que las siembras de uvas recién inician en setiembre, por lo que la oferta se mantiene escasa hasta Noviembre. Por el otro lado conviene subrayar que las medianas se presentan como una función trigonométrica dado que esta variación que se presenta es cíclica por lo que se repite todos los años.
+
+### 3.2 Gráfico de caja volúmenes de ingreso por mes por año
+Al igual que con los descriptores gráficos anteriores, estas gráficas nos permiten hallar cómo es la distribución de los volúmenes de ingreso de las variedades de uvas del estudio según el mes, dándonos así unas primeras nociones de cómo pueden variar los volúmenes de ingreso de las uvas como conjunto y si existen patrones que se repitan anualmente como plantea la pregunta exploratoria 2. Escogimos gráficos de caja dado que es una de las maneras más sencillas de visualizar la distribución de los datos, considerando que nuestro objetivo con este descriptor gráfico no es hallar valores numéricos exactos. El papel que cumplen estos gráficos de cajas es descriptivo dado que busca presentarnos información dentro de la muestra para facilitarnos la identificación de posibles patrones.
+```{r}
+VolProdMes = function(DF,mes){
+  DFAux   = filter(DF,DF$Mes == mes)
+  DFAux$VolAyer[is.na(DFAux$VolAyer)] <- round(mean(DFAux$VolAyer,na.rm = TRUE),2)
+  DFAux$VolHoy[is.na(DFAux$VolHoy)] <- round(mean(DFAux$VolHoy,na.rm = TRUE),2)
+  DFAux$VolDia <- rowMeans(DFAux[,c("VolAyer","VolHoy")])
+  VolPromMes  = c(
+  round(mean(DFAux[which(DFAux$Producto == "Uva Alfonso Lavalett"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Arra"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Italia"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Magenta"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Palestina"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Pirovano"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Quebranta/Moscatel"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Red Globe"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Rosada"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Sultanina"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Superior"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Zafiro"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Flame"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Borgoña"),]$VolDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Fley"),]$VolDia,na.rm=TRUE),3))
+  return(
+    VolPromMes
+  )
+}
+```
+
+```{r}
+DFAUX = DF[which(DF$Año == 2019),]
+boxplot(VolProdMes(DFAUX,"Enero"),VolProdMes(DFAUX,"Febrero"),VolProdMes(DFAUX,"Marzo"),VolProdMes(DFAUX,"Abril"),VolProdMes(DFAUX,"Mayo"),
+        VolProdMes(DFAUX,"Junio"),VolProdMes(DFAUX,"Julio"),VolProdMes(DFAUX,"Agosto"),
+        VolProdMes(DFAUX,"Setiembre"),VolProdMes(DFAUX,"Octubre"),VolProdMes(DFAUX,"Noviembre"),VolProdMes(DFAUX,"Diciembre"),  main = "Volúmenes de ingreso de las uvas por meses-2019 (tn)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"),ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+En el año 2019 podemos notar una tendencia decreciente en las medianas del volumen de ingreso de enero a abril. Luego vemos que existe un crecimiento de abril a mayo para volver a reducirse hasta antes de agosto. Luego vuelve a bajar hacia setiembre para volver a subir en octubre. Finalmente se reduce la mediana en noviembre y después incrementa levemente en diciembre. 
+```{r}
+DFAUX = DF[which(DF$Año == 2020),]
+boxplot(VolProdMes(DFAUX,"Enero"),VolProdMes(DFAUX,"Febrero"),VolProdMes(DFAUX,"Marzo"),VolProdMes(DFAUX,"Abril"),VolProdMes(DFAUX,"Mayo"),
+        VolProdMes(DFAUX,"Junio"),VolProdMes(DFAUX,"Julio"),VolProdMes(DFAUX,"Agosto"),
+        VolProdMes(DFAUX,"Setiembre"),VolProdMes(DFAUX,"Octubre"),VolProdMes(DFAUX,"Noviembre"),VolProdMes(DFAUX,"Diciembre"),  main = "Volúmenes de ingreso de las uvas por meses-2020 (tn)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"),ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+En el año 2020 vemos que existieron más valores atípicos extremos. Además la tendencia decreciente de las medianas de enero a abril no se conserva. Tampoco lo hace el patrón de mayo a agosto. Sin embargo si se puede ver similitudes en el comportamiento de las medianas de setiembre a diciembre.
+```{r}
+DFAUX = DF[which(DF$Año == 2021),]
+boxplot(VolProdMes(DFAUX,"Enero"),VolProdMes(DFAUX,"Febrero"),VolProdMes(DFAUX,"Marzo"),VolProdMes(DFAUX,"Abril"),VolProdMes(DFAUX,"Mayo"),
+         main = "Volúmenes de ingreso de las uvas por meses-2021 (tn)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"),ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+En los datos que poseemos del año 2021 encontramos que no se llega a conservar ninguno de los patrones vistos anteriormente salvo el incremento de la mediana de abril a mayo.
+```{r}
+DFAUX =DF
+boxplot(VolProdMes(DFAUX,"Enero"),VolProdMes(DFAUX,"Febrero"),VolProdMes(DFAUX,"Marzo"),VolProdMes(DFAUX,"Abril"),VolProdMes(DFAUX,"Mayo"),
+        VolProdMes(DFAUX,"Junio"),VolProdMes(DFAUX,"Julio"),VolProdMes(DFAUX,"Agosto"),
+        VolProdMes(DFAUX,"Setiembre"),VolProdMes(DFAUX,"Octubre"),VolProdMes(DFAUX,"Noviembre"),VolProdMes(DFAUX,"Diciembre"),  main = "Volúmenes de ingreso de las uvas por meses en todo el estudio (tn)",
+  col = c("LightBlue","Yellow","Green","Red","Orange","Purple","blue","Pink","Brown","Grey","Turquoise","Red4"),ylim = c(0,50))
+legend("bottom",inset = c(0,-0.15), legend = c("Enero","Febrero","Marzo","Abril","Mayo","Junio"), 
+       bty = "n", pt.bg = c("LightBlue","Yellow","Green","Red","Orange","Purple") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+legend("bottom",inset = c(0,-0.25), legend = c("Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"), 
+       bty = "n", pt.bg = c("blue","Pink","Brown","Grey","Turquoise","Red4") ,
+       pch = 21, horiz = TRUE, xpd = TRUE)
+```
+#### Patrones observados para todo el estudio
+Respondiendo a la pregunta exploratoria 2, no podemos decir que se presenta una patrón anual como con los precios dado que las diferencias de las medianas de los volúmenes de ingresos promedio entre los meses son muy reducidas. No obstante si podemos observar que existe un valor atípico en todos los meses que corresponde al volumen de ingreso de la *Uva Red Globe*.
+
+#### Explicación del patrón
+A pesar de que la producción de uvas dependa de las estaciones, el volumen de ingreso es mayormente determinado por el mercado mayorista de frutas a diferencia del precio, por lo que se mantiene un volumen de ingreso similar para todos los meses. Así pues, se compensa la reducción o desaparición del volumen de ingreso de una uva en un mes por los efectos del clima y las épocas de siembra, aumentando el de otra uva. Por otro lado, uvas como la *Uva Red Globe*, al ser resistentes a condiciones difíciles como se explicó anteriormente, son tomadas como los productos principales del mercado mayorista de frutas y suelen mantener un volumen de ingreso elevado.
+
+
+### 3.3 Gráfico volúmenes de ingreso por producto por mes
+En el siguiente gráfico podremos ver el volumen de ingreso en toneladas por producto en cada mes. Esto nos dará una aproximación de la oferta que presenta cada uva según el periodo y nos servirá para visualizar cómo es que afecta el mes al volumen de ingreso de cada uva como plantea la pregunta mecánica 1 e indicar los máximos y los mínimos como se señala en la pregunta descriptiva 1. Se decidió usar este tipo de gráfico dado que simplifica el uso de varios gráficos de barras que relacionan variables numéricas con categóricas y nos permite ver la magnitud de las variaciones del volumen de ingreso para cada uva según el mes. El papel que cumple este gráfico es descriptivo debido que su función es presentarnos información dentro de la muestra para poder identificar tendencias.
+```{r }
+VolDiaMenMesProd  = function(DF,mes){
+  DFAux   = filter(DF,DF$Mes == mes)
+  DFAux$VolAyer[is.na(DFAux$VolAyer)] <- mean(DFAux$VolAyer,na.rm = TRUE)
+  DFAux$VolHoy[is.na(DFAux$VolHoy)] <- mean(DFAux$VolHoy,na.rm = TRUE)
+  DFAux$VolDia <- rowMeans(DFAux[,c("VolAyer","VolHoy")])
+  VolPromMes  = c(
+  mean(DFAux[which(DFAux$Producto == "Uva Alfonso Lavalett"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Arra"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Italia"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Magenta"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Palestina"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Pirovano"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Quebranta/Moscatel"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Red Globe"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Rosada"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Sultanina"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Superior"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Zafiro"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Flame"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Borgoña"),]$VolDia,na.rm=TRUE),
+  mean(DFAux[which(DFAux$Producto == "Uva Fley"),]$VolDia,na.rm=TRUE))
+  if (mes == "Enero"){
+    mes = "enero"
+  }
+  if (mes == "Febrero"){
+    mes = "febrero"
+  }
+  if (mes == "Marzo"){
+    mes = "marzo"
+  }
+  if (mes == "Abril"){
+    mes = "abril"
+  }
+  if (mes == "Mayo"){
+    mes = "mayo"
+  }
+  if (mes == "Junio"){
+    mes = "junio"
+  }
+  if (mes == "Julio"){
+    mes = "julio"
+  }
+  if (mes == "Agosto"){
+    mes = "agosto"
+  }
+  if (mes == "Setiembre"){
+    mes = "setiembre"
+  }
+  if (mes == "Octubre"){
+    mes = "octubre"
+  }
+  if (mes == "Noviembre"){
+    mes = "noviembre"
+  }
+  if (mes == "Diciembre"){
+    mes = "diciembre"
+  }
+  
+  return(
+   data.frame(VolPromMes,mes))
+    
+}
+
+
+Prod = c("Uva Alfonso Lavalett","Uva Arra","Uva Italia","Uva Magenta","Uva Palestina","Uva Pirovano","Uva Quebranta/Moscatel",
+           "Uva Red Globe","Uva Rosada","Uva Sultanina", "Uva Superior","Uva Zafiro","Uva Flame","Uva Borgoña","Uva Fley")
+DF2=VolDiaMenMesProd(DF,"Enero")
+DF2= rbind(DF2,VolDiaMenMesProd(DF,"Febrero"),VolDiaMenMesProd(DF,"Marzo"),
+              VolDiaMenMesProd(DF,"Abril"),
+              VolDiaMenMesProd(DF,"Mayo"),VolDiaMenMesProd(DF,"Junio"),
+              VolDiaMenMesProd(DF,"Julio"),VolDiaMenMesProd(DF,"Agosto"),
+              VolDiaMenMesProd(DF,"Setiembre"),VolDiaMenMesProd(DF,"Octubre"),
+              VolDiaMenMesProd(DF,"Noviembre"),VolDiaMenMesProd(DF,"Diciembre"))
+DF3=data.frame(DF2,Prod)
+
+DF3[1:15,2]= "01/01/2020"
+DF3[16:30,2]="01/02/2020"
+DF3[31:45,2]="01/03/2020"
+DF3[46:60,2]="01/04/2020"
+DF3[61:75,2]="01/05/2020"
+DF3[76:90,2]="01/06/2020"
+DF3[91:105,2]="01/07/2020"
+DF3[106:120,2]="01/08/2020"
+DF3[121:135,2]="01/09/2020"
+DF3[136:150,2]="01/10/2020"
+DF3[151:165,2]="01/11/2020"
+DF3[166:180,2]="01/12/2020"
+tiempo=as.Date(DF3$mes, format="%d/%m/%y")
+pt.bg = c("Red","Grey","Yellow4","Green4","Blue4","Yellow","Green","Orange","Purple","Lightblue","Lightgreen","Blue","Black","Pink","Brown")
+ggplot(data = DF3, aes(x=tiempo,y=VolPromMes,
+                       color=Prod))+geom_point()+geom_line()+ scale_x_date(date_labels = "%m",date_breaks = "1 month")+scale_color_manual(values=pt.bg) + xlab("Meses") + ylab("Volumen de ingreso (tn)")
+
+```
+Donde el 01 representa el mes de enero y el 12 representa el mes de diciembre
+
+```{r }
+DFAux   = DF
+DFAux$VolAyer[is.na(DFAux$VolAyer)] <- mean(DFAux$VolAyer,na.rm = TRUE)
+DFAux$VolHoy[is.na(DFAux$VolHoy)] <- mean(DFAux$VolHoy,na.rm = TRUE)
+DFAux$VolDia <- rowMeans(DFAux[,c("VolAyer","VolHoy")])
+
+
+MIN = min(c(mean(DFAux[which(DFAux$Producto == "Uva Alfonso Lavalett"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Borgoña"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Flame"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Palestina"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Red Globe"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Rosada"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Pirovano"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Quebranta/Moscatel"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Superior"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Italia"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Fley"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Sultanina"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Zafiro"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Arra"),]$VolDia), mean(DFAux[which(DFAux$Producto == "Uva Magenta"),]$VolDia)
+))
+```
+
+#### Patrones
+Respondiendo a la pregunta descriptiva 1 en todos los meses se puede visualizar que la *Uva Red Globe* mantiene el máximo volumen de ingreso en comparación con las demás uvas. Por otro lado, hallando el volumen de ingreso promedio de cada uva determinamos que la *Uva Borgoña* tiene el menor volumen de ingreso.
+
+Respondiendo a la pregunta mecánica 1, vemos en primer lugar que para la *Uva Arra* y la *Uva Magenta* los meses de verano representan los únicos en los que tienen algún volumen de ingreso, en donde la variación más remarcable es la caída del volumen de ingreso de la *Uva Arra* de enero a febrero, cabe señalar que la *Uva Sultanina* se aproxima a este comportamiento, pero está presente en abril donde tiene un ligero aumento de volumen de ingreso. Luego la *Uva Zafiro*, la *Uva Flame* y la *Uva Quebranta/Moscatel* permanecen disponibles por un periodo más grande de noviembre a marzo, noviembre a febrero y diciembre a mayo respectivamente. En estos periodos la *Uva Zafiro* permanece en un intervalo de 5 tn a 10 tn acercándose más a las 10 tn en enero, la *Uva Flame* mantiene un volumen de ingreso sin muchas variaciones hasta decrecer en febrero y la *Uva Quebranta/Moscatel* decrece conforme avanza el año. Después la *Uva Fley* mantiene un volumen de ingreso cercano a las 10 tn en los periodos que está disponible que son de noviembre a febrero y de mayo a agosto en donde los descensos más significativos son en febrero y en junio. Por último la *Uva Alfonso Lavalett*, la *Uva Italia*, la *Uva Palestina*,la *Uva Red Globe*, la *Uva Rosada*, la *Uva Borgoña* y la *Uva Superior* están disponibles en todo el año. La *Uva Alfonso Lavalett* mantiene un volumen de ingreso reducido para los meses de verano y uno bastante elevado en comparación de las demás uvas en los demás meses. la *Uva Italia* es una de las pocas uvas en crecer su volumen de ingreso en febrero en donde inicia a mantenerse elevado hasta junio. La *Uva Palestina* y la *Uva Rosada* no presentan grandes variaciones siendo la más resaltables un alza en febrero y un alza en marzo respectivamente . La *Uva Red Globe* siempre tiene un volumen de ingreso elevado que comienza a reducirse en marzo hasta setiembre, en donde llega a su mínimo. La *Uva Borgoña* siempre mantiene un volumen de ingreso reducido y de pocas variaciones y la *Uva Superior* guarda similitudes en su comportamiento con la *Uva Pirovano*,la cual solo no está disponible en mayo, siendo que ambas no tiene muchas variaciones salvo un alza en abril. 
+
+#### Explicación del patrón
+La presencia de 7 variedades de uvas en todos los meses recolectados se debe a que su producción no es altamente dependiente de la estación, ya sea porque provienen de importaciones o por características propias de las variedades como lo es la resistencia al clima; teniendo en cuenta que puede suceder ambos factores. Se puede inferir que la *Uva Red Globe* es la más consumida dentro de Lima dado el gran volumen de ingreso que posee que se mantiene constante con el pasar de los años. Finalmente se podría atribuir la reducción de la diversidad de las uvas por un cambio de estación de verano a otoño, lo cual disminuye las cosechas de las demás variedades hasta octubre.
+
+### 3.4 Gráfico precio del producto por mes
+Con la finalidad de responder a la pregunta mecánica 2 acerca de cómo varía el precio de cada variedad de uva por el mes y la descriptiva 2 donde queremos averiguar cuál uva tiene el precio máximo y cuál tiene el mínimo hemos planteado un gráfico que relacione el precio, el producto y el mes. Este gráfico nos permitirá ver la variación de precios a lo largo de los meses del estudio por cada tipo de uva. Se decidió usar este tipo de gráfico dado que simplifica el uso de varios gráficos de barras que relacionan variables numéricas con categóricas y nos permite ver la magnitud de las variaciones del precio para cada uva según el mes. El papel que cumple este gráfico es descriptivo debido que su función es presentarnos información dentro de la muestra para poder identificar tendencias. 
+```{r}
+
+MesProdBar = function(DF,mes){
+  DFAux   = filter(DF,DF$Mes == mes)
+  DFAux$PrePromAyer[is.na(DFAux$PrePromAyer)] <- round(mean(DFAux$PrePromAyer,na.rm = TRUE),2)
+  DFAux$PrePromHoy[is.na(DFAux$PrePromHoy)] <- round(mean(DFAux$PrePromHoy,na.rm = TRUE),2)
+  DFAux$PreDia <- rowMeans(DFAux[,c("PrePromAyer","PrePromHoy")])
+  PrePromMes  = c(
+  round(mean(DFAux[which(DFAux$Producto == "Uva Alfonso Lavalett"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Arra"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Italia"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Magenta"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Palestina"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Pirovano"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Quebranta/Moscatel"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Red Globe"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Rosada"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Sultanina"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Superior"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Zafiro"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Flame"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Borgoña"),]$PreDia,na.rm=TRUE),3),
+  round(mean(DFAux[which(DFAux$Producto == "Uva Fley"),]$PreDia,na.rm=TRUE),3))
+  if (mes == "Enero"){
+    Mes = "enero"
+  }
+  if (mes == "Febrero"){
+    Mes = "febrero"
+  }
+  if (mes == "Marzo"){
+    Mes = "marzo"
+  }
+  if (mes == "Abril"){
+    Mes = "abril"
+  }
+  if (mes == "Mayo"){
+    Mes = "mayo"
+  }
+  if (mes == "Junio"){
+    Mes = "junio"
+  }
+  if (mes == "Julio"){
+    Mes = "julio"
+  }
+  if (mes == "Agosto"){
+    Mes = "agosto"
+  }
+  if (mes == "Setiembre"){
+    Mes = "setiembre"
+  }
+  if (mes == "Octubre"){
+    Mes = "octubre"
+  }
+  if (mes == "Noviembre"){
+    Mes = "noviembre"
+  }
+  if (mes == "Diciembre"){
+    Mes = "diciembre"
+  }
+ return(data.frame(PrePromMes,mes))
+   }
+
+Prod = c("Uva Alfonso Lavalett","Uva Arra","Uva Italia","Uva Magenta","Uva Palestina","Uva Pirovano","Uva Quebranta/Moscatel",
+           "Uva Red Globe","Uva Rosada","Uva Sultanina", "Uva Superior","Uva Zafiro","Uva Flame","Uva Borgoña","Uva Fley")
+DF2= MesProdBar(DF,"Enero")
+DF2= rbind(DF2,MesProdBar(DF,"Febrero"),MesProdBar(DF,"Marzo"),
+             MesProdBar(DF,"Abril"),
+             MesProdBar(DF,"Mayo"),MesProdBar(DF,"Junio"),
+             MesProdBar(DF,"Julio"),MesProdBar(DF,"Agosto"),
+             MesProdBar(DF,"Setiembre"),MesProdBar(DF,"Octubre"),
+             MesProdBar(DF,"Noviembre"),MesProdBar(DF,"Diciembre"))
+
+DF3=data.frame(DF2,Prod)
+
+DF3[1:15,2]= "01/01/2020"
+DF3[16:30,2]="01/02/2020"
+DF3[31:45,2]="01/03/2020"
+DF3[46:60,2]="01/04/2020"
+DF3[61:75,2]="01/05/2020"
+DF3[76:90,2]="01/06/2020"
+DF3[91:105,2]="01/07/2020"
+DF3[106:120,2]="01/08/2020"
+DF3[121:135,2]="01/09/2020"
+DF3[136:150,2]="01/10/2020"
+DF3[151:165,2]="01/11/2020"
+DF3[166:180,2]="01/12/2020"
+tiempo=as.Date(DF3$mes, format="%d/%m/%y")
+
+ggplot(data = DF3, aes(x=tiempo,PrePromMes,
+                       color=Prod))+geom_point()+geom_line()+ scale_x_date(date_labels = "%m",date_breaks = "1 month")+scale_color_manual(values=c("Red","Grey","Yellow4","Green4","Blue4","Yellow","Green","Orange","Purple","Lightblue","Lightgreen","Blue","Black","Pink","Brown")) + xlab("Meses") + ylab("Precio promedio (S/)")
+
+```
+Donde el 01 representa el mes de enero y el 12 representa el mes de diciembre
+
+#### Patrones
+Respondiendo a la pregunta mecánica 2, vemos que todos los precios de las uvas siguen mayormente un mismo patrón en general a diferencia de lo que pasaba con la variación del volumen de ingreso por el mes. En este patrón el año comienza con una reducción de precio entre diciembre y enero que se prolonga hasta febrero, en donde están todas las variedades de uvas presentes. Luego, en marzo comienza a ascender levemente el precio de la mayoría de uvas hasta julio en donde el crecimiento se acelera y se hace más evidente hasta setiembre. En octubre comienzan a diferenciarse las tendencias de las variedades presentes y posteriormente con la aparición de distintos tipos de uvas en noviembre comienza a descender nuevamente hasta que vuelva a subir en marzo. Esta es la misma tendencia que habíamos visualizado anteriormente con los gráficos de cajas pero con este gráfico corroboramos que sí es mayormente seguido por cada variedad de uva. Algunas de las principales excepciones que podemos observar del patrón general son la *Uva Fley* que incrementa su precio de enero a febrero, la *Uva Alfonso Lavalett* y la *Uva Borgoña* que reducen considerablemente su precio entre abril y mayo y la *Uva Rosada* que, en lugar de subir su precio de junio a julio como las demás uvas, este decrece notablemente. Además conviene subrayar que del mes de mayo a junio no se presenta una tendencia estrictamente ascendente, sino que existen un igual número de uvas que suben su precio como las que bajan, en donde el aumento de precio de la *Uva Palestina*, *Uva Italia* y la *Uva Rosada* es más significativo. Para responder a la pregunta descriptiva 2, podemos observar que la *Uva Superior* es la que tiene el precio promedio máximo dado que es la que más veces tiene el mayor precio en todos los meses.
+
+#### Intervalos de confianza para la media del precio por variedad de uva
+Dado que no se puede visualizar de manera clara en el gráfico qué uva tiene el precio promedio mínimo vamos a hacer una estimación de la media del precio para cada uva con un nivel de confianza del 0.95 por los motivos expresados en la sección 2.2. A continuación se presentará una tabla con la media muestral, los límites superior e inferior del intervalo de confianza, la distribución continua a la que se aproximó la frecuencia de los precios, la precisión de la estimación por intervalo y el número de observaciones que tenemos para cada tipo de uva. Todos los valores se encuentran aproximados a 2 decimales dado que la unidad mínima de dinero es S/ 0.01.  
+```{r}
+
+#Alfonso Lavalett
+DFAux = DF[which(DF$Producto == "Uva Alfonso Lavalett"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+mmv = (1/length(PrecioUva)) * sum(log(PrecioUva))
+vmv = (1/length(PrecioUva)) * sum((log(PrecioUva) - mmv)^2)
+smv = sqrt(vmv)
+a = 0.05
+t = qt(1-a/2,length(PrecioUva)-1)
+e = smv*t/sqrt(length(PrecioUva))
+e = exp(e)
+a0 = exp(mmv) - e
+a1 = exp(mmv) + e
+AlfonsoLavalett = c("Log-normal",round(exp(mmv),2),round(exp(smv),2),round(a0,2),round(a1,2),length(PrecioUva),round(e,2))
+
+#Borgoña
+DFAux = DF[which(DF$Producto == "Uva Borgoña"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Borgoña = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Flame
+DFAux = DF[which(DF$Producto == "Uva Flame"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Flame = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Red Globe
+DFAux = DF[which(DF$Producto == "Uva Red Globe"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+RedGlobe = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Rosada
+DFAux = DF[which(DF$Producto == "Uva Rosada"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Rosada = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Pirovano
+DFAux = DF[which(DF$Producto == "Uva Pirovano"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Pirovano = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Quebranta/Moscatel
+DFAux = DF[which(DF$Producto == "Uva Quebranta/Moscatel"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+QuebrantaMoscatel = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Italia
+DFAux = DF[which(DF$Producto == "Uva Italia"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Italia = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Fley
+DFAux = DF[which(DF$Producto == "Uva Fley"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Fley = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Sultanina
+DFAux = DF[which(DF$Producto == "Uva Sultanina"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Sultanina = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+#Zafiro
+DFAux = DF[which(DF$Producto == "Uva Zafiro"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+mmv = (1/length(PrecioUva)) * sum(log(PrecioUva))
+vmv = (1/length(PrecioUva)) * sum((log(PrecioUva) - mmv)^2)
+smv = sqrt(vmv)
+a = 0.05
+t = qt(1-a/2,length(PrecioUva)-1)
+e = smv*t/sqrt(length(PrecioUva))
+e = exp(e)
+a0 = exp(mmv) - e
+a1 = exp(mmv) + e
+Zafiro = c("Log-normal",round(exp(mmv),2),round(exp(smv),2),round(a0,2),round(a1,2),length(PrecioUva),round(e,2))
+
+#Arra
+DFAux = DF[which(DF$Producto == "Uva Arra"),]
+PrecioUva = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+x = mean(PrecioUva)
+s = sd(PrecioUva)
+z = qnorm(1-a/2)
+e = z*s/sqrt(length(PrecioUva))
+b0 = x - e
+b1 = x + e
+Arra = c("Normal",round(x,2),round(s,2),round(b0,2),round(b1,2),length(PrecioUva),round(e,2))
+
+
+Nombre = c("Distribución aproximada","Media","Desviación estándar","Liminf","Limsup","Observaciones","Precisión")
+PreciosIN = data.frame(Nombre,AlfonsoLavalett,Borgoña,Flame,RedGlobe,Rosada,Pirovano,QuebrantaMoscatel,Italia,Fley,Sultanina,Zafiro,Arra)
+PreciosIN
+```
+En el caso de la Uva Magenta, la Uva Palestina y la Uva Superior no se ha podido asemejar ninguna distribución. Así pues, el histograma de frecuencia relativa de los precios para estas uvas se ven de la siguiente manera. Estos histogramas cumplen un papel descriptivo dado que buscan presentarnos información dentro de la muestra acerca de la frecuencia de los precios en intervalos para poder evaluar si es que se podía aproximar correctamente a alguna distribución continua.
+```{r}
+#Superior
+DFAux = DF[which(DF$Producto == "Uva Superior"),]
+PrecioUvaSuperior = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+hist(PrecioUvaSuperior,freq = FALSE,col = "Pink", main = "Precio Uva Superior (S/)")
+```
+En este caso existe una gran concentración de precios ubicados en el intervalo de S/42 a S/44 que impide que se pueda asemejar a una distribución uniforme.
+
+```{r}
+#Magenta
+DFAux = DF[which(DF$Producto == "Uva Magenta"),]
+PrecioUvaMagenta = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+hist(PrecioUvaMagenta,freq = FALSE,col = "Green", main = "Precio Uva Magenta (S/)")
+```
+En este caso dada la menor concentración de precios en los intervalos del medio no podemos asemejar este comportamiento a alguna distribución continua.
+
+```{r}
+#Palestina
+DFAux = DF[which(DF$Producto == "Uva Palestina"),]
+PrecioUvaPalestina = c(DFAux[complete.cases(DFAux$PrePromAyer),]$PrePromAyer,DFAux[complete.cases(DFAux$PrePromHoy),]$PrePromHoy)
+hist(PrecioUvaPalestina,freq = FALSE,col = "Orange", main = "Precio Uva Palestina (S/)")
+
+```
+En este caso la evidente falta de precios en el intervalo de S/28 a S/32 no hace apto al precio para ser modelado como una variable aleatoria continua de distribución normal.
+
+Sin embargo haciendo una estimación puntual sabemos que las medias para la *Uva Superior*, *Uva Magenta* y la *Uva Palestina* son S/ 38.82, S/24.22 y S/32.17. Con base en la información mostrada decidimos que la *Uva Flame* es la que tiene el menor precio promedio en el estudio.
+
+
+#### Explicación del patrón
+Cuando hay más oferta, en especial mayor variedad de uvas, los precios caen. Esto se puede ver especialmente en los meses de verano, empezando desde el mes de diciembre hasta marzo. Esto se debe principalmente a que la vendimia, que es la época de la cosecha de la uva, empieza en esta temporada, por lo que hay una gran oferta de uva, lo cual hace que los precios caigan. La *Uva Superior* se mantiene, en promedio, como la más cara durante todo el año. Esto se debe a que mucha gente tiende a preferirla debida a que no contiene pepa, a diferencia de otras variedades de uvas, por lo que su precio es más elevado por esta comodidad. Por otro lado, la *Uva Flame* tiende a estar disponible únicamente en la temporada de verano en la que los precios son reducidos por los motivos explicados anteriormente, por lo que se explica que sea la uva de menor precio promedio según nuestra muestra. Además cabe señalar a la *Uva Alfonso Lavalett* y la *Uva Red Globe* que estando presentes durante todo el año tienen los otros dos precios más bajos dado el elevado volumen de ingreso que mantienen en la mayoría del año como vimos en la sección 3.3, que genera una mayor oferta.
+
+
+# 4 Pruebas de hipótesis propuestas
+
+## 4.1 Proporción de apariciones por encima de la media del volumen de ingreso de las uvas con mayor precio
+Para responder a la pregunta inferencial 1 vamos a hacer una prueba de hipótesis para determinar si la proporción poblacional respecto a las veces que las 3 uvas con mayor precio aparecen por encima de la media de volumen de ingreso es menor a 0.5. Esto nos permitirá saber hasta que punto es restringido el tener un elevado volumen de ingreso al poseer un precio alto. Las uvas a considerar son la *Uva Superior*, la *Uva Pirovano* y la *Uva Palestina*. Para esto definimos la variable aleatoria discreta con distribución binomial "Número de apariciones por encima de la media del volumen de ingreso" y tomaremos en cuenta las variables "VolHoy" y "VolAyer". En la siguiente tabla se muestra el valor de esta variable para cada uva, el número total de observaciones consideradas para cada uva y el cociente de las apariciones entre este último.
+
+```{r}
+DFAux = DF[which(complete.cases(DF$VolAyer)),]
+DFAux = DFAux[which(complete.cases(DFAux$VolHoy)),]
+
+DFAux$VolPDiaHoy = apply(DFAux,1,function(x) x = 1)
+DFAux$VolPDiaAyer = apply(DFAux,1, function(x) x = 1)
+for (i in unique(DFAux$Añocompleto)){
+ DFAux[which(DFAux$Añocompleto == i),]$VolPDiaHoy = mean(DFAux[which(DFAux$Añocompleto == i),]$VolHoy)
+}
+for (i in unique(DFAux$Añocompleto)){
+ DFAux[which(DFAux$Añocompleto == i),]$VolPDiaAyer = mean(DFAux[which(DFAux$Añocompleto == i),]$VolAyer)
+}
+
+Contarencimavolhoy = function(DF1,Prod){
+  DF2 = DF1[which(DF1$Producto == Prod),]
+  k = 0
+  it = 1
+  for (i in DF2$Producto){
+
+    if( DF2[it,3] > DF2[it,12]){
+      k = k+1;
+      }
+    it = it+1
+  }
+  ans = c(k,it)
+  
+  return (ans)
+}
+
+Contarencimavolayer = function(DF1,Prod){
+  DF2 = DF1[which(DF1$Producto == Prod),]
+  k = 0
+  it = 1
+  for (i in DF2$Producto){
+    if( DF2[it,2] > DF2[it,13]){
+      k = k+1;
+      }
+    it = it+1
+  }
+  ans = c(k,it)
+  
+  return (ans)
+}
+
+Nombres = c("Numero de veces por encima de la media de volumen de ingreso","Numero de observaciones","Proporción")
+UvaSuperior = c(format(Contarencimavolhoy(DFAux,"Uva Superior")[1] + Contarencimavolayer(DFAux,"Uva Superior")[1],scientific = FALSE), format(Contarencimavolhoy(DFAux,"Uva Superior")[2] + Contarencimavolayer(DFAux,"Uva Superior")[2],scientific = FALSE), round((Contarencimavolhoy(DFAux,"Uva Superior")[1] + Contarencimavolayer(DFAux,"Uva Superior")[1])/(Contarencimavolhoy(DFAux,"Uva Superior")[2] + Contarencimavolayer(DFAux,"Uva Superior")[2]),4))
+
+UvaPirovano = c(format(round(Contarencimavolhoy(DFAux,"Uva Pirovano")[1] + Contarencimavolayer(DFAux,"Uva Pirovano")[1],1),scientific = FALSE), format(round(Contarencimavolhoy(DFAux,"Uva Pirovano")[2] + Contarencimavolayer(DFAux,"Uva Pirovano")[2],1),scientific = FALSE), format(round((Contarencimavolhoy(DFAux,"Uva Pirovano")[1] + Contarencimavolayer(DFAux,"Uva Pirovano")[1])/(Contarencimavolhoy(DFAux,"Uva Pirovano")[2] + Contarencimavolayer(DFAux,"Uva Pirovano")[2]),4),scientific = FALSE))
+
+
+UvaPalestina = c(format(Contarencimavolhoy(DFAux,"Uva Palestina")[1] + Contarencimavolayer(DFAux,"Uva Palestina")[1],scientific = FALSE), format(Contarencimavolhoy(DFAux,"Uva Palestina")[2] + Contarencimavolayer(DFAux,"Uva Palestina")[2],scientific = FALSE), round((Contarencimavolhoy(DFAux,"Uva Palestina")[1] + Contarencimavolayer(DFAux,"Uva Palestina")[1])/(Contarencimavolhoy(DFAux,"Uva Palestina")[2] + Contarencimavolayer(DFAux,"Uva Palestina")[2]),4))
+
+data.frame(Nombres,UvaSuperior,UvaPirovano,UvaPalestina)
+
+
+```
+```{r}
+Vc = qnorm(1-0.95)
+zp = (0.1757 - 0.5)/sqrt(0.5*(1-0.5)/148)
+```
+
+
+**Para la prueba de hipótesis de la *Uva Superior* planteamos:**
+
+- H0: π >= 0.5
+- H1: π < 0.5
+
+Donde determinamos que es una prueba de 1 cola izquierda. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.644854
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -7.89056
+
+```{r}
+u=0
+sd=1
+
+x <- seq(-10,10,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-10,10,by = 0.0001)
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-10,10), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -11, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=Vc],Vc), c(0,y[x<=Vc],0), col="lightblue")
+
+
+abline(v = -1.644854,col = "blue")
+abline(v = -7.89056,col = "green")
+
+```
+
+
+Como el estadístico de prueba es inferior al valor crítico para una prueba de una cola izquierda, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que la proporción de veces que la *Uva Superior* está por encima de la media de volumen de ingreso sea inferior a 0.5.
+```{r}
+Vc = qnorm(1-0.95)
+zp = (0.06 - 0.5)/sqrt(0.5*(1-0.5)/100)
+```
+
+**Para la prueba de hipótesis de la *Uva Pirovano* planteamos:**
+
+- H0: π >=0.5
+- H1: π < 0.5
+
+Donde determinamos que es una prueba de 1 cola izquierda. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.644854
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -8.8
+```{r}
+u=0
+sd=1
+
+x <- seq(-10,10,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-10,10,by = 0.0001)
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-10,10), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -11, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=Vc],Vc), c(0,y[x<=Vc],0), col="lightblue")
+
+
+abline(v = -1.644854,col = "blue")
+abline(v = -8.8,col = "green")
+
+```
+
+Como el estadístico de prueba es inferior al valor crítico para una prueba de una cola izquierda se encuentra, en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que la proporción de veces que la *Uva Pirovano* está por encima de la media del volumen de ingreso sea inferior a 0.5.
+```{r}
+Vc = qnorm(1-0.95)
+zp = (0.0882 - 0.5)/sqrt(0.5*(1-0.5)/170)
+```
+**Para la prueba de hipótesis de la *Uva Palestina* planteamos:**
+
+- H0: π >=0.5
+- H1: π < 0.5
+
+Donde determinamos que es una prueba de 1 cola izquierda. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.644854
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -10.73843
+```{r}
+u=0
+sd=1
+
+x <- seq(-12,12,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-12,12,by = 0.0001)
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-12,12), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -13, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=Vc],Vc), c(0,y[x<=Vc],0), col="lightblue")
+
+
+abline(v = -1.644854,col = "blue")
+abline(v = -10.73843,col = "green")
+
+```
+
+Como el estadístico de prueba es inferior al valor crítico para una prueba de una cola izquierda, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que la proporción de veces que la *Uva Palestina* está por encima de la media del volumen de ingreso sea inferior a 0.5.
+
+Finalmente podemos ver que, como se suponía, tener un precio elevado restringe en gran medida estar en por encima del volumen de ingreso. Así pues, también podemos observar que los valores obtenidos en la muestra son mucho menores al 0.5 que habíamos supuesto inicialmente para probar si es que había una restricción. Con base a esta muestra podemos afirmar que es improbable que las uvas de mayor precio se encuentren por encima del volumen de ingreso medio.
+
+
+## 4.2 Proporción de apariciones por encima de la media de precio de las uvas con mayor volumen de ingreso
+Con la finalidad de responder a la pregunta inferencial 2 vamos a hacer una prueba de hipótesis para determinar si la proporción poblacional del número de apariciones por encima de la media de precio de las 3 uvas con mayor volumen de ingreso es menor a 0.5. Similar al inciso anterior, queremos probar si es que tener un alto volumen de ingreso restringe tener un precio por encima de la media. Las uvas a considerar son la *Uva Red Globe*, *Uva Alfonso Lavalett* y la *Uva Italia*. Para esto definimos la variable aleatoria discreta con distribución binomial "Número de apariciones por encima de la media del precio" y tomaremos en cuenta las variables "PrePromHoy" y "PrePromAyer". En la siguiente tabla se muestra el valor de esta variable para cada uva, el número total de observaciones consideradas para cada uva y el cociente de las apariciones entre este último.
+
+```{r}
+DFAux = DF[which(complete.cases(DF$PrePromAyer)),]
+DFAux = DFAux[which(complete.cases(DFAux$PrePromHoy)),]
+
+DFAux$PrePDiaHoy = apply(DFAux,1,function(x) x = 1)
+DFAux$PrePDiaAyer = apply(DFAux,1, function(x) x = 1)
+for (i in unique(DFAux$Añocompleto)){
+ DFAux[which(DFAux$Añocompleto == i),]$PrePDiaHoy = mean(DFAux[which(DFAux$Añocompleto == i),]$PrePromHoy)
+}
+for (i in unique(DFAux$Añocompleto)){
+ DFAux[which(DFAux$Añocompleto == i),]$PrePDiaAyer = mean(DFAux[which(DFAux$Añocompleto == i),]$PrePromAyer)
+}
+
+Contarencimaprehoy = function(DF1,Prod){
+  DF2 = DF1[which(DF1$Producto == Prod),]
+  k = 0
+  it = 1
+  for (i in DF2$Producto){
+
+    if( DF2[it,6] > DF2[it,12]){
+      k = k+1;
+      }
+    it = it+1
+  }
+  ans = c(k,it)
+  
+  return (ans)
+}
+
+Contarencimapreayer = function(DF1,Prod){
+  DF2 = DF1[which(DF1$Producto == Prod),]
+  k = 0
+  it = 1
+  for (i in DF2$Producto){
+    if( DF2[it,5] > DF2[it,13]){
+      k = k+1;
+      }
+    it = it+1
+  }
+  ans = c(k,it)
+  
+  return (ans)
+}
+
+
+
+
+
+Nombres = c("Numero de veces por encima de la media de precio","Numero de observaciones","Proporción")
+UvaRedGlobe = c(format(Contarencimaprehoy(DFAux,"Uva Red Globe")[1] + Contarencimapreayer(DFAux,"Uva Red Globe")[1],scientific = FALSE), format(Contarencimaprehoy(DFAux,"Uva Red Globe")[2] + Contarencimapreayer(DFAux,"Uva Red Globe")[2],scientific = FALSE), round((Contarencimaprehoy(DFAux,"Uva Red Globe")[1] + Contarencimapreayer(DFAux,"Uva Red Globe")[1])/(Contarencimaprehoy(DFAux,"Uva Red Globe")[2] + Contarencimapreayer(DFAux,"Uva Red Globe")[2]),4))
+
+UvaAlfonsoLavalett = c(format(round(Contarencimaprehoy(DFAux,"Uva Alfonso Lavalett")[1] + Contarencimapreayer(DFAux,"Uva Alfonso Lavalett")[1],1),scientific = FALSE), format(round(Contarencimaprehoy(DFAux,"Uva Alfonso Lavalett")[2] + Contarencimapreayer(DFAux,"Uva Alfonso Lavalett")[2],1),scientific = FALSE), format(round((Contarencimaprehoy(DFAux,"Uva Alfonso Lavalett")[1] + Contarencimapreayer(DFAux,"Uva Alfonso Lavalett")[1])/(Contarencimaprehoy(DFAux,"Uva Alfonso Lavalett")[2] + Contarencimapreayer(DFAux,"Uva Alfonso Lavalett")[2]),4),scientific = FALSE))
+
+
+UvaItalia = c(format(Contarencimaprehoy(DFAux,"Uva Italia")[1] + Contarencimapreayer(DFAux,"Uva Italia")[1],scientific = FALSE), format(Contarencimaprehoy(DFAux,"Uva Italia")[2] + Contarencimapreayer(DFAux,"Uva Italia")[2],scientific = FALSE), round((Contarencimaprehoy(DFAux,"Uva Italia")[1] + Contarencimapreayer(DFAux,"Uva Italia")[1])/(Contarencimaprehoy(DFAux,"Uva Italia")[2] + Contarencimapreayer(DFAux,"Uva Italia")[2]),4))
+
+data.frame(Nombres,UvaRedGlobe,UvaAlfonsoLavalett,UvaItalia)
+
+```
+```{r}
+Vc = qnorm(1-0.95)
+zp = (0.0122 - 0.5)/sqrt(0.5*(1-0.5)/164)
+```
+
+**Para la prueba de hipótesis de la *Uva Red Globe* planteamos:**
+
+- H0: π >= 0.5
+- H1: π < 0.5
+
+Donde determinamos que es una prueba de 1 cola izquierda. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.644854
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -12.49378
+```{r}
+u=0
+sd=1
+
+x <- seq(-15,15,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-15,15,by = 0.0001)
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-15,15), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -17, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=Vc],Vc), c(0,y[x<=Vc],0), col="lightblue")
+
+
+abline(v = -1.644854,col = "blue")
+abline(v = -12.49378,col = "green")
+
+```
+
+Como el estadístico de prueba es inferior al valor crítico para una prueba de una cola izquierda, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que la proporción de veces que la *Uva Red Globe* está por encima de la media del precio sea inferior a 0.5.
+```{r}
+Vc = qnorm(1-0.95)
+zp = (0.0398 - 0.5)/sqrt(0.5*(1-0.5)/176)
+```
+**Para la prueba de hipótesis de la *Uva Alfonso Lavalett* planteamos:**
+
+- H0: π >= 0.5
+- H1: π < 0.5
+
+Donde determinamos que es una prueba de 1 cola izquierda. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.644854
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -12.21049
+```{r}
+u=0
+sd=1
+
+x <- seq(-15,15,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-15,15,by = 0.0001)
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-15,15), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -17, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=Vc],Vc), c(0,y[x<=Vc],0), col="lightblue")
+
+
+abline(v = -1.644854,col = "blue")
+abline(v = -12.21049,col = "green")
+
+```
+
+Como el estadístico de prueba es inferior al valor crítico para una prueba de una cola izquierda, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que la proporción de veces que la *Uva Alfonso Lavalett* está por encima de la media del precio sea inferior a 0.5.
+```{r}
+Vc = qnorm(1-0.95)
+zp = (0.0783 - 0.5)/sqrt(0.5*(1-0.5)/166)
+```
+**Para la prueba de hipótesis de la *Uva Italia* planteamos:**
+
+- H0: π >= 0.5
+- H1: π < 0.5
+
+Donde determinamos que es una prueba de 1 cola izquierda. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.644854
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -10.86645
+```{r Una cola izquierda}
+u=0
+sd=1
+
+x <- seq(-10,10,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-12,12,by = 0.0001)
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-12,12), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -13, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=Vc],Vc), c(0,y[x<=Vc],0), col="lightblue")
+
+
+abline(v = -1.644854,col = "blue")
+abline(v = -10.86645,col = "green")
+
+```
+Como el estadístico de prueba es inferior al valor crítico para una prueba de una cola izquierda, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que la proporción de veces que la *Uva Italia* está por encima de la media del precio sea inferor a 0.5.
+
+Finalmente podemos ver que se cumplió la suposición esperada de que ningún valor superara una proporción de apariciones por encima de la media superior a la mitad. Además pudimos observar valores incluso más pequeños que los obtenidos en la anterior prueba de hipótesis indicando que es aún menos probable que una de las uvas de más alto volumen de ingreso pueda superar la media de precio que una de alto precio pueda tener un volumen de ingreso superior a la media. Esto lo podemos explicar con el hecho de que el volumen de ingreso es un valor ajustado únicamente por el mercado mayorista de frutas por lo que se puede asignar cualquier valor de volumen de ingreso siempre que lo justifique una demanda estimada. Por ejemplo la *Uva superior* es la que ha tenido más apariciones por encima de la media del volumen de ingreso entre las uvas mas caras dado que su alta calidad ha logrado hacer que siga existiendo demanda y por ende que ingrese más de este producto. Por otro lado, la fijación de precios depende de más factores como el precio de otras frutas, el poder adquisitivo de las personas o la estación. Por lo tanto el precio es más afectado por las demás fuerzas del mercado y por eso vemos que sigue el comportamiento esperado de ser reducido para las uvas que tiene un alto volumen de ingreso.
+
+## 4.3 Estudio de la relación entre el volumen de ingreso y el precio promedio
+Para responder a la pregunta inferencial 3 acerca de si existe correlación entre el volumen de ingreso y el precio promedio de todas las observaciones en el estudio hemos planteado una prueba de hipótesis para averiguar si la correlación poblacional es igual a 0 o no. Esto nos permitirá afirmar si existe la relación que nosotros suponemos inicialmente entre el volumen de ingreso y el precio para todas las uvas como conjunto, la cual es que una variable crece cuando la otra decrece. Para determinar la correlación muestral usaremos la función "cor" de Rstudio tomando como argumentos la concatenación de las columnas de las variables "VolAyer con "VolHoy" y la concatenación de las columnas de la variables "PrePromAyer" con "PrePromHoy". Obtenemos que:   
+```{r}
+DFAux = DF[complete.cases(DF),]
+Precios = c(DFAux$PrePromAyer,DFAux$PrePromHoy)
+Volumenes = c(DFAux$VolAyer,DFAux$VolHoy)
+r = cor(Precios,Volumenes)
+Observaciones = c(length(Precios))
+CorrelaciónMuestral = c(r)
+data.frame(Observaciones,CorrelaciónMuestral)
+```
+```{r}
+Vc = qnorm(1-(0.05)/2)
+zp = (r*sqrt(1424-2))/sqrt(1-(r^2))
+```
+
+**Para la prueba de hipótesis planteamos que**
+
+- H0: ρ = 0 
+- H1: ρ < 0 / ρ > 0
+
+Donde determinamos que es una prueba de dos colas. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.959964 / Valor crítico = 1.959964 
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba =  -12.35799
+```{r}
+u=0
+sd=1
+
+x <- seq(-15,15,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-15,15,by = 0.0001)
+
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-15,15), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -17, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=-Vc],-Vc), c(0,y[x<=-Vc],0), col="lightblue")
+polygon(c(x[x>=Vc], max(x), Vc), c(y[x>=Vc], 0, 0), col="lightblue")
+
+abline(v = -Vc,col = "blue")
+abline(v = Vc, col = "blue")
+abline(v = zp,col = "green")
+
+```
+
+Como el estadístico de prueba es inferior al valor crítico para una prueba de dos colas, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que exista una correlación entre las variables acerca del volumen de ingreso y el precio promedio.
+
+Estos resultados confirman que, con base en esta muestra, el precio aumenta cuando el volumen de ingreso disminuye en la mayoría de las observaciones, lo que va de acuerdo con la ley de oferta y demanda, que es el concepto bajo el que relacionamos estas variables. No obstante el valor del coeficiente de correlación asociado a la muestra nos indica que existe un considerable número de observaciones donde esto no sucede dado que tiene un valor claramente alejado de -1, número que indicaría una correlación negativa perfecta. Además, el coeficiente de determinación de 0.097, nos indica que sólo podemos explicar el 9.7% de la variación del precio por el volumen. Con el propósito de ver más a detalle esta relación vamos a analizar gráficos de dispersión con las variables del volumen y del precio posteriormente en la sección 5.
+
+## 4.4 Estudio de la relación entre el número de variedades de uvas disponibles en el día de la medición y el precio
+Para responder a la pregunta inferencial 4 proponemos una prueba de hipótesis que nos indique si la correlación poblacional de estas dos variables es 0. Similar a la relación propuesta anteriormente, esta también tiene su fundamento en la ley de la oferta y la demanda. Sin embargo esta vez queremos probar si cuando existe una mayor cantidad de variedades de uvas disponibles su precio tiende a bajar. Esta tendencia se podía ver en el inciso 4 de la sección 3 en donde veíamos que en febrero la mayoría de productos bajaba su precio coincidiendo con el mes de disponibilidad de todas las variedades. Para determinar la correlación muestral usaremos la función "cor" de Rstudio tomando como argumentos la variable "Productos" y la variable "PrePromHoy". En este caso no podremos usar los datos de la variable "PrePromAyer" dado que no se tiene certeza de la cantidad variedades disponibles en el día de su medición para la observación correspondiente. Obtenemos que:
+
+```{r}
+DFAux = DF[complete.cases(DF$PrePromHoy),]
+CorrelaciónMuestral = cor(DFAux$Productos,DFAux$PrePromHoy)
+Observaciones = nrow(DFAux)
+data.frame(Observaciones,CorrelaciónMuestral)
+r = cor(DFAux$Productos,DFAux$PrePromHoy)
+```
+```{r}
+Vc = qnorm(1-0.95)
+zp = (r*sqrt(732-2))/sqrt(1-(r^2))
+```
+
+**Para la prueba de hipótesis planteamos que**
+
+- H0: ρ = 0 
+- H1: ρ < 0 / ρ > 0
+
+Donde determinamos que es una prueba de una cola izquierda. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.959964 / Valor crítico = 1.959964 
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -4.096266
+```{r Dos colas}
+u=0
+sd=1
+
+x <- seq(-5,5,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-5,5,by = 0.0001)
+
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-5,5), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -17, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=Vc],Vc), c(0,y[x<=Vc],0), col="lightblue")
+polygon(c(x[x>=-Vc], max(x), -Vc), c(y[x>=-Vc], 0, 0), col="lightblue")
+
+abline(v = -Vc,col = "blue")
+abline(v = Vc, col = "blue")
+abline(v = zp,col = "green")
+
+```
+Como el estadístico de prueba es inferior al valor crítico negativo para una prueba de dos colas, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que exista una correlación entre las variables "Productos" y "PrePromHoy".
+
+Estos resultados confirman que, con base en esta muestra, la correlación entre estas dos variables existe y debe ser negativa, lo que va de acuerdo con nuestra suposición inicial. No obstante vemos que el valor de la correlación muestral obtenido es bastante reducido, llegando a ser menos de la mitad del encontrado en el anterior inciso. Dado esto, determinamos que la relación propuesta entre la cantidad de variedades de uvas disponibles por ley de oferta y demanda es existente, pero es débil, lo que significa que podemos esperar varios casos en donde el precio de una uva suba o se mantenga cuando se aumenta la cantidad de variedades en el mercado.
+
+## 4.5 Estudio de la relación entre el volumen de ingreso un día anterior de la medición y el precio en el día de la medición
+Para responder a la pregunta inferencial 5 vamos a hallar la correlación muestral entre las variables "VolAyer" y "PrePromHoy". Luego realizar una prueba de hipótesis que nos indique si la correlación poblacional es diferente de 0 y finalmente, si es que es diferente de 0, evaluar si son iguales o no o que tan próximos son sus valores. Así pues, queremos comprobar si existe un desfase en la fijación de precios en base al volumen de ingreso. Puesto en otras palabras, dado que los precios no están cambiando constantemente a lo largo del día suponemos que estos se fijan para un día en específico considerando los volúmenes de ingreso del día anterior. Verificar que no existe la diferencia de las correlaciones que planteamos significaría que el efecto que asumimos es inexistente o al menos despreciable. Para realizar la prueba de hipótesis haremos una estimación puntual y tomaremos el valor de correlación entre el volumen y el precio en general obtenido por la muestra dado que esta es la mayor aproximación que podemos obtener del parámetro poblacional. Para hallar la correlación a probar usaremos la función "cor" tomando como argumentos las variable "VolAyer" y "PrePromHoy". Obtenemos que:
+```{r}
+DFAux = DF[complete.cases(DF$PrePromHoy),]
+DFAux = DFAux[complete.cases(DFAux$VolAyer),]
+CorrelaciónMuestral = cor(DFAux$PrePromHoy,DFAux$VolAyer)
+Observaciones = nrow(DFAux)
+data.frame(Observaciones,CorrelaciónMuestral)
+r = cor(DFAux$VolAyer,DFAux$PrePromHoy)
+```
+```{r}
+Vc = qnorm(1-(0.05)/2)
+zp = (r*sqrt(721-2))/sqrt(1-(r^2))
+```
+Ahora comprobamos que esta correlación exista.
+
+**Para la prueba de hipótesis planteamos que**
+
+- H0: ρ = 0
+- H1: ρ > 0 / ρ < 0
+
+Donde determinamos que es una prueba de dos colas. Para el nivel de confianza de 0.95 seleccionado para el estudio:
+
+- Valor crítico = -1.959964 / Valor crítico = 1.959964
+
+Determinamos el estadístico de prueba y verificamos si está dentro de la región de rechazo:
+
+- Estadístico de prueba = -9.194204
+```{r}
+u=0
+sd=1
+
+x <- seq(-10,10,length=10000)*sd + u
+y <- dnorm(x,u,sd)
+X = seq(-10,10,by = 0.0001)
+
+plot(X,dnorm(X,0,1),col = "red",type = "l",xlab = " ", ylab = " ",xlim = c(-10,10), ylim = c(0,0.45),main = "Distribución normal estándar",xaxs = "i",yaxs = "i")
+legend(x = -11.5, y = -0.05,legend = c("Estadístico de prueba","Valor crítico","Región de rechazo de H0"), 
+       bty = "n", pt.bg = c("Green","Blue","Lightblue") , pch = 21, horiz = TRUE, xpd = TRUE)
+
+polygon(c(max(x),x[x<=-Vc],-Vc), c(0,y[x<=-Vc],0), col="lightblue")
+polygon(c(x[x>=Vc], max(x), Vc), c(y[x>=Vc], 0, 0), col="lightblue")
+
+abline(v = -Vc,col = "blue")
+abline(v = Vc, col = "blue")
+abline(v = zp,col = "green")
+
+```
+Como el estadístico de prueba es inferior al valor crítico negativo para una prueba de dos colas, se encuentra en la región de rechazo de H0. Rechazamos H0. Por lo tanto:
+
+- Con base en la evidencia muestral no rechazamos que exista una correlación entre las variables "VolAyer" y "PrePromHoy".
+
+Como podemos ver la correlación no ha sido exactamente igual, sin embargo es bastante similar con una diferencia de 0.01296 entre ambas. Por lo tanto podemos considerar que, si es que existe una correlación particular entre el volumen de ingreso del día previo a la medición y el precio promedio en el día de la medición, mantiene una diferencia despreciable con la correlación general del volumen con el precio para las uvas. 
+
+
+# 5 Regresión lineal 
+Con la finalidad de responder a la pregunta predictiva 1, vamos hacer gráficos de dispersión para las variables del volumen y del precio para cada tipo de uva. Como señalamos en el inciso 3 de la sección 4, el hecho que nos haya salido un coeficiente de correlación tan lejano del perfecto significa que existen varias situaciones donde tanto el precio como el volumen de ingreso de una uva aumentan al mismo tiempo. Para hacer la regresión lineal concatenaremos las columnas de las variables "PrePromHoy" con "PrePromAyer" y "VolHoy" con "VolAyer" para relacionar el volumen con el precio.
+
+## 5.1 Gráfico de dispersión precio por volumen de ingreso por producto
+Hemos decidido hacer un gráfico de dispersión que nos permita ver la relación entre estas dos variables para cada producto dado que ambas son variables numéricas continuas, a pesar de que en la muestra el volumen solo tome cantidades enteras. El papel que cumplirán estos gráficos van a ser inferenciales dado que buscan informarnos acerca de tendencias construidas en base a la muestra para poder determinar un comportamiento general.
+```{r}
+DF4=DF[complete.cases(DF),]
+VolT= c(DF4$VolAyer,DF4$VolHoy)
+PrecT= c(DF4$PrePromAyer,DF4$PrePromHoy)
+ProdT= c(DF4$Producto,DF4$Producto)
+DFApx = data.frame(ProdT,VolT,PrecT)
+
+  SumaDePlots2 = function(DF,uva,color)
+{
+  DFAp=DF4
+  DFAp$VolDia <- rowMeans(DF4[,c("VolAyer","VolHoy")],na.rm=FALSE)
+  DFAp = DFAp[which(DF4$Producto == uva),]
+  Vol1 = DFAp$VolDia
+  max1 = max(Vol1)
+  min1 = min(Vol1)
+  DFApx = data.frame(ProdT,VolT,PrecT)
+  DFApx = DFApx[which(DFApx$ProdT == uva),]
+  Vol = DFApx$VolT
+  Prec = DFApx$PrecT
+  return (plot(Vol,Prec,col = color ,xlab="Volumen promedio del dia",ylab="Precio promedio del dia",main= uva,pch = 20, ylim = c(0,50), xlim = c(min1,max1+2)))
+  }
+  
+ObtencionRL2 = function(DF,uva)
+{
+  DFApx = data.frame(ProdT,VolT,PrecT)
+  DFApx = DFApx[which(DFApx$ProdT == uva),]
+  Vol = DFApx$VolT
+  Prec = DFApx$PrecT
+  show(uva)
+  return (lm(Prec~Vol))
+  }
+  
+```
+
+```{r}
+SumaDePlots2(DF4,"Uva Arra","Grey")
+abline(ObtencionRL2(DF4,"Uva Arra"), col="Grey")
+
+```
+La *Uva Arra* presenta una pendiente notablemente creciente. Tiene una cantidad reducida de observaciones que están cerca de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Magenta","Green")
+abline(ObtencionRL2(DF4,"Uva Magenta"), col="Green")
+```
+La *Uva Magenta* presenta una pendiente negativa casi nula. Tiene una cantidad reducida de observaciones que están cerca de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Palestina","Orange")
+abline(ObtencionRL2(DF4,"Uva Palestina"), col="Orange")
+```
+La *Uva Palestina* presenta una pendiente ligeramente negativa. Tiene una gran cantidad de observaciones que se alejan consideramblemente de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Pirovano","Purple")
+abline(ObtencionRL2(DF4,"Uva Pirovano"), col="Purple")
+```
+La *Uva Pirovano* presenta una pendiente ligeramente negativa. Tiene una gran cantidad de observaciones que se alejan considerablemente de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Quebranta/Moscatel","Lightblue")
+abline(ObtencionRL2(DF4,"Uva Quebranta/Moscatel"), col="Lightblue")
+```
+La *Uva Quebranta/Moscatel* presenta una pendiente ligeramente positiva, Tiene una cantidad considerable de observaciones y están cerca a la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Rosada","Blue") 
+abline(ObtencionRL2(DF4,"Uva Rosada"), col="Blue")
+```
+La *Uva Rosada* presenta una pendiente negativa. Tiene una gran cantidad de observaciones que están algo alejadas de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Sultanina","Black")
+abline(ObtencionRL2(DF4,"Uva Sultanina"), col="Black")
+```
+La *Uva Sultanina* presenta una pendiente negativa. Tiene una cantidad reducida de observaciones que están cerca de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Superior","Pink")
+abline(ObtencionRL2(DF4,"Uva Superior"), col="Pink")
+```
+La *Uva Superior* presenta una pendiente ligeramente positiva. Tiene una elevada de observaciones que están alejadas de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Zafiro","Brown")
+abline(ObtencionRL2(DF4,"Uva Zafiro"), col="Brown")
+```
+La *Uva Zafiro* presenta una pendiente negativa. Tiene una cantidad reducida de observaciones que están cerca de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Flame","Green4")
+abline(ObtencionRL2(DF4,"Uva Flame"), col="Green4")
+```
+La *Uva Flame* presenta una pendiente positiva casi constante. Tiene una cantidad reducida de observaciones que están cerca a la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Borgoña","Yellow4")
+abline(ObtencionRL2(DF4,"Uva Borgoña"), col="Yellow4")
+```
+La *Uva Borgoña* presenta una pendiente negativa. Tiene una cantidad elevada de observaciones que están cerca a la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Fley","Blue4")
+abline(ObtencionRL2(DF4,"Uva Fley"), col="Blue4")
+```
+La *Uva Fley* presenta una pendiente positiva casi constante. Tiene una cantidad considerable de observaciones que están alejadas de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Alfonso Lavalett","Red")
+abline(ObtencionRL2(DF4,"Uva Alfonso Lavalett"), col="Red")
+```
+La *Uva Alfonso Lavalett* tiene una pendiente ligeramente negativa. Tiene una cantidad elevada de observaciones que están considerablemente lejos de la gráfica
+```{r}
+SumaDePlots2(DF4,"Uva Italia","Yellow2")
+abline(ObtencionRL2(DF4,"Uva Italia"), col="Yellow2")
+```
+La *Uva Italia* tiene una pendiente negativa. Tiene una cantidad elevada de observaciones que están considerablemente lejos de la gráfica.
+```{r}
+SumaDePlots2(DF4,"Uva Red Globe","Lightgreen")
+abline(ObtencionRL2(DF4,"Uva Red Globe"), col="Lightgreen")
+
+```
+La *Uva Red Globe* tiene una pendiente negativa. Tiene una cantidad elevada de observaciones que están considerablemente lejos de la gráfiica.
+
+### Patrones
+La *Uva Alfonso Lavalett*, *Uva Italia*, *Uva Palestina*, *Uva Pirovano*,*Uva Red Globe*, *Uva Rosada*, *Uva Superior*, *Uva Sultanina* y la *Uva Fley* son casos especiales, ya que, podemos notar que para una misma cantidad de volumen encontramos diferentes precios que tienen una diferencia significativa y que los valores son algo distantes de la gráfica. También, podemos notar que todas las uvas menos la *Uva Superior*, la *Uva Quebranta/Moscatel*, la *Uva Flame*, la *Uva Fley* y la *Uva Arra* tienen una tendencia descendente. En efecto, la tendencia de la *Uva Superior* es ascendente,  la de la *Uva Fley* y la de la *Uva Flame* son  ascendente casi constante, la de la *Uva Quebranta/Moscatel* es ligeramente ascendente y la de la *Uva Arra* es ascendente. La *Uva Magenta*, la *Uva Quebranta/Moscatel*, la *Uva Zafiro*, *Uva Flame* y *Uva Borgoña* son uvas que los precios no varía en gran cantidad para una misma cantidad de volumen y son uvas que son cercanas a la gráfica. La *Uva Zafiro* y la *Uva Borgoña* son uvas con tendencia descendente y la *Uva Magenta* y la *Uva Alfonso Lavalett* tienen una pendiente que es ligeramente descendente casi constante.
+
+### Explicación del patrón
+
+#### Uvas decrecientes:
+La tendencia de estas uvas es la esperada, ya que el precio disminuye en los momentos donde el volumen aumenta siguiendo la regla de la oferta y la demanda que supusimos inicialmente. Hay casos como la *Uva Sultanina*, en la cual, el precio disminuye de gran manera si disminuye el volumen, además la cercanía de los datos observados con la gráfica señalan una buena aproximación al estimar esta tendencia. Lo mismo ocurre en el caso de la *Uva Borgoña* donde los valores son muy cercanos a la gráfica,lo que indica una gran bondad del ajuste lineal. En cambio, los valores para la *Uva Red Globe* y la *Uva Italia* están un poco más distantes, pero podemos apreciar de igual manera la tendencia a disminuir el precio si el volumen aumenta, incluso, dado que tenemos varias observaciones dispersas a lo largo de la gráfica, nos permite considerar este ajuste para un mayor rango de posibles volúmenes de ingreso.
+
+#### Uvas nulas:
+En el caso de la *Uva Flame*, la *Uva Fley* y la *Uva Alfonso Lavalett* se tiene una tendencia a mantener prácticamente igual su precio, a pesar de estar cambiando el volumen. En el caso de la *Uva Flame* el precio no varia mucho cuando lo hace el volumen, siendo que sus observaciones están mas cerca a la gráfica del ajuste. Por otro lado están los casos de la *Uva Alfonso Lavalett* y la *Uva Fley*, en donde las observaciones presentan grandes distancias a sus gráficas respectivas, lo que indica una falta de precisión del ajuste. No obstante, en la *Uva Alfonso Lavalett* se presenta la ventaja que tiene observaciones dispersas a lo largo de la recta, lo que nos permite aplicar este ajuste a un mayor rango de posibles volúmenes de ingreso a este producto. 
+
+#### Uvas crecientes:
+La *Uva Quebranta/Moscatel*, la *Uva Arra* y la *Uva Superior* presentan una tendencia creciente en el precio cuando aumenta el volumen. Estas a primera vista, dan la impresión de no cumplir la ley de la oferta y la demanda, lo cual las vuelve un caso interesante. En el caso de la *Uva Arra* esto sucede porque sólo está presente en verano, por lo que su comportamiento general se ve mayormente definido por la reducción general del precio en febrero por la alta oferta, acompañada de la reducción del volumen de ingreso de este producto en favor de la venta de otras variedades. En el caso de *Uva Quebranta/Moscatel* esto puede suceder debido a que solo se encuentra presente de diciembre a mayo, siendo que tras el trascurso de este periodo su volumen de ingreso tiende a decrecer pero mantiene la tendencia general de las uvas de aumentar su precio con el paso del año. Por último, la *Uva Superior* tiene este comportamiento dado que su volumen de ingreso es bastante reducido y permanece casi invariable a lo largo del año, por lo que su precio se ve más influenciado por factores como el mes, lo que hace que el mismo pueda aumentar al mismo tiempo que su volumen. Esto último se puede notar en la gran distancia que existe entre los puntos observados y la gráfica del ajuste, lo que indica que la bondad del mismo no es suficiente para establecer una correlación definitiva.
+
+## 5.2 Obtencion del Ajuste, Coeficiente de Deteriminacion por medio de la funcion lm()
+Con ayuda de la función lm(), obtendremos los coeficientes necesarios para modelar el ajuste lineal por minimos cuadrados de las observaciones de las distintas uvas. De esta manera podremos determinar tanto el modelo matemático que describe el precio en función del volumen de ingreso como si es que esta variable es significativa para el modelo a un nivel de significancia de 0.05
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Alfonso Lavalett"))
+```
+En este caso observamos un coeficiente de determinación de  0.00046, por lo que el coeficiente de correlación es de 0.02136. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.78, no rechazamos la hipótesis de que este coeficiente sea 0 para el nivel de significancia de 0.05 con el que estamos trabajando. Por lo tanto, la participación del volumen en este modelo no es estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Borgoña"))
+```
+En este caso observamos un coeficiente de determinación de 0.07469, por lo que el coeficiente de correlación es 0.27329. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.00165, rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, no rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es menor a nuestro nivel de significancia, no rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+```{r }
+summary(ObtencionRL2(DF,"Uva Flame"))
+```
+En este caso observamos un coeficiente de determinación de aproximadamente 0.00009, por lo que el coeficiente de correlación es aproximadamente 0.00949. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.949, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+```{r }
+summary(ObtencionRL2(DF,"Uva Palestina"))
+```
+En este caso observamos un coeficiente de determinación de 0.00714, por lo que el coeficiente de correlación es 0.08448. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.276, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Red Globe"))
+```
+En este caso observamos un coeficiente de determinación de 0.0614, por lo que el coeficiente de correlación es 0.24779. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.00148, rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, no rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es menor a nuestro nivel de significancia, no rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Rosada"))
+```
+En este caso observamos un coeficiente de determinación de 0.03091, por lo que el coeficiente de correlación es 0.17581. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.0406, rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, no rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es menor a nuestro nivel de significancia, no rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Pirovano"))
+```
+En este caso observamos un coeficiente de determinación de 0.01014, por lo que el coeficiente de correlación es 0.1007. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.324, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Quebranta/Moscatel"))
+```
+En este caso observamos un coeficiente de determinación de 0.02357, por lo que el coeficiente de correlación es 0.15353. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.268, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Superior"))
+```
+En este caso observamos un coeficiente de determinación de 0.00791, por lo que el coeficiente de correlación es 0.08893. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.286, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Italia"))
+```
+En este caso observamos un coeficiente de determinación de 0.1467, por lo que el coeficiente de correlación es 0.38301. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es mucho menor que 0.05, rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, no rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mucho menor a nuestro nivel de significancia, no rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Fley"))
+```
+En este caso observamos un coeficiente de determinación de aproximadamente 0.000016, por lo que el coeficiente de correlación es aproximadamente 0.00419. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.974, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Sultanina"))
+```
+En este caso observamos un coeficiente de determinación de 0.1012, por lo que el coeficiente de correlación es 0.31812. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.0866, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Zafiro"))
+```
+En este caso observamos un coeficiente de determinación de 0.08446, por lo que el coeficiente de correlación es 0.29062. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.15, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r }
+summary(ObtencionRL2(DF,"Uva Arra"))
+```
+En este caso observamos un coeficiente de determinación de 0.3239, por lo que el coeficiente de correlación es 0.56912. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.0214, rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, no rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es menor a nuestro nivel de significancia, no rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+```{r}
+summary(ObtencionRL2(DF,"Uva Magenta"))
+
+```
+En este caso observamos un coeficiente de determinación de 0.00278, por lo que el coeficiente de correlación es 0.05272. Observando que el p-valor correspondiente al coeficiente que multiplica a la variable Vol es 0.88501, no rechazamos la hipótesis de que este coeficiente pueda ser 0 para el nivel de significancia de 0.05 que estamos trabajando. Por lo tanto, rechazamos que la participación del volumen en este modelo sea estadísticamente significativa al 0.05 de significancia. Además, observando que el p-valor asociado al modelo matemático también es mayor a nuestro nivel de significancia, rechazamos que el modelo sea estadísticamente significativo al 0.05 de significancia.
+
+#### En la siguiente tabla podemos ver los modelos matemáticos propuestos para cada uva:
+```{r}
+
+Precio = c("[23.58;17.5]","[23.5;29.13]","[17.13;24.5]","[22.25;42.38]","[15.5;40.25]","[22.25;42]","[18.75;41.75]","[23;28.75]","[26.25;45.88]","[16.62;40.25]","[18.38;43.12]","[24.75;34.38]","[21.5;28.75]","[28.62;37]","[21.25;27.25]")
+Volumen = c("[9;42.5]","[2.5;11.5]","[6;17]","[4.5;13]","[18.5;61.5]","[3.5;21]","[5;13]","[2.5;7.5]","[4;20.5]","[6;42]","[4;12.5]","[4;11]","[5;10]","[5.5;13]","[6.5:11]")
+Correlación = c("-0.02136354","-0.2733023", "0.009957787", "-0.08448114", "-0.2477857", "-0.175801", "-0.1007095", "0.1535375", "0.08892809", "-0.3830622", "0.004019219", "-0.3181859", "-0.2906223", "0.5691026", "-0.05271326")
+
+Ajuste = c("23.745921 - 0.009216 *x", "27.39707 - 0.20299 *x", "20.163634 + 0.006901 *x ", "33.3504- 0.1324*x", "28.09107- 0.10348*x", "33.09749- 0.19941*x", "34.5203- 0.2191*x", "25.1587+ 0.1653*x", "37.5673+ 0.1329*x ", "29.33924 - 0.22734 *x", "28.988018 +0.009445 *x", "31.0986-0.3764 *x", "26.928-0.2436*x", "24.9077+0.6713 *x", "24.77599-0.06559 *x")
+
+CoeficienteDeterminación = c("0.0004564","0.07469","9.916e-05","0.007137","0.0614","0.03091","0.01014","0.02357", "0.007908", "0.1467", "1.615e-05", "0.1012", "0.08446", "0.3239", "0.002779")
+Ajustes = data.frame(unique(DF$Producto),Precio,Volumen,Correlación,Ajuste,CoeficienteDeterminación)
+Ajustes
+```
+
+### Validación del modelo matemático 
+En resumen, en el caso de la *Uva Alfonso Lavalett*, *Uva Flame*, *Uva Palestina*, *Uva Pirovano*, *Uva Quebranta/Moscatel*, *Uva Superior*, *Uva Fley*, *Uva Sultanina*, *Uva Zafiro* y *Uva Magenta* los p-valor de las uvas con respecto al volumen son 0.78,0.949, 0.276, 0.324, 0.268, 0.286, 0.974, 0.0866, 0.15 y 0.885010 respectivamente. Todos los valores son mayores a 0.05. Por lo que NO rechazamos la hipótesis de que sean irrelevantes para el ajuste. Caso contrario de la *Uva Borgoña*, *Uva Red Globe*, *Uva Rosada*, *Uva Arra* y la *Uva Italia* que los p-value con respecto al volumen son 0.00165, 0.00148, 0.0406, 4.14e-07 y 0.0214 respectivamente. Por lo que, en este caso, SI rechazamos la hipótesis de que sean irrelevantes para el ajuste.
+
+### Predicciones
+Con base en los modelos validados vamos a realizar las siguientes predicciones. Para la *Uva Borgoña* podemos esperar un decrecimiento moderado en los momentos en donde se incremente su volumen de ingreso siempre que se mantenga en un intervalo de 2.5 tn hasta 16 tn. Para la *Uva Rosada* podemos esperar un comportamiento similar al de la *Uva Borgoña* en un intervalo de 3.5 tn hasta 25 tn. Para la *Uva Red Globe* podemos esperar un decrecimiento menor en comparación con el de las uvas antes vistas del precio en los momentos que incremente su volumen de ingreso siempre que se mantenga en un intervalo de 13.5 tn hasta 66.5 tn. Para la *Uva Arra* tenemos bastante certeza que tendrá un incremento considerable en su precio en los momentos que presente un aumento del volumen de ingreso siempre que este se mantenga en un rango de 3.5 tn a 15 tn. Por último para la *Uva Italia* esperamos que tenga un decrecimiento moderado en los momentos que aumente su volumen de ingreso siempre que se mantenga en un intervalo de 11.62 tn hasta 45.25 tn.
+
+
+```{r,message = FALSE, echo = FALSE, results = FALSE, warning=FALSE}
+DFAux = DF[complete.cases(DF),]
+DFAp = DFAux[which(DFAux$Producto == "Uva Magenta"),]
+DFAp$PrecioDia <- rowMeans(DFAp[,c("PrePromAyer","PrePromHoy")],na.rm=TRUE)
+DFAp$VolDia <- rowMeans(DFAp[,c("VolAyer","VolHoy")],na.rm=TRUE)
+DFAp$PrecioDia
+DFAp$VolDia
+mean(DFAp$PrecioDia)
+round(min(DFAp$PrecioDia),2)
+round(max(DFAp$PrecioDia),2)
+min(DFAp$VolDia)
+max(DFAp$VolDia)
+cor(DFAp$VolDia,DFAp$PrecioDia)
+```
+
+
+
+
+# 6 Conclusiones
+Con base en lo obtenido por la muestra podemos concluir los siguiente:
+
+- Existe un comportamiento anual seguido por el precio de la mayoría de las uvas, como visualizamos dentro de los gráficos de cajas. Este comportamiento consiste en de un decrecimiento de los precios en verano, aumento en otoño, obtención de los precios máximos a finales de invierno y comienzos de primavera y de nuevo un decrecimiento conforme se entra al verano. Sin embargo este comportamiento no es estricto, en el sentido que existen uvas específicas que no siguen la tendencia del mes como señalamos en la sección 3.4. Por otro lado los volúmenes de ingreso no siguen un patrón anual en especifico como explicamos en la sección 3.2 y en la sección 3.3.
+
+- En general, no se puede determinar el precio como función únicamente del volumen de ingreso. Así pues, como visualizamos en la sección 4, la correlación entre estas dos variables, a pesar de no ser nula, no es muy alta, siendo incluso menor que 0.5. Además el coeficiente de determinación nos indica que sólo podemos explicar el 9,7% de la variación del precio por el volumen. También, como analizamos en la sección 5, sólo para 5 de las 15 variedades de uvas el volumen de ingreso ha sido estadísticamente significativo para el modelo de regresión para un nivel de significancia del 5%. Sin embargo si sabemos que existe una relación entre las variables como vimos en los casos extremos analizados en la sección 4 donde encontramos que era muy improbable que las 3 uvas de mayor precio puedan superar la media del volumen de ingreso en su día de medición y viceversa.  
+
+En síntesis, es imposible estimar con una buena precisión el precio que va a tener la uva en una determinada época del año, dado que esta variable depende de varios factores que varias veces son difícilmente registrables y predecibles como lo son el poder adquisitivo de los compradores, coyunturas que afectan a la economía, movimientos en los precios de otros productos, cambios en el nivel de importaciones, aperturas de nuevas tiendas o reducción en los costos de producción. Esto se ha podido ver con los bajos resultados de los coeficientes de correlación al relacionarlo únicamente con el volumen de ingreso o con los diversos comportamientos observados dentro de los gráficos de barras. No obstante, si se pueden hacer predicciones más amplias como predecir el aumento de precios en finales de invierno y mediados de primavera para la mayoría de las uvas o que las uvas de alto volumen de ingreso muy rara vez superarán el precio promedio como demostramos en la segunda prueba de hipótesis. Como expresamos en la sección 1, parte del objetivo del proyecto es ayudar a la toma de decisiones de microempresarios minoristas. Las recomendaciones respecto a la elección del tipo de uva que comprar que proponemos en base a nuestros resultados para cada mes son las siguientes:
+
+- En enero se recomienda comprar la *Uva Fley* dado que será la única que irá aumentando su valor mientras que se acerca el mes de febrero, además dentro de enero es una de las uvas con un menor precio.
+
+- En febrero se tendrá que reemplazar la compra de la *Uva Fley* por la *Uva Sultanina* ya que irá presentando una alza conforme se entre a marzo, ya que su volumen de ingreso disminuirá. Así pues, como vimos en los modelos de regresión la correlación negativa del precio con el volumen de ingreso es elevada en comparación con otras uvas.
+
+- En marzo se puede optar por seguir con la *Uva Sultanina* dado que su precio seguirá aumentando, sin embargo se recomienda también comenzar a invertir en la *Uva Pirovano* que será la uva que más va a crecer en precio hacia abril. Además, a pesar de que a inicios de este mes vaya a tener un aumento en volumen de ingreso este no será determinante en el precio por característica propia de la uva como vimos en los modelos de regresión. También sabemos que muy rara vez será mayor este volumen de ingreso que el promedio de las otras uvas.
+
+- En abril se recomienda invertir en la *Uva Palestina* dado que presentará un gran aumento hacia mayo y a pesar de estar aumentando su volumen de ingreso, su precio no se verá muy afectado por característica propia de la uva como vimos al plantear los modelos de regresión.
+
+- En mayo también se recomienda seguir con la *Uva Palestina* ya que seguirá con su tendencia de incremento de precio hacia junio por los mismos motivos que de abril a mayo. 
+
+- En junio a pesar de que tanto la *Uva Red Globe*, la *Uva Alfonso Lavalett*, la *Uva Superior* y la *Uva Fley* tengan un crecimiento de precio similar hacia julio, es preferible optar por invertir en la *Uva Fley* dado que se sabe que la *Uva Alfonso Lavalett* y la *Uva Red Globe* rara vez estarán por encima de la media de precio y la *Uva Superior* significa una mayor inversión, con un mayor riesgo, por un resultado similar.
+
+- En julio se recomienda comenzar a invertir en la *Uva Rosada* dado que habrá sido la uva que más redujo su precio promedio el cual subirá hacia agosto, también se recomienda aún poseer parte del inventario de *Uva Fley* dado que también crecerá hacia agosto. 
+
+- En agosto se debe hacer una transición por completo a la *Uva Rosada* dado que comenzará a subir mucho su precio para septiembre, mientras que la temporada de disponibilidad de la *Uva Fley* estará llegando a su fin.
+
+- En septiembre se recomienda invertir en la *Uva Pirovano* dado que será la que más suba su precio hacia octubre.
+
+- En octubre se propone seguir con la *Uva Pirovano* que se encontrará con un precio similar en noviembre dado que es una de las uvas que no se verá muy afectada por la inclusión de más variedades al mercado de noviembre como señalamos en la prueba de hipótesis acerca de la correlación entre variedades disponibles.
+
+- En noviembre consideramos mejor optar por la compra de *Uva Borgoña* dado que hacia diciembre no reducirá mucho su precio como es característica propia de esta uva al ser la que en promedio tiene el menor volumen de ingreso que se suele mantener, teniendo en cuenta que esta uva si presenta cambios negativos en el precio cuando el volumen de ingreso aumenta.
+
+- Para diciembre se debe optar por seguir con la *Uva Borgoña* ya que hacia enero será la única uva en no disminuir su precio, más bien, va a aumentarlo levemente.
+
+# 7 Bibliografía
+El mejor lugar para la uva y el Pisco - Producción de Pisco peruano. (2020, 5 septiembre). Pisco. https://pisco.net.pe/mejores-lugares-para-la-uva-y-el-pisco/
+
+Moreno, R. (2019, 18 diciembre). Cómo evitar la deshidratación en postcosecha de uva de mesa. Redagrícola Chile. https://www.redagricola.com/cl/en-periodo-de-sequia-como-evitar-la-deshidratacion-en-postcosecha-de-uva-de-mesa/
+
+Balza, J. (2018, 23 septiembre). Los grandes problemas de la uva en Ica. Redagrícola Perú. https://www.redagricola.com/pe/los-grandes-problemas-de-la-uva-en-ica/
+
+Salas, D. (2020, June 18). Cultivo de Uvas. Retrieved June 11, 2021, from Proyectosperuanos.com website: https://proyectosperuanos.com/uvas/
+Gestión, R. (2017, November 1). Exportaciones de uva de mesa caen un 10% debido a El Niño Costero. Retrieved June 11, 2021, from Gestión website: https://gestion.pe/economia/exportaciones-uva-mesa-caen-10-debido-nino-costero-149034-noticia/?ref=gesr
+
+Suficiencia Profesional R, E. (n.d.). La industria vitivinícola en el Perú, problema alternativas. Retrieved June 11, 2021, from Edu.pe website: https://repositorio.une.edu.pe/bitstream/handle/UNE/3445/MONOGRAF%C3%8DA%20-%20VIVANCO%20TINCO.pdf?sequence=1&isAllowed=y
+
+Viveros Barber. (s.f.). Cuando se planta una VID.  VitiViniCultura.net. Recuperado de: https://www.vitivinicultura.net/cuando-se-planta-una-vid.html
+
+Jose Antonio. (s.f). Festival de la Vendemia en ica: descubre esta celebración de la tierra del vino. RedBus. Recuperado de: https://blog.redbus.pe/turismo-aventura/festival-de-la-vendimia-ica/
+
+Barber, V. (2020, 4 agosto). Uva sin semillas Superior o Sugraone. Características y cultivo. Recuperado 23 de julio de 2021, de https://www.vitivinicultura.net/uva-sin-semillas.html
+
