@@ -1,0 +1,635 @@
+---
+title: "P4 Informe"
+date: "5/11/2021"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Estudio sobre los factores que podrían ocasionar Hipertensión arterial en las personas
+
+## *--------------------------------------------------------------------------------------------------*
+
+Objetivo General:
+
+- Analizar los patrones y características que tienen las personas las cuales padecen de Hipertensión Arterial, para encontrar factores similares en ellos que puedan ayudar a la prevención de esta enfermedad en otras personas
+
+Objetivos Específicos:
+
+- Determinar las características más resultantes de las personas que tienen hipertensión arterial.
+
+- Analizar el índice de masa corporal (IMC) a través de un análisis descriptivo.
+
+- Analizar la relación existente entre la variable perímetro abdominal vs Índice de masa corporal.
+
+```{r,include=FALSE}
+if(!require(readr)) {install.packages("corrplot")}
+if(!require(readr)) {install.packages("PerformanceAnalytics")}
+if(!require(readr)) {install.packages("car")}
+library(corrplot)
+library(PerformanceAnalytics)
+library(car)
+if(!require(readr)) {install.packages("readr")}
+if(!require(dplyr)) {install.packages("dplyr")}
+library(readr)
+library(dplyr)
+library(funModeling)
+library(ggplot2)
+D <- read.csv('Datos3.csv',dec = ",")
+```
+```{r,include=FALSE}
+D %>% rename( Hipertension_Arterial = Presion.Alta, Consumo_frutas = `ConsumiÃ³.frutas.durante.la.semana`, Cantidad_fruta = `Cantidad.de.dÃ.as.que.consumiÃ³.frutas`, Consumo_jugo= `ConsumiÃ³.jugo.de.frutas.durante.la.semana`, Cantidad_jugo = `Cantidad.de.dÃ.as.que.consumiÃ³.jugo.frutas`, Consumo_verduras = `ConsumiÃ³.ensalada.de.verduras.durante.la.semana`,Cantidad_verduras=`DÃ.as.que.comiÃ³.ensalada.de.verduras`,Desorden_Alimenticio=`Ãšltimos.14.dÃ.as.ha.sentido.molestias.o.problemas.como..Poco.apetito.comer.en.exceso`,Peso_Kg=`Peso.en.kilogramos`,Estatura=`Talla.en.centÃ.metros`,P1S=`Primera.mediciÃ³n.presiÃ³n.arterial.sistÃ³lica`,P1D=`Primera.mediciÃ³n.presiÃ³n.arterial.diastÃ³lica`,P2S=`Segunda.mediciÃ³n.presiÃ³n.arterial.sistÃ³lica`,P2D=`Segunda.mediciÃ³n.presiÃ³n.arterial.diastÃ³lica`,Perimetro_abdominal_cm=PerÃ.metro.abdominal.en.centÃ.metros) -> DN
+```
+
+```{r,include=FALSE}
+DN$Sexo[DN$Sexo == 1] <- "Hombre"
+DN$Sexo[DN$Sexo == 2] <- "Mujer"
+DN$Fuma[DN$Fuma == 1] <- "Si"
+DN$Fuma[DN$Fuma == 2] <- "No"
+DN$Hipertension_Arterial[DN$Hipertension_Arterial == 1] <- "Si"
+DN$Hipertension_Arterial[DN$Hipertension_Arterial == 2] <- "No"
+DN$Hipertension_Arterial[DN$Hipertension_Arterial == 8] <- "No sabe / No recuerda"
+DN$Diabetes[DN$Diabetes == 1] <- "Si"
+DN$Diabetes[DN$Diabetes == 2] <- "No"
+DN$Diabetes[DN$Diabetes == 8] <- "No sabe / No recuerda"
+DN$Consumo_frutas[DN$Consumo_frutas == 1] <- "Si"
+DN$Consumo_frutas[DN$Consumo_frutas == 3] <- "No"
+DN$Consumo_frutas[DN$Consumo_frutas == 8] <- "No sabe / No recuerda"
+DN$Consumo_jugo[DN$Consumo_jugo == 1] <- "Si"
+DN$Consumo_jugo[DN$Consumo_jugo == 3] <- "No"
+DN$Consumo_jugo[DN$Consumo_jugo == 8] <- "No sabe / No recuerda"
+DN$Consumo_verduras[DN$Consumo_verduras == 1] <- "Si"
+DN$Consumo_verduras[DN$Consumo_verduras == 3] <- "No"
+DN$Consumo_verduras[DN$Consumo_verduras == 8] <- "No sabe / No recuerda"
+DN$Desorden_Alimenticio[DN$Desorden_Alimenticio == 0] <- "Para Nada"
+DN$Desorden_Alimenticio[DN$Desorden_Alimenticio == 1] <- "1 a 6 días"
+DN$Desorden_Alimenticio[DN$Desorden_Alimenticio == 2] <- "7 a 11 días"
+DN$Desorden_Alimenticio[DN$Desorden_Alimenticio == 3] <- "12 a más días"
+```
+```{r,include=FALSE}
+DN2 <- DN
+DN2$Hipertension_Arterial[DN2$Hipertension_Arterial == "No sabe / No recuerda"] <- NA
+DN2$Diabetes[DN2$Diabetes == "No sabe / No recuerda"] <- NA
+DN2$Sexo[DN2$Sexo == 1] <- "Hombre"
+DN2$Sexo[DN2$Sexo == 2] <- "Mujer"
+DN2$Consumo_jugo[DN2$Consumo_jugo == 1] <- "Si"
+DN2$Consumo_jugo[DN2$Consumo_jugo == 3] <- "No"
+DN2$Consumo_jugo[DN2$Consumo_jugo == "No sabe / No recuerda"] <- NA
+DN2$Consumo_verduras[DN2$Consumo_verduras == "No sabe / No recuerda"] <- NA
+DN2$Consumo_frutas[DN2$Consumo_frutas == "No sabe / No recuerda"] <- NA
+DN2$Hipertension_Arterial[DN2$Hipertension_Arterial == 1] <- "Si"
+DN2$Hipertension_Arterial[DN2$Hipertension_Arterial == 2] <- "No"
+DN2$Hipertension_Arterial[DN2$Hipertension_Arterial == 8] <- NA
+DN2$Desorden_Alimenticio[DN2$Desorden_Alimenticio == "Para Nada"] <- 0 
+DN2$Desorden_Alimenticio[DN2$Desorden_Alimenticio == "1 a 6 días"] <- 1
+DN2$Desorden_Alimenticio[DN2$Desorden_Alimenticio == "7 a 11 días"] <- 2
+DN2$Desorden_Alimenticio[DN2$Desorden_Alimenticio == "12 a más días"] <- 3
+```
+```{r,include=FALSE}
+DN2$IMC=(DN2$Peso_Kg/((DN2$Estatura/100)^2))
+DN2$IMC=round(DN2$IMC, 2)
+```
+
+## *--------------------------------------------------------------------------------------------------*
+
+**Base de datos utilizada:**
+
+-  Fue extraído del [INEI](http://iinei.inei.gob.pe/microdatos/Consulta_por_Encuesta.asp) Encuesta Demográfica y de Salud Familiar – ENDES. Cuenta con 34,403 observaciones y 19 variables. Además contiene 25.22% de datos faltantes.
+
+
+- Por Tratarse de un estudio clínico y de predicción se busca un alto nivel de confianza con respecto en los indicadores 
+puntuales de la muestra, por otra parte los datos de la variable IMC no se encuentran dispersos, como se puede evidenciar 
+en la gráfica boxplot, los datos se encuentran agrupados en la caja con un rago intercuartílico de 6 unidades aproximadamente. sucede lo mismo con El consumo de frutas por semana.Tomando en cuenta estas dos consideraciones se decidió trabajar con un Nivel de confianza de 95% y una significancia $\alpha = 0.05$.
+
+## *--------------------------------------------------------------------------------------------------*
+
+**Variables:**
+
+| Pregunta | Variable | Tipo de Variable |  Restricciones  | 
+| -- | -- | -- | -- |
+| Sexo de la persona | Sexo | Nominal | Hombre o Mujer |
+| Edad de la persona | Edad | Ordinal | De 15 a 97 |
+| ¿ La persona tiene Presión arterial alta ?| Hipertensión arterial | Nominal | Si o No |
+| ¿ La persona tiene Diabetes ? | Diabetes | Nominal | Si o No |
+| ¿ La persona fuma ? | Fumador | Nominal | Si o No |
+| ¿ La persona consume frutas ? | Consumo_frutas | Nominal | Si o No  |
+| ¿ Cuantos días consumió frutas en la semana ? | Cantidad_fruta_consumida | Ordinal | 1:7  |
+| ¿ La persona consume jugo de frutas ? | Consumo_jugo | Nominal | Si o No  |
+| ¿ Cuantos días consumió jugo de frutas en la semana ? | Cantidad_jugo | Ordinal | 1:7  |
+| ¿ La persona consume verduras ? | Consumo_verduras | Nominal | Si o No  |
+| ¿ Cuantos días consumió verduras en la semana ? | Cantidad_verduras | Ordinal | 1:7  |
+| ¿ En los Últimos 14 días ha sentido molestias o problemas como: Poco apetito/comer en exceso  ? |Desorden_Alimenticio | Nominal | Si o No |
+| Peso de la persona en Kg | Peso (Kg) | Ordinal |  |
+| Talla de la persona en cm | Talla (Cm) | Ordinal |  |
+| Primera medición presión arterial sistólica | P1S | Ordinal |  |
+| Primera medición presión arterial diastólica | P1D | Ordinal |  |
+| Segunda medición presión arterial sistólica | P2D | Ordinal |  |
+| Segunda medición presión arterial diastólica | P2D | Ordinal |  |
+| Perímetro abdominal | Perimetro_abdominal_(cm) | Ordinal |  |
+
+## *--------------------------------------------------------------------------------------------------*
+
+# IMC
+
+- IMC (indice de masa corporal) y , esta variable fue obtenida a partir de las variables peso y talla de nuestra base de datos, la importancia de esta variable en nuestro análisis se fundamenta, según la Revista Venezolana de Endocrinóloga
+y Metabolismo, y también según lo demuestra nuestro gráfico boxplot que relaciona ambas variables, en la relación 
+que esta condición médica guarda con una hipertensión arterial, considerándose un factor de riesgo para dicha 
+condición clínica.
+
+$$
+IMC=peso/altura^2
+$$
+
+```{r,echo=FALSE}
+summary(DN2$IMC)
+```
+- <font size="4">Media</font>
+```{r,echo=FALSE}
+mean(DN2$IMC,na.rm = T)
+```
+- <font size="4">Mediana</font>
+```{r,echo=FALSE}
+median(DN2$IMC,na.rm = T)
+```
+- <font size="4">IQR</font>
+```{r,echo=FALSE}
+IQR(DN2$IMC,na.rm = T)
+```
+
+```{r,echo=FALSE}
+hist(DN2$IMC, 20, xlab="IMC", main="Histograma IMC",ylim = c(0,4000))
+```
+
+
+```{r,echo=FALSE}
+boxplot(DN2$IMC~DN2$Hipertension_Arterial,na.rm =TRUE, xlab = "Hipertensión Arterial",ylab = "IMC",col=c("firebrick1","lightgreen"),main="Boxplot IMC vs Hipertensión Arterial")
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Como se puede observar en el primer gráfico boxplot, los rangos intercuartiles son cortos, las 3 cajas de bigote presentan un RIC=6 aproximadamente, lo que indica que los datos están próximos entre si, asimismo existen valores atípicos que rodean los 40 puntos de IMC. De dicho gráfico también se observa que la mediana del índice de masa corporal de las personas que presentan hipertensión arterial es mayor que la mediana de los que no presentan hipertensión arterial. Según la OMS un índice de masa corporal (IMC) mayor a 25 es considerado sobrepeso y un IMC mayor a 30 se considera obesidad y del gráfico se observa que la mediana de los IMC de este data-base se encuentran entre los 26 y 28 aproximadamente, indicador de sobrepeso. Esto se puede visualizar también en el histograma que presenta picos en dichos números, por lo que se puede concluir que la obesidad guarda una relación directa con la hipertensión arterial, considerándose así la obesidad como un factor de riesgo cardiovascular.
+
+# Prueba de hipótesis
+
+```{r,include=FALSE}
+A<-filter(DN2,!is.na(Hipertension_Arterial)&!is.na(IMC))
+```
+
+Media del IMC de las personas que tienen y no tienen Hipertensión arterial = 27.15:
+
+```{r,include=FALSE}
+U<-mean(A$IMC)
+```
+```{r}
+U
+```
+<font size="3">Nota: "A" es creado a partir del DN, tomando solo la variable IMC e Hipertensión arterial </font>
+
+En base a la media encontrada anteriormente se plantean las siguentes hipótesis:
+
+ $H_0:$ El IMC del las personas que tienen hipertensión arterial es mayor o igual a 27.15
+
+  $H_a$ El IMC del las personas que tienen hipertensión arterial es menor a 27.15 
+
+$$
+H_0: \mu \geq27.15\\
+H_a:\mu<27.15\\
+\alpha = 0.05
+$$
+```{r,include=FALSE}
+H1<-filter(DN2,!is.na(IMC)&Hipertension_Arterial=="Si")
+```
+
+Tamaño de la muestra:
+
+```{r,echo=FALSE}
+n<-nrow(H1)
+n
+```
+
+```{r,include=FALSE}
+x<-mean(H1$IMC)
+s<-sd(H1$IMC)
+```
+
+Estadístico de prueba: 
+$$
+t=\frac{\bar{x}-\mu_0}{s/\sqrt(n)} 
+$$
+
+
+```{r,echo=FALSE}
+t <- (x-U)/(s/sqrt(n))
+t
+```
+
+Valor crítico:
+
+```{r,echo=FALSE}
+vc<-qt(p=0.05,df=n-1,lower.tail = TRUE)
+vc
+```
+
+```{r,echo=FALSE}
+ngl<-n-1
+x<-seq(-4,20,length=5000)
+plot(x,dt(x,ngl),
+main=c("Densidad t-Student"),
+ylab="f(x)",type="l",col=3,lwd=2)
+abline(v=vc,col="red",lwd=2)
+abline(v=t,col="blue",lwd=2)
+legend(5,0.35,legend=c("t-crítico","Estadístico de prueba"),col=c("red","blue"),lwd=2)
+pt(t,df = n-1,lower.tail = TRUE)
+```
+
+## Intervalos de confianza
+
+- IMC
+
+```{r,include=FALSE}
+A<-filter(DN2,!is.na(Hipertension_Arterial)&!is.na(IMC))
+sd(A$IMC,na.rm=T)
+sd(DN$Cantidad_fruta,na.rm=T)
+```
+
+```{r,echo=FALSE}
+xbarra<-U
+desviacion_estandar<- s
+conf<-0.95
+
+zcritico<-vc
+
+lim_inf<-xbarra+zcritico/sqrt(n)
+
+print('Límite inferior:')
+lim_inf
+print('Límite superior:')
+```
+$∞$
+
+Conclusión: Encontrado el t-crítico = -1.65, el valor del estadístico de prueba es igual a 16.92 y analizando el gráfico anterior notamos que el estadístico se encuentra en la zona de aceptación. Contrastando este análisis con el valor-p obtenida, concluimos que no encontramos suficiente evidencia estadística para rechazar $H_0$, para una significancia del 5%.
+
+## *--------------------------------------------------------------------------------------------------*
+
+# Edad
+
+- Edad, esta variable es crucial en el análisis para la predicción de factores de riesgo cardiovascular, 
+dado que en el Perú según los estudios TORNASOL, la prevalencia de hipertensión arterial es de 46,3% en personas con edad en la década entre 60 y 69; 53,2% en la década entre 70 a 79 años y de 56,3% en los mayores de 80 años.
+
+```{r,echo=FALSE}
+summary(DN2$Edad)
+```
+- Media
+```{r,echo=FALSE}
+mean(DN2$Edad,na.rm = T)
+```
+- Mediana
+```{r,echo=FALSE}
+median(DN2$Edad,na.rm = T)
+```
+
+- IQR
+
+```{r,echo=FALSE}
+IQR(DN2$Edad,na.rm = T)
+```
+
+```{r,echo=FALSE}
+hist(DN2$Edad, 10, xlab="Edad", main="Histograma Edad",ylim = c(0,9000))
+```
+
+```{r,echo=FALSE}
+boxplot(DN2$Edad~DN2$Hipertension_Arterial,xlab = "Hipertensión Arterial",col=c("firebrick1","lightgreen"),ylab = "Edad",main = "Edad vs Hipertensión Arterial")
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Según este gráfico podemos observar una mayor presencia de personas con Hipertensión Arterial o Presión alta después de los 50 años, según el [Texas Heart Institute](https://www.texasheart.org/heart-health/heart-information-center/topics/presion-arterial-alta-hipertension-arterial/), las personas que tienen más de 60 años son más propensos a sufrir de Hipertensión Arterial. Esto debido a que los vasos sanguíneos se debilitan con los años y pierden su elasticidad.
+
+# Prueba de hipótesis
+
+```{r,include=FALSE}
+B<-filter(DN2,!is.na(Hipertension_Arterial)&!is.na(Edad))
+```
+
+Media de la Edad de las personas que tienen y no tienen hipertensión arterial es = 40.1
+
+```{r,include=FALSE}
+u<-mean(B$Edad)
+u
+```
+
+Nota: B es creado a partir del DN2, tomando solo la variable IMC e Hipertensión arterial
+
+
+En base a la media encontrada anteriormente se plantean las siguentes hipótesis:
+
+$H_0:$ La edad de las personas que tienen hipertensión arterial es mayor o igual a 40.1
+
+$H_a$ La edad de las personas que tienen hipertensión arterial es menor a 40.1
+
+$$
+H_0: \mu \geq 40.1\\
+H_a:\mu<40.1\\
+\alpha = 0.05
+$$
+
+```{r,include=FALSE}
+H2<-filter(DN2,!is.na(Edad)&Hipertension_Arterial=="Si")
+```
+
+Tamaño de la muestra:
+
+```{r,echo=FALSE}
+n<-nrow(H2)
+n
+```
+
+```{r,include=FALSE}
+x<-mean(H2$Edad)
+s<-sd(H2$Edad)
+```
+
+Estadístico de prueba: 
+$$
+t=\frac{\bar{x}-\mu_0}{s/\sqrt(n)} 
+$$
+```{r,echo=FALSE}
+t <- (x-u)/(s/sqrt(n))
+t
+```
+Valor crítico:
+
+```{r,echo=FALSE}
+vc<-qt(p=0.05,df=n-1,lower.tail = TRUE)
+vc
+```
+
+```{r,echo=FALSE}
+ngl<-n-1
+x<-seq(-4,60,length=5000)
+plot(x,dt(x,ngl),
+main=c("Densidad t-Student"),
+ylab="f(x)",type="l",col=3,lwd=2)
+abline(v=vc,col="red",lwd=2)
+abline(v=t,col="blue",lwd=2)
+legend(5,0.35,legend=c("t-crítico","Estadístico de prueba"),col=c("red","blue"),lwd=2)
+pt(t,df = n-1,lower.tail = TRUE)
+```
+
+```{r,echo=FALSE}
+xbarra<-u
+desviacion_estandar<- s
+conf<-0.95
+
+zcritico<-vc
+
+lim_inf<-xbarra+zcritico/sqrt(n)
+
+print('Límite inferior:')
+lim_inf
+print('Límite superior:')
+```
+$∞$
+
+Conclusión: Encontrado el t-crítico = -1.65, el valor del estadístico de prueba es igual a 57.98 y analizando el gráfico anterior notamos que el estadístico se encuentra en la zona de aceptación. Contrastando este análisis con el valor-p obtenida, concluimos que no encontramos suficiente evidencia estadística para rechazar $H_0$, para una significancia del 5%.
+
+## *--------------------------------------------------------------------------------------------------*
+
+# Consumo de frutas
+
+```{r,echo=FALSE}
+mosaicplot(DN2$Consumo_frutas~DN2$Hipertension_Arterial,xlab="Consume frutas",ylab="Hipertensión Arterial",main="Hipertensión Arterial vs Consumo de frutas", col = c("firebrick1","lightgreen"))
+```
+
+- Consumo de fruta por semana (Hábitos alimenticios saludables), con respecto a esta variable se consideró conveniente incorporarla en el estudio ya que se busca una mayor precisión en la predicción tratando de incluir todos los factores influyentes, ya que es una premisa popular es que los hábitos de alimentación influyen en la prevención o no de las enfermedades.
+
+
+# Prueba de hipótesis
+
+Para esta hipótesis se considero que la media de la cantidad de días que consumió frutas por persona es de al menos 4.65 días a la semana con una significancia de $\alpha=0,05$ y un numero de datos de 4531. Por consiguiente, es una hipótesis unilateral izquierda  (H0: u>=4.65, H1: u<4.65) y se puede decir que se ajusta a una distribución normal debido al número datos.
+
+$$
+h_0: \mu \geq 4.65 \\
+h_a: \mu < 4.65 
+$$
+
+
+```{r,echo=FALSE}
+nmuestras <- length(DN$Hipertension_Arterial[DN$Hipertension_Arterial== "Si"])
+print('Tamaño de la muestra')
+nmuestras
+Confianza <- 0.95
+alpha <- 0.05
+mu0 <- 4.65
+med <- mean(DN$Cantidad_fruta[DN$Hipertension_Arterial== "Si"],na.rm = T)
+print('Media')
+med
+desvm <- sd(DN$Cantidad_fruta[DN$Hipertension_Arterial== "Si"],na.rm = T) 
+```
+
+```{r,echo=FALSE}
+Zcalc <- (med-mu0)*sqrt(nmuestras)/desvm
+print('Estadístico de prueba:')
+Zcalc
+Pcalc <- pnorm(Zcalc,lower.tail = F)
+```
+
+```{r,echo=FALSE}
+print('P-valor:')
+Pcalc
+Zcrit <- qnorm(alpha)
+print('Z Crítico:')
+Zcrit
+```
+
+-  Cantidad de fruta consumida en la semana
+
+```{r,echo=FALSE}
+desviacion<-sd(DN$Cantidad_fruta,na.rm=T)
+errorst<-desviacion/sqrt(4531)
+lim_inf<-4.2-(1.644854*errorst)
+lim_sup<-4.2+(1.644854*errorst)
+print('Límite inferior:')
+lim_inf
+print('Límite superior:')
+```
+
+$∞$
+
+Conclusión: Según nuestros datos obtenidos, la hipótesis nula lo cual es que al menos una persona consume frutas como promedio 4.65 días a la semana se rechaza. La razón es que el estadístico de prueba es menor al limite del z-crítico (esto significa que cae en el área del rechazo)
+
+## *--------------------------------------------------------------------------------------------------*
+
+# Regresión
+
+Nuestro estudio al tratarse de un algoritmo de predicción, busca patrones relacionales entre las variables, por ello se plantea un análisis entre las variables IMC y perímetro abdominal para determinar si su correlación se ajusta a un modelo de regresión lineal.
+
+Vamos a analizar dos variables para comprobar si estas tienen correlación y se ajustará un modelo de regresión lineal.
+
+```{r,include=FALSE}
+data<-data.frame(
+  "IMC" = DN2$IMC,
+  "Perimetro_abdominal_cm" = DN2$Perimetro_abdominal_cm
+)
+DN2narm <- na.omit(data)
+DN2S <- DN2narm[sample(nrow(DN2narm), 4000), ]
+```
+
+Realizamos un análisis visual de las dos variables:
+
+```{r,echo=FALSE}
+plot(DN2narm$Perimetro_abdominal_cm,DN2narm$IMC,main = "IMC vs Perímetro Abdominal (cm)",col=rgb(0,50,100,250,maxColorValue=255),ylab = "IMC",xlab = "Perímetro Abdominal (cm)")
+text(60, 60, print("Correlación:"), cex = 0.9)
+text(60, 55, round(cor(DN2narm$IMC,DN2narm$Perimetro_abdominal_cm),3), cex = 0.9)
+```
+
+De este gráfico podemos observar a simple vista que existe una relación entre ambas variables, teniendo un comportamiento lineal y obteniendo una correlación de 0.898.
+
+Ajustamos un modelo de regresión lineal para explicar el IMC en función del Perímetro Abdominal en cm de una persona.
+
+```{r,echo=FALSE}
+regresion_simple <- lm(IMC ~ Perimetro_abdominal_cm, data = DN2narm)
+summary(regresion_simple)
+regresion_simple2 <- lm(IMC ~ Perimetro_abdominal_cm, data = DN2S)
+```
+
+La ecuación de la recta ajustada es:
+
+$\hat{IMC} = -6.220706+0.364544~(\hat{Perímetro~abdominal})$
+
+El coeficiente de determinación es 0.8068. Este coeficiente nos indica el grado de ajuste de la recta de regresión a los valores de la muestra. En nuestro caso, obtenemos un ajuste bueno.
+
+Agregamos al gráfico la recta de regresión estimada: 
+
+```{r,echo=FALSE}
+plot(DN2narm$Perimetro_abdominal_cm,DN2narm$IMC,main = "IMC vs Perímetro Abdominal (cm)",col=rgb(0,50,100,250,maxColorValue=255),ylab = "IMC",xlab = "Perímetro Abdominal (cm)")
+abline(regresion_simple, col='firebrick')
+text(80, 59, print("Recta de regresión:"), cex = 0.9)
+text(80, 55, paste("IMC = ",round(regresion_simple$coefficients[1],2)," + ",round(regresion_simple$coefficients[2],2),"(Perímetro Abdominal)"), cex = 0.9)
+```
+
+**Análisis de los residuos**
+
+```{r,echo=FALSE}
+op=par(mfrow=c(2,2))
+plot(regresion_simple, pch=20,col=rgb(0,0,0,0.25))
+```
+
+- Análisis de Residuos vs Valores ajustados
+
+  - Existen 3 valores atípicos. 
+  - Se pueden observar residuos positivos y negativos distribuidos alrededor de la línea roja.
+  - Los residuos parecen ser homocedásticos ya que su varianza es aproximadamente constante. 
+
+Apliquemos el test de Breush-Pagan, cuya hipótesis nula es la homocedasticidad (varianza de los errores es constante). La regla de decisión indica que si el nivel de significancia es mayor que el p-valor, entonces, existe homocedasticidad.
+
+
+```{r,echo=FALSE}
+library(lmtest)
+bptest(regresion_simple)
+```
+
+Podemos afirmar que los residuos son homocedásticos
+
+- Análisis de Normal Q-Q
+
+Del gráfico q-q, observamos el efecto los outliers, hacen que la normalidad de los errores no sea clara. Ahora, aplicaremos el test de Shapiro-Wild, para confirmar lo que hemos observado
+
+```{r,echo=FALSE}
+base_rg_err2 = data.frame(regresion_simple2$fitted.values, regresion_simple2$residuals)
+shapiro.test(base_rg_err2$regresion_simple2.residuals)
+```
+
+El test de Shapiro, tiene como hipótesis nula la normalidad de la distribución
+
+Escogemos un nivel de significancia del 5%, que es mayor que el p-valor del test, por lo que RECHAZAMOS la hipótesis nula; es decir, los errores no se distribuyen normalmente. Esto se debe al efecto de los outliers
+
+- Análisis de gráfica Scate Location
+
+Los residuos estandarizados están distribuidos uniformemente alrededor de la recta roja y esta parece ser plana. Por lo       tanto, a partir de la gráfica se refuerza la condición de homocedasticidad del modelo la cual ya fue comprobada en el análisis de Residuos vs Valores ajustados.
+
+- Análisis de Residual vs Leverage
+
+Se puede observar que existen algunos puntos que producen el efecto palanca y los cuales podrían ser determinantes de la      tendencia.
+
+Veamos si esos puntos atípicos son puntos influyentes en el modelo con el gráfico de distancia de Cook.
+
+```{r,echo=FALSE}
+plot(regresion_simple, which = 4, id.n = 8)
+```
+
+```{r,echo=FALSE}
+ptos_inf = influencePlot(model = regresion_simple)
+```
+
+Del último gráfico se puede observar la existencia de observaciones 5 de los 8 outliners que tienen influencia en el modelo de regresión
+
+```{r,include=FALSE}
+ptos_inf = influencePlot(model = regresion_simple)
+ind_inf = c()
+for (i in rownames(ptos_inf)){
+  ind_inf = append(ind_inf,i)
+}
+ind_inf = as.numeric(ind_inf)
+```
+
+```{r,echo=FALSE,warning=FALSE}
+ggplot(data = DN2narm, mapping = aes(x = IMC, y = Perimetro_abdominal_cm)) +
+  geom_point(color = "grey50", size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue3") +
+  
+  geom_point(data = DN2narm[ind_inf,], color = "red", size = 3) +
+  
+  geom_smooth(data = DN2narm[-ind_inf,], method = "lm", se = FALSE, color = "green") +
+  labs(title  =  'Diagrama de dispersión', x='IMC', y='Perímetro abdominal') +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+```
+
+Gráficamente parece no existir diferencia. Comparemos los coeficientes del modelo con los del modelo sin los puntos de influencia.
+
+```{r,echo=FALSE}
+regresion_simple_fin = lm(formula = IMC ~ Perimetro_abdominal_cm, data = DN2narm[-ind_inf,])
+summary(regresion_simple_fin)
+```
+
+El modelo de regresión ajustado sin los puntos de influencia es:
+
+$\hat{IMC} = -6.223192+0.364569~(\hat{Perímetro~abdominal})$
+
+El modelo de regresión con los puntos es:
+
+$\hat{IMC} = -6.220706+0.364544~(\hat{Perímetro~abdominal})$
+
+Se puede apreciar que estos son casi iguales con un coeficiente de determinación de 0.8068 para ambos casos.
+
+Conclusión: A pesar de haber ajustado el modelo lineal excluyendo los puntos de influencia, este no varió mucho del original, puesto que estos puntos son pocos en comparación al resto de puntos.
+
+## *--------------------------------------------------------------------------------------------------*
+
+# Conclusiones Finales
+
+Del estudio realizado, a través del análisis descriptivo y predictivo, nos permitió alcanzar el objetivo planteado al inicio de nuestro proyecto.
+
+- Mediante la primera hipótesis realizada con la variable IMC, logramos concluir que, las personas con IMC por encima del promedio son más propensas a tener hipertensión arterial, es decir las personas que son consideradas con sobrepeso. Esta hipótesis la terminamos de validar con la Revista Venezolana de Endocrinóloga y Metabolismo, la cual considera un IMC por encima de 25 un factor de riesgo para poder padecer Hipertensión Arterial
+
+- Con la ayuda de la segunda hipótesis realizada en nuestro estudio y el análisis visual realizado en el boxplot de Edad vs Hipertensión arterial llegamos a la conclusión que, las personas que son mayores de 40 años tienen mayor probabilidad de tener hipertensión arterial. Este resultado se acerca a lo expuesto por el Texas Heart Institute, en el cual se habla que las personas que tienen más de 60 años son más propensas a sufrir de Hipertensión Arterial. Esto debido a que los vasos sanguíneos se debilitan con los años y pierden su elasticidad
+
+- Mediante el modelo de regresión lineal logramos obtener una relación directa entre el perímetro abdominal y IMC de las personas, este resultado es lógico puesto que a medida que una persona aumenta de peso este a su vez aumenta su perímetro abdominal, el modelo realizado en el trabajo nos sirvió de ejercicio para comprobar la relación lineal de dos variables numéricas, lamentablemente no se logro realizar otros modelos de regresión por la limitación de la base de datos encontrada en la cual principalmente se tiene variables Nominales 
+
+- Con la ayuda de la tercera prueba de hipótesis, encontramos evidencia estadística suficiente para rechazar la hipótesis de que los días promedios de consumo de fruta de las personas con hipertensión sea mayor al promedio de consumo de la población
+
+- Mediante el modelo de regresión lineal logramos obtener una relación directa entre el perímetro abdominal y IMC de las personas, este resultado es lógico puesto que a medida que una persona aumenta de peso este a su vez aumenta su perímetro abdominal, el modelo realizado en el trabajo nos sirvió de ejercicio para comprobar la relación lineal de dos variables numéricas, lamentablemente no se logro realizar otros modelos de regresión por la limitación de la base de datos encontrada en la cual principalmente se tiene variables Nominales
+
+
+
+# Gracias :D
+
+
+
+
+
+
+
+
+
+

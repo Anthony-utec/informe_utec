@@ -1,0 +1,1511 @@
+---
+title: "S5_P4 Infome"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+### **Introducción:**
+
+::: {style="text-align: justify"}
+Actualmente todas las personas buscan estar en constante comunicación por lo que gran parte de la población de todos los países cuenta con un plan de telefonía móvil. Para estas empresas, en específico AT & T, la fuga de clientes es un aspecto muy importante para una ya que representa la cantidad de clientes que abandonan la compañía, ya sea porque consiguen un mejor plan en otra empresa o ya no desean un plan de telefonía móvil. Asimismo, las empresas buscan encontrar la causa de esta fuga para poder evitarla y mantener a la mayor cantidad de clientes cada mes.
+:::
+
+### **Objetivos**
+
+**General:** 
+Identificar la cantidad de clientes que se fugan de la empresa en un mes y el comportamiento de los mismos.
+
+**Específicos:**
+
+::: {style="text-align: justify"}
+* Conocer si existe una relación entre la cantidad de minutos totales que duran las llamadas y el momento del día en el que se realizan (mañana, tarde, noche).
+
+* Identificar si existe una relación entre la cantidad de minutos/llamadas realizadas a servicio al cliente y la fuga de los mismos.
+
+* Identificar si existe una relación entre la tarifa que pagan los clientes y la fuga de los mismos.
+
+* Identificar si existe una relación entre la cantidad de minutos/llamadas que realizan los * clientes a cualquier hora del día (mañana, tarde, noche) y la fuga de los mismos.
+
+* Identificar el estado o zona (norte, sur, este, oeste) que tiene mayor cantidad de fuga de clientes.
+:::
+### **Marco teórico**
+
+::: {style="text-align: justify"}
+**Población:** Personas que poseen algún tipo de plan telefónico de la empresa AT&T
+
+**Muestra:** Personas, seleccionadas al azar, que son clientes de la empresa de telefonía AT&T.
+
+**Tipo de muestreo:** Aleatorio Simple (MAS)
+
+**Unidades muestrales:** 3333 usuarios
+
+**Sesgos:**
+
+* Información: Cuando una persona adquiere más de un plan y comparte el chip con otra persona. Los datos adquiridos figuran como si fuera de la persona que lo adquirió pero en realidad son de otra persona distinta.
+
+**Obtención de datos:** Base de datos
+
+### **Variables Importantes**
+
++----------------------+-------------------------+
+| **VARIABLE**         | **TIPO DE VARIABLE**    |
++======================+=========================+
+| ubicacion            | Categórica nominal      |
++----------------------+-------------------------+
+| plan_inter           | Categórica nominal      |
++----------------------+-------------------------+
+| plan_grabadora       | Categórica nominal      |
++----------------------+-------------------------+
+| num_grabaciones      | Numérica discreta       |
++----------------------+-------------------------+
+| M_mins               | Numérica continua       |
++----------------------+-------------------------+ 
+| M_llamadas           | Numérica discreta       |
++----------------------+-------------------------+ 
+| M_tarifa             | Numérica continua       |
++----------------------+-------------------------+ 
+| T_mins               | Numérica continua       |
++----------------------+-------------------------+ 
+| T_llamadas           | Numérica discreta       |
++----------------------+-------------------------+ 
+| T_tarifa             | Numérica continua       |
++----------------------+-------------------------+ 
+| N_mins               | Numérica continua       |
++----------------------+-------------------------+
+| N_llamadas           | Numérica discreta       |
++----------------------+-------------------------+
+| M_tarifa             | Numérica continua       |
++----------------------+-------------------------+
+| I_mins               | Numérica continua       |
++----------------------+-------------------------+
+| I_llamadas           | Numérica discreta       |
++----------------------+-------------------------+
+| I_tarifa             | Numérica continua       |
++----------------------+-------------------------+
+| operador             | Numérica discreta       |
++----------------------+-------------------------+
+| fuga                 | Categórica nominal      |
++----------------------+-------------------------+
+| genero               | Categórica nominal      |
++----------------------+-------------------------+
+| edad                 | Numérica discreta       |
++----------------------+-------------------------+
+
+:::
+
+**Procesamiento de datos**
+
+- Primero se procederá a verificar si se tienen las librerías para el correcto funcionamiento del proyecto. En caso de no tener las librerías, se procederá a instalarse.
+
+```{r}
+#lista.paquetes <- c("readr", "dplyr","corrplot","PerformanceAnalytics","psych")
+#nuevos.paquetes <- lista.paquetes[!(lista.paquetes %in% installed.packages()[,"Package"])] 
+#if(length(nuevos.paquetes)) install.packages(nuevos.paquetes) 
+
+```
+
+- Se procede a llamar a las librerías necesarias para el correcto funcionamineto del proyecto.
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+- Cargaremos la base de datos con la que se trabajará el proyecto.
+
+```{r}
+DF<-read_csv("churn7.csv");
+```
+
+- Se procederá a mostrar el nombre de las varibales de la base de datos.
+
+```{r}
+names(DF)
+```
+
+- Las variables de nuestro estudios serán divididas en una determinada cantidad de Data Frames que nos serán útiles en el transcurso de nuestro proyecto. 
+
+- DF_inter es el Data Frame donde se encuentran los clientes que tienen el plan internacional que ofrece la empresa.
+
+```{r}
+DF_inter <- filter(DF, DF$plan_inter == "yes")
+```
+ 
+   - DF_nointer es el Data Frame donde se encuentran los clientes que tienen el plan internacional que ofrece la empresa.
+
+```{r}
+DF_nointer <- filter(DF, DF$plan_inter == "no")
+```
+
+   - DF_quedan es el Data Frame donde se encuentran los clientes que permanecen en la empresa.
+
+```{r}
+DF_quedan <- filter(DF, DF$fuga == "FALSE")
+```
+
+   - DF_salen es el Data Frame donde se encuentran los clientes que abandonan la empresa.
+
+```{r}
+DF_salen <- filter(DF, DF$fuga == "TRUE")
+```
+
+   - DF_NE es el Data Frame donde se encuentran los clientes que su lugar de residencia se encuentra en la Zona Noreste.
+
+```{r}
+DF_NE <- filter(DF, DF$ubicacion == "Zona Noreste")
+```
+
+**Descriptores**
+
+- ***Descriptores numéricos de localización***
+
+   - Con la ayuda de un summary podremos obtener fácilmente los valores de nuestros descriptores numéricos tales como la media, mediana, mínimo, máximo y cuantiles de nuestra variables; los cuales analizaremos para poder compararlas y encontrar relaciones significativas.
+   - En este caso, se analizará las variables de tiempo, llamadas y el costo que le significa a la empresa las llamadas realizadas por los usuarios.
+
+```{r}
+summary(DF[8:21])
+```
+
+  - Construimos una función que nos permita hallar la moda de las distintas variables, que nos permitirá encontrar y verificar relaciones.
+
+```{r}
+ModaCreada <- function(x) {
+  DatosSinNulos <- na.omit(unique(x))
+  tabulado <- tabulate(match(x, DatosSinNulos))
+  DatosSinNulos[tabulado == max(tabulado) ]
+}
+```
+
+**Observaciones**
+
+   - Con lo que nos muestra el summary, podemos identificar que el momento del día en que los usuarios realizan más llamadas es por las mañanas con un promedio de 100.4 llamadas, sin embargo esto no coincide con el tiempo que los usuarios pasan en llamadas puesto que el momento del día en que los usuarios pasan más tiempo en llamadas es por las tardes con un promedio de 201 minutos.
+   - Con lo que nos muestra el summary, podemos observar que el momento del día que le significa más gastos a la empresa por las llamadas es por las mañanas con un promedio de 30.56.
+   - Se ha creado una función ModaCreada que nos servirá para hallar la moda de las diferentes variables.
+
+- ***Descriptores numéricos de dispersión***
+
+   - Utilizaremos el rango intercuartílico de las variables de tiempo, llamadas y la tarifa que la empresa cobra por las llamadas realizadas por los usuarios, para medir cuan alejadas concentradas o dispersas se encuentran la muestra.
+
+```{r}
+IQRMsC<-c(Mañana = IQR(DF$M_mins),
+     Tarde = IQR(DF$T_mins), 
+     Noche = IQR(DF$N_mins),
+     Internacional = IQR(DF$I_mins)
+     )
+IQRMsC
+```
+
+```{r}
+IQRMsC<-c(Mañana = IQR(DF$M_llamadas),
+     Tarde = IQR(DF$T_llamadas), 
+     Noche = IQR(DF$N_llamadas),
+     Internacional = IQR(DF$I_llamadas)
+     )
+IQRMsC
+```
+
+```{r}
+IQRMsC<-c(Mañana = IQR(DF$M_tarifa),
+     Tarde = IQR(DF$T_tarifa), 
+     Noche = IQR(DF$N_tarifa),
+     Internacional = IQR(DF$I_tarifa)
+     )
+IQRMsC
+```
+
+**Observaciones**
+
+   - En el primer vector de IQRMsC se puede observar que el momento del día que tiene sus datos más dispersos con respecto a los minutos que los clientes pasan en llamadas es la mañana con 72.7.
+   - En el segundo vector de IQRMsC se puede observar que hay dos momentos del día que tienen la misma y mayor dispersión con respecto a la cantidad de llamadas que los clientes realizan. Estos momentos del día son la mañana y tarde con 27.
+   - En el tercer vector de IQRMsC se puede observar que el momento del día que tiene sus datos más dispersos con respecto a la tarifa que la empresa cobra a los clientes es la mañana con 12.36.
+   - En los tres vectores de IQRMsC se puede apreciar que la dispersión de las variables internacionales no es muy grande y esto se debe a que son valores muy pequeños a comparación de las otras variables. 
+   
+- **Descriptores gráficos**
+
+   - Para poder tener una mejor observación de los comportamientos que tienen las variables de nuestro estudio, vamos a utilizar 2 tipos de descriptores gráficos.
+
+   - Utilizaremos boxplots para observar como se comportan las variables de tiempo que los clientes que pasan en llamadas por las mañanas, tardes y noches. 
+   
+```{r}
+boxplot(DF$M_mins, 
+        col="lightskyblue3", 
+        main="Tiempo de llamadas por las mañanas", 
+        ylab="Tiempo (m)", 
+        varwidth = TRUE,
+        horizontal = TRUE
+        )
+IQR(DF$M_mins)
+median(DF$M_mins)
+```
+
+```{r}
+boxplot(DF$T_mins, 
+        col="sandybrown", 
+        main="Tiempo de llamadas por las tardes", 
+        ylab="Tiempo (m)", 
+        varwidth = TRUE,
+        horizontal = TRUE
+        )
+IQR(DF$T_mins)
+median(DF$T_mins)
+```
+
+```{r}
+boxplot(DF$N_mins, 
+        col="deepskyblue4", 
+        main="Tiempo de llamadas por las noches", 
+        ylab="Tiempo (m)", 
+        varwidth = TRUE,
+        horizontal = TRUE
+        )
+IQR(DF$N_mins)
+median(DF$N_mins)
+```
+
+   - Finalmente, graficaremos todos los boxplots en una sola gráfica para poder comparar el tiempo que pasan los clientes en llamadas en un mes y obtener información sobre la dispersión de los datos.
+
+```{r}
+boxplot(  DF$M_mins
+        , DF$T_mins
+        , DF$N_mins
+        , main = "Boxplots de tiempo de llamadas en el mes"
+        , col = c("lightskyblue3", "sandybrown", "deepskyblue4")
+        , xlab = "Tiempo (m)"
+        , names = c("M", "T", "N")
+        , horizontal = TRUE
+        )
+```
+
+ **Observaciones**
+
+   - Podemos observar que en el boxplot el 50% de los datos del tiempo que los clientes pasan en llamadas por las mañanas son menores o iguales a 179.4. Además, podemos observar que en el boxplot el 50% de los datos del tiempo que los clientes pasan en llamadas por las tardes son menores o iguales a 201.4. Finalmente, podemos observar que en el boxplot el 50% de los datos del tiempo que los clientes pasan en llamadas por las noches son menores o iguales a 201.2.
+   - Haciendo una comparación de los tres boxplot que el 50% de los datos de los momentos del día se puede observar que los valores de la tarde y noche son muy parecidos puesto que solo se llevan por décimas. Por otro lado, los valores de la mañana son mucho menores que los otros dos momentos del día. 
+   
+***
+
+- Ahora, graficaremos un boxplot de las variable internacional para observar el comportamiento de la variable de tiempo que los clientes que pasan en llamadas internacionales.
+
+```{r}
+boxplot(DF$I_mins, 
+        col="indianred", 
+        main="Tiempo de llamadas internacionales", 
+        ylab="Tiempo (m)", 
+        varwidth = TRUE,
+        horizontal = TRUE
+        )
+IQR(DF$I_mins)
+median(DF$I_mins)
+```
+
+**Observaciones**
+
+   - Se puede observar que en el boxplot, el 50% de los datos del tiempo que los clientes pasan en llamadas internacionales son menores o iguales a 10.3. Una gran diferencia con respecto a los valores que resultaban de los momentos del día (mañana, tarde y noche).
+
+***
+
+- Utilizaremos un gráfico de mosaico para poder visualizar y analizar la relación que existe entre la permanencia del usuario en la empresa con la ubicación del lugar de residencia del usuario.
+
+
+```{r}
+df4 <- table(DF$ubicacion, DF$fuga)
+mosaicplot(df4,main = "Relación entre la permanencia con la ubicación de residencia",
+           xlab = "Ubicación",
+           ylab = "Fuga               ",
+           las = 2,
+           border = "Black",
+           off = 10,
+           shade = FALSE,
+           col = c("mistyrose3","rosybrown")
+           )
+```
+**Observaciones**
+
+   - Con el gráfico de mosaico podemos observar que mayoritariamente los usuarios que tienen como ubicación de residencia la Zona Noreste de los Estados Unidos no continúan con la permanencia en la empresa telefónica con respecto a las demás zonas.
+
+***
+
+- Ahora utilizaremos histogramas para observar como se comporta tanto el número de llamadas que los usuarios realizan durante el mes en los distintos momentos del día. Aparte de ello, hallaremos la moda de las variables con la función que se había inicializado al principio.
+
+
+```{r}
+hist(table(DF$M_llamadas),
+     xlab = "Llamadas",
+     main = "Número de llamadas por las mañanas")
+
+ModaCreada(DF$M_llamadas)
+```
+
+```{r}
+hist(table(DF$T_llamadas),
+        xlab = "Llamadas",
+        main = "Número de llamadas por las tardes")
+
+ModaCreada(DF$T_llamadas)
+```
+
+
+```{r}
+hist(table(DF$N_llamadas),
+     xlab = "Llamadas",
+     main = "Número de llamadas por las noches")
+
+ModaCreada(DF$N_llamadas)
+```
+
+**Observaciones**
+
+   - En el primer histograma podemos observar que nuestros clientes hacen entre 0 a 10 llamadas por las mañanas con mayor frecuencia y que la segunda mayor frecuencia se encuentra 60 a 70 llamadas. En el segundo histograma podemos observar que nuestros clientes hacen entre 0 a 10 llamadas por las tardes con mayor frecuencia y que la segunda mayor frecuencia se encuentra 10 a 20 llamadas.En el tercer histograma podemos observar que nuestros clientes hacen entre 0 a 10 llamadas por las noches con mayor frecuencia y que la segunda mayor frecuencia se encuentra 50 a 60 llamadas.
+   - Comparando las tres gráficas podemos observar que en los tres momentos del día la mayor frecuencia de llamadas se encuentra entre 0 a 10 llamadas. Además; si comparamos la segunda mayor frecuencia de llamadas entre los tres momentos del día, la mañana supera a los demás puesto que se encuentra entre 60 a 70 llamadas.
+   
+***
+
+- Ahora utilizaremos gráficos de dispersión para verificar el comportamiento de las variables número de llamadas internacionales realizadas en un mes y número de llamadas a la central hechas por los clientes.
+
+```{r}
+plot(DF$I_llamadas,
+    main = "Número de llamadas internacionales en un mes",
+    ylab = "Llamadas")
+
+ModaCreada(DF$I_llamadas)
+mean(DF$I_llamadas)
+median(DF$I_llamadas)
+```
+
+```{r}
+plot(DF$operador,
+     ylab = "Llamadas a la central",
+     main = "Número de llamadas a la central en un mes")
+
+ModaCreada(DF$operador)
+mean(DF$operador)
+median(DF$operador)
+```
+
+**Observaciones**
+
+   -  En el primer gráfico de dispersión se puede observar que más del 50% de los clientes ha hecho 5 o menos llamadas internacionales en un mes en nuestra empresa telefónica. Además, solo 1 de nuestros clientes ha realizado 20 llamadas internacionales.
+   - En el segundo gráfico de dispersión se puede observar que más del 50% de los clientes ha hecho 2 o menos llamadas a la central en un mes. Cabe mencionar que uno de nuestros clientes ha realizado 9 llamadas a la central en un mes, lo que es preocupante con respecto a la calidad de servicio que estamos brindando como empresa.
+
+***
+
+**Patrones o posibles relaciones**
+
+- **Posibles relaciones entre variables categóricas**
+
+   - Se utilizará un gráfico de mosaico para poder encontrar la ciudad que tiene mayor fuga de clientes a partir de la zona que tiene mayor fuga de clientes que fue anteriormente hallada, la cual fue la Zona Noreste.
+
+```{r}
+NE <- table(DF_NE$residencia, DF_NE$fuga)
+mosaicplot(NE,main = "Relación entre la permanencia con la ubicación de residencia",
+           xlab = "Ciudades de residencia",
+           ylab = "Fuga               ",
+           las = 2,
+           border = "Black",
+           off = 10,
+           shade = FALSE,
+           col = c("mistyrose3","rosybrown")
+           )
+```
+
+**Observaciones**
+
+   - Se puede observar a través del gráfico de mosaico que la ciudad que tiene mayor fuga de clientes en la Zona Noreste de Estados Unidos es New Jersey(NJ) a comparación de las otras ciudades de dicha zona.
+
+- **Posibles relaciones entre variables numéricas**
+
+   - Utilizaremos un boxplot donde analizaremos la relación que existe entre el número de llamadas realizadas por los usuarios a la central con su permanencia en la empresa telefónica. Para ello, se utilizará el Data Frame DF_salen donde se encuentran las personas que abandonan la empresa telefónica y el Data Frame DF_quedan donde se encuentran las personas que permanecen en la empresa telefónica.
+
+
+```{r}
+boxplot(  DF_quedan$operador
+        , DF_salen$operador
+        , main = "Boxplot de Número de llamadas a la central"
+        , col = c( "navajowhite3", "rosybrown3")
+        , xlab = "Número de llamadas"
+        , names = c("DF_quedan", "DF_salen")
+        , horizontal = TRUE
+        )
+median(DF_quedan$operador)
+median(DF_salen$operador)
+```
+
+**Observaciones**
+
+   - Podemos observar que en el primer boxplot el 50% de los datos del número de llamadas hechas a la central por los clientes que abandonan la empresa telefónica son menores o iguales a 2 y el 75% son menores o iguales a 4. Podemos observar que en el segundo boxplot el 25% y 50% de los datos del número de llamadas hechas por los clientes que permanecen en la empresa telefónica a la central son menores o iguales a 1 y el 75% son menores o iguales a 2.
+   - Con lo observado en el boxplot, podemos decir que las personas que abandonan la empresa telefónica han realizado una mayor cantidad de llamadas a la central con respecto a las personas que permanecen en la empresa telefónica. 
+   
+***
+
+-  Utilizaremos los siguientes boxplot donde analizaremos el número de llamadas y el número de minutos que las personas pasan en llamadas internacionales tanto de las personas que tiene el plan de llamadas internacionales como las personas que no lo tienen. Para ello, se utilizará el Data Frame de DF_inter donde se encuentran las personas que si tienen el plan internacional y el Data Frama DF_nointer donde se encunetran las personas que no tienen el plan internacional.
+
+```{r}
+boxplot(  DF_nointer$I_llamadas
+        , DF_inter$I_llamadas
+        , main = "Boxplot llamadas internacionales en el día"
+        , col = c("tomato3", "palegreen3")
+        , xlab = "Número de llamadas"
+        , names = c("no", "yes")
+        , horizontal = TRUE
+        )
+```
+
+```{r}
+boxplot(  DF_nointer$I_mins
+        , DF_inter$I_mins
+        , main = "Boxplot minutos internacionales en el día"
+        , col = c("tomato3", "palegreen3")
+        , xlab = "Tiempo (m)"
+        , names = c("no", "yes")
+        , horizontal = TRUE
+        )
+median(DF_nointer$I_mins)
+median(DF_inter$I_mins)
+```
+**Observaciones**
+
+   - En el primer boxplot podemos observar que la mediana de la variable número de llamadas internacionales de los usuarios que tienen y no tienen el plan internacional es la misma; el 25%, 50% y 75% de los datos van a ser menores o iguales a los mismo valores. Sin embargo, en el segundo boxplot podemos observar que la mediana del tiempo que pasan los usuarios en llamadas internacionales es ligeramente mayor en las personas que tienen el plan internacional por lo que 50% de los datos van a ser menores o iguales a 10.8 y en el caso de las personas que no tienen el plan internacional el 50% de los datos van a ser menores o iguales a 10.2. Pero cuando hablamos del 75% de los datos vuelven a ser menores o iguales al mismo valor.
+   - Algo importante a resaltar es que los clientes que tienen el plan internacional por lo menos han realizado una llamada en el mes.
+
+***
+
+- **Relación entre tiempo de cliente y costo promedio por cliente.**
+
+- Para ello generaremos una nueva variable costo promedio con el que podremos observar la relación.
+
+```{r}
+DF$tarifa_promedio<-rowMeans(DF[,c(11,14,17)],na.rm=TRUE)
+DF
+```
+
+- Hallaremos el coeficiente de correlación para saber de que manera se relacionan.
+
+```{r}
+cor(DF$tiempo_cliente,DF$tarifa_promedio)
+```
+
+- Con coeficiente de correlación hallado podemos observar que la correlación que existe entre estas dos variables es muy cercana a 0. Por ello, podemos decir que las variables no se relacionan. Esto lo podemos observar en la siguiente gráfica, donde claramente se ve que no hay una relación.
+
+```{r}
+plot(DF$tiempo_cliente,DF$tarifa_promedio)
+```
+
+***
+
+- **Relación entre costo en la mañana y los minutos de llamada en la mañana**
+
+- Los minutos que gastan en la mañana puede ser un factor importante que guardaría relación con el costo en la mañana.Por ello buscamos saber si realmente existe una relación y esto se hará mediante el coeficiente de correlación
+Hallamos el coeficiente de correlación para saber de que manera se relacionan.
+
+```{r}
+cor(DF$M_tarifa,DF$M_mins)
+```
+Como notamos con el coeficiente de correlación existe una correlación positiva perfecta.
+Esto lo notaremos en la siguiente gráfica.
+
+```{r}
+plot(DF$M_tarifa,DF$M_mins)
+```
+
+***
+
+**Relación entre la cantidad de minutos totales que duran las llamadas y el momento del día en el que se realizan (mañana, tarde, noche)**
+
+```{r}
+boxplot(  DF$M_mins, DF$T_mins,DF$N_mins, main = "Boxplot de minutos que duran las llamadas"
+        , col = c( "navajowhite3", "rosybrown3","sandybrown")
+        , xlab = "Duración de llamadas (minutos)"
+        , names = c("Min mañana", "Mins tarde","Mins noche")
+        
+        )
+median(DF$M_mins)
+median(DF$T_mins)
+median(DF$N_mins)
+```
+Podemos observar que de toda nuestra muestra los minutos en la tarde y noche son más con respecto a la mañana eso podemos observarlo en la medianas en el boxplot.
+
+***
+
+**Modelo de variables aleatorias**
+
+- **La probabilidad de encontrar una persona con plan internacional hasta el 3er intento.**
+
+```{r}
+vec<-table(DF$plan_inter)/nrow(DF) 
+```
+
+```{r}
+barplot(vec)
+```
+
+```{r}
+pgeom(2,0.0969)
+```
+
+- **Probabilidad de que los minutos en la mañana estén entre 100 y 200.**
+
+```{r}
+hist(DF$M_mins)
+mediamañ<-mean(DF$M_mins)
+sdmañan<-sd(DF$M_mins)
+```
+
+
+```{r}
+c<-mean(DF$M_mins)
+```
+
+- Teniendo el promedio: probabilidad que sea menor igual a 100.
+   
+```{r}
+menorq1<-pnorm(100,mediamañ,sdmañan)
+```
+   
+- Probabilidad que sea menor igual a 200.
+   
+```{r}
+menorq2<-pnorm(200,mediamañ,sdmañan)
+```
+
+- Probabilidad que esté entre 200 y 100.
+
+```{r}
+entre<-menorq2-menorq1
+```
+
+```{r}
+plot(100:200,pnorm(100:200,mediamañ,sdmañan),xlab="minutos",ylab = "Prob.acumulada de tener x minutos de llamada en la mañana")
+```
+
+- **Probabilidad de que los minutos en la tarde estén entre 100 y 200.**
+
+```{r}
+hist(DF$T_mins)
+mediat<-mean(DF$T_mins)
+sdt<-sd(DF$T_mins)
+```
+
+- Teniendo el promedio: probabilidad que sea menor igual a 100.
+
+```{r}
+menorq1t<-pnorm(100,mediat,sdt)
+```
+
+- Probabilidad que sea menor igual a 200.
+
+```{r}
+menorq2t<-pnorm(200,mediat,sdt)
+```
+
+- Probabilidad que este entre 200 y 100.
+
+```{r}
+entret<-menorq2t-menorq1t
+```
+
+```{r}
+plot(100:200,pnorm(100:200,mediat,sdt),xlab="minutos",ylab = "Prob.acumulada de tener x minutos de llamada en la tarde")
+```
+
+- **Probabilidad de que los minutos en la noche esten entre 100 y 200.**
+
+```{r}
+hist(DF$N_mins)
+sdn<-sd(DF$N_mins)
+n<-mean(DF$N_mins)
+```
+- Teniendo el promedio: probabilidad que sea menor igual a 100.
+
+```{r}
+menorq1n<-pnorm(100,n,sdn)
+```
+
+- Probabilidad que sea menor igual a 200.
+
+```{r}
+menorq2n<-pnorm(200,n,sdn)
+```
+
+- Probabilidad que este entre 200 y 100.
+
+```{r}
+entren<-menorq2-menorq1
+```
+
+```{r}
+plot(100:200,pnorm(100:200,n,sdn),xlab="minutos",ylab = "Prob.acumulada de tener x minutos de llamada noche")
+```
+
+- **x:numero de personas de que hallan hecho una fuga podemos encontrar en la muestra.**
+
+```{r}
+barplot(table(DF$fuga))
+```
+
+- Probabilidad de encontrar hasta 3 personas que hayan realizado una fuga si se realiza un muestreo a 50 personas.
+
+```{r}
+table(DF$fuga)[2]
+sum(table(DF$fuga))
+```
+
+- Probabilidad de éxito.
+
+```{r}
+pmo<-(table(DF$fuga)[2])/sum(table(DF$fuga))
+```
+
+```{r}
+pbinom(3,50,pmo)
+
+```
+
+```{r}
+plot(0:3,pbinom(0:3,50,pmo),xlab="intentos",ylab = "Prob.acumulada de encontrar hasta 3 personas de M.O",type="h")
+```
+ - Distribución normal:
+   - x:costo de llamadas internacionales.
+   - Probabilidad de que el costo sea menor 2.78 la cual es su mediana de costos.
+   - Hallando la media y la desviación.
+   
+```{r}
+hist(DF$I_tarifa)
+mediat<-mean(DF$I_tarifa)
+sdt<-sd(DF$I_tarifa)
+```
+
+```{r}
+medcost<-mean(DF$I_tarifa)
+descost<-sd(DF$I_tarifa)
+```
+
+```{r}
+medianacos<-median(DF$I_tarifa)
+pnorm(medianacos,medcost,descost,lower.tail = TRUE)
+```
+
+```{r}
+plot(0:medianacos,pnorm(0:medianacos,medcost,descost))
+```
+
+***
+
+**Hipótesis**
+
+**Análisis descriptivo 1**
+
+- Se podrá observar los patrones de las variables a estudiar que nos serán útiles para poder plantear nuestras hipótesis. Se utilizará descriptores gráficos y numéricos, así como también los parámetros del estudio (nivel de confianza, precisión y tamaño de la muestra.
+
+   - Se utilizará un boxplot que nos ayudará a comprobar visualmente si la gráfica concuerda con los parámetros obtenidos.
+
+```{r}
+boxplot(  DF_quedan$operador
+        , DF_salen$operador
+        , main = "Boxplot de Número de llamadas a la central"
+        , col = c( "navajowhite3", "rosybrown3")
+        , xlab = "Número de llamadas"
+        , names = c("DF_quedan", "DF_salen")
+        , horizontal = TRUE
+        )
+```
+
+- Se hallará el intervalo de confianza de la diferencia de medias del Data Frame de los clientes que abandonan la empresa telefónica y del Data Frame de los clientes que permanecen en la empresa telefónica.
+
+- Teniendo un nivel de confianza al 95%, significancia de 5% y priorizando la confianza en consecuencia primero se hallará la media muestral de cada una y el tamaño de las muestras : **Media muestral y tamaño de muestra de las llamadas al operador de los que salen de la operadora**.
+
+```{r}
+media1 <- mean(DF_salen$operador)
+#numero de casos (n)
+n1 <- length(DF_salen$operador)
+media1
+n1
+```
+
+- Media muestral y tamaño de muestra de las llamadas al operador de los que se quedaron en la operadora.
+
+```{r}
+media2 <- mean(DF_quedan$operador)
+n2 <- length(DF_quedan$operador)
+media2
+n2
+```
+
+- Hallamos el intervalo de confianza de la diferencia de medias.
+   
+```{r}
+z <- qnorm(0.05/2)    #95%
+
+desviacion1 <- sd(DF_salen$operador)
+desviacion2 <- sd(DF_quedan$operador)
+
+#error estandar
+errorst1 <- sqrt(((desviacion1^2)/n1)+((desviacion2^2)/n2))
+
+#limite inferior
+lim_inf1 <- (media1-media2) + (z*errorst1)
+
+#limite superior
+lim_sup1 <- (media1-media2) - (z*errorst1)
+
+interval_m1 <- data.frame(n1, media1-media2, desviacion1, z, errorst1, lim_inf1, lim_sup1)
+interval_m1
+```
+
+   - Se hallará la precisión de la diferencia de medias.
+   
+```{r}
+precision1 <-z*errorst1
+```
+
+   - Se hallará el tamaño de la muestra de las personas que abandonan la empresa telefónica.
+
+```{r}
+length(DF_salen$operador)
+```
+
+   - Se hallará el tamaño de la muestra de las personas que permanecen en la empresa telefónica.
+
+```{r}
+length(DF_quedan$operador)
+```
+
+- Se puede visualizar que los intervalos de confianza que se obtuvieron concuerda con lo que se puede observar en el boxplot. A partir de ello, crearemos una hipótesis que nos ayudará a verificar de manera exacta si es que existe una relación entre las variables de llamadas al operador con la permanencia del cliente en la empresa telefónica.
+
+
+**Hipótesis 1**
+
+Se intenta comprobar la relación que puede existir entre la cantidad de llamadas realizadas a la central por parte de los clientes con la permanencia o abandono de la empresa telefónica. Para ello se utilizará los Data Frame DF_salen y DF_quedan donde se encuentran los clientes que abandonan o permanecen la empresa telefónica, respectivamente; de los cuáles se utilizará la variable "operador". Este estudio tiene como fin de poder validar la relación que hay entre estas 2 variable, para prevenir la fuga de clientes de la empresa telefónica.
+
+Para esto realizaremos una prueba de hipótesis de diferencia de medias debido a que hemos separado a la muestra de toda la población en la muestra de los que se quedan en la empresa y la muestra de los que realizan la fuga de clientes.Y con una distribución normal, realizando la prueba Z, debido a que la muestra es mayor a 30,varianzas desconocidas y diferentes.
+
+**PLANTEAMIENTO DE HIPÓTESIS**
+- Hipótesis Nula: El número de llamadas en promedio realizadas al operador de los clientes que dejaron la empresa telefónica menos la media de los que permanecen en la empresa telefónica es mayor a 0.
+
+- Hipótesis Alternativa:El número de llamadas en promedio realizadas al operador de los clientes que dejaron la empresa telefónica menos la media de los que permanecen en la empresa telefónica es menor a 0.
+
+$${Siendo}\ \mu_1:{la~media~de~llamadas~de~al~operador~de~las~personas~que~salen~de~la~operadora~y}\\
+ \\\mu_2:{Media~de~las~llamadas~al~operador~de~las~personas~que~se~quedan}$$
+$$H_{0}:\mu_{1} - \mu_{2} \geq {0}$$
+$$H_{a}:\mu_{1} - \mu_{2} < {0}$$
+- Determinamos un nivel de confianza del 95% y nivel de significancia del 5% (alfa=0.05)
+
+   - Primero determinamos que según el planteamiento de la hipótesis, se hará una prueba de cola inferior y con ello determinar si el estadístico de prueba esta dentro o fuera de la región de rechazo.
+   -Valor crítico (Zcrítico) con el cual lograremos determinar la región de rechazo.
+   
+```{r}
+Zcr1<-qnorm(0.05)
+Zcr1
+```
+
+- Zona de rechazo es determinada por el valor crítico.
+
+```{r}
+ZR<-pnorm(Zcr1)
+ZR
+```
+
+
+-Se hallará el estadístico de prueba de cada uno de los Data Frame con respecto al número de llamadas realizadas a la central.
+
+```{r}
+X_1 <- mean(DF_salen$operador) #xmuestra de los que salen
+X_2 <- mean(DF_quedan$operador) #xmuestra de los que se quedan
+
+s1 <- sd(DF_salen$operador) #desvia muestra salen
+s2 <-sd(DF_quedan$operador) #desvia muestra quedan
+
+Zprueba <- (X_1 - X_2)/sqrt(((s1^2)/n1)+((s2^2)/n2))
+Zprueba
+```
+
+**Regla de discusión**
+
+- Con la gráfica a continuación podremos observar si el estadístico es mayor al valor crítico para un nivel de significancia de 5%, para determinar el rechazo o no rechazo de la hipótesis.
+
+```{r}
+x<-seq(-10,10,0.1)
+hist <- dnorm(x, mean=0, sd=1) 
+plot(x, hist, type="l", xlab="Desviación estándar", ylab="Densidad",main="Distribución de probabilidad f(x) Estandar Normal", lty = 1, lwd = 3, yaxs="i") # yaxs="i" localiza en el eje el límite del dato
+polygon(c(x[x <=Zcr1], Zcr1), c(dnorm(x[x <= Zcr1]), 0), col="red")
+text(-5,0.08,"z.rechazo=5%")
+abline(v=Zcr1,col='blue',lwd=3)
+abline(v=Zprueba,col="green",lwd =3)
+legend( x = "topleft",legend = c("Zcrítico=-1.6448","Estadístico","Grafica de la distribución"), col = c("blue","green","black"),lwd = 2)
+```
+
+- Con lo hallado anteriormente podemos decir que nuestra hipótesis será no rechazada porque el Estadístico de prueba es mayor al valor crítico para 5% de significancia ,es decir esta fuera de la zona de rechazo. Esto nos quiere decir que lo deducido gráficamente a través de los boxplot mostrados inicialmente es congruente.Es decir, no podemos rechazar que el número de llamadas al operador de los que salen de la compañía son mayores a las que se quedaron, pudiendo ser un posible factor de la fuga.
+
+***
+
+**Análisis descriptivo 2**
+
+- Se podrá observar los patrones de las variables a estudiar que nos serán útiles para poder plantear nuestras hipótesis. Se utilizará descriptores gráficos y numéricos, así como también los parámetros del estudio (nivel de confianza, precisión y tamño de la muestra.
+
+   - Se utilizará un boxplot que nos ayudará a comprobar visualmente si la gráfica concuerda con los parámetros obtenidos. El costo en la mañana es más alto según encontramos por ello compararemos el costo de la mañana de los que se quedan y se van .
+
+```{r}
+boxplot(  DF_quedan$M_tarifa
+        , DF_salen$M_tarifa
+        , main = "Boxplot de tarifa en la mañana"
+        , col = c( "navajowhite3", "rosybrown3")
+        , xlab = "Tarifa"
+        , names = c("DF_quedan", "DF_salen")
+        , horizontal = TRUE
+        )
+median(DF_quedan$M_tarifa)
+median(DF_salen$M_tarifa)
+```
+
+- Se hallará el intervalo de confianza de la diferencia de medias del Data Frame de los clientes que abandonan la empresa telefónica y del Data Frame de los clientes que permanecen en la empresa telefónica.
+
+- Teniendo un nivel de confianza al 95%, significancia de 5% y priorizando la confianza en consecuencia primero se hallará la media muestral de cada una y el tamaño de las muestras: **Media muestral y tamaño de muestra de la tarifa en la mañana de los que salen de la operadora**.
+
+```{r}
+media3 <- mean(DF_salen$M_tarifa)
+n3 <- length(DF_salen$M_tarifa)
+media3
+n3
+```
+
+- Media muestral y tamaño de muestra de la tarifa en la mañana de los que permanecen en la empresa.
+
+```{r}
+media4 <- mean(DF_quedan$M_tarifa)
+#numero de casos (n)
+n4 <- length(DF_quedan$M_tarifa)
+media4
+n4
+```
+
+   
+```{r}
+z <- qnorm(0.05/2)     #95%
+
+desviacion3 <- sd(DF_salen$M_tarifa)
+desviacion4 <- sd(DF_quedan$M_tarifa)
+
+#error estandar
+errorst3 <- sqrt(((desviacion3^2)/n3)+((desviacion4^2)/n4))
+
+#limite inferior
+lim_inf3 <- (media3-media4) +(z*errorst3)
+
+#limite superior
+lim_sup3 <- (media3-media4) - (z*errorst3)
+
+interval_m3 <- data.frame(n3, media3-media4, desviacion3,desviacion4, z, errorst3, lim_inf3, lim_sup3)
+interval_m3
+```
+
+   - Se hallará la precisión de la diferencia de medias de la variable en ambos dataframes.
+   
+```{r}
+#Precisión
+precisionsalen <- -z*errorst3
+precisionsalen
+```
+   
+   - Se hallará el tamaño de la muestra de las personas que abandonan la empresa telefónica.
+
+```{r}
+length(DF_salen$M_tarifa)
+```
+
+   - Se hallará el tamaño de la muestra de las personas que permanecen en la empresa telefónica.
+
+```{r}
+length(DF_quedan$M_tarifa)
+```
+
+- Se puede visualizar que los intervalos de confianza que se obtuvieron concuerda con lo que se puede observar en el boxplot. A partir de ello, crearemos una hipótesis que nos ayudará a verificar de manera exacta si es que existe una relación entre las variables de costo en la mañana de las llamadas con la permanencia del cliente en la empresa telefónica.
+
+
+**Hipótesis 2**
+
+Se intenta comprobar la relación que puede existir entre el costo en la mañana por parte de los clientes con la permanencia o abandono de la empresa telefónica. Para ello se utilizará los Data Frame DF_salen y DF_quedan donde se encuentran los clientes que abandonan o permanecen la empresa telefónica, respectivamente; de los cuáles se utilizará la variable "M_costo". Este estudio tiene como fin de poder validar la relación que hay entre estas 2 variable, para prevenir la fuga de clientes de la empresa telefónica.
+
+Para esto realizaremos una prueba de hipótesis de diferencia de medias debido a que hemos separado a la muestra de toda la población en la muestra de los que se quedan en la empresa y la muestra de los que realizan la fuga de clientes.Y con una distribución normal, realizando la prueba Z, debido a que la muestra es mayor a 30,varianzas desconocidas y diferentes.
+
+**PLANTEAMIENTO DE HIPÓTESIS**
+
+- Hipótesis Nula: El costo promedio en la mañana  de los clientes que dejaron la empresa telefónica menos el promedio de los clientes que permanecen en la empresa telefónica es mayor a 0.
+
+- Hipótesis Alternativa: El costo promedio en la mañana  de los clientes que dejaron la empresa telefónica menos el promedio de los clientes que permanecen en la empresa telefónica es menor a 0.
+
+$${Siendo}\ \mu_1:{la~media~de~llamadas~de~al~operador~de~las~personas~que~salen~de~la~operadora~y}\\
+ \\\mu_2:{Media~de~las~llamadas~al~operador~de~las~personas~que~se~quedan}$$
+$$H_{0}:\mu_{1} - \mu_{2} \geq {0}$$
+$$H_{a}:\mu_{1} - \mu_{2} < {0}$$
+
+- Determinamos un nivel de confianza del 95% y nivel de significancia del 5% (alfa=0.05)
+
+   - Primero determinamos que según el planteamiento de la hipotesis, se hará una prueba de cola inferior y con ello determinar si el estadístico de prueba esta dentro o fuera de la región de rechazo.
+   - Valor crítico (Zcrítico) con el cual lograremos determinar la región de rechazo.Con un nivel de significancia de 5%.
+   
+```{r}
+Zcr2<-qnorm(0.05)
+Zcr2
+```
+
+- Zona de rechazo es determinada por el valor crítico.
+
+```{r}
+ZR2<-pnorm(Zcr2)
+ZR2
+```
+
+- Se hallará el estadístico de prueba de cada uno de los Data Frame con respecto al número de llamadas realizadas a la central.
+
+```{r}
+X3 <- mean(DF_salen$M_tarifa) #x tarifa que salen
+X4<- mean(DF_quedan$M_tarifa) #x tarifa quedan
+s3<-sd(DF_salen$M_tarifa)
+s4<-sd(DF_quedan$M_tarifa)
+Zprueba2 <- (X3 - X4)/sqrt(((s3^2)/n3)+ ((s4^2)/n4))
+Zprueba2 
+```
+
+
+**Regla de discusión**
+
+Con la gráfica a continuación podremos observar si el estadístico es mayor al valor crítico para un nivel de significancia del 5%, para determinar el rechazo o no rechazo de la hipótesis.
+
+```{r}
+x<-seq(-10,10,0.1)
+hist <- dnorm(x, mean=0, sd=1) 
+plot(x, hist, type="l", xlab="Desviación estándar", ylab="Densidad",main="Distribución de probabilidad f(x) Estandar Normal", lty = 1, lwd = 3, yaxs="i") #yaxs="i" localiza en el eje el límite del dato
+polygon(c(x[x <=Zcr2], Zcr2), c(dnorm(x[x <= Zcr2]), 0), col="red")
+text(-5,0.08,"z.rechazo=5%")
+abline(v=Zcr2,col='purple',lwd=3)
+abline(v=Zprueba2,col='green',lwd=3)
+legend( x = "topleft",legend = c("Zcrítico=-1.6448","Estadístico=9.684","Grafica de la distribución"), col = c("purple","green","black"),lwd = 2)
+```
+
+- Con lo hallado anteriormente podemos decir que nuestra hipótesis será no rechazada porque el Z del estadístico es mayor al Zcrítico nivel de significancia (0.05) que fue dado por el nivel de confianza y con ello estaría fuera de la zona de rechazo.Por lo tanto podemos decir que lo deducido en los bloxplot del inicio es congruente con lo encontrado y que no estaba errado el fórmular esta hipótesis.Es decir, no podemos rechazar que la media del costo en la mañana  de los que salen de la compañía es mayor a la de los que se quedaron, pudiendo ser un posible factor de la fuga.
+
+***
+
+**Análisis descriptivo 3**
+ 
+- Se podrá observar los patrones de las variables a estudiar que nos serán útiles para poder plantear nuestras hipótesis. Se utilizará descriptores gráficos y numéricos, así como también los parámetros del estudio (nivel de confianza, precisión y tamaño de la muestra.
+
+```{r}
+boxplot(  DF_quedan$M_llamadas
+        , DF_salen$M_llamadas
+        , main = "Boxplot de número de llamadas en la mañana"
+        , col = c( "navajowhite3", "rosybrown3")
+        , xlab = "Número de llamadas"
+        , names = c("DF_quedan", "DF_salen")
+        , horizontal = TRUE
+        )
+```
+
+- Notamos que la mediana en los que salen es mayor a los que se quedan.
+
+- Se hallará el intervalo de confianza de la diferencia de medias del Data Frame de los clientes que abandonan la empresa telefónica y del Data Frame de los clientes que permanecen en la empresa telefónica.
+
+- Teniendo un nivel de confianza al 95%, significancia de 5% y priorizando la confianza en consecuencia primero se hallará la media muestral de cada una y el tamaño de las muestras: **Media muestral y tamaño de muestra de las llamadas en la mañana de los que salen de la operadora**.
+
+```{r}
+media5 <- mean(DF_salen$M_llamadas) #media muestral
+n5 <- length(DF_salen$M_llamadas)   #tamaño de la muestra
+```
+
+- Media muestral y tamaño de muestra de las llamadas en la mañana de los que se quedan en la operadora.
+
+```{r}
+media6 <- mean(DF_quedan$M_llamadas) #media muestral
+n6<- length(DF_quedan$M_llamadas)   #tamaño de muestra
+```
+
+```{r}
+z <- qnorm((1-0.95)/2)       #95%
+
+#al no tener la desviación estándar poblacional usaremos la sd muestral
+desviacion5 <- sd(DF_salen$M_llamadas)
+desviacion6 <- sd(DF_quedan$M_llamadas)
+
+#error estandar
+errorst5 <- sqrt(((desviacion5^2)/n5)+((desviacion6^2)/n6))
+
+#limite inferior
+lim_inf5 <- (media5-media6) +(z*errorst5)
+
+#limite superior
+lim_sup5 <- (media5-media6) -(z*errorst5)
+
+interval_m5 <- data.frame( media5-media6, desviacion5,desviacion6,z, errorst5, lim_inf5, lim_sup5)
+interval_m5
+```
+
+   - Se hallará la precisión de la diferencia de medias.
+   
+```{r}
+#Precisión
+precision5 <- -z*errorst5
+precision5
+```
+  
+
+   - Se hallará el tamaño de la muestra de las personas que abandonan la empresa telefónica.
+
+```{r}
+length(DF_salen$M_llamadas)
+```
+
+   - Se hallará el tamaño de la muestra de las personas que permanecen en la empresa telefónica.
+
+```{r}
+length(DF_quedan$M_llamadas)
+```
+
+- Se puede visualizar que los intervalos de confianza que se obtuvieron concuerda con lo que se puede observar en el boxplot. A partir de ello, crearemos una hipótesis que nos ayudará a verificar de manera exacta si es que existe una relación entre las variables de número de llamadas en la mañana con la permanencia del cliente en la empresa telefónica.
+
+**Hipótesis 3**
+
+Se intenta comprobar una relación que puede existir entre el número de las llamadas en las mañanas y la permanencia en el servicio. Para ello se usará los data frame DF_quedan y DF_salen para compararlos. Con este estudio queremos validar si es que existe esta relación para determinar la causa de fuga de clientes.
+Para esto realizaremos una prueba de hipótesis de diferencia de medias debido a que hemos separado a la muestra de toda la población en la muestra de los que se quedan en la empresa y la muestra de los que realizan la fuga de clientes.Y con una distribución normal, realizando la prueba Z, debido a que la muestra es mayor a 30,varianzas desconocidas y diferentes.
+
+**PLANTEAMIENTO DE HIPÓTESIS**
+
+-Hipótesis nula: El numero promedio de las llamadas en la mañana de los que se van menos el numero promedio de estas llamadas de los que se quedan es mayor a 0.
+
+-Hipótesis alternativa: El numero promedio de las llamadas en la mañana de los que se van menos el numero promedio de estas llamadas de los que se quedan es menor  a 0.
+
+$${Siendo}\ \mu_1:{la~media~de~llamadas~de~al~operador~de~las~personas~que~salen~de~la~operadora~y}\\
+ \\\mu_2:{Media~de~las~llamadas~al~operador~de~las~personas~que~se~quedan}$$
+
+$$H_{0}:\mu_{1} - \mu_{2} \geq {0}$$
+$$H_{a}:\mu_{1} - \mu_{2} < {0}$$
+
+- Primero determinamos que según el planteamiento de la hipótesis, se hará una prueba de cola inferior y con ello determinar si el estadístico de prueba esta dentro o fuera de la región de rechazo.
+
+- Valor crítico (Zcrítico) con el cual lograremos determinar la región de rechazo.Con un nivel de significancia de 5%.
+
+```{r}
+Zcr3<-qnorm(0.05)
+Zcr3
+```
+
+- Zona de rechazo es determinada por el valor crítico.
+
+```{r}
+ZR3<-pnorm(Zcr3)
+ZR3
+```
+
+- Se hallará el estadístico de prueba de cada uno de los Data Frame con respecto al número de llamadas en la mañana y el costo total.
+
+```{r}
+
+X5 <- mean(DF_salen$M_llamadas, na.rm = TRUE) #x muestra salen
+X6 <- mean(DF_quedan$M_llamadas, na.rm = TRUE) #x muestra quedan
+
+s5 <- sd(DF_salen$M_llamadas, na.rm = TRUE) #des salen
+s6 <- sd(DF_quedan$M_llamadas, na.rm = TRUE) #des quedan
+  
+Zprueba3 <-(X5-X6)/sqrt(((s5^2)/n5)+((s6^2)/n6))
+Zprueba3
+```
+
+**Regla de discusión**
+
+Con la gráfica a continuación podremos observar si el estadístico es mayor al valor crítico para un nivel de significancia del 5%, para determinar el rechazo o no rechazo de la hipótesis.
+
+```{r}
+x<-seq(-10,10,0.1)
+hist <- dnorm(x, mean=0, sd=1) 
+plot(x, hist, type="l", xlab="Desviación estándar", ylab="Densidad",main="Distribución de probabilidad f(x) Estandar Normal", lty = 1, lwd = 3, yaxs="i") # yaxs="i" localiza en el eje el límite del dato
+polygon(c(x[x <=Zcr3], Zcr3), c(dnorm(x[x <= Zcr3]), 0), col="red")
+text(-5,0.08,"z.rechazo=5%")
+abline(v=Zcr3,col='#FFD700',lwd=3)
+abline(v=Zprueba3,col="#FF7F24",lwd=3)
+legend( x = "topleft",legend = c("Zcrítico=-1.64485","Estadístico","Grafica de la distribución"), col = c("#FFD700","#FF7F24","black"),lwd = 2,cex=0.75)
+```
+
+- Con lo hallado anteriormente podemos decir que nuestra hipótesis será no rechazada porque el Z del estadístico es mayor al Zcrítico nivel de significancia (0.05) que fue dado por el nivel de confianza y con ello estaría fuera de la zona de rechazo.Por lo tanto podemos decir que lo deducido en los bloxplot del inicio es congruente con lo encontrado y que no estaba errado el fórmular esta hipótesis.Es decir, no podemos rechazar que el número de llamadas en la mañana de los que salen de la compañía son mayores a las que se quedaron.
+
+***
+
+### **Regresiones**
+
+El departamento de marketing de la empresa telefónica AT&T desea realizar un estudio sobre las relaciones entre variables tanto en el Data Frame de las personas que permanecen en la empresa como las personas que abandonan la empresa. Por lo que han seleccionado un grupo de clientes que sean de interés para cada una de las relaciones.
+
+CAMBIO DE LAS VARIABLES DISCRETAS EDAD, OPERADOR Y M_llamadas A CONTINUAS
+```{r}
+#write.csv(DF,"churn7.csv", row.names = FALSE)
+#ruido_edad <- r(runif(3333, min=-0.4, max=0.4))
+#DF$edad <- DF$edad + ruido_edad
+#ruido_operador <- r(runif(3333, min=-0.4, max=0.4))
+#DF$operador <- ifelse (DF$operador + ruido_operador>0 , DF$operador + ruido_operador, 0) 
+#ruido_mllamadas <- r(runif(3333, min=-0.4, max=0.4))
+#DF$M_llamadas <- DF$M_llamadas + ruido_mllamadas
+
+
+```
+
+**Regresión 1**
+
+En la siguiente regresión se muestra la relación entre las variables M_mins (minutos en la mañana) que es la variable dependiente "Y", y la variable edad que será la variable independiente "X". Se selecciona cierta parte de la población
+
+<span style="color:blue"> **Restricción de datos:**</span> 
+
+Para la aplicacion de busqueda de informacion, el area de marketing de la empresa determino y selecciono a un grupo de usuarios específicos para este análisis, los cuales cumplen con los siguientes parámetros:
+```{r}
+DF_filt1 <-DF_salen[(DF_salen$M_mins>70) & (DF_salen$M_mins>175 | DF_salen$edad>47) & (DF_salen$M_mins>260 | DF_salen$edad>35) & (DF_salen$M_mins<240 | DF_salen$edad<42),]
+
+```
+
+
+<span style="color:blue"> **Correlación entre las variables:**</span>
+
+```{r}
+cor(DF_filt1$M_mins, DF_filt1$edad)
+```
+La correlación entre las variables es -0.71. La correlación es negativa, lo que quiere decir que hay una relación inversamente proporcional entre las variables,es decir, cuando una aumenta, la otra disminuye. Su valor absoluto es muy cercano a la unidad lo que indica que están altamente relacionadas.
+
+<span style="color:blue"> **Coeficientes de regresión:**</span> 
+
+- Se aplica la función lm, que ajusta una nube de puntos a un modelo lineal.
+```{r}
+lmf_mm_er <- lm(DF_filt1$M_mins ~  DF_filt1$edad)
+# Creamos el gráfico
+plot(DF_filt1$M_mins, DF_filt1$edad)
+
+```
+
+
+- Se aplica la función summary a la variable de regresión y se extraen los coeficientes estimados para el intercepto (ßo) y para la variable (ß1). Además se halla el intervalo de la variable edad.
+
+```{r}
+summary(lmf_mm_er)
+min(DF_filt1$edad)
+max(DF_filt1$edad)
+```
+
+$y : minutos$
+$x : edad $
+$y(x)=\beta_0 + \beta_1x$
+$y(x)= 428.6229 - 4.7635; x\in[19;63]$
+
+El R-cuadrado que resulta del modelo es 0.5 por lo que es medianamente bueno el ajuste del modelo lineal. Lo que significa que los datos de la muestra elegida por el departamento de marketing, del Data Frame de las personas que abandonan la empresa, están medianamente cerca de la línea de regresión ajustada. Mi modelo y estimado explica el 50.37% de la variación total de las variables.
+
+**Prueba de hipótesis para la validez del modelo**
+
+$$H_{0}:{El~modelo~no~es~válido}$$
+$$H_{a}:{El~modelo~es~válido}$$
+
+Rechazamos la hipótesis nula puesto que el p-value es menor que 2.2e-16 por lo que será menor que el α. Como estamos trabajando al 95% de confianza, el valor de α = 0.05. Por ende, el modelo es válido.
+
+**Prueba de hipótesis para verificar el aporte de x**
+
+$$H_{0}:{La~variable~x~no~aporta~al~modelo~propuesto}$$
+$$H_{a}:{La~variable~x~aporta~al~modelo~propuesto}$$
+
+Rechazamos la hipótesis nula puesto que el p-value es menor que 2e-16 por lo que será menor que el α. Como estamos trabajando al 95% de confianza, el valor de α = 0.05. Por ende, la variable x aporta al modelo propuesto y existe una relación entre las dos variables del Data Frame de las personas que permanecen en la empresa.
+
+**Regresión 2**
+
+En la siguiente regresión se muestra la relación entre la variable costo en la mañana (M_costo) que representará la variable independiente “x” y la variable promedio de llamadas al operador (operador) que será la variable dependiente “y” de usuarios específicos seleccionados del dataframe DF por la dirección de marketing de la empresa, ya que son el foco de interés, .
+
+<span style="color:blue"> **Restricción de datos:**</span>  
+
+Para la aplicacion de busqueda de informacion, el area de marketing de la empresa determino y selecciono a un grupo de usuarios específicos para este análisis, el cual son los que tienen una tarifa promedio mayor a 35 o un promedio de llamadas al operador mayor a 2.3, y una tarifa promedio menor a 7.
+
+```{r}
+DFCorR2_salen <- DF_salen[(DF_salen$M_tarifa>35 | DF_salen$operador>2.3) & (DF_salen$operador<7), ]
+```
+
+<span style="color:blue"> **Correlación entre las variables:**</span> 
+
+```{r}
+correlacionR2 <- cor(DFCorR2_salen$M_tarifa, DFCorR2_salen$operador)
+correlacionR2
+```
+La correlación entre las variables es -0.6907337, la cual es negativa. Esto indica que presentan una proporcionalidad inversa. Se considera que la correlación entre estas variables es fuerte ya que es cercano a 0.7.
+
+<span style="color:blue"> **Coeficientes de regresión:**</span> 
+Se aplica la función lm, que ajusta una nube de puntos a un modelo lineal.
+
+```{r}
+modeloR2 <- lm(DFCorR2_salen$operador ~ DFCorR2_salen$M_tarifa)
+
+# Creamos el gráfico
+plot(DFCorR2_salen$M_tarifa, DFCorR2_salen$operador)
+
+# Línea de regresión
+abline(modeloR2, col = "red", lwd = 3)
+
+# Correlación de Pearson
+text(paste("Correlación:", round(correlacionR2, 2)), x = 25, y = 95)
+```
+
+
+```{r}
+summary(modeloR2)
+```
+
+- Se aplica la función summary a la variable de regresión y se extraen los coeficientes estimados para el intercepto (ßo) y para la variable x (ß1).
+ßo = 6.439711
+ß1 = -0.105891
+
+y(x)=ß0+ß1x
+
+y(x)=6.439711-0.105891x ; x∈[0;60]
+
+
+```{r}
+min(DFCorR2_salen$M_tarifa)
+max(DFCorR2_salen$M_tarifa)
+```
+
+$y(x)=\beta_0 + \beta_1x$
+$y(x)= 6.439711 - 0.105891x; x\in[0;59.64]$
+
+
+- Ploteamos el modeloR2
+
+```{r}
+plot(modeloR2)
+```
+
+- El R-cuadrado ajustado es 0.4894, el cual es cercano a 0.5, en este caso tener este valor bajo no indica un buen o mal ajuste del modelo lineal a los datos pues se trata de estimar un comportamiento de las personas (llamadas al operador) en el cual el R cuadrado no tiene casi ninguna relevancia. 
+
+***
+
+**Regresión 3**
+
+El departamento de marketing quiere obtener un modelo que a partir de la edad de los clientes se pueda generar una aproximación al número de llamadas que realizan por las mañanas. Para ello, haremos una comparación entre el modelo del Data Frame de las personas que abandonan la empresa y el Data Frame de las personas que permanecen en la empresa.
+
+- En la primera parte, partiremos del **Data Frame de las personas que abandonan la empresa**. Primero, el departamento de marketing ha hecho unos cortes en el Data Frame para obtener su población de interés.
+
+
+```{r}
+plot(DF_salen$edad, DF_salen$M_llamadas)
+f1<-which((DF_salen$edad>=40) & (DF_salen$M_llamadas<=70))
+f2<-which((DF_salen$edad>=45) & (DF_salen$M_llamadas<=100))
+f3<-which((DF_salen$edad<=36) & (DF_salen$M_llamadas>=90))
+f4<-which((DF_salen$edad<=42) & (DF_salen$M_llamadas>=120))
+f5<-which((DF_salen$edad<=50) & (DF_salen$M_llamadas>=130))
+f6<-which((DF_salen$edad<=30) & (DF_salen$M_llamadas>=80))
+f7<-which((DF_salen$edad>=52) & (DF_salen$M_llamadas<=120))
+f8<-which((DF_salen$edad<=39) & (DF_salen$M_llamadas>=110))
+f9<-which((DF_salen$edad>=35) & (DF_salen$M_llamadas<=65))
+f10<-which((DF_salen$edad>=42) & (DF_salen$M_llamadas<=80))
+f11<-which((DF_salen$edad>=50) & (DF_salen$M_llamadas<=110))
+DF_salen_fil1<-DF_salen[-c(f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11),]
+plot(DF_salen_fil1$edad, DF_salen_fil1$M_llamadas)
+cor(DF_salen_fil1$edad, DF_salen_fil1$M_llamadas)
+```
+
+- A partir de los cortes hechos, se ha logrado obtener que las variables tengan un coeficiente de correlación de 0.71 que entra dentro del parámetro de "buena" correlación.
+
+- Ahora, utilizaremos la función lm para poder ajustar un modelo regresión lineal a partir de las variables elegidas y la graficaremos.
+
+```{r}
+plot(DF_salen_fil1$edad, DF_salen_fil1$M_llamadas, main = "Regresión",col=rgb(0,100,0,50,maxColorValue=255), pch=16, ylab = "Numero de llamadas", xlab = "Edad")
+modelo1 <- lm(M_llamadas ~ edad, data = DF_salen_fil1)
+abline(modelo1, col = "red")
+```
+
+- Posteriormente haremos un summary de donde se extraerá las variables y coeficientes estimados para el intercepto ($\beta_0$) y para la variable ($\beta_1$) para la regresión lineal.
+
+```{r}
+summary(modelo1)
+```
+
+- Lo que se obtiene es una regresión entre las variables de M_llamadas (número de llamadas realizadas por la mañana) que es la variable dependiente "y" con la variable edad (la edad de los clientes) que será la variable independiente "x" del Data Frame de las personas que abandonan la empresa.
+
+$$y(x)=\beta_0 + \beta_1x$$
+
+   - La ecuación de la recta ajustada es:
+
+$$y(x)= 7.7303 + 2.2209x~; x\in[17;66]$$
+
+- El R-cuadrado que resulta del modelo es 0.5 por lo que es medianamente bueno el ajuste del modelo lineal. Lo que significa que los datos de la muestra elegida por el departamento de marketing, del Data Frame de las personas que abandonan la empresa, están medianamente cerca de la línea de regresión ajustada.
+
+**Prueba de hipótesis para la validez del modelo**
+
+$$H_{0}:{El~modelo~no~es~válido}$$
+$$H_{a}:{El~modelo~es~válido}$$
+
+Rechazamos la hipótesis nula puesto que el p-value es menor que 2.2e-16 por lo que será menor que el α. Como estamos trabajando al 95% de confianza, el valor de α = 0.05. Por ende, el modelo es válido.
+
+**Prueba de hipótesis para verificar el aporte de x**
+
+$$H_{0}:{La~variable~x~no~aporta~al~modelo~propuesto}$$
+$$H_{a}:{La~variable~x~aporta~al~modelo~propuesto}$$
+
+Rechazamos la hipótesis nula puesto que el p-value es menor que 2e-16 por lo que será menor que el α. Como estamos trabajando al 95% de confianza, el valor de α = 0.05. Por ende, la variable x aporta al modelo propuesto y existe una relación entre las dos variables del Data Frame de las personas que abandonan la empresa.
+
+- A continuación se realizará un análisis de residuos donde verificaremos si el ajuste lineal hecho es el adecuado.
+
+```{r}
+# creamos la base para evaluar los errores
+mod1 = data.frame(modelo1$fitted.values, modelo1$residuals)
+colnames(mod1) = c("estimadores","residuos")
+
+# Dibujamos
+ggplot(data = mod1, aes(x = estimadores, y = residuos)) +
+  geom_point(aes(color = residuos)) +
+  scale_color_gradient2(low = "blue3", mid = "grey", high = "red") +
+  geom_hline(yintercept = 0) +
+  geom_segment(aes(xend = estimadores, yend = 0), alpha = 0.2) +
+  labs(title = "Distribución de los residuos", x = "Predicción modelo",
+       y = "Residuo") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+```
+
+- Con el gráfico de distribución de residuos podemos observar que los errores no siguen un orden específico por lo que son aleatorios. Además, podemos observar que hay presencia de outliers que pueden afectar la linealidad de nuestro modelo.
+
+```{r}
+qqnorm(mod1$residuos)
+qqline(mod1$residuos)
+```
+
+- Del gráfico Q-Q podemos observar el efecto que han causado los outliers, mencionados anteriormente, en la normalidad de los errores. Pero la mayoría de valores de los residuos siguen un comportamiento de normalidad.
+
+Con lo observado en los gráficos mostrados, el departamento de marketing puede aceptar la linealidad del modelo de las variables de M_llamadas y edad del Data Frame de las personas que abandonan la empresa.
+
+- En la segunda parte, partiremos del **Data Frame de las personas que permanecen en la empresa**. Primero, el departamento de marketing ha hecho unos cortes en el Data Frame para obtener su población de interés.
+
+
+```{r}
+plot(DF_quedan$edad, DF_quedan$M_llamadas)
+#DF_salen_fil1 <-DF_salen[DF_salen$edad>45 & DF_salen$M_llamadas>30,]
+fq1<-which((DF_quedan$edad>=45) & (DF_quedan$M_llamadas<=100))
+fq2<-which((DF_quedan$edad>=55) & (DF_quedan$M_llamadas<=120))
+fq3<-which((DF_quedan$edad>=40) & (DF_quedan$M_llamadas<=90))
+fq4<-which((DF_quedan$edad<=27) & (DF_quedan$M_llamadas>=80))
+fq5<-which((DF_quedan$edad<=30) & (DF_quedan$M_llamadas>=100))
+fq6<-which((DF_quedan$edad<=40) & (DF_quedan$M_llamadas>=130))
+fq7<-which((DF_quedan$edad<=45) & (DF_quedan$M_llamadas>=140))
+fq8<-which((DF_quedan$edad<=35) & (DF_quedan$M_llamadas>=110))
+fq9<-which((DF_quedan$edad>=55) & (DF_quedan$M_llamadas<=115))
+fq10<-which((DF_quedan$edad>=35) & (DF_quedan$M_llamadas<=80))
+fq11<-which((DF_quedan$edad>=30) & (DF_quedan$M_llamadas<=70))
+fq12<-which((DF_quedan$edad>=50) & (DF_quedan$M_llamadas<=110))
+fq13<-which((DF_quedan$edad>=60) & (DF_quedan$M_llamadas<=150))
+fq14<-which((DF_quedan$edad>=48) & (DF_quedan$M_llamadas<=110))
+fq15<-which((DF_quedan$edad>=43) & (DF_quedan$M_llamadas<=95))
+fq16<-which((DF_quedan$edad>=38) & (DF_quedan$M_llamadas<=85))
+fq17<-which((DF_quedan$edad>=50) & (DF_quedan$M_llamadas<=118))
+DF_quedan_fil1<-DF_quedan[-c(fq1,fq2,fq3,fq4,fq5,fq6,fq7,fq8,fq9,fq10,fq11,fq12,fq13,fq14,fq15,fq16,fq17),]
+plot(DF_quedan_fil1$edad, DF_quedan_fil1$M_llamadas)
+cor(DF_quedan_fil1$edad, DF_quedan_fil1$M_llamadas)
+```
+
+- A partir de los cortes hechos, se ha logrado obtener que las variables tengan un coeficiente de correlación de 0.66 que entra dentro del parámetro de "buena" correlación.
+
+- Ahora, utilizaremos la función lm para poder ajustar un modelo regresión lineal a partir de las variables elegidas y la graficaremos.
+
+```{r}
+plot(DF_quedan_fil1$edad, DF_quedan_fil1$M_llamadas, main = "Regresión",col=rgb(0,100,0,50,maxColorValue=255), pch=16, ylab = "Numero de llamadas", xlab = "Edad")
+modelo2 <- lm(M_llamadas ~ edad, data = DF_quedan_fil1)
+abline(modelo2, col = "red")
+```
+
+- Posteriormente haremos un summary de donde se extraerá las variables y coeficientes estimados para el intercepto ($\beta_0$) y para la variable ($\beta_1$) para la regresión lineal.
+
+```{r}
+summary(modelo2)
+```
+
+- Lo que se obtiene es una regresión entre las variables de M_llamadas (número de llamadas realizadas por la mañana) que es la variable dependiente "y" con la variable edad (la edad de los clientes) que será la variable independiente "x" del Data Frame de las personas que permanecen en la empresa.
+
+$$y(x)=\beta_0 + \beta_1x$$
+
+   - La ecuación de la recta ajustada es:
+
+$$y(x)= 40.34894 + 1.63933x~; x\in[17;66]$$
+
+- El R-cuadrado que resulta del modelo es 0.44 por lo que es medianamente bueno el ajuste del modelo lineal. Lo que significa que los datos de la muestra elegida por el departamento de marketing, del Data Frame de las personas que permanecen en la empresa, están medianamente cerca de la línea de regresión ajustada.
+
+**Prueba de hipótesis para la validez del modelo**
+
+$$H_{0}:{El~modelo~no~es~válido}$$
+$$H_{a}:{El~modelo~es~válido}$$
+
+Rechazamos la hipótesis nula puesto que el p-value es menor que 2.2e-16 por lo que será menor que el α. Como estamos trabajando al 95% de confianza, el valor de α = 0.05. Por ende, el modelo es válido.
+
+**Prueba de hipótesis para verificar el aporte de x**
+
+$$H_{0}:{La~variable~x~no~aporta~al~modelo~propuesto}$$
+$$H_{a}:{La~variable~x~aporta~al~modelo~propuesto}$$
+
+Rechazamos la hipótesis nula puesto que el p-value es menor que 2e-16 por lo que será menor que el α. Como estamos trabajando al 95% de confianza, el valor de α = 0.05. Por ende, la variable x aporta al modelo propuesto y existe una relación entre las dos variables del Data Frame de las personas que permanecen en la empresa.
+
+- A continuación se realizará un análisis de residuos donde verificaremos si el ajuste lineal hecho es el adecuado.
+
+```{r}
+# creamos la base para evaluar los errores
+mod2 = data.frame(modelo2$fitted.values, modelo2$residuals)
+colnames(mod2) = c("estimadores","residuos")
+
+# Dibujamos
+ggplot(data = mod2, aes(x = estimadores, y = residuos)) +
+  geom_point(aes(color = residuos)) +
+  scale_color_gradient2(low = "blue3", mid = "grey", high = "red") +
+  geom_hline(yintercept = 0) +
+  geom_segment(aes(xend = estimadores, yend = 0), alpha = 0.2) +
+  labs(title = "Distribución de los residuos", x = "Predicción modelo",
+       y = "Residuo") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+```
+
+- Con el gráfico de distribución de residuos podemos observar que los errores no siguen un orden específico por lo que son aleatorios. Además, podemos observar que hay mayor presencia de outliers debido a que el tamaño de este Data Frame es mucho mayor que el de las personas que abandonan la empresa. Estos outliers que pueden afectar la linealidad de nuestro modelo.
+
+```{r}
+qqnorm(mod2$residuos)
+qqline(mod2$residuos)
+```
+
+- Del gráfico Q-Q podemos observar el efecto que han causado los outliers, mencionados anteriormente, en la normalidad de los errores. Pero, aún así, la mayoría de valores de los residuos siguen un comportamiento de normalidad.
+
+Con lo observado en los gráficos mostrados, el departamento de marketing puede aceptar la linealidad del modelo de las variables de M_llamadas y edad del Data Frame de las personas que permanecen en la empresa.
+
+**Observaciones generales de la regresión 3**
+
+- Al comparar los valores obtenidos en las respectivas regresiones del Data Frame de las personas que abandonan la empresa y del Data Frame de las personas que permanecen en la empresa, podemos observar que la regresión del Data Frame de las personas que permanecen en la empresa ha sido menos precisa a comparación del otro Data Frame y esto se debe a que el tamaño del Data Frame es mucho más grande por lo que puede haber más outliers que afectan directamente a la normalidad de los residuos que a su vez afectan la linealidad y precisión de la regresión planteada para ese modelo.
+
+- Analizando lo obtenido en la regresión de cada uno de los Data Frame podemos decir que si el departamento de marketing realiza su estudio en otra población, haciendo los cortes respectivos, podría encontrar un mayor coeficiente de correlación entre la variable M_llamadas y la edad. Esto beneficiaría directamente a la linealidad del modelo de regresión que queremos obtener, puesto que la normalidad de los errores sería más evidente.
+
+### **Conclusiones**
+Comprobaremos si los objetivos planteados en un inicio se llegan a identificar o comprobar.
+
+**Objetivo general:** 
+* Identificar la cantidad de clientes que se fugan de la empresa en un mes y el comportamiento de los mismos.
+RESPUESTA
+- Al filtrar nuestro dara frame para las peronas que fugan de la empresa (DF_salen) identificamos que 483 personas decidieron abandonar la empresa. Además, notamos que las personas que fugan en promedio tienden a realizar una mayor cantidad de llamadas al operador. Creemos que estas llamdas se deben a que tienen algunas quejas respecto al funcionamiento del plan con el que cuentan; por lo que, las llamadas al operador podrían ser un indicador que la emprea AT&T debería revisar para predecir la posible fuga de un cliente y poder evitarla.
+
+**Objetivos específicos:**
+
+::: {style="text-align: justify"}
+* Conocer si existe una relación entre la cantidad de minutos totales que duran las llamadas y el momento del día en el que se realizan (mañana, tarde, noche).
+RESPUESTA
+- Se identificó que las llamadas duran en promedio más en la tarde y noche que en la mañana, con una media de 201.4, 201.2 y 179.4. Esto se puede deber a que las personas durante la mañana se encuentran trabajando, estudiando o realizando los quehaceres del hogar y en el resto del día (tarde y noche) se encuentran un poco más libres.
+
+* Identificar si existe una relación entre la cantidad de minutos/llamadas realizadas a servicio al cliente y la fuga de los mismos.
+RESPUESTA
+- Efectivamente existe una relación entre el número de llamadas al operador y los clientes que se fugan. Ellos realizan en promedio casi el doble de llamadas al operador que las personas que permanecen en la empresa.
+
+* Identificar si existe una relación entre la tarifa que pagan los clientes y la fuga de los mismos.
+RESPUESTA
+- En el horario de la mañana notamos que las personas que abandonan la empresa pagan una mayor tarifa que las personas que se queda. Esto podría ser una razón por la que los clientes decidieron fugarse. Quizá la empresa debería reajustar el costo de las llamadas.
+
+* Identificar si existe una relación entre la cantidad de minutos/llamadas que realizan los clientes a cualquier hora del día (mañana, tarde, noche) y la fuga de los mismos.
+RESPUESTA
+-Notamos que no existe mucha variación entre la cantidad de llamadas que realizan las personas que se fugan y las que no; por lo que no consideramos sea un aspecto que deba revisar la empresa.
+
+* Identificar el estado o zona (norte, sur, este, oeste) que tiene mayor cantidad de fuga de clientes.
+RESPUESTA
+- Pudimos identificar que la zona en la que había una mayor fuga por parte de los clientes era la Zona Noreste. Específicamente identificamos que el estado con mayor fuga de clientes es New Jersey. Creemos que esto se puede deber a que no hay muy buena señal en esta zona de estados unidos por lo que recomendamos a la empresa revisar sus antenas o su cableado.
+
+**Conclusión adicional**
+- Encontramos la relación de la edad con el número de llamadas que realiza en la mañana encontramos que según el estudio realizado es positiva .El número de minutos que realizan según la edad  del estudio realizado por el sector de marketing notamos que esta es negativa según lo graficado.
+
+:::

@@ -1,0 +1,1184 @@
+---
+title: "Análisis de la producción de la empresa 'Artesanías Mon Repos'"
+output:
+  html_document:
+    df_print: paged
+---
+
+### Título Corto: Análisis Artesanías Mon Repos 
+
+Este estudio tiene el objetivo de encontrar tendencias en la producción de la empresa Mon Repos, concretamente de la producción en el año 2021. Esto se hace para poder mejorar y optimizar ciertos procesos por los que las prendas confeccionadas pasan. 
+
+La base de datos que usaremos es proporcionada por la misma empresa.
+
+### Introducción:
+
+La empresa Artesanías Mon Repos se dedica a la elaboración y exportación de prendas y artículos hechos de lana de alpaca. Entre sus productos podemos encontrar chompas, bufandas, faldas, vestidos, cuelleras, mantas, ponchos, etc. 
+
+Los clientes de esta empresa hacen pedidos al por mayor; y se plantea una fecha de inicio y una fecha de entrega. Es de esperarse que no todas las prendas cumplan con la fecha de entrega, algunas se adelantan y otras se atrasan. Además de estos, cada pedido tien un costo de producción y su materia prima. 
+
+### Objetivo General: 
+
+Mostrar y analizar la tendencia de la producción con el fin de mejorar y optimizar ciertos procesos en la empresa Artesanías Mon Repos para minimizar sus entregas con tardanza.
+
+### Objetivos Específicos:
+
+  * Determinar los artículos más producidos por la empresa Artensanías Mon Repos en el primer semestre del 2021. 
+  * Determinar el porcentaje de artículos con algún tipo de error de producción y su relación con otras variables. 
+  
+  * Determinar el tiempo que se requiere para entregar un pedido y como afectan los errores en este. 
+  
+  * Analizar el tiempo de espera antes de empezar a producirse un pedido dependiendo del tipo de artículo.
+  
+  * Comprobar si lo estimado por los anteriores análisis de la empresa es correcta en base a la muestra entregada.
+  
+  * Analizar la presencia de correlaciones entre variables y así determinar como repercute una sobre la otra para mejorar la producción de los artículos.
+
+### Obtención de Datos: 
+
+La base de datos fue proporcionada por la misma empresa. Es un registro de todas las prendas que se llegaron a distribuir en el primer semestre del 2021 con las variables que se mencionan luego. 
+
+### Variables de la base de datos: 
+
+La base de datos cuenta con muchas variables, las cuales algunas no son de interés por el momento como el código de barras de la prenda, el código del proceso o los procesos intermedios entre el inicio de producción, y la distribución. Es por esto que aquí se menciona las variables a tomar en cuenta.
+
+**Nombre de la Variable (unidad)** |  **Tipo-Subtipo** |**Descripción** |**Restricción** | 
+----------------------| ----------------------| ----------------------| ----------------------|
+*costo_pr (S/.)* |Numérico Continuo |Costo de la producción |Número racional positivo|
+*costo_prme (S/.)* |Numérico Continuo |Costo de la materia prima |Número racional positivo|
+*TEstimado (Días)* | Numérico Continuo| Supuesto tiempo de producción| Número entero positivo|
+*TProduccion (Días)* | Numérico Continuo| Real tiempo de producción| Número entero positivo|
+*Demora_Entrega (Días)* | Numérico Continuo|Demora en la fecha pactada | Número entero |
+*tiempo1 (Días)* | Numérico Continuo|Tiempo que toma el primer proceso | Número entero |
+*tiempo2 (Días)* | Numérico Continuo| Tiempo que toma el proceso de tejido | Número entero|
+*retrocesos* | Categórica Nominal | Si un artículo tuvo un error en su producción | 1: Si  y  0: No
+*cantprocesos* | Numérico Discreta| Cantidad de procesos para finalizar el producto| Entero entre 0 a 20|
+*articulo* | Categórica Nominal|Producto que se vende | Nombre sin restricción|
+*cliente * | Categórica Nominal|Cliente | Nombre sin restricción|
+*talla * | Categórica Ordinal| Talla de la prenda| XS,S,M,L, Genérico, Otros|
+
+### Consideraciones: 
+
+Si la variable "TEstimado" es negativa, significa que se entregó antes de la fecha pactada.
+
+En la variable talla: 
+
+  -La opción "Genérico" hace referencia a productos sin talla como mantos o chalinas.
+  
+  -La opción "Otros" hace referencia a tallas que no son las estándar, tallas personalizadas. 
+
+
+### Ingreso y Limpieza de la Base de Datos:
+
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(ggmosaic)
+library(reshape2)
+```
+
+
+```{r}
+DF<-read_csv("ESTADISTICADATOS_2.csv")
+DF$talla [DF$talla == "Otras"] <- "OTRAS"
+DF$talla [DF$talla == "VARIAS"] <- "OTRAS"
+DF %>% rename(`Tproduccion`=`Tproducción_(Dias)`)->DF
+DF<-mutate(DF, TEstimado=Tproduccion-Demora_Entrega)
+```
+```{r echo=FALSE}
+DF["veces"]=if_else(is.na(DF$vez1),0,DF$vez1)+if_else(is.na(DF$vez2...43),0,DF$vez2...43)+if_else(is.na(DF$vez3),0,DF$vez3)+if_else(is.na(DF$vez4),0,DF$vez4)+if_else(is.na(DF$vez5),0,DF$vez5)+if_else(is.na(DF$vez6),0,DF$vez6)+if_else(is.na(DF$vez7),0,DF$vez7)+if_else(is.na(DF$vez8),0,DF$vez8)+if_else(is.na(DF$vez9),0,DF$vez9)+if_else(is.na(DF$vez10),0,DF$vez10)+if_else(is.na(DF$vez11),0,DF$vez11)+if_else(is.na(DF$vez12),0,DF$vez12)+if_else(is.na(DF$vez13),0,DF$vez13)+if_else(is.na(DF$vez14),0,DF$vez14)+if_else(is.na(DF$vez15),0,DF$vez15)+if_else(is.na(DF$vez16),0,DF$vez16)+if_else(is.na(DF$vez17),0,DF$vez17)+if_else(is.na(DF$vez18),0,DF$vez18)+if_else(is.na(DF$vez19),0,DF$vez19)
+DF["veces"]=if_else(DF$veces>8,DF$veces-2,DF$veces)
+DF["retroceso"]=if_else(DF$veces!= DF$cantprocesos,1,0)
+DF %>%select(cantprocesos,veces,retroceso,codigo)
+```
+```{r echo=FALSE}
+DF<-DF%>%mutate(.,error=case_when(retroceso==1 ~ "Sin Fallas", retroceso==0 ~ "Con Fallas"))
+```
+
+### Sobre la base de datos: 
+
+El tamaño de nuestra muestra es: `r length(DF$nccosto20)`
+
+La recolección de datos se dio gracias al registro
+
+En el Data Frame hay varios NA. En este estudio los NA son significativos. Si se percatan, hay ciertas variables llamadas fecha1, nccosto1, vez1, y así con diferentes números. Estos son datos sobre cada uno de los procesos por los que paso una prenda; pero como es de esperarse no todas las prendas pasaran por la misma cantidad de procesos. Por ejemplo si una prenda tiene datos hasta el "nccosto16" significa que solo ha necesitado 16 procesos y el proceso número 16 es la *Distribución*; luego tendrá puros NA en las demás variables como "nccosto17". 
+
+Estos NA nos ayudaron a calcular la cantidad de procesos que paso una prenda.  
+
+### Análisis de datos:
+
+#### Análisis del tiempo promedio para la confección de cada artículo:
+
+```{r echo=FALSE}
+DF%>%group_by(articulo)%>%summarise_at(vars("Tproduccion"), list(name = mean))->Prendas
+
+ggplot(Prendas,mapping = aes(x=articulo,y=name))+geom_bar(stat = "identity")+ggtitle ("Tiempo promedio de producción de los artículos")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(x = "Artículos",y = "Tiempo promedio de Producción")
+```
+
+Se eligió un gráfico de barras ya que este nos permite visualizar mejor las diferencias entre los valores promedios del tiempo de producción de cada articulo. Lo mas notable del gráfico es que la prenda que tiene mayor tiempo promedio es la *chompa para niños* con 90 días de producción en promedio. Esto tiene mucho sentido ya que hablando con los tejedores, es la prenda que se considera de mayor complejidad. Asimismo, la prenda de menor tiempo promedio es el cojín, la cual es alrededor de 6 días debido a es considerada la prenda de menor complejidad.
+
+#### Precio por artículo:
+
+```{r echo=FALSE}
+DF%>%group_by(articulo) %>%summarise_at(vars(`costo_pr`), list(precio = mean))->Precios
+
+PreciosFiltrado<-filter(Precios, precio>0) #Aquí se filtran los artículos que no tienen información sobre su precio de producción
+
+
+ggplot(PreciosFiltrado,mapping = aes(x=articulo,y=precio))+geom_bar(stat = "identity")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+ggtitle ("Precio promedio de ciertos artículos")+labs(x = "Artículos",y = "Precio de producción promedio")
+```
+
+En este gráfico de barras se puede observar el promedio de algunos artículos que poseen dicha variable. De este podemos notar que la manta tiene un precio promedio de 158.29 dolares siendo este el mayor de todos los artículos. Esto se debe ya que las mantas utilizan máquinas muy antiguas, habiendo pocas personas capacitadas para manejarlas. Por otro lado, las chalinas tiene un precio promedio de 6.86 siendo el menor entre todos los artículos debido a que son simples de producir y consta de una cantidad relativamente menor de procesos con respecto al resto.
+
+#### Análisis de los artículos con respecto a las tallas:
+
+Comenzamos filtrando los artículos que no tengan talla como *chalinas*, *cojines*, etc.
+
+```{r echo=FALSE}
+ConTalla<-filter(DF, articulo=="CHALECO" | articulo=="CHOMPA" | articulo=="FALDA" | articulo=="PANTALON" | articulo=="SACO" | articulo=="VESTIDO") 
+```
+
+Ahora hacemos un mosaico para poder visualizar mejor la distribución de las tallas con respecto a las prendas. 
+
+```{r echo=FALSE}
+ggplot(data=ConTalla)+geom_mosaic(aes(x=product(articulo,talla)))+ggtitle ("Mozaico de las tallas con los artículos")+labs(x = "Tallas",y = "Artículos")
+```
+
+Podemos observar que se muestran una gran cantidad de chompas en todas las tallas a comparación de los demás artículos, lo cual nos lleva a ver que las chompas son los artículos que más pedidos tienen. Con esta gráfica descubrimos que hay una gran demanda por parte de las tallas comunes  como *M* *S* y *L* en la mayoría de los artículos. Ahora, hay ciertos datos que son tan pequeños que son difíciles de visualizar como las faldas, sacos, pantalones o ponchos. Lo mismo pasa con las tallas como la *XS* que tienen muy poca presencia. 
+
+#### Tiempo de espera de cada artículo antes de comenzar la producción
+
+```{r echo=FALSE}
+DF%>%group_by(articulo) %>%summarise_at(vars(`tiempo1`), list(name = mean))->PrendaTejido
+ggplot(PrendaTejido,mapping = aes(x=articulo,y=name))+geom_bar(stat = "identity")+ggtitle ("Tiempo promedio de espera de los artículos")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(x = "Artículos",y = "Tiempo de espera antes de producción")
+```
+
+Primero hay que recordar que el tiempo de espera es el tiempo que un pedido espera para comenzar a ser producido en días. La *chompa para niños* presenta un mayor tiempo de espera debido a que se necesita tener listo los hilados, las diferentes máquinas que se usarán y el personal para comenzar su producción. Esto se debe a que la *chompa para niños* es un artículo complejo por que puede ser personalizado y al ser de niños puede venir con diferentes diseños. Por otro lado, las cuelleres y las mantas no tienen la necesidad de esperar ni siquiera un día para comenzar su producción, ya que estos artículos son simples de producir.
+
+Se observa en las gráficas de barras que los tiempos y precios promedio de cada variable difieren mucho entre ellas. Es por esto que  más adelante haremos análisis con respecto a un solo tipo de artículo debido a que comparten variables similares y podremos hallar información más preciso que si fueramos a hacerlo con todos los artículos.
+
+#### Artículos más vendidos con respecto a sus errores
+
+```{r echo=FALSE}
+SixPedidos<-filter(DF, articulo=="CHOMPA" | articulo=="VESTIDO" | articulo=="PANTALON" | articulo=="FALDA" | articulo=="CHALINA" | articulo=="CHOMPA PARA NIÑO")
+```
+```{r echo=FALSE}
+ggplot(data=SixPedidos)+geom_mosaic(aes(x=product(articulo,error)))+ggtitle ("Artículo con respecto a los errores")+labs(x = "Error de Producción",y = "Artículos")
+```
+
+Habiendo filtrado los artículos que más fueron pedidos, los cuales son la *chompa*, *chalina*, *falda*, *vestido*, *pantalón* y *chompa para niños* podemos observar que la mayor parte de los pedidos fueron de *chompas* y la mayoría de ella no tuvieron errores. De todas maneras el porcentaje de error es muy alto siendo casi la mitad, el cual para nuestra muestra es `r round(100*sum(SixPedidos$retroceso==1)/nrow(SixPedidos),2)`%.
+
+
+### ¿Existe alguna correlación entre las variables?
+
+Vamos a empezar con el hecho de que parece que no hay correlación entre dos variables que a simple vista parecerían tener relación: El precio de producción y la cantidad de procesos necesarios para cada artículo.
+
+Como se menciono, hay artículos que no se cuenta con datos sobre su precio; entonces comenzamos filtrando las muestras que si tienen datos sobre su precio.
+```{r echo=FALSE}
+Precios2<-filter(DF,costo_pr>0)
+```
+
+
+Al sacar la correlación vemos que es: `r round(cor(Precios2$cantprocesos,Precios2$costo_pr),2)`
+
+Esto se ve mejor en una gráfica:
+
+```{r echo=FALSE}
+plot(Precios2$cantprocesos,Precios2$costo_pr,main="Correlación entre el costo de producción y cantidad de procesos", xlab="Cantidad de Procesos",ylab="Costo de Producción")
+abline(v=14, col="blue")
+abline(h=200, col="blue")
+```
+
+Si visualizamos el cuadrante inferior derecho, hay una cierta correlación en ciertos datos, lo cual nos hace pensar que tal vez puede haber otro tipo de correlación más allá de la lineal. 
+
+Aunque tampoco se descarta el hecho de que realmente puede no haber ninguna correlación entre estas variables. Por ejemplo, en un artículo con muchos procesos puede pasar que estos procesos sean rápidos y el artículo acabe primero que un artículo con pocos procesos pero que estos tomen tiempo.
+
+
+Siguiendo con otros datos, se ha encontrado que hay una pequeña correlación entre las variables de "Tiempo Estimado" y "Tiempo de Producción" 
+
+La correlación que se encontró es de: `r round(cor(DF$TEstimado, DF$Tproduccion),2)`
+
+Se puede observar esta correlación es la siguiente gráfica: 
+
+```{r echo=FALSE}
+plot(DF$TEstimado, DF$Tproduccion,main="Correlación entre el Tiempo Estimado y el Tiempo de producción", xlab="Tiempo Estimado",ylab="Tiempo de Producción")
+```
+
+Esto nos quiere decir que la empresa tiene cierto conocimiento entre el tiempo que estima para el artículo y el tiempo que va a tomar hacerla. Pero de todas maneras, sigue habiendo problemas como veremos a continuación.
+
+### El tiempo de demora en los pedidos
+
+Como se menciono arriba los números negativos en la variable "Demora_Entrega" significa que se han entregado con anticipación, y si es positivo se ha entregado con retraso. 
+
+La cantidad de artículos que se han entregado con anticipación o a tiempo son: `r sum(with(DF, Demora_Entrega<=0))` y la cantidad de artículos que se entregaron con tardanza son: `r sum(with(DF, Demora_Entrega>0))`
+
+En porcentajes tenemos que el `r round((sum(with(DF, Demora_Entrega<=0))/length(DF$nccosto20))*100)`% de las entregas han sido con anticipadas o a tiempo, y el `r round((sum(with(DF, Demora_Entrega>0))/length(DF$nccosto20))*100)`% de las entregas son retrasadas.
+
+
+```{r echo=FALSE}
+isPositive <- function(x) x>0
+isNegative <- function(x) x<=0
+```
+
+Sacando el promedio de los días que se han entregado con anterioridad tenemos que son `r round(abs(mean(Filter(isNegative, DF$Demora_Entrega))),2)` días en promedio.
+
+El promedio de los días que se entregaron con retraso son: `r round(abs(mean(Filter(isPositive, DF$Demora_Entrega))),2)` días. 
+
+
+```{r echo=FALSE}
+Retrasos<-filter(DF, Demora_Entrega>0)
+```
+
+```{r echo=FALSE}
+summary(Retrasos$Demora_Entrega)
+```
+Vemos entonces que el 75% de los retrasos son mayores a 6 días, lo cual puede ser preocupante para ciertos clientes; pero sin duda puede generar una mala reputación a la empresa. 
+
+
+Con los datos que tenemos ahora, veremos cuales son las principales demandas entre los productos que ofrece la empresa; y también los problemas que enfrenta, siendo el principal su gran cantidad de días de atraso a su entrega. Esperamos que con las demás entregas del trabajo podamos llegar a mejores conclusiones y si es posible a soluciones que puedan ayudar a "Artesanias Mon Repos".  
+
+### Cantidad de procesos
+
+Como se menciono antes, la cantidad de procesos es cuantas etapas pasa el artículo para poder ser distribuida. El proceso de *Distribución* también se cuenta como un proceso. Queremos observar que tan dispersa está esta variable con respecto a los artículos, con la esperanza de que nos permitirá ver algún patrón.
+
+Primeros veremos como están distribuidos esta variable
+
+```{r echo=FALSE}
+hist(DF$cantprocesos, xlab="Cantidad de Procesos", main="Histograma de la cantidad de procesos de los artículos")
+
+```
+A simple vista se puede observar que nuestra variable está sesgada hacia la derecha, y con ciertos valores atípicos en la izquierda, pero creemos que el nombre atípicos no es del todo correcto ya que, al tener diferentes tipos de artículos y tan variados, cada uno deberá tomar un tiempo diferentes y no es de esperarse que la *chompa para niños* con tantos detalles tome el mismo tiempo que una *bufanda* o una *cuellera*. Es por esto que haremos un análisis más específico.
+
+Comenzamos con el descriptor de "Coeficiente de Dispersión" por cada variable:
+
+```{r echo=FALSE}
+DF%>%group_by(articulo) %>%summarise_at(vars(`cantprocesos`), list(desviacion = sd, media=mean))%>%mutate(.,coefiente=round(desviacion/media,2))%>%filter(articulo!="CHAL" & articulo!="COJIN" & articulo!="MANTA" & articulo!="MISCELANEAS PROD" & articulo!="SACO")
+
+DF%>%filter(articulo!="CHAL" & articulo!="COJIN" & articulo!="MANTA" & articulo!="MISCELANEAS PROD" & articulo!="SACO")->CantProces
+```
+Viendo la tabla, la variable "coeficiente" muestra el descriptor antes mencionado, en el cual la *chompa* y la *falda* son los artículos que más varían con respecto a la cantidad de procesos que necesitan para ser creados. Seguiremos con el descriptor gráfico, "boxplot" y "de barras".
+
+```{r echo=FALSE}
+ggplot(CantProces, aes(x = articulo, y = cantprocesos)) +
+       stat_boxplot(width = 0.2)+theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(x = "Artículo",y = "Cantidad de Procesos")+ggtitle ("Boxplot de Cantidad de Procesos según el Artículo")
+```
+
+```{r echo=FALSE}
+DF %>% 
+  group_by(articulo) %>% 
+  summarise(tardes = sum(Demora_Entrega>0), cant=n())%>%mutate(prop=round(tardes/cant,2))%>%filter(.,cant>11)%>%ggplot(mapping = aes(x=articulo,y=prop))+geom_bar(stat = "identity")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(x = "Cliente",y = "Probabilidad de entrega tarde")+scale_x_discrete("Articulo")+ggtitle ("Probabilidad de hacer una entrega tarde")
+```
+
+Vemos que en ciertos productos como la *chompa*, *falda*, *vestido* tienen mayor coeficiente de variación en su cantidad de procesos que lleva su creación y que también tienen más probabilidad de que se entregue con retraso (Este ejemplo de probabilidad lo describiremos más a detalle adelante), y del mismo modo *cuellera* tienen menor variación en su cantidad de procesos y también menor probabilidad de que sea una entrega con retrasos. Con respecto a los demás artículos, sus boxplots permiten ver que sus rangos intercuartiles de la cantidad de procesos son amplios (un mayor rango de valores) y también tienen una mayor cantidad de probabilidad de ser entregados con tardanza. Por ultimo el Poncho muestra un boxplot pequeño pero con muchos datos atípicos y análogamente una gran probabilidad de lo que se menciono antes. Podemos inferir que más variación de la cantidad de procesos hará una mayor probabilidad de entregar un artículo con tardanza. 
+
+
+De todos modos, en el informe seguiremos estudiando esta variable de "Tardanza" para ver que otros factores pueden afectar a esta. 
+
+
+### Variables Aleatorias
+```{r echo=FALSE}
+DF %>% 
+  group_by(articulo) %>% 
+  summarise(tardes = sum(Demora_Entrega>0), cant=n(),canterror=sum(retroceso==1))%>%mutate(PropDeLlegarTarde=round(tardes/cant,2),PropDeError=round(canterror/cant,2))%>%filter(.,cant>12)->ErrorArticulo
+```
+```{r echo=FALSE}
+ErrorArticulo$tardes<-NULL
+ErrorArticulo$cant<-NULL
+ErrorArticulo$canterror<-NULL
+df2<-melt(ErrorArticulo, id="articulo")
+
+
+```
+```{r echo=FALSE}
+DF %>% mutate(entrega = case_when(Demora_Entrega>1 ~ "Tarde", Demora_Entrega <= 0 ~ "A Tiempo"))->DF
+
+```
+
+#### Tiempo de Entrega
+
+Como se explicó anteriormente, en la variable "Demora_Entrega" si el valor es positivo es porque se hizo una entrega tarde; y si es negativo o 0, se entrego a tiempo. Es por esto que la variable ya mencionada sigue un modelo de Bernoulli donde si X>0 entonces es un "Éxito" y donde si X<=0 es un "Fracaso". Con esto dicho, podemos ver que, en general, la probabilidad de que un artículo sea "Tarde" es `r round(sum(DF$Demora_Entrega>0)/length(DF$Demora_Entrega),2)`.
+Podemos observar que la probabilidad es alta, lo cual nos deja más dudas, por lo cual un examen más exhaustivo y preciso sería necesario. Por esta razón, aquí presentamos la probabilidad de que un artículo llegue tarde dividida por "Cliente".
+
+```{r echo=FALSE}
+DF %>% 
+  group_by(cliente) %>% 
+  summarise(tardes = sum(Demora_Entrega>0), cant=n())%>%mutate(prop=round(tardes/cant,2))%>% filter(.,cliente!="ELYSE MAGUIRE" & cliente!="KRISTINIT")->PropCliente
+PropCliente
+```
+
+Descartamos los clientes "ELYSE MAGUIREE" y "KRISTINIT" ya que la cantidad de pedidos que han hecho son pequeños(5 y 10 respectivamente), por lo cual no creemos que se pueda hacer un buen análisis de estos. Presentando los datos en un gráfico de barras podemos ver:
+
+```{r echo=FALSE}
+ggplot(PropCliente,mapping = aes(x=reorder(cliente,+prop),y=(prop)))+geom_bar(stat = "identity")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(x = "Cliente",y = "Probabilidad")+scale_x_discrete("CLIENTE", labels = c("AUSTRALIAN ALPACA BARN" = "AAB","BODE NEW YORK LLC" = "BNY", "MISHA AND PUFF" = "MAP","THE PERUVIAN CONNECTION LTD./UK BRANCH" = "TPC UK","THE PERUVIAN CONNECTION/USA BRANCH" = "TPC USA"))+coord_flip()+ggtitle ("Probabilidad de hacer una entrega tarde por Cliente")
+```
+
+Observamos que "MISHA AND PUFF (MAP)", en el primero trimestre del año 2021, tuvieron mayor probabilidad de poder tener entregas tardes, y "BODE NEW YORK (BNY)" es el de menor probabilidad de tener una entrega tarde. Pero, ¿a qué se debe esto?
+
+```{r echo=FALSE}
+DF%>%group_by(cliente,articulo)%>%summarise(cant=n())%>%group_by(cliente)%>%summarise(cantArticulo=n())
+```
+
+Podemos observar que *MISHA AND PUFF* tienen una mayor cantidad de tipos diferentes de artículos pedidos, exactamente unos 11, en cambio *BODE NEW YORK*  solo tiene un artículo, lo cual nos lleva a deducir que, como tienen mayor cantidad de diferentes artículos solicitados, tuvieron mayor probabilidad de que sus pedidos lleguen tarde.
+
+#### Retrocesos
+
+En todo el proceso de creación de un artículo, si en algún control de calidad se ve un error este artículo retrocede al proceso donde hubo algún error y por lo tanto tomará más tiempo producirla. Siguiendo otro modelo de Bernoulli, la variable "retroceso", que si es un 1 entonces significa que tuvo que retroceder una o más veces (Éxito), y si es un 0 entonces no tuvo que retroceder (Fracaso).
+
+Sacando las probabilidades de que haya un artículo con error por cada artículo tenemos:
+
+```{r echo=FALSE}
+DF%>%group_by(articulo)%>%summarise(canterror=sum(retroceso==1),cant=n())%>%mutate(prop=round(canterror/cant,2))%>%filter(.,cant>12)->ErrorArticulo
+ErrorArticulo
+```
+
+
+Después de haber filtrado a las prendas que se hayan producido muy poco, ya que con 5 o 11 producciones no se podría hacer un análisis correcto, ponemos nuestras probabilidad en una gráfica de barras para poder visualizarla de mejor manera.
+
+```{r echo=FALSE}
+ggplot(ErrorArticulo,mapping = aes(x=reorder(articulo,+prop),y=(prop)))+geom_bar(stat = "identity")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(x = "Cliente",y = "Probabilidad")+scale_x_discrete("Articulo")+coord_flip()+ggtitle ("Probabilidad de hacer una entrega tarde por Articulo")
+```
+
+El artículo con mayor probabilidad de tener un error es la *chompa para niños* y el artículo con menos probabilidad de tener un error es la *cuellera* con una probabilidad 0, luego le sigue *falda*. Lo cual, otra vez nos lleva a preguntarnos ¿Por qué?. Es entonces que pasamos a hacer el mismo análisis que habíamos hecho anteriormente con la probabilidad de entregar un artículo tarde pero ahora con respecto a cada artículo.
+
+```{r echo=FALSE}
+DF %>% 
+  group_by(articulo) %>% 
+  summarise(tardes = sum(Demora_Entrega>0), cant=n())%>%mutate(prop=round(tardes/cant,2))
+```
+```{r echo=FALSE}
+ggplot(df2, aes(x=articulo, y=value)) +
+    geom_bar(stat='identity', fill="forest green")+theme(axis.text.x = element_text(angle = 90, hjust = 1))+labs(x = "Articulo",y = "Probabilidad")+facet_wrap(~variable,  ncol=1)
+```
+
+Observamos que la *chompa para niños* es el artículo con mayor probabilidad de tener un error y también la que tiene mayor probabilidad de entregarse con tardanza. Por otro lado *cuelleras* y *chalecos* son los que tienen menor probabilidad de tener un error y también los que tienen menor probabilidad de entregarse tarde. Como recomendación a la empresa, le comentaríamos que deberían reducir la cantidad de errores que tienen sus procesos para así disminuir la probabilidad de entrega tarde.
+
+### PATRONES OBSERVADOS EN LAS VARIABLES
+
+#### Tiempo de Producción
+Como se explicó al inicio del informe, esta variable es continua, porque puede tomar infinitos valores ya que no hay ninguna restricción en el Tiempo que necesite algún artículo en ser creado. Su histograma:
+
+```{r echo=FALSE}
+x <- seq(min(DF$Tproduccion), max(DF$Tproduccion), length = 200)
+fun <- dnorm(x, mean = mean(DF$Tproduccion), sd = sd(DF$Tproduccion))
+hist(DF$Tproduccion, prob = TRUE, col = "white",
+     main = "Histograma con curva normal")
+lines(x, fun, col = 2, lwd = 2)
+```
+
+Gracias a la gráfica podemos observar que sigue un modelo de Variable Aleatoria Normal con los siguientes parámetros.
+
+    -Media: `r round(mean(DF$Tproduccion),2)`
+    -Varación Estandar: `r round(sd(DF$Tproduccion),2)`
+    
+Estos parámetros fueron aproximados gracias a la media y variación estándar muestral de esta variable.
+    
+#### Demora de Entrega
+
+Esta es una variable continua porque el tiempo de tardanza puede indefinido ya que no hay que le ponga un límite. Su histograma es el siguiente:
+    
+```{r echo=FALSE}
+x <- seq(min(DF$Demora_Entrega), max(DF$Demora_Entrega), length = 200)
+fun <- dnorm(x, mean = mean(DF$Demora_Entrega), sd = sd(DF$Demora_Entrega))
+hist(DF$Demora_Entrega, prob = TRUE, col = "white",
+     main = "Histograma con curva normal")
+lines(x, fun, col = 2, lwd = 2)
+```
+
+Basándonos solo en la gráfica podemos ver que nuestra variable también tiene un comportamiento de Variable Aleatoria Normal con los siguientes parámetros:
+
+    -Media: `r round(mean(DF$Demora_Entrega),2)`
+    -Varación Estandar: `r round(sd(DF$Demora_Entrega),2)`
+    
+Estos parámetros fueron aproximados gracias a la media y desviación estándar muestral de esta variable.
+    
+#### Tiempo del Primer Proceso
+
+Esta es una variable que se comenzó a considerar en la entrega P2. La variable es continua y muestra cuanto demoro el primer proceso de cada artículo. El primer proceso o etapa es la de "INICIO DE PRODUCCIÓN". Podemos observar su histograma aquí: 
+```{r echo=FALSE}
+x <- seq(0, 70, length = 200)
+hist(DF$tiempo1, main = "DENSIDAD DEL TIEMPO DEL PRIMER PROCESO",
+     xlab = "", prob = TRUE)
+lines(x, dexp(x,rate=1/12.5), col = "red", lwd = 2)
+```
+```{r echo=FALSE}
+alfa<- 0.05 
+n=nrow(DF)
+z<- qnorm(alfa/2, lower.tail = FALSE)
+round(z,2)
+
+E1<-mean(DF$tiempo1)-1.96*(sd(DF$tiempo1)/sqrt(n))
+E2<-mean(DF$tiempo1)+1.96*(sd(DF$tiempo1)/sqrt(n)) 
+E1
+E2
+```
+
+Por la gráfica podemos sospechar que nuestra variable tiene una distribución de una Variable aleatoria continua exponencial. Es por esto que procederemos a calcular el intervalo de confianza con 95% de confianza para la media de la variable "tiempo1".
+
+La media muestral es:  `r round(mean(DF$tiempo1),2)`
+
+El intervalo de confianza es: [`r E1`, `r E2`].
+
+Escogemos el valor dentro de nuestro intervalo de confianza de: 12.5.
+
+Esta valor se aproximó gracias a la media muestral de la variable mencionada de la siguiente manera.
+
+$$\bar{X}=\frac{1}{\lambda}$$
+Donde $\bar{X}$ es la media muestral.
+
+#### Cantidad de Procesos
+
+Es una variable discreta ya que solo puede ser números enteros desde el 0 hasta el 20. Cabe recalcar que esta variable cuenta por cuantos tipos de procesos ha pasado un artículo y si por algún error ha tenido que volver a pasar por una etapa no se vuelve a contar. A continuación su histograma:
+
+
+```{r echo=FALSE}
+set.seed(1245)
+p<-sum(DF$cantprocesos>12)/nrow(DF)
+binomial <- rbinom(n=50000,size=16,prob=p)
+hist(DF$cantprocesos,freq = F)
+lines(lines(density(binomial,bw=1), col = "red", lty = 1, lwd = 3))
+```
+
+Esta variable tiene una Bernoulli detrás donde se considera éxito si tiene el artículo tiene una cantidad de procesos mayor a 12 y un "FRACASO" si es menor a 12, haciendo una cantidad de 12 experimentos Bernoulli. Por la gráfica podemos decir qe nuestra variable sigue un modelo Binomial el cual es X ~ Bin(12,`r round(sum(DF$cantprocesos>12)/nrow(DF),4)`)
+
+
+### CASOS DE PROBABILIDAD
+
+A continuación haremos un pequeño caso, ejemplo o ejercicio de probabilidades para poder observar su resultado y si podemos sacar algo importante de aquí.
+
+```{r echo=FALSE}
+barplot(table(DF$articulo),las=3,main="Artículo",cex.axis = 1)
+```
+Observamos que hay un gran sesgo hacia las chompas en nuestro estudio, y sabemos que nuestro mayor comprador es *THE PERUVIAN CONNECTION/USA BRANCH* por esto nos enfocaremos en esta prenda y este cliente para el siguiente estudio probabilístico.
+
+Usando un modelo de Modelo Geométrico, planteamos el siguiente caso: 
+*Cual es la probabilidad de que luego de "n" entregas a tiempo la siguiente sea una entrega tarde a la empresa *THE PERUVIAN CONNECTION/USA BRANCH*.
+```{r echo=FALSE}
+filter(DF,cliente=="THE PERUVIAN CONNECTION/USA BRANCH" | articulo=="CHOMPA")->ChompasUSA
+
+```
+
+Primero hallaremos la probabilidad de que se entregue una "CHOMPA" tarde a la empresa mencionada: `r round(sum(ChompasUSA$Demora_Entrega>0)/nrow(ChompasUSA),6)`.
+
+
+```{r echo=FALSE}
+p1<-sum(ChompasUSA$Demora_Entrega>0)/nrow(ChompasUSA)
+n<-0
+```
+
+
+La probabilidad de entregar una *chompa* tarde a la empresa *THE PERUVIAN CONNECTION/USA BRANCH* es: 
+```{r echo=FALSE}
+data.frame(x = 0:8, prob = dgeom(x = 0:8, prob = p1)) %>%
+  mutate(Failures = ifelse(x == n, n, "other")) %>%
+ggplot(aes(x = factor(x), y = prob, fill = Failures)) +
+  geom_col() +
+  geom_text(
+    aes(label = round(prob,6), y = prob + 0.01),
+    position = position_dodge(0.9),
+    size = 3,
+    vjust = 0
+  ) +
+  labs(title = "Probabilidad de hacer 'N' entregas temprano antes de hacer una tarde",
+       subtitle = "Geometric(.2)",
+       x = "N Entregas a tiempo antes de hacer una entrega tarde",
+       y = "Probabilidad") 
+```
+
+
+
+Interpretamos esta gráfica de la siguiente manera. La probabilidad de hacer 0 entregas a tiempo antes de una entrega tarde, o sea, que la primera entrega es tarde es la que tiene mayor probabilidad; y luego a mayor entregas a tiempo, la probabilidad baja al punto de que es casi imposible (se dice "casi" por la cantidad de decimales que se tomo en la probabilidad) que puedas entregar 7 chompas a tiempo sin que una de ellas se halla entregado de manera tardía. Ahora, las consecuencias que pueda traer esto depende de la tolerancia que tenga la empresa estudiada, *THE PERUVIAN CONNECTION/USA BRANCH*.
+
+Por el momento vemos que la tardanza de las entregas de la empresa "Artesanías Mon Repos" se ven afectadas por las variables de "Cantidad de Procesos" que puede tomar crear una prenda que al mismo tiempo está relacionada con los errores que se pueden cometer en el artículo por lo cual tomaría más tiempo producirla.
+
+
+```{r echo=FALSE}
+Chompas<-filter(DF,articulo=="CHOMPA")
+```
+
+## ENTREGA 4 ##
+
+### Parámetros de Estudio 
+
+Como se mencionó en la anterior entrega, se hallará los parámetros de cada una de nuestras variables de interés pero solamente en el artículo *Chompa*, ya que tienen características similares.
+
+```{r}
+Chompas<-filter(DF, articulo=="CHOMPA")
+ChompasTarde<-filter(Chompas, Demora_Entrega>0)
+ChompasTemprano<-filter(Chompas, Demora_Entrega<=0)
+```
+
+
+Estas son las fórmulas que usaremos para hallar la tolerancia en función de nuestra confianza y el tamaño de la muestra.
+
+*Tolerancia:*
+La tolerancia ($\varepsilon$) está dada en la fórmula:
+$$\mathbb{P}(\left\vert \overline{X}_n - \mu \right\vert \leq \varepsilon)\geq 1-\alpha
+\\
+z=qnorm(\alpha/2)$$
+Siendo $\alpha=0.05$ y $z=1.96$
+
+$$\varepsilon=\frac{z \sigma}{\sqrt{n}}$$
+$n=$ Cantidad muestral
+
+$\varepsilon=$ Tolerancia
+
+$\sigma=$ Desviación Estándar
+
+
+```{r echo=FALSE}
+alfa<- 0.05 
+n=nrow(Chompas)
+ntar=nrow(ChompasTarde)
+ntem=nrow(ChompasTemprano)
+z<- qnorm(alfa/2, lower.tail = FALSE)
+```
+```{r echo=FALSE}
+desvi<-sd(Chompas$Tproduccion)
+tol<-(z*desvi/sqrt(nrow(Chompas)))
+```
+```{r echo=FALSE}
+TP1<-mean(Chompas$Tproduccion)-1.96*(sd(Chompas$Tproduccion)/sqrt(n))
+TP2<-mean(Chompas$Tproduccion)+1.96*(sd(Chompas$Tproduccion)/sqrt(n)) 
+t.test(x=Chompas$Tproduccion, conf.level=0.95 )
+
+```
+#### Tiempo de Producción:
+
+Confianza=95%
+
+Cantidad muestral=`r nrow(Chompas)`
+
+Tolerancia: `r round(tol,2)`
+
+Intervalo de Confianza para la media del Tiempo de Producción: [48.64586, 49.46507]
+
+#### Tiempo Estimado:
+
+```{r echo=FALSE}
+desvi<-sd(Chompas$TEstimado)
+tol<-(z*desvi/sqrt(nrow(Chompas)))
+```
+
+```{r echo=FALSE}
+TP1<-mean(Chompas$TEstimado)-1.96*(sd(Chompas$TEstimado)/sqrt(n))
+TP2<-mean(Chompas$TEstimado)+1.96*(sd(Chompas$TEstimado)/sqrt(n)) 
+t.test(x=Chompas$TEstimado, conf.level=0.95 )
+```
+
+Confianza= 95%
+
+Cantidad muestral=`r nrow(Chompas)`
+
+Tolerancia: `r round(tol,2)`
+
+Intervalo de Confianza para la media del Tiempo de Producción: [43.22594, 44.00217]
+
+#### Proporción de las entregas tarde:
+
+Hallaremos el intervalo de confianza de nuestra proporción con la siguiente fórmula.
+
+$$\bar{p} \pm z_{\alpha/2}*\sqrt{\frac{\bar p(1-\bar p)}{n}}$$
+
+```{r echo=FALSE}
+ptarde<-sum(Chompas$Demora_Entrega>0)/nrow(Chompas)
+tolp<-z*sqrt((ptarde*(1-ptarde))/nrow(Chompas))
+PDer<-ptarde+z*sqrt((ptarde*(1-ptarde))/nrow(Chompas))
+PIzq<-ptarde-z*sqrt((ptarde*(1-ptarde))/nrow(Chompas))
+ptarde
+PDer
+PIzq
+```
+
+Confianza: 95%
+
+Tamaño muestral: `r nrow(Chompas)`
+
+Tolerancia: `r round(tolp,2)`
+
+Intervalo de confianza para la proporción de las entregas tardes: [0.728848,0.7536374]
+
+### Pruebas de Hipótesis 
+
+#### Tiempo Promedio de Tejido
+
+Tipo de Prueba: Cola inferior
+
+La empresa "Artesanías Monrepos" nos indica que el tiempo promedio de tejido de las *chompas* que elabora es de 7 días. 
+Se tiene la muestra de *chompas* producidas del primer semestre del 2021, la cual equivale a 4796 artículos. 
+Entonces, queremos demostrar que el tiempo promedio de tejido de *chompas* es menor a 7 días. Para ello, establecemos que nuestro valor de significancia es 0.05.
+
+H0: tiempo promedio de tejido es igual o mayor a 7 días -> hipótesis nula
+
+$$\bar{X}_{tejido}\geq7$$
+
+H1: tiempo promedio de tejido es menor a 7 días -> hipótesis alternativa
+
+$$\bar{X}_{tejido}<7$$
+
+```{r echo=FALSE}
+t.test(Chompas$tiempo2, alternative='less',
+       conf.level=0.95, mu=7)
+```
+```{r echo=FALSE}
+cord.x<-c(-3,seq(-3,-1.644854,0.01),-1.644854)
+cord.y<-c(0,dnorm(seq(-3,-1.644854,0.01)),0)
+curve(dnorm(x, mean = 0, sd = 1),xlim=c(-3,3),xlab = "",
+     ylab = "")
+legend("topright",   # Posición
+       inset = 0.05, # Distancia desde el margen como fracción de la región del gráfico
+       legend = c("p-valor=2*10^(-16)", "α=0.05"),
+       lty = c(1, 1),
+       col = c(2, 4),
+       cex = 0.8,
+       lwd = 2)
+xx<-c(-3,seq(-3,-2.999,0.01),-2.999)
+yy<-c(0,dnorm(seq(-3,-2.999,0.01)),0)
+polygon(xx,yy,col="red")
+polygon(cord.x,cord.y,col="skyblue")
+
+```
+
+En este caso, el p-valor es considerablemente menor al valor de significancia de 5% y no se puede representar en la gráfica. Por ende, se rechaza la hipótesis nula, la cual decía que el tiempo promedio de tejido para las *chompas* es mayor o igual a 7 días.
+
+#### Porcentaje de errores en el pedido
+
+La empresa "Artesanías Monrepos" espera que el 85% de la producción de sus pedidos no tenga ningún error. 
+Entonces, queremos determinar que la producción de sus pedidos que no tengan ningún error sea menor a 85%. Para ello, como venimos haciendo, solo nos enfocaremos en las *chompas* que son `r nrow(Chompas)` y las que no tienen ningún error son `r sum(Chompas$retroceso==0)`
+
+H0: La proporción de la producción de sus pedidos sin algún error es mayor o igual a 85%. -> hipótesis nula
+
+$$\bar{p}_{NoError}\geq0.85$$
+
+H1: La proporción de la producción de sus pedidos sin algún error es menor a 85%. -> hipótesis alternativa
+
+$$\bar{p}_{NoError}<0.85$$
+
+```{r}
+TamanioMuestra<-nrow(Chompas)
+ChomSin<-sum(Chompas$retroceso==0)
+ChomCon<-TamanioMuestra-ChomSin
+```
+
+
+
+```{r}
+z <- (ChomSin/TamanioMuestra - 0.85) / sqrt(0.85 * (1 - 0.85) / 590) 
+z
+pnorm(q=z, lower.tail=TRUE) 
+```
+```{r}
+cord.x<-c(-3,seq(-3,-1.644854,0.01),-1.644854)
+cord.y<-c(0,dnorm(seq(-3,-1.644854,0.01)),0)
+curve(dnorm(x, mean = 0, sd = 1),xlim=c(-3,3),xlab = "",
+     ylab = "")
+legend("topright",   # Posición
+       inset = 0.05, # Distancia desde el margen como fracción de la región del gráfico
+       legend = c("p-valor=3.6*10^(-100)", "α=0.05"),
+       lty = c(1, 1),
+       col = c(2, 4),
+       cex = 0.8,
+       lwd = 2)
+xx<-c(-3,seq(-3,-2.999,0.01),-2.999)
+yy<-c(0,dnorm(seq(-3,-2.999,0.01)),0)
+polygon(xx,yy,col="red")
+polygon(cord.x,cord.y,col="skyblue")
+```
+
+El z-crítico que hallamos es --21.21325, este nos ayudará a determinar nuestra p-valor, el cual es 3.602984e-100.
+El p-valor es tan menor al valor de significancia de 5% que no puede representarse en la gráfica. Por lo tanto, se rechaza la hipótesis nula, que nos manifiesta que el 85% de su producción que no tiene ningún error es mayor o igual a 85%.
+
+#### Entregas Tarde ####
+
+La empresa tiene un alto nivel de entregas tardes en sus pedidos. Queremos observar si la proporción de chompas entregadas tarde difieren de la proporción de artículos entregados tarde. La proporción de artículos entregados tarde es `r round(sum(DF$Demora_Entrega>0)/nrow(DF),2)`%
+
+H0: La proporción de la producción de sus pedidos entregados tarde es igual a `r round(sum(DF$Demora_Entrega>0)/nrow(DF),2)`%. -> hipótesis nula
+
+$$\bar{p}_{Tardanzas}=0.75$$
+
+H1: La proporción de la producción de sus pedidos entregados tarde es diferente a 75%. -> hipótesis alternativa
+
+$$\bar{p}_{Tardanzas}\neq0.75$$
+```{r echo=FALSE}
+TamanioMuestra<-nrow(Chompas)
+ChomTar<-sum(Chompas$Demora_Entrega>0)
+ChomTem<-TamanioMuestra-ChomTar
+z <- (ChomTar/TamanioMuestra - 0.75) / sqrt(0.75 * (1 - 0.75) / nrow(Chompas)) 
+z
+pnorm(z)
+```
+
+#### Proporción de Entregas Tarde ####
+
+```{r echo=FALSE}
+cord.x<-c(-3,seq(-3,-1.959964,0.01),-1.959964)
+cord.y<-c(0,dnorm(seq(-3,-1.959964,0.01)),0)
+curve(dnorm(x, mean = 0, sd = 1),xlim=c(-3,3),xlab = "",
+     ylab = "")
+legend("topright",   # Posición
+       inset = 0.05, # Distancia desde el margen como fracción de la región del gráfico
+       legend = c("p-valor=0.08", "α=0.05"),
+       lty = c(1, 1),
+       col = c(2, 4),
+       lwd = 2)
+y1<-c(1.400584,seq(1.400584,3,0.01),3)
+y2<-c(0,dnorm(seq(1.400584,3,0.01)),0)
+polygon(y1,y2,col="red")
+xx<-c(-3,seq(-3,-1.400584,0.01),-1.400584)
+yy<-c(0,dnorm(seq(-3,-1.4005847,0.01)),0)
+polygon(xx,yy,col="red")
+polygon(cord.x,cord.y,col="skyblue")
+x1<-c(1.959964,seq(1.959964,3,0.01),3)
+x2<-c(0,dnorm(seq(1.959964,3,0.01)),0)
+polygon(x1,x2,col="skyblue")
+```
+
+
+El p-valor obtenido (0.08) es mayor a nuestro nivel de significancia (0.05) por lo que no hay pruebas suficientes para rechazar nuestra hipótesis nula, la cual decía que la proporción de entregas tarde de chompas es igual a la proporción de entregas tarde de todos los artículos 75%.
+
+
+#### Tiempo Promedio de Producción ####
+
+La empresa "Artesanías Monrepos" nos indica que el tiempo promedio de producción de las chompas que elabora es de 49 días. 
+Se tiene la muestra de chompas producidas del primer semestre del 2021, la cual equivale a 4796 prendas. 
+Entonces, queremos demostrar que el tiempo promedio de producción de chompas es diferente de 49 días. Para ello, establecemos que nuestro valor de significancia es 0.05. 
+
+Planteamos nuestras siguientes hipótesis: 
+
+H0: tiempo promedio de producción es igual a 49 días -> hipótesis nula
+
+$$\bar{X}_{TProducción}=49$$
+
+H1: tiempo promedio de producción es diferente a 49 días -> hipótesis alternativa
+
+$$\bar{X}_{TProducción}\neq49$$
+
+```{r echo=FALSE }
+t.test(Chompas$Tproduccion, alternative='two.sided',
+       conf.level=0.95, mu=49)
+```
+```{r}
+cord.x<-c(-3,seq(-3,-1.959964,0.01),-1.959964)
+cord.y<-c(0,dnorm(seq(-3,-1.959964,0.01)),0)
+curve(dnorm(x, mean = 0, sd = 1),xlim=c(-3,3),xlab = "",
+     ylab = "")
+legend("topright",   # Posición
+       inset = 0.05, # Distancia desde el margen como fracción de la región del gráfico
+       legend = c("p-valor=0.7907", "α=0.05"),
+       lty = c(1, 1),
+       col = c(2, 4),
+       lwd = 2)
+y1<-c(0.2654017,seq(0.2654017,3,0.01),3)
+y2<-c(0,dnorm(seq(0.2654017,3,0.01)),0)
+polygon(y1,y2,col="red")
+xx<-c(-3,seq(-3,-0.2654017,0.01),-0.2654017)
+yy<-c(0,dnorm(seq(-3,-0.2654017,0.01)),0)
+polygon(xx,yy,col="red")
+polygon(cord.x,cord.y,col="skyblue")
+x1<-c(1.959964,seq(1.959964,3,0.01),3)
+x2<-c(0,dnorm(seq(1.959964,3,0.01)),0)
+polygon(x1,x2,col="skyblue")
+```
+
+En este caso, el p-valor es 79.07%, siendo considerablemente mayor al valor de significancia de 5%. Por ende, no hay evidencias suficientes para rechazar la hipótesis nula la cual decía que el Tiempo de Producción de las chompas es igual a 49. 
+
+### REGRESIÓN
+
+#### REGRESIÓN 1 ####
+
+Queremos ver la relación entre dos variables que parecen ir de la mano y usaremos los modelos de correlación para comprobar que tanto se relacionan. Tenemos a la variable "costo_pr" la cual muestra el costo solamente de producción de un artículo y la variable "costo_prme" la cual muestra el costo de la materia prima del artículo.
+
+Primero filtramos a las muestras que no tienen datos sobre su costo de producción o su costo de materia prima.
+
+```{r}
+ConPrecio<-filter(DF,costo_pr>0 & costo_prme>0)
+```
+
+Observando primero la correlación entras ambas variables, la cual es `r cor(ConPrecio$costo_pr,ConPrecio$costo_prme)`, pareciera que vamos por buen camino.
+
+```{r echo=FALSE}
+plot(ConPrecio$costo_prme,ConPrecio$costo_pr, xlab="Costo de Materia Prima", ylab="Costo de Producción")
+modelo10<-lm(ConPrecio$costo_pr ~ ConPrecio$costo_prme)
+abline(modelo10, col = "blue")
+points(ConPrecio$costo_prme[c(2059,2060,2770,2807)],ConPrecio$costo_pr[c(2059,2060,2770,2807)],col=c("red","red","blue","green"),pch=19)
+```
+Al usar la función "summary" en nuestro modelo de regresión tenemos lo siguiente:
+```{r echo=FALSE}
+summary(modelo10)
+```
+Vemos que nuestro valor $r^2$ es muy alto con un valor de 0.9993 lo cual nos dice que nuestro modelo de regresión explica gran parte de nuestra data.
+
+Las pruebas de hipótesis al coeficiente de nuestra variable independiente y el intercepto en el siguiente modelo son:
+
+$$y=ax+b$$
+
+H0: El coeficiente de las variables independientes y el intercepto son iguales a 0.
+
+$$a=0\\
+b=0$$
+H1: El coeficiente de las variables independientes y el intercepto son diferentes a 0.
+
+$$a\neq0\\
+b\neq0$$
+
+El p-valor entregado para la hipótesis con respecto a al coeficiente "a" es menor 2e-16 y el entregado para el intercepto "b" es 0.000677. Ambos son menores a nuestra significancia (0.05) lo cual nos indica que podemos rechazar ambas hipótesis nulas.
+
+Hipótesis con respecto a la validación de nuestro modelo.
+
+H0: El modelo de regresión no explica nuestros datos.
+
+H1: El modelo de regresión explica nuestros datos.
+
+Vemos que el p-valor (<2.2e-16) también es menor a nuestro nivel de significancia (0.05), por lo tanto podemos rechazar la hipótesis nula.
+
+Por lo visto nuestro modelo de regresión está yendo por un buen camino, pero ahora falta analizar las gráficas de los errores.
+
+```{r echo=FALSE}
+op=par(mfrow=c(2,2))
+plot(modelo10)
+```
+Análisis de las Gráficas:
+
+1.-Gráfica de Residuos vs Valores Ajustados:
+
+-Se ve que hay 3 valores atípicos
+
+-Aunque la linea roja parezca estar recta de alguna manera, los errores no están dispersos de manera uniforme y no presentan homoestacidad.
+
+2.-Gráfica normal Q-Q:
+
+-Hay valores atípicos que se separan mucho de la linea.
+
+3.-Gráfica Scale Location:
+
+-La linea no es recta y los residuos están muy dispersos alrededor de esta.
+
+4. Gráfica Residual vs. Leverage:
+
+-Hay datos que si pueden ocasionar el efecto palanca y pueden afectar nuestra regresión.
+
+Aunque las pruebas de hipótesis y la correlación nos indique que se podría hacer un modelo de regresión las gráficas de diagnóstico nos dicen lo contrario. Para finalizar este primera regresión mencionaremos dos cosas:
+
+-Si bien las gráficas de regresión dejan mucho que desear, hay que tener en cuenta que existen más modelos como cuadráticos, logarítmicos, etc. y la empresa no debería dejar pasar lo observado.
+
+-Si bien los errores no siguen una normal, al mismo tiempo tampoco son muy grandes. El "summary" nos entrego un rango de errores que va desde [-5.1630, 4.2069] y ya que estas variables de costo están en dolares. La empresa podría intentar, bajo sus criterios, usar este modelo sabiendo que el rango de errores en dolares que se tiene.
+
+#### REGRESIÓN 2
+
+Se ha querido establecer la correlación entre el tiempo de producción y el tiempo estimado por la empresa estudiada. Sin embargo, en el proceso de producción los artículos puede tener errores, por lo tanto se filtrarán los que no tuvieron ningún error y se hará la comparación antes y luego del filtro. 
+
+```{r echo=FALSE}
+modelo5 <- lm(DF$TEstimado ~ DF$Tproduccion)
+plot(DF$Tproduccion,DF$TEstimado, main="Tiempo de Producción vs Tiempo Estimado con errores", xlab="Tiempo de Producción", ylab="Tiempo Estimado")
+abline(modelo5, col = "blue")
+```
+
+La correlación entre dos variables antes del filtro es: `r cor(DF$Tproduccion,DF$TEstimado)`.
+Haciendo un "summary" de nuestro modelo obtenemos lo siguiente: 
+
+```{r echo=FALSE}
+summary(modelo5)
+```
+
+Vemos que los valores de $r^{2}$ es de 0.45. Esto quiere decir que solo el 45% se puede explicar gracias a nuestra regresión.
+
+Luego de esto pasamos a usar el filtro y ver como se comporta la correlación de estas nuevas variables.
+
+```{r echo=FALSE}
+SinError<-filter(DF,retroceso==0)
+```
+
+El valor de la correlación lineal entre las dos variables luego del filtro es la siguiente: `r cor(SinError$Tproduccion,SinError$TEstimado)`
+
+```{r echo=FALSE}
+modelo1 <- lm(SinError$TEstimado ~ SinError$Tproduccion)
+plot(SinError$Tproduccion,SinError$TEstimado, main="Tiempo de Producción vs Tiempo Estimado sin errores", xlab="Tiempo de Producción", ylab="Tiempo Estimado")
+abline(modelo1, col = "blue")
+```
+Se puede observar que la variable independiente es el Tiempo de Producción y la variable dependiente es el Tiempo Estimado.
+
+```{r echo=FALSE}
+summary(modelo1)
+```
+
+
+Vemos que el valor de $r^{2}$ es de 0.49 el cual es más grande que antes del filtro por lo que nos dice que está más cerca de una correlación que el anterior caso.
+
+Los valores entregados para el intercepto (b) y el coeficiente de nuestra variable independiente (a) son respectivamente 13.77401 y 0.62309. 
+
+Haciendo las siguientes pruebas de hipótesis para los valores mencionados anteriormente:
+
+1.
+
+H0: El valor de a es igual a 0.
+
+$$a=0$$
+
+H1: El valor de a es diferente a 0.
+
+$$a\neq0$$
+
+Gracias al p-valor entregado por la función "summary", el cual es 2e-16, demuestra que es menor a nuestro valor de significancia (0.05) y por lo tanto se puede rechazar esta primera hipótesis nula.
+
+2.
+
+H0: El valor de b es igual a 0.
+
+$$b=0$$
+
+H1: El valor de b es diferente a 0.
+
+$$b\neq0$$
+ 
+Gracias al p-valor entregado por la función "summary", el cual es 2e-16, demuestra que es menor a nuestro valor de significancia (0.05) y por lo tanto se puede rechazar esta segunda hipótesis nula.
+
+Hipótesis con respecto a la validación de nuestro modelo.
+
+H0: El modelo de regresión no explica nuestros datos.
+
+H1: El modelo de regresión explica nuestros datos.
+
+Vemos que el p-valor (<2.2e-16) también es menor a nuestro nivel de significancia (0.05), por lo tanto podemos rechazar la hipótesis nula.
+
+Análisis de las gráficas de diagnóstico:
+
+```{r echo=FALSE}
+op=par(mfrow=c(2,2))
+plot(modelo1)
+```
+
+1.-Gráfica de Residuos vs Valores Ajustados:
+
+-Se ve que hay 3 valores atípicos
+
+-La dispersión de estos valores no es muy constante al inicio.
+
+2.-Gráfica normal Q-Q:
+
+-Hay valores atípicos que se separan mucho de nuestra linea, por lo tanto nos hace dudar de nuestra regresión.
+
+3.-Gráfica Scale Location:
+
+-La linea no es recta y los residuos están dispersos alrededor de esta.
+
+4. Gráfica Residual vs. Leverage:
+
+-Hay 3 datos que si pueden ocasionan el efecto palanca y pueden afectar nuestra regresión.
+
+Finalmente, podemos concluir que al hacer un filtro de los artículos que tuvieron errores la correlación entre las variables Tiempo de Producción y Tiempo Estimado aumenta. Se recomienda a la empresa poder disminuir la cantidad de errores en la producción de sus artículos para que así puedan tener una mejor correlación entre el verdadero tiempo de producción y el tiempo que ellos estiman. Luego de aplicar el filtro obtuvimos un modelo de regresión el cual sigue la ecuación: 
+
+$$y=0.62309x+13.77401$$
+
+Con "x" igual a Tiempo de Producción y "y" igual a Tiempo Estimado. Sin embargo, gracias a las gráficas podemos decir que no es la mejor regresión y modelo.
+
+#### REGRESIÓN MÚLTIPLE ####
+
+Utilizando el método de regresión múltiple, decidimos usar nuestra regresión hallada anteriormente y agregarle más variables para ver como mejora nuestra regresión.
+
+Al agregar la variable "tiempo1" la cual es el tiempo de espera para la producción, de la cual ya se habló anteriormente, tenemos el siguiente modelo.
+
+
+```{r echo=FALSE}
+SinError<-filter(DF,retroceso==0)
+```
+
+```{r echo=FALSE}
+modelo2<-lm(SinError$Tproduccion ~ SinError$tiempo1 + SinError$TEstimado)
+summary(modelo2)
+```
+
+```{r echo=FALSE}
+op=par(mfrow=c(2,2))
+plot(modelo2)
+```
+
+En un análisis rápido de las gráficas y los datos entregados por la función "summary", observamos que el $r^2$ tiene un valor de 0.5989 y las gráficas muestran una homocedasticidad en los errores. 
+
+Pero al agregar una variable nueva, el "tiempo2", la cual es el tiempo en el proceso de tejido, podemos observar una ligera mejora en nuestra regresión.
+```{r echo=FALSE}
+modelo3<-lm(SinError$Tproduccion ~ SinError$tiempo1 + SinError$TEstimado + SinError$tiempo2)
+summary(modelo3)
+```
+
+
+Con esta nueva regresión haremos un mayor análisis ya que muestra mejoras que en la anterior presentada.
+
+Información entregada por el "summary": 
+
+El $r^2$ tuvo un aumento en un valor de 0.1 lo cual nos permite decir que nuestro modelo de regresión puede explicar un 60.58% de nuestra data. 
+
+Con respecto a las pruebas de hipótesis las cuales se repiten para los coeficientes de cada variable independiente y el intercepto en el siguiente modelo:
+
+$$y=b+a_{1}x_{1}+a_{2}x_{2}+a_{3}x_{3}$$
+
+$x_{1}=$Tiempo de Espera antes de la producción
+$x_{2}=$Tiempo Estimado
+$x_{3}=$Tiempo de tejido
+$y$=Tiempo de Producción
+
+H0= Los coeficientes de cada variable independiente y el intercepto son iguales a 0:
+
+$$a_{1}=0\\
+a_{2}=0\\
+a_{3}=0\\
+b=0$$
+
+H1= Los coeficientes de cada variable independiente y el intercepto son diferentes a 0:
+
+$$a_{1}\neq0\\
+a_{2}\neq0\\
+a_{3}\neq0\\
+b\neq0$$
+
+En la información entregada los p-valor de cada prueba de hipótesis son menores a nuestro nivel de significancia (0.05) por lo que podemos rechazar todas las hipótesis nulas. 
+
+Con respecto a la prueba de hipótesis de la validación de nuestro modelo:
+
+H0: El modelo de regresión no explica nuestra data.
+
+H1: El modelo de regresión explica nuestra data.
+
+Vemos que el p-valor (2.2e-16) también es menor a nuestro nivel de significancia (0.05), por lo tanto podemos rechazar la hipótesis nula.
+
+```{r echo=FALSE}
+op=par(mfrow=c(2,2))
+plot(modelo3)
+```
+
+Análisis de las Gráficas:
+
+1.-Gráfica de Residuos vs Valores Ajustados:
+
+-Se ve que hay 3 valores atípicos
+
+-La dispersión de estos errores es constante.
+
+2.-Gráfica normal Q-Q:
+
+-Hay valores atípicos que se separan mucho de la linea al principio, pero luego se acercan a ella, por lo tanto nos hace dudar de nuestra regresión.
+
+3.-Gráfica Scale Location:
+
+-La linea es más recta que en las anteriores regresiones y los residuos están dispersos alrededor de esta.
+
+4. Gráfica Residual vs. Leverage:
+
+-Hay 3 datos que si pueden ocasionan el efecto palanca y pueden afectar nuestra regresión.
+
+Entonces con el modelo encontrado es: 
+
+$$y=9.56040+0.42493x_{1}+0.76728x_{2}+0.27155x_{3}$$
+
+$x_{1}=$Tiempo de Espera antes de la producción
+$x_{2}=$Tiempo Estimado
+$x_{3}=$Tiempo de tejido
+$y$=Tiempo de Producción
+
+### ANÁLISIS Y PREDICCIONES 
+
+Anteriormente ya habíamos encontrado una ligera regresión entre las variables "Tiempo de Producción" y "Tiempo Estimado" 
+
+#### Predicción para el modelo simple
+
+Usaremos el modelo antes hallado entre las variables "Tiempo de Producción" y "Tiempo Estimado" para intentar predecir el tiempo que estimará la empresa con respecto al tiempo real de producción.
+
+Recordando nuestro modelo hallado anteriormente: 
+
+$$y=0.62309x+13.77401$$
+
+Con "x" igual a Tiempo de Producción y "y" igual a Tiempo Estimado.
+
+Para la comparación utilizaremos una base de datos entregada por la empresa, pero del año 2020.
+
+```{r echo=FALSE}
+DF2020<-read_csv("Estadistica2020.csv")
+```
+Le daremos el valor al Tiempo de Producción de 62 días que es un valor que también está en la base de datos del 2020.
+
+$$y=0.62309x+13.77401\\
+x=62\\
+y=0.62309(62)+13.77401\\
+y=52.41 días$$
+Dato de la base de datos del 2020:
+```{r echo=FALSE}
+head(DF2020,1)
+```
+
+El valor hallado por nuestro modelo de regresión es (Valor estimado): 52.41 días.
+
+El valor entregado por la empresa en la nueva base de datos (Valor teórico): 36 días.
+
+Calculamos el error: 
+
+$$\%error=|\frac{Valor_{teorico}-Valor_{estimado}}{Valor_{teorico}}|\times100\%\\
+\%error=31.31\%$$
+
+Se observa que nuestro error es grande, lo cual se explica con lo ya mencionado, nuestro modelo de regresión no es el más aproximado.
+
+#### Predicción para el modelo múltiple.
+
+Con este modelo intentaremos hacer una predicción con la base de datos entregada por la empresa pero del año 2020.
+
+```{r echo=FALSE}
+DFdos<-read_csv("Datos2020.csv")
+```
+
+El cual nos entrega los valores:
+
+Tiempo Estimado: 38
+Tiempo de espera a la producción: 7
+Tiempo de tejido: 11
+Tiempo de Producción (Teórico): 64
+
+El tiempo de Producción que hallamos con nuestro modelo de regresión es (Estimado): 44.68 días
+
+Calculamos el error el cual es: 
+
+$$\%error=|\frac{Valor_{teorico}-Valor_{estimado}}{Valor_{teorico}}|\times100\%\\
+\%error=30.19\%$$
+
+Como hemos visto, al parecer la regresión mejora a medida que vamos aumentando los tiempos de cada proceso. Lamentablemente estos tiempos luego del "tiempo3" son difíciles de recolectar debido a que los procesos cambian por cada  artículo, por lo que no se pueden agregar a nuestro modelo de regresión. 
+
+### Conclusiones:
+
+Hemos visto como las entregas tardes de la empresa se ven influenciadas por los errores en la producción, los diversos modelos que tienen cada artículo y un gran tiempo en el que el pedido espera para poder comenzar su producción.
+
+Primero pondremos nuestras conclusiones más descriptivas que analíticas con respecto a nuestros objetivos específicos:
+
+  * Determinar los artículos más producidos por la empresa Artesanías Mon Repos en el primer semestre del 2021. 
+  
+Los artículos con mayor cantidad de pedidos solicitados a la empresa Artesanías Mon Repos en el primer semestre del 2021 fueron los *chalecos*, *chompas*, *faldas*, *pantalones*, *sacos* y *vestidos*; siendo las *chompas*, en gran proporción, los artículos más solicitados en estos seis primeros meses.  
+  
+  * Determinar el porcentaje de artículos con algún tipo de error de producción y su relación con otras variables. 
+  
+El porcentaje de errores en los artículos en general durante la producción de los mismo es de $49.7$%. Este resultado nos muestra hay un gran porcentaje de errores al momento de producir un artículo, por ende, hay una gran probabilidad de que un artículo tenga algún tipo de error el proceso de producción.  
+  
+  * Determinar el tiempo promedio que se requiere para entregar un pedido y como afectan los errores en este. 
+  
+El tiempo promedio que se requiere para la entrega de un pedido desde el inicio de su producción es de $51.56$ días, sin embargo, al haber presencia de errores en el proceso, este tiempo de entrega tiende a aumentar. 
+
+  * Analizar el tiempo de espera antes de empezar a producirse un pedido dependiendo del tipo de artículo.
+  
+Según el gráfico de barras, los artículos con menor tiempo de espera antes de empezar a producirse con los chal, mantas y cojines, debido a que el proceso de producción no es tan laborioso como en otros casos. Por otro lado, el artículo con con mayor tiempo de espera antes de empezar su producción es la chompa para niños, ya que presenta modelos y detalles personalizados que hacen que el proceso de preparación antes de su producción demore más. 
+
+  * Comprobar si lo estimado por los anteriores análisis de la empresa es correcta en base a la muestra entregada.
+  
+Según la empresa, durante el proceso de producción de los artículos, el $85$% de estos no debería presentar algún error en su producción. No obstante, se determinó que el porcentaje de artículos sin algún tipo error durante el proceso de producción es tan solo del $50.3$%. Esto es un problema para la empresa, ya que los errores durante la producción evitan que sean puntuales con las entregas, provocando entregas tardías.
+
+Entonces pondremos nuestras conclusiones finales como recomendaciones:
+
+Se recomienda a la empresa poder disminuir la cantidad de errores que suceden en la producción debido a que estos hacen más difícil que el tiempo estimado por la empresa guarde mayor relación con el verdadero tiempo de producción ocasionando que los pedidos lleguen tarde.
+
+El tiempo en que el pedido de un artículo espera para ser producido es muy grande en ciertos casos. Este proceso podría generar un cuello de botella apenas en la primera etapa. Para que un artículo pueda comenzar su producción debe tener todos los materiales, máquinas y personal listos para recién empezar. Se ha visto como esto puede afectar a los días de demora de un pedido por lo tanto, se recomienda a la empresa ser más pro activos con respecto a los posibles pedidos que tengan y tener en claro su capacidad máxima para no sobrecargarse de tareas.
+
+La correlación que se tiene entre las variables de "costo de producción" y "costo de materia prima" es alta, sin embargo su correlación no parece ser lineal. Se recomienda a la empresa poder buscar un mejor modelo que permita explicar la relación entre estas variables para poder así tener más claro los costos que usarán.
+
+Las variables de Tiempo Estimado y Tiempo de Producción tienen una correlación y un ligero modelo de regresión, lo cual permite ver que la empresa tiene una idea de cuanto se va a demorar, pero al aumentar las variables de tiempo de espera y tiempo de tejido los valores estimados se van acercando más a los valores reales. Se recomienda seguir agregando los otros tiempos al modelo de regresión para poder tener una estimación mejor.
+
+Se pusieron en pruebas de hipótesis la información entregada por la empresa, de las cuales se logró rechazar 2 de estas. Se recomienda a la empresa hacer otra vez sus análisis debido a que parecen ser incorrectos para así lograr mejores resultados en su producción.
+
+
+  
