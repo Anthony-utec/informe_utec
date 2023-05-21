@@ -1,0 +1,624 @@
+---
+title: "Sengunda Entrega del proyecto"
+date: "2022-11-24"
+output: html_document
+---
+
+
+```{r}
+library(reshape)
+library(reshape2)
+library(plotrix)
+library(readr)
+library(haven)
+library(modelsummary)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(hablar)
+library(readxl)
+library(GGally)
+library(psych) 
+```
+
+
+
+![](Logo_UTEC.png){align="center" width="35%"}
+
+**Prevención de desbordamientos en el Sistema Hidráulico Mayor de Enero a Setiembre del 2022**
+
+-   Obtención de datos públicos [Aquí](https://www.datosabiertos.gob.pe/dataset/datos-hidrometereol%C3%B3gicos-gobierno-regional-piura)
+-   Proveniencia de los datos : **Proyecto Especial Chira Piura**
+
+![](Logo_datos_abiertos.jpg){align="center"}
+
+# Introducción
+
+## *Relevancia*
+
+Para prevenir desastres es importante la observación, interpretación y el análisis de los datos hidrometeorológicos, ya que nos sirve para predecir temperaturas, precipitaciones, infiltración de agua, tiempos de retorno, caudales, crecidas de ríos o inundaciones.
+Lo que se busca con este tema es informar si en el periodo del 2022 hasta setiembre se encontraron caudales anormales que puedan ser peligrosas para la represa y determinar en qué meses en el distrito de piura se producen mayores o menores caudales a causa de lluvia.
+Nos dimos cuenta que con esta base de datos podríamos determinar en qué meses en el distrito provincial de Piura se produce un mayor o menos caudal.
+
+## *Planificación*
+
+A continuación presentaremos un diagrama de Grantt, que usamos para una mejor visualización del repartimiento de actividades del proyecto.
+
+```{r, echo=FALSE}
+gantt_test <- read_csv("Libro1.csv", show_col_types = FALSE)
+gantt <- read_delim("Libro1.csv", 
+    delim = ";", escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
+gantt = head(gantt, n=54)
+
+
+Integrantes <- unique(gantt$Integrante)
+Actividades <- unique(gantt$Actividad)
+gantt <- gather(gantt, "Estado", "Fecha", 4:5) %>% mutate(Fecha = as.Date(Fecha, "%d/%m/%y"), Integrante = factor(Integrante, Integrantes[length(Integrantes):1]), Actividad = factor(Actividad, Actividades))
+
+
+ggplot(gantt, aes(Fecha, Integrante, color = Actividad, group = Item)) +
+  geom_line(size =3) +
+  labs(x = "fechas", y = NULL, title = "Gantt entrega #1")
+```
+
+
+# *Datos*
+
+## *Recolección de datos*
+
+Investigamos diferentes bases de datos que esten de acuerdo a nuestro interés, se buscaron temas en la "Plataforma Nacional de Datos Abiertos".
+En esta plataforma encontramos una base datos sobre los Datos Hidrometereológicos Gobierno Regional Piura, nos intereso que podríamos hacer con estos datos y decidimos trabajarlo.
+
+Además, cumplía con los requerimientos necesarios para poder usarla en nuestro proyecto y peretenece a las bases de datos oficiales del gobierno peruano, es decir, la fiabilidad de sus procesos de recolección es alta, ya que podemos asegurar que sus cifras verídicas y verificadas.
+
+## *Población, muestra y muestreo*
+
+La población investigamos son los distritos de Piura, que en específico son cuatro.
+Por otro lado, la unidad muestral sería el Sistema Hidráulico Mayor del Proyecto Especial Chira Piura, ya que contiene los elementos, y que está disponible para la selección del proceso de muestreo.
+Este sirve para así poder identificar y acceder al elemento de la población.
+El tamaño de la muestra es el número de elementos de la población que componen la muestra, en nuestro caso tenemos 14 variables de tipo cuantitativo y cualitativo.
+El muestreo es no probabilístico por juicio, el juicio empleado son las provinvias con mayor caudal promedio.
+
+## Variables
+
+Para la elección de nuestro tema se identificaron 2 tipos de variables: Cuantitativas y Cualitativas
+
+|   Variables Cuantitativas   | Variables Cualitativas |
+|:---------------------------:|:----------------------:|
+| Fecha corte de Información  |  Nombre de la Cuenca   |
+|     Fecha de la muestra     | Nombre de la estación  |
+| Código ubicación geográfica |    Unidad de medida    |
+|      Medida de caudal       |    Tipo de Estación    |
+|   El promedio del caudal    |      Departamento      |
+|      El caudal máximo       |       Provincia        |
+|       Precipitaciones       |        Distrito        |
+
+**Variables cuantitativas:**
+
+-   Fecha_corte, tipo numérica continua y su restricciones es que sea un número entero no negativo juntos.
+    No presenta (/) cómo separador, pero si posee un orden (año, mes, día), el año debe ser no menor ni mayor del 2022, mes no mayor de 12, día no mayor de 31.
+
+-   Fecha_muestra, tipo numérica continua y su restricciones es que sea un número entero no negativo juntos.
+    No presenta (/) cómo separador, pero si posee un orden (año, mes, día), el año debe ser no menor ni mayor del 2022, mes no mayor de 12, día no mayor de 31.
+
+-   Ubigeo, tipo numérica discreta y su restricción es que sea un número entero de 6 cifras no negativo.
+
+-   Caudal07H, tipo numérica continua y sus restricciones es que sea un número positivo incluyendo el cero
+
+-   Promedio24H, tipo numérica continua y presenta restricción al redondear a dos decimales el valor; sin embargo, la variables puede ser negativa o positiva, entero o decimal.
+
+-   Maxima24H, tipo numérica continua y su restricción es que no sean cifras negativas, pero pueden ser valores enteros (incluyendo al cero) y decimales.
+
+-   Precip24H, tipo numérica y su restricción es que no sea un valor negativo; sin embargo pueden ser enteros (incluyendo al cero) o decimales.
+
+**Variable cualitativa:**
+
+-   Cuenta, tipo cualitativa nominal y su restricción es que sea nombre de la cuenca, río, estructura natural o artificial con caudal del departamento de Piura.
+
+-   Estación, tipo cualitativa nominal y su restricción es que sea únicamente nombre de las estaciones hidrológicas de Piura.
+
+-   Unidad de medida, tipo cualitativa nominal y su restricción es que se denote de una sola forma m3/s.
+
+-   Tipo de estación, tipo cualitativa nominal y presenta restricción en solo tener tres opciones (hidrológica, hidrométrica y presa)
+
+-   Departamento, tipo cualitativo nominal y su restricción es que solo se evalúa el departamento de Piura.
+
+-   Provincia, tipo cualitativo nominal y su restricción es que se solo se considera las provincia de Piura (Piura, Ayabaca, Huancabamba, Morropón, Paita, Sullana, Talara y Sechura)
+
+-   Distrito, tipo cualitativa nominal y su restricción es que solo se pueden insertar los distritos de las provincias de Piura donde están ubicadas las estaciones hidrometeorológicas.
+
+# Limpieza de base de datos
+
+Lo que haremos será leer la base de datos, verificar las observaciones observaciones y si las variables son adecuadas o necesitan alguna modificación como cambiarle su nombre o tipo.
+
+```{r}
+DF<-read_csv("DATOS_HIDROMETEREOLOGICOS.csv")
+```
+
+```{r, echo=FALSE, results='hide'}
+DF
+```
+
+Seleccionamos las variables relevantes para nuestro estudio.
+No tomaremos en cuenta la variable PRECIP24H porque no representa ningún valor importante para el analisis que requerimos en nuestro proyecto, porque
+
+```{r}
+DF %>% select(c(1:13)) -> DF
+```
+
+Ahora, verificaremos si nuestra base de datos tiene datos faltantes.
+
+```{r}
+unique(DF$ESTACION)
+```
+
+```{r}
+sum(is.na(DF))
+```
+
+También, comprobaremos si todas las observaciones están completas.
+
+```{r}
+sum(!complete.cases(DF))
+```
+
+Como nuestra base de datos no tiene ningun dato faltante ni alguna observación incompleta, procederemos a verificar que las variables esten correctas.
+
+Primero, revisaremos si los nombres son adecuados para cada variable.
+
+```{r}
+names(DF)
+```
+
+Consideramos que los nombres son adecuados debido porque cualquier persona que le interezca nuestro trabajo debería tener la posibilidad de comprender el nombre de las variables.
+Sin embargo, en el caso de la variable "CUENTA" está mal redactada por lo que necesita un cambio.
+
+Cambiamos las variables FECHA_MUESTRA y FECHA_CORTE al formato fecha.
+También, corregimos el Dato "MorropOn" para que este correctamente escrito.
+
+```{r}
+DF %>% convert(chr(FECHA_CORTE,FECHA_MUESTRA)) ->DF
+mutate(DF, Fecha_Corte = as.Date(paste(substr(c(DF$FECHA_CORTE),5,6),substr(c(DF$FECHA_CORTE),7,8),substr(c(DF$FECHA_CORTE),1,4), sep = "/"),"%m/%d/%Y")) -> DF
+mutate(DF, Fecha_Muestra = as.Date(paste(substr(c(DF$FECHA_MUESTRA),5,6),substr(c(DF$FECHA_MUESTRA),7,8),substr(c(DF$FECHA_MUESTRA),1,4), sep = "/"),"%m/%d/%Y")) -> DF
+
+```
+También, corregimos el Dato "MorropOn" para que este correctamente escrito.
+
+```{r}
+provincias_corregido <- replace(DF$PROVINCIA,DF$PROVINCIA == "MorropOn","Morropon")
+DF$PROVINCIA = provincias_corregido
+
+DF %>% relocate(Fecha_Corte,Fecha_Muestra) -> DF
+DF %>% select(-(FECHA_CORTE:FECHA_MUESTRA)) -> DF
+DF <- rename(DF, FECHA_CORTE = Fecha_Corte
+             ,FECHA_MUESTRA = Fecha_Muestra,
+             CUENCA = CUENTA)
+```
+
+La última revisión que le daremos a las variables, es si su tipo concuerda con la información en cada columna.
+
+```{r}
+glimpse(DF)
+```
+
+No se encuentra ningun error en el tipo de variables, así que la limpieza de la base de datos esta terminada.
+
+```{r}
+DF
+```
+
+# Análisis descriptivo
+
+```{r}
+summary(DF$CAUDAL07H)
+```
+
+```{r}
+summary(DF$MAXIMA24H)
+```
+
+```{r}
+unique(DF$PROVINCIA)
+```
+
+**Gráfico de barras del caudal promedio por provincia**
+
+Verificaremos si se en este caso podemos hacer un diagrama de barras con las variables que queremos evaluar.
+
+```{r}
+table(DF$PROVINCIA, useNA = "always")
+```
+
+Concluimos, que si es válido y eficiente hacer un diagrama de barras.
+
+Queremos graficar las provincias con mayor caudal promedio, para eso promediaremos todos los datos del CAUDALPROM24H por provincia.
+
+```{r,echo=FALSE, warning=FALSE, cache=FALSE, message=FALSE}
+CAUDAL <- DF[1:6723, c(8,12)]
+CAUDAL
+PIURA <- CAUDAL %>% filter(PROVINCIA == "Piura")
+SULLANA <- CAUDAL %>% filter(PROVINCIA == "Sullana")
+MORROPON <- CAUDAL %>% filter(PROVINCIA == "Morropon")
+AYABACA <- CAUDAL %>% filter(PROVINCIA == "Ayabaca")
+
+Promedio <- function(x){
+  prom = sum(x)/length(x)
+  print(prom)
+}
+P1 <- Promedio(PIURA$PROMEDIO24H)
+P2 <- Promedio(SULLANA$PROMEDIO24H)
+P3 <- Promedio(MORROPON$PROMEDIO24H)
+P4 <- Promedio(AYABACA$PROMEDIO24H)
+
+Provincias<-c("Piura", "Sullana", "Morropon", "Ayabaca")
+Promedios<-c(P1,P2,P3,P4)
+dataNum<-data.frame(Provincias, Promedios)
+```
+
+```{r, echo=FALSE}
+barp <- barplot(dataNum$Promedios, main = "Gráfica de Provincias y caudal promedio", xlab = "Provincias", ylab = "Caudal promedio m^3/s", col = c("royalblue", "seagreen", "purple", "grey"), ylim = c(0, 60), xlim = c(0,6))
+
+legend("right", legend = c("Piura", "Sullana", "Morropón", "Ayabaca"),
+       fill =  c("royalblue", "seagreen", "purple", "grey"))
+  
+
+text(barp, dataNum$Promedios + 2 , labels = dataNum$Promedios)
+```
+
+La gráfica que se aprecia nos muestra el promedio de los caudales promedio medidos en la base de datos, los cuáles están divididos en las provincias Piura, Sullana, Morropón y Ayabaca, en ese orden.\
+
+Lo que podemos obtener de está gráfica es como el promedio del caudal varía respecto a qué provincia te encuentres, si existe una relación entre estas variables debido que dependiendo de lugar geográfico, los factores varían.
+Por ejemplo, en base a las gráficas y datos que obtuvimos, tenemos que, en promedio, Ayabaca sería la zona que tiene más lluvias, siguiéndole Sullana.
+Por otro lado, tenemos a la provincia de Piura, que es la región con menor cantidad de lluvias del departamento debido a que tiene el promedio menor de caudal en comparación a las otras provincias.
+
+**Análisis de la variable caudal 07H y provincias: Boxplot**
+
+Hagamos una tabla de frecuencias para la variable provincias.
+
+```{r}
+table("Provincias"=DF$PROVINCIA, useNA = "ifany") / nrow(DF)
+```
+
+Como se puede observar aproximadamente el 63% de los datos hidrologicos le pertenece a Sullana, mientras solo un 11% le pertenece a Ayabaca, por lo que podemos decir que en la pronvincia de Sullana se hicieron una mayor toma de datos que en la provincia de Ayabaca.
+
+Toma de datos de la cuenca a las 7H con respecto a las Provincias.
+
+```{r}
+boxplot(DF$CAUDAL07H~DF$PROVINCIA, col="lightgreen", main="Boxplot de caudal 7H vs. Provincias", ylab="Caudal a las 7H", xlab="Provincias")
+```
+
+En está gráfica se evidencia como la mayoría de los datos se encuentran entre 200 y 0, es decir, son datos muy pequeños.
+Sin embargo, hay datos que son atípicos, pero con una gran diferencia con respecto a la mayoría.
+
+**Gráfico de PUNTOS del Caudal promedio en cada mes**
+
+En esta gráfica podemos observar una clara gráfica sesgada hacia la izquierda, en el cual se puede ver que el caudal promedio de agua en 24 horas es mayor en el mes de abril, siguiéndole como segundo el mes de marzo.
+Por otro lado, podemos apreciar que el mes de septiembre es el mes con menos caudal promedio.
+Sin embargo, la fecha de corte de información nos muestra que fue el 6 de septiembre, por lo que no se encuentra el es completo.
+Descartando esto, el mes de menos caudal promedio en 24 horas sería enero.
+Si comparamos estos resultados con el informe de temporada de lluvias de Piura que realizó Weather Spark, nos muestra que desde el 31 de diciembre hasta el 15 de abril es la temporada en la que hay más lluvias, siendo el resto del año la temporada con menos lluvias.
+Esto coincide hasta cierto punto con los datos mostrados en la gráfica.
+Si bien en enero y febrero se aprecian como meses con menor caudal promedio, contradiciendo el informe de Weather Spark, en marzo y abril tenemos a los dos meses con mayor caudal promedio, por lo que en ese sentido ambos coinciden.
+Por último, el resto de los meses coinciden con el informe, siendo de los meses con menores caudales, a excepción del mes de julio, que en algunos casos contados, se llegó a un caudal promedio alto.
+
+```{r, echo=FALSE}
+plot(DF$PROMEDIO24H~DF$FECHA_MUESTRA, xlab="Fecha de la Muestra", ylab="Caudal Promedio 24 horas", col = c("dark blue"))
+title("Caudal Promedio 24h vs Fecha de la Muestra")
+```
+
+Los datos los obtuvimos de [aquí](https://es.weatherspark.com/y/18257/Clima-promedio-en-Piura-Per%C3%BA-durante-todo-el-a%C3%B1o).
+
+En cuanto al tiempo discreto, es decir, contando en meses, podemos obtener la siguiente gráfica:
+
+```{r}
+
+Fecha_muestra <- DF[1:6723, c(2,12)]
+Fecha_muestra 
+
+mode <- function(x) {
+   return(as.numeric(names(table(x))))
+}
+
+mode(Fecha_muestra$FECHA_MUESTRA)
+##Crear base de datos con la fecha a reutilizar
+vector_Fecha_muestra <- c("20220101","20220102","20220103","20220104","20220105","20220106","20220107","20220108","20220109","20220110","20220111","20220112","20220113","20220114","20220115","20220116","20220117","20220118","20220119","20220120","20220121","20220122","20220123","20220124","20220125","20220126","20220127","20220128","20220129","20220130","20220131","20220201","20220202","20220203","20220204","20220205","20220206","20220207","20220208","20220209","20220210","20220211","20220212","20220213","20220214","20220215","20220216","20220217","20220218","20220219","20220220","20220221","20220222","20220223","20220224","20220225","20220226","20220227","20220228","20220301","20220302","20220303","20220304","20220305","20220306","20220307","20220308","20220309","20220310","20220311","20220312","20220313","20220314","20220315","20220316","20220317","20220318","20220319","20220320","20220321","20220322","20220323","20220324","20220325","20220326","20220327","20220328","20220329","20220330","20220331","20220401","20220402","20220403","20220404","20220405","20220406","20220407","20220408","20220409","20220410","20220411","20220412","20220413","20220414","20220415","20220416","20220417","20220418","20220419","20220420","20220421","20220422","20220423","20220424","20220425","20220426","20220427","20220428","20220429","20220430","20220501","20220502","20220503","20220504","20220505","20220506","20220507","20220508","20220509","20220510","20220511","20220512","20220513","20220514","20220515","20220516","20220517","20220518","20220519","20220520","20220521","20220522","20220523","20220524","20220525","20220526","20220527","20220528","20220529","20220530","20220531","20220601","20220602","20220603","20220604","20220605","20220606","20220607","20220608","20220609","20220610","20220611","20220612","20220613","20220614","20220615","20220616","20220617","20220618","20220619","20220620","20220621","20220622","20220623","20220624","20220625","20220626","20220627","20220628","20220629","20220630","20220701","20220702","20220703","20220704","20220705","20220706","20220707","20220708","20220709","20220710","20220711","20220712","20220713","20220714","20220715","20220716","20220717","20220718","20220719","20220720","20220721","20220722","20220723","20220724","20220725","20220726","20220727","20220728","20220729","20220730","20220731","20220801","20220802","20220803","20220804","20220805","20220806","20220807","20220808","20220809","20220810","20220811","20220812","20220813","20220814","20220815","20220816","20220817","20220818","20220819","20220820","20220821","20220822","20220823","20220824","20220825","20220826","20220827","20220828","20220829","20220830","20220831","20220901","20220902","20220903","20220904","20220905","20220906")
+##Optimizar el c1,c2,c3... creando un while
+#Enero
+c_vector = list()
+  for (i in 1:249){
+    vector_Fecha_muestra = as.Date(vector_Fecha_muestra,"%Y%m%d")
+    c_vector[[i]] <- data.frame(FECHA_MUESTRA = c((Fecha_muestra %>% filter((FECHA_MUESTRA) == vector_Fecha_muestra[i]))$FECHA_MUESTRA), PROMEDIO24H = c((Fecha_muestra %>% filter((FECHA_MUESTRA) == vector_Fecha_muestra[i]))$PROMEDIO24H))  
+  }
+Promedio <- function(x){
+  prom = sum(x)/length(x)
+  print(prom)
+}
+  P <- c()
+  for (i in 1:249){
+    P[i] <- Promedio(c_vector[[i]]$PROMEDIO24H)
+  }
+
+M1 <- c(P[1:31])
+M2 <- c(P[32:59])
+M3 <- c(P[60:90])
+M4 <- c(P[91:120])
+M5 <- c(P[121:151])
+M6 <- c(P[152:181])
+M7 <- c(P[182:212])
+M8 <- c(P[213:243])
+M9 <- c(P[244:249])
+
+Promedio <- function(x){
+  prom = sum(x)/length(x)
+  print(prom)
+}
+
+Enero <- Promedio(M1)
+Febrero <- Promedio(M2)
+Marzo <- Promedio(M3)
+Abril <- Promedio(M4)
+Mayo <- Promedio(M5)
+Junio <- Promedio(M6)
+Julio <- Promedio(M7)
+Agosto <- Promedio(M8)
+Inicios_Septiembre <- Promedio(M9)
+
+Meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Inicios_Septiembre")
+Promedios <- c(Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Inicios_Septiembre)
+
+dataNum<-data.frame(Meses, Promedios)
+
+barp <- barplot(dataNum$Promedios, main = "Caudal promedio mensual", xlab = "Meses", ylab = "Caudal promedio m^3/s", col = c("royalblue", "seagreen", "purple", "grey","pink","yellow","black","red","orange"), ylim = c(0, 150), xlim = c(0,10))
+
+legend("topright", legend = c("Enero: 16.11663","Febrero: 23.9986","Marzo: 102.6826","Abril: 90.5902",
+                              "Mayo: 29.16302","Junio: 18.72794","Julio: 24.86384","Agosto: 12.57757","Inicios_Septiembre: 13.43895"),
+       fill =  c("royalblue", "seagreen", "purple", "grey","pink","yellow","black","red","orange"))
+
+
+```
+
+**Gráfico de mosaico**
+
+Este descriptor gráfico tipo moscaico para presentar como el tipo de estaciones se encuentren distribuidas con las provincias principales.
+
+```{r}
+tabratingmarca<-table(DF$TIPO_ESTACION,DF$PROVINCIA)
+mosaicplot(tabratingmarca,main="Caudal vs Estacion" ,col=c("green","blue", "pink", "yellow"),las=1)
+
+```
+
+*Observaciones* - Según la gráfica hay más estaciones Hidrologicas que otras.
+- En Sullana, hay mayor toma de datos en las estaciones hidrologicas, hidrometricas y presas a comparación de las provincias Piura, Aybaca y Morropon.
+- Por otro lado, en Sullana hay más presas a comparación de las otras provincias.
+
+# Análisis probabílistico
+
+## Variables aleatorias discretas
+
+*Distribución binomial*
+
+La probabilidad de que un ingeniero sea destinado a una estación de presa en un distrito cualquiera de Piura.
+
+
+```{r}
+dist <- unique(DF$DISTRITO)
+  length(dist)
+  
+  estac <- unique(DF$TIPO_ESTACION)
+  length(estac)
+  
+  distritosPiura <- DF$DISTRITO
+  estacion <- DF$TIPO_ESTACION
+  
+  barplot(prop.table(table(distritosPiura)), names.arg = c(1:7), main = "Índice de promedio de caudal en los distritos de Piura", col =     topo.colors(7), ylab = "Probabilidad", xlab = "Distrito")
+  legend(x = "topright", legend = c("1 : Castilla","2 : Chulucanas","3 : Lancones","4 : Tambo Grande","5 : Sullana","6 : Suyo","7: Piura"), cex = 0.7)
+
+barplot(prop.table(table(estacion)), names.arg = c(1:3), main = "Tipos de estaciones", col = topo.colors(3), ylab = "Probabilidad")
+
+probDistritos <- prop.table(table(distritosPiura))
+
+probDeEstaciones   <- prop.table(table(estacion))
+
+probDistritos <- data.frame(probDistritos)
+probDeEstaciones   <- data.frame(probDeEstaciones)
+
+names(probDistritos)[names(probDistritos)=='Freq'] <- 'Probabilidad'
+names(probDeEstaciones )[names(probDeEstaciones)=='Freq'] <- 'Probabilidad'
+probDistritos
+
+binomial_distribution <- function(n, p){
+  x <- dbinom(x = 0:n, prob = p, size = n)
+  plot(x, names.arg = 0:n, main = "Distribución muestral", xlab = "Distritos", ylab = "Probabilidades", col = gray.colors(7))
+}
+```
+
+*Distribución de Hipergeometrica*
+
+
+1) Hay 6723 datos, de los cuales 4206 son menores 20 m^3/s del caudal promedio24H. Si escogemos 20 muestras de caudal ¿Cual es la probabilidad de 15 de ellas sean menores 20 m^3/s del caudal promedio24H?
+```{r}
+Fecha_muestra <- DF[1:6723, c(8,12,6)]
+
+
+bb <- Fecha_muestra %>% filter(PROMEDIO24H < 20)
+
+
+dhyper(15,4296,2427,20)
+
+```
+
+
+2) ¿CUál es la probabilidad de que, en una muestra de 30 observaciones, hayan 25 que pertenezcan a la provincia de Sullana y que el caudal promedio 24h sea mayor o igual a 20 m3/s, sabiendo que 1678 de las 6723 observaciones cumplen con las características?
+
+```{r}
+bb <- Fecha_muestra %>% filter(PROVINCIA == "Sullana" & PROMEDIO24H >= 20)
+
+
+dhyper(25,1678,5045,30)
+```
+
+
+3) ¿Cual es la probabilidad de una muestra de 25, 16 de ellas tengan de tipo de Estacion (Hidrometrica) y que su caudal promedio 24 H sea por lo menos 20 #m^3/s?
+
+```{r}
+bb <- Fecha_muestra %>% filter(TIPO_ESTACION == "HIDROMETRICA" & PROMEDIO24H >= 20)
+bb
+
+dhyper(16,759,5964,25)
+```
+
+
+```{r}
+set.seed(2022)
+N<-6723
+n<-20
+K<-4296
+K2<-1678
+k3<-759
+x4<-rhyper(15,K,N-K,n)
+x5<-rhyper(25,K2,N-K2,30)
+x6<-rhyper(16,k3,N-k3,25)
+db<-data.frame(cbind(x4,x5,x6))
+db_long<-melt(db,measure.vars=c("x4","x5","x6"),variable.name ="Variable",value.name = "Valores")
+ggplot(db_long,aes(x=Valores,fill=Variable))+geom_histogram(color="#e9ecef",alpha=0.6,position = "identity",bins=15)+scale_fill_manual(values = c("#ff6e00","#000000","white"))+labs(fill="")
+```
+
+La función hipergeométrica es una función que permite hallar la probabilidad de que en una muestra de "n" observaciones, hayan "a" con la característica de interés, sabiendo que en la població hay "b" observaciones con esa características.  
+Para cada una de las preguntas, lo primero que hacemos es filtrar las observaciones con las características que se buscan. Después, sabiendo cuántos son con respecto a la población, usamos la función "dhyper".  
+El primer parámetro pide la característica de interés, el segundo la cantidad que tiene esa característica en la población, la tercera la esta entre la población con la cantidad de interés, y la cuarta el tamaño de la muestra.
+En la gráfica, x4 = “Rpta primera pregunta”, x5 = “Rpta segunda pregunta” y x6 = “Rpta tercera pregunta”, podemos observar que, bajo cada uno su condición, es más probable que se obtenga “x4” entre los intentos 10 y 16; el “x5”, entre los intentos 4 y 11; y “x6”, entre el primer y el quinto intento.
+
+
+## Modelo de variables aleatorias continuas
+
+**Distribución Normal**
+
+```{r}
+summary(DF$PROMEDIO24H)
+```
+
+De acuerdo, al promedio de 24 horas de caudal en los días que transcurrieron hasta Setiembre, se sabe que el promedio es 52.40.
+Por lo tanto, para calcular por intervalos dicha variable cuantitativa se busca su distribución normal, por lo que podemos considerarla como $\mathbb{X}$.
+Para ello es necesario saber su desviación estandar y su media.
+
+Variable continua para esta distribución es PROMEDIO_24H.
+
+$\mathbb{X}\sim Normal(µ,σ^{2})$
+
+Donde:
+
+$E(\mathbb{X})=\mu$
+
+$V(\mathbb{X})=\sigma^{2}$
+
+Donde los parámetros $µ$ y $σ$ presentan la media y la desviación estándar del caudal prmedio en 24 horas en las provincias de Piura, Moropon, Sullana y Aybaca.
+
+¿Cuál es la probabilidad que el caudal promedio en 24 horas alcance el primer quantil que es 7.97?
+
+```{r}
+media = mean(DF$PROMEDIO24H)
+
+desv_estandar = sd(DF$PROMEDIO24H)
+
+pnorm(7.97, media, desv_estandar)
+```
+
+La variable CAUDAL07H es una variable aleatoria cuyo valores de medida de caudal tomado a las 07:00 horas, cuanto caudal y volumen de agua esta esta pasado en esa hora ( metros cúbicos por segundo, m³/s de agua a las 07:00 horas) están representados por intervalos.
+
+```{r}
+mean(DF$CAUDAL07H)
+
+sd(DF$CAUDAL07H)
+
+```
+
+La probabilidad de que la medida de caudal en las próximas 7 horas sea 70.67 metros cúbicos por segundo m³/s.
+(P(X=70.67))
+
+```{r}
+dnorm(70.67, 40.90125, 92.69008)
+
+```
+
+La probabilidad de que la medida de caudal en el departamento de Piura sea como máximo 70.67 metros cúbicos por segundo m³/s.
+(P(X=70.67))
+
+```{r}
+pnorm(70.67,40.90125, 92.69008, lower.tail = TRUE)
+```
+
+¿Cuál es la medida de caudal en el departamento de Piura para que la probabilidad sea como máximo 70% ?
+P(X\<=a)
+
+```{r}
+qnorm(0.7,40.90125, 92.69008)
+```
+
+Representación de la gráfica de distribución normal de la variable CAUDAL07H.
+n= 2000, mu=40.90125, sigma=92.69008
+
+```{r}
+normal<-rnorm(2000,40.90125, 92.69008)
+mean(normal)
+hist(normal,main="DISTRIBUCIÓN NORMAL",col="green",xlab=" ", ylab=" ")
+```
+
+De acuerdo a la gráfica representada, se puede afirmar que la media esta ubicado entre el intervalo de 0 a 100, ya que la media es equivalente a 40.90125; asimismo, la desviación estándar es 92.69008, lo que significa que la dispersión de medidas en esta variable es mayor.
+
+**Distribución exponencial**
+
+La variable PROMEDIO24H puede ajustarse a una distribución exponencial, siendo:
+
+$\mathbb{X}\sim exp(λ)$
+
+```{r}
+F<-DF$PROMEDIO24H
+```
+
+El parametro de esta distribucion se puede determinar a traves del inverso multiplicativo de su media $λ$, y vale lo siguiente:
+
+```{r}
+Lambda <- (1/mean(F))
+
+Lambda
+```
+
+Ahora grafiquemos la función densidad de probabilidad de nuestra variable teórica sobre el histograma de frecuencias relativas.
+Tomaremos el parámetro breaks=8para hacer la comparación aproximada, puesto que las personas tendieron a responder el número de horas de manera discretizada , aunque en la práctica, la variable es continua.
+
+```{r}
+hist(F,breaks = 72/2, probability = TRUE, xlab = "Promedio de caudal a las 24 horas", ylab = "Densidad", main = "Distribución del Promedio de caudal a las 24 horas", col = "#7FFFD4")
+
+x <- 0:1000
+y <- dexp(x = x, rate = 1/mean(F))
+
+lines(x = x, y = y, col = "blue", lwd = 3)
+```
+
+El ingeniero sabe que el caudal promedio de 24 horas tiene un promedio de 52.20 m3/s.
+Si el caudal promedio tiene una distribución exponencial: ¿Cuál es la probabilidad de que el caudal tengan un promedio entre 800 a 1000 m3/s?
+
+```{r}
+summary(DF$PROMEDIO24H)
+```
+
+Entonces, $\lambda=1/52.20 m^3/s$
+
+Es importante tener en cuenta que, en la gráfica se tiene un rango de [0,1000] y apartir del 600 se aproxima a 0.
+Entonces, si nuestra aproximación fue sensata, la probabilidad de que nuestra variable exponencial se encuentre ente 800 y 1000 m3/s debería ser muy pequeña.
+
+```{r}
+pexp(1000,1/52.2)-pexp(800,1/52.2)
+```
+
+Se comprueba que esto es cierto.
+
+# Bibliografia
+
+El clima en Piura, el tiempo por mes, temperatura promedio (Perú) - Weather Spark.
+(s. f.).
+<https://es.weatherspark.com/y/18257/Clima-promedio-en-Piura-Per%C3%BA-durante-todo-el-a%C3%B1o>
+
+Datos Hidrometereológicos Gobierno Regional Piura \| Plataforma Nacional de Datos Abiertos.
+(s. f.).
+<https://www.datosabiertos.gob.pe/dataset/datos-hidrometereol%C3%B3gicos-gobierno-regional-piura>

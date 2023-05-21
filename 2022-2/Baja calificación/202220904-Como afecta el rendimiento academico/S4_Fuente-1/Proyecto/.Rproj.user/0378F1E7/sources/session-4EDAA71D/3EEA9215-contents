@@ -1,0 +1,312 @@
+---
+title: "Descriptores numéricos"
+output: html_notebook
+---
+
+Antes INSTALAR los paquetes y abrir las librerías!
+
+```{r}
+install.packages("car")
+```
+
+```{r}
+library(car)
+```
+
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+install.packages("DescTools")
+```
+
+
+```{r}
+library(Desctools)
+library(raster)
+```
+
+
+```{r}
+install.packages("raster")
+```
+
+```{r}
+library(DescTools)
+```
+
+```{r}
+library(raster)
+```
+
+Luego importar data
+
+
+# Medidas de tendencia central 
+Media, mediana y moda
+Vamos a recodificar la variable local 1: Centro 2: Sur
+
+```{r}
+CS = Caso_1
+```
+
+```{r}
+CS$Local=recode(CS$Local,"1='Centro';'2=Sur'")
+```
+
+Se hace con mutate porque el otro no funciona.
+Se coloca el nombre exacto de la variable, se declara al inicio y al final, también se pone el número exacto de paréntesis.
+```{r}
+CS %>% mutate(Local = 
+        ifelse(Local == "1", "Centro",
+        ifelse(Local == "2", "Sur",Local)))->CS #hay que cerrar cada parentesis!
+```
+
+Recodificamos el genero donde 0 es femenino y 1 es masculino
+```{r}
+CS %>% mutate(Género = 
+        ifelse(Género == "0", "Femenino",
+        ifelse(Género == "1", "Masculino",Género)))->CS #hay que cerrar cada parentesis!
+```
+
+Ahora la recodificacion de la forma de pago: 1: tarjeta 2: cheque 3: efectivo
+
+```{r}
+CS %>% mutate(Pago = 
+        ifelse(Pago == "1", "tarjeta",
+        ifelse(Pago == "2", "cheque",       
+        ifelse(Pago == "3", "efectivo",Pago))))->CS #hay que cerrar cada parentesis!
+```
+
+# Tarea
+Opinion -> muy satisfecho 4 / satisfecho 3 / regular 2 / insatisfecho 1
+
+En el caso del promedio y la mediana, unicamente se usan para variables cuantitativas:
+
+Promedio del monto pagado por productos en general (compra)
+```{r}
+mean(CS$Monto)
+```
+```{r}
+median(CS$Monto)
+```
+
+El comando Decstool reconoce la moda, además reconoce si hay 2 3 o 4 modas. Si hay 3 o más se llama MULTIMODAL. Es el dato que más se repite. Es la única medida estadística que se usa en variable cuantitativa y cualitativa también.
+```{r}
+Mode(CS$Monto)
+```
+Nuestro dato es multimodal donde hay 6 modas y cada una se repite 2 veces (su frecuencia)
+
+La moda del numero de productos que adquirio
+```{r}
+Mode(CS$Productos)
+```
+Ahí es bimodal, donde 5 veces se ha repetido el 12 y 5 veces el 18.
+Aunque también puede que no exista moda, ya que nada se repite (otro caso)
+
+Medidas de TC desagregado por Local
+
+Para saber el monto que han pagado por local
+Revisar bien el ORDEN en el que se colocan las variables conforme al resultado que queremos.
+Si hubiera datos faltantes, se le agregará is.na para que no los cuente.
+```{r}
+tapply(CS$Monto,CS$Local,mean)
+```
+Otra forma:
+```{r}
+by(CS$Monto,CS$Local,median)
+```
+# Ejercicio: encontrar el promedio del monto gastado de las mujeres por locales
+Puede ser con filter o con otro comando que guardara esto para usarlo luego 
+```{r}
+MUJ=subset(CS, Género=="Femenino")
+```
+
+Si se creara una para hombres, contendria 33 observaciones.
+
+Esto solo aplicará para las mujeres c: No lo agrega como variable a la data, pero almacena el dato (enviroment) por si desea usarse luego
+```{r}
+by(MUJ$Monto,MUJ$Local,mean)
+```
+***Ver teoria de cuartiles***
+
+Encontrar el valor minimo de Monto
+Solo
+```{r}
+summary(CS)
+```
+Para hallar el limite del decil superior equivale a hallar D9 y el valor maximo.
+Cada decil vale 10%
+P10 = D1
+P75 = Q3
+P70 = D7
+```{r}
+quantile(CS$Monto,0.90)
+```
+La palabra cuantil abarca decil, percentil, quartil, etc.
+Ejemplo: los limites del 80% central de los montos pagados en las compras evaluadas (P10 y P90)
+```{r}
+quantile(CS$Monto,0.10)
+quantile(CS$Monto,0.90)
+```
+Limites de compras realizadas en el local del sur, los limites del 80% central (P10 y P90)
+submatriz, filter o sino by
+también se podría hacer con tapply
+```{r}
+by(CS$Monto,CS$Local,quantile,0.10)
+```
+```{r}
+by(CS$Monto,CS$Local,quantile,0.90)
+```
+# Indicadores de variabilidad
+
+Rango, Varianza, desviación estándar, rango intercuartil y coeficiente de variación.
+Cada una tiene una formula -> Revisar!
+
+$R= Vmax- Vmin$
+Se hallaria con sumary, con max o min, o con otra formula hecha x nosotros
+```{r}
+R= max(CS$Monto)-min(CS$Monto)
+```
+
+Desviacion estandar:
+```{r}
+sd(CS$Monto)
+```
+Varianza: Su raiz cuadrada es la desviacion estandar
+```{r}
+var(CS$Monto)
+```
+LA LIBRERIA raster saca la desviacion, el promedio, y lo opera para obtener EL COEFICIENTE DE VARIACION 
+
+```{r}
+cv(CS$Monto)
+```
+```{r}
+cv1 =(sd(CS$Monto)/mean(CS$Monto))*100
+```
+
+Hallar el coeficiente de variacion de monto por local
+Todos evaluan variabilidad pero el unico que es COMPARATIVO es el coeficiente de correlacion
+
+```{r}
+by(CS$Monto,CS$Local,cv) #tambien se puede con TAPPLY
+```
+
+#Nota IMPORTANTE: 
+Al cargar en csv sale en miles!!!!
+En excel sale con comas
+
+También las respuestas se dan en PUNTO !!!!
+Redondeado a 1 decimal
+
+# Ahora se supone que tenemos que continuar con los descriptores graficos!
+
+Para ver si hay datos atipicos: boxplot
+```{r}
+boxplot(CS$Monto)
+```
+Asimetria negativa cuando el rectangulo de abajo es mas grande que el de arriba.
+La media es menor a la mediana, la mediana es menor o igual a la moda
+
+Asimetria positiva cuando el rectangulo de arriba es mayor que el de abajo.
+La media es mayor a la mediana, la mediana es mayor o igual a la moda
+
+Corelacion y covariacion
+```{r}
+cor(CS$Monto,CS$Productos)
+```
+```{r}
+cov(CS$Monto,CS$Productos)
+```
+El grafico de dispersion se hace con:
+```{r}
+plot(CS$Monto,CS$Productos)
+```
+# CLASE VIERNES 09 DE SEPTIEMBRE
+
+***IMPORTANTE*** Instalar el paquete ggplot2
+
+```{r}
+install.packages("ggplot2")
+```
+
+
+```{r}
+library(ggplot2)
+```
+
+Colocar un grafico circular.
+Existen otras maneras de colocar esa información, no solo esta.
+```{r}
+pie(table(CS$Local))
+```
+
+Colocar un grafico de barras.
+Considerar colocar table antes!
+```{r}
+barplot(table(CS$Local)) #para datos cualitativos, no debería salir para monto!
+```
+
+
+Colocar un grafico boxplot desagregado por local.
+```{r}
+barplot(CS$Monto,CS$Productos)
+```
+
+
+Colocar un mapa de calor.
+```{r}
+smoothScatter(CS$Monto)
+```
+
+
+Colocar un mosaico.
+```{r}
+mosaicplot(CS$Monto)
+```
+TABLA CRUZADA: De variables categorizadas!
+```{r}
+table(CS$Local,CS$Género)
+```
+Regresion Lineal
+Interesa el Estimate Std y el Multiple R-squared c: 
+Comando: LC
+Primero colocar la variable independiente y luego la dependiente
+Cuando se hizo la especificacion del summary, se obtiene la ecuacion de la recta
+
+El R2 es el coeficiente de determinacion que determina si es prudente hacer esta ecuacion
+Para que la ecuacion sea realmente significativa, el R2 debería ser 65%, es decir, derepente se puede modelar pero no como una ecuacion lineal, sino como otras ecuaciones.
+```{r}
+summary(lm(CS$Monto~CS$Productos)) #intercepto+cs$productos
+#b0 + b1X
+#y = 3115.22 - 14.26X
+#Usar esta ecuacion para calcular los x y los y
+```
+
+```{r}
+x=c(296,259,315,310,380,410)
+y=c(5028,4918,5300,6217,6082,7790) #al darle correr, se actualizan las variables al lado c: 
+```
+
+Haremos la evaluación lineal de la regresión lineal donde x es el número de menús vendidos y y es los ingresos del día.
+Para hacer la estimación abrimos un chunk
+```{r}
+summary(lm(y~x)) #la ecuacion es 407.20 + 16.70X
+#como la pendiente es positiva, la correlacion es positiva, es directamente proporcional
+#en el ejemplo anterior, era negativa, por lo que era inversamente proporcional
+#el R2 es 75.62%
+```
+Ellos quieren saber cuantos ingresos ganaran si preparan cierta cant de menus al dia, pueden estimar un valor aproximado dado que esta ecuacion es buena.
+
+
+# Clase lunes 12 de septiembre
+
+Repaso!
+
+
+
+
+
