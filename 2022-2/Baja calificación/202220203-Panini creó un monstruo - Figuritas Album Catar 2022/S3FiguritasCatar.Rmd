@@ -1,0 +1,1011 @@
+---
+title: "Figuritas Qatar"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+```{r, echo = FALSE, warning=FALSE}
+require('readr')
+require('dplyr')
+```
+
+```{r, echo=FALSE}
+library(readr)
+library(dplyr)
+library(fmsb)
+library(tidyverse)
+```
+
+```{r,echo=FALSE}
+DF <- read_csv("Figuritas.csv")
+```
+
+### Introducción
+
+#### **Relevancia**
+_Panini creó un monstruo_. Estas fueron las palabras que utilizó la BBC News Mundo para referirse al álbum del Mundial Catar 2022. La colección de estas figuras ha provocado inmenso furor internacional, ya que muchos fanáticos buscan completar dicho álbum.
+A pesar de que el Perú no asistirá a la Copa del Mundo el presente año, un gran número de aficionados peruanos está tratando de llenar su álbum. Por consiguiente, es lógico que surjan algunas preguntas sobre las probabilidades relacionadas a la colección de figuritas. Por ejemplo, ¿es cierto que todos los futbolistas tienen las mismas probabilidades de aparecer en un sobre? ¿Afectará en algo a las probabilidades que todos los sobres vengan del mismo _paquetón_? ¿Qué tan posible es llenar el álbum solamente comprando la misma cantidad de figuritas que espacios disponibles?
+En vista de ello, hemos decidido enfocar este estudio en responder aquellas preguntas. Por lo tanto, se ha planteado la siguiente hipótesis:
+Como estrategia de ventas, Panini decidió imprimir ciertas figuritas menos veces que el resto, para así aumentar la rareza de que aparezcan algunos futbolistas. Por lo tanto, también se analizarán los stickers de los futbolistas con cierto grado de rareza con el fin de establecer una equivalencia con los más comunes.
+
+<center> ![](fifa.png) <center>
+
+### Datos
+
+#### **Proceso de recolección de datos**
+Debido a que el propósito del proyecto es analizar diferentes probabilidades relacionadas al llenado del álbum, se decidió que la mejor manera de obtener el panorama más cercano a la realidad es comprar aleatoriamente, y en lugares distintos, la cantidad de sobres necesarios, o más, para llenar un álbum. Por lo tanto, se necesitan 670 o más figuritas para el estudio. Además, los sobres conseguidos tienen orígenes diferentes. Es decir, algunos de ellos fueron comprados individualmente mientras que otros provienen de un paquetón de 104 sobres. Del mismo modo, se creyó conveniente que el tamaño de la muestra sea mayor o igual a 670 figuritas. Esto se hace para tratar de garantizar que cualquier figurita faltante sea producto del azar y no de un tamaño de muestra inadecuado. Asimismo, para tener una muestra más representativa y evitar sesgos, se decidió comprar de diferentes puntos de la ciudad para tratar de evitar que los paquetes provengan del mismo lote de producción.
+  
+#### **Población, muestra y muestreo**
+
+##### **Población**
+En primer lugar, la población es el total de figuritas disponibles en venta en la ciudad de Lima. Debido a que la cantidad de figuritas impresas y puestas al mercado es muy grande, y que Panini no ha revelado ninguna información al respecto, es imposible determinar el tamaño total de la población sujeta al estudio.
+
+##### **Muestra**
+La muestra es toda la colección de figuritas adquiridas. Como mencionado anteriormente, se decidió que el tamaño adecuado para éste debe ser mayor o igual a 670. Por consiguiente, la unidad muestral debe ser cada figurita individual. En la base de datos, cada una de ellas consiste en una observación que cuenta con diferentes variables.
+
+##### **Muestreo**
+Finalmente, se utilizó un muestreo por conveniencia, por lo que el tipo del método es no probabilístico. Se decidió adquirir los paquetes en diferentes puntos de venta cercanos a los integrantes del equipo. Esto se hizo con la intención de facilitar el estudio. Además, dentro de cada tienda, sí se utilizó un procedimiento probabilístico al proceder con un muestreo aleatorio simple. Naturalmente, al carecer de factores externos relevantes que puedan afectar su situación, todos los paquetes dentro de una tienda tienen la misma probabilidad de ser seleccionados.
+
+#### **Variables**
+| **Variable** | **Tipo**           | **Descripción**                                               | **Restricciones**                                                            |
+|--------------|--------------------|---------------------------------------------------------------|------------------------------------------------------------------------------|
+| País         | Categórica nominal | País cuya selección nacional representa el jugador.           | Sigla de tres letras de acuerdo  a la codificación internacional de la FIFA. |
+| Número       | Numérica discreta  | Identificador asignado a cada figurita.                       | Entero positivo del 1 al 19.                                                 |
+| Posición     | Categórica nominal | Posición de desempeño del jugador.                            | Portero, defensa, mediocampista o delantero.                                 |
+| Origen       | Categórica nominal | Tipo de empaquetamiento de dónde proviene la figurita.        | Paquete individual o _paquetón_.                                             |
+| Lugar        | Categórica nominal | Sitio de compra de la figurita.                               | Una sola palabra con el nombre más conocido de la tienda.                      |
+| Especial     | Categórica nominal | Evalúa si la figurita es oficialmente especial.               | Booleano. TRUE o FALSE.                                                      |
+| Clase        | Categórica nominal | Indica qué representa la figurita.                            | Jugador, escudo, estadio o equipo.                                                             |
+| Debut        | Numérica discreta  | Año del primer partido del jugador con su selección nacional. | Entero positivo. Naturalmente, mayor a 2000.                                 |
+| Estatura     | Numérica discreta  | Medición de la estatura del jugador en metros.                | Entre 1 y 2 con dos decimales de precisión.                                  |
+| Peso         | Numérica discreta  | Medición de la masa del jugador en kilogramos.                | Entero positivo.                                                             |
+| Nacimiento   | Numérica discreta  | Año de la fecha en la que nació el jugador.                   | Entero positivo. Naturalmente, entre 1980 y 2006.                            |
+
+#### **Limpieza de base de datos**
+
+##### **Datos faltantes**
+
+En primer lugar, se revisó la cantidad de datos faltantes por variable.
+
+```{r}
+colSums(is.na(DF))
+```
+
+Afortunadamente, la cantidad de datos faltantes por variable no es inusual. La razón por la que variables fundamentales como `País / Código` y `Número` pueden tener datos faltantes es la variable `Extra sticker`. Dentro de la base de datos hay figuritas especiales que no forman parte de la colección inicial y, por lo tanto, no tienen un sitio determinado en ninguna página.
+
+
+##### **País / Código**
+A continuación, se revisará que el código del país de la figurita esté en el formato correcto. Para ello, se comparará el tamaño de las cadenas para verificar que es el correcto.
+
+```{r}
+table(nchar(DF$`País / Código`), useNA = "always")
+```
+
+Asimismo, se evaluará si existe alguna observación peculiar.
+
+```{r}
+unique(DF$`País / Código`)
+```
+Todos los códigos FIFA de las figuritas están en orden. No obstante, los datos faltantes presentes en los fragmentos de código anteriores se refieren a la figurita extra explicada anteriormente.
+
+Sin embargo, se procedió a verificar que, en efecto, aquellos datos faltantes sean parte de dicha observación.
+
+```{r}
+DF[is.na(DF$`País / Código`) == TRUE, ]
+```
+Efectivamente, los datos faltantes de las variables identificadoras pertenecen a la leyenda extra. Por lo tanto, es posible que, en adelante, haya por lo menos un dato faltante para cada variable que no es necesariamente un error.
+
+Finalmente, se determinó que la columna de la variable ``País / Código`` está suficientemente limpia y correcta.
+
+##### **Número**
+
+Del mismo modo, la restricción de la variable ``Número`` es que para cada país, puede tomar cualquier valor entero desde el $1$ hasta el $19$ y, en el caso de que se trate de una figurita _FWC_, su rango es los enteros desde el $0$ hasta el $29$.
+
+Primero, se revisará que todos los valores sean enteros.
+```{r}
+table(DF$Número %% 1, useNA = "always")
+```
+
+En efecto, las observaciones están conforme con aquella restricción.
+
+Luego, se procedió a revisar que los valores estén dentro de los rangos estipulados previamente.
+
+```{r}
+DF %>% filter(`País / Código` != "FWC") %>% select(Número) %>% range(na.rm = TRUE)
+```
+
+Como se ha evidenciado, el rango de la variable `Número` para todas aquellas observaciones que pertenezcan a un país es correcto.
+
+En el caso de las observaciones cuya variable `País / Código` toma el valor de _"FWC"_, el rango muestral es el siguiente:
+
+```{r}
+DF %>% filter(`País / Código` == "FWC") %>% select(Número) %>% range(na.rm = TRUE)
+```
+
+Del mismo modo, el rango experimental no está por fuera de la restricción.
+
+En conclusión, se confirma que la variable `Número` está limpia.
+
+##### **Posición**
+  
+En el mismo sentido, el método de limpieza para esta variable es simple. Se revisó que no existe ningún otro valor fuera de los posibles. Las posiciones de los jugadores dentro del campo de juego son: portero, defensa, mediocampista y delantero.
+
+```{r}
+unique(DF$Posición)
+```
+
+En este caso, se procedió a reemplazar el valor _"Arquero"_ por _"Portero"_ para uniformizar la variable.
+
+```{r}
+DF$Posición = recode(DF$Posición, `Arquero` = "Portero")
+
+unique(DF$Posición)
+```
+
+Por consiguiente, hecho esto, la variable `Posición` está limpia.
+
+##### **Debut**
+
+Para esta variable, se examinaron los datos extremos.
+
+```{r}
+range(DF$Debut, na.rm = TRUE)
+```
+
+El rango muestral de la variable es lógico, ya que, en esta edición de la Copa del Mundo, hay jugadores veteranos como muy jóvenes.
+
+##### **Estatura**
+
+Para esta variable, también se revisó el rango para verificar la lógica de sus valores.
+
+```{r}
+range(DF$Estatura, na.rm = TRUE)
+```
+
+Al ser el rango correcto, se procedió a verificar que todos los valores tengan como precisión máxima dos decimales. Para ello, simplemente se redondearon todos los valores a dos decimales con la función `round()`.
+
+```{r}
+DF$Estatura = round(DF$Estatura, 2)
+```
+
+##### **Peso**
+
+De manera similar, se verificó que el rango tenga sentido y se ratificó que todos los valores sean enteros con la función `as.integer()`.
+
+```{r}
+range(DF$Peso, na.rm = TRUE)
+```
+
+```{r}
+DF$Peso = as.integer(DF$Peso)
+```
+
+
+##### **Nacimiento**
+
+```{r}
+DF[is.na(DF$Nacimiento), ]
+```
+
+Se utilizaron los mismos métodos que en la variable `Peso`.
+
+```{r}
+range(DF$Nacimiento, na.rm = TRUE)
+```
+
+```{r}
+DF$Nacimiento = as.integer(DF$Nacimiento)
+```
+
+##### **Origen**
+
+Para esta variable, la restricción es que solamente puede tomar dos únicos valores: _Paquete_ o _Paqueton_. Se verificó ello.
+
+```{r}
+unique(DF$Origen)
+```
+
+##### **Lugar de compra**
+
+Esta variable debe tener como valor el nombre de cualquier tienda o proveedor de figuritas del álbum.
+
+```{r}
+unique(DF$`Lugar de compra`)
+```
+
+Todos los nombres son de tiendas o establecimientos reales y no parece haber habido algún error de tipeo o algo por el estilo. La variable está limpia.
+
+##### **Clase**
+
+Asimismo, la restricción de esta variable es que la figurita solamente puede ser un jugador, escudo, estadio, equipo, pelota o logo.
+
+```{r}
+unique(DF$Clase)
+```
+
+Como se puede apreciar, los valores están conforme.
+
+Finalmente, las variables `Especial` y `Extra sticker` pueden considerarse limpias. Esto se debe a que al ser de tipo lógico y no haber ningún dato faltante, no existe ningún valor posible que cause que la observación sea errónea.
+
+### Análisis descriptivo
+
+En primer lugar, para propósitos del análisis, resulta conveniente juntar las variables `País / Código` y `Número`. A esta nueva variable, se le llamará `Identificador` y servirá como el código principal para distinguir las unidades muestrales.
+
+```{r}
+DF$Identificador = paste(DF$`País / Código`, DF$Número)
+```
+
+Consecuentemente, la cantidad de figuritas únicas que tiene la base de datos es:
+
+```{r}
+length(unique(DF$Identificador))
+```
+Lo cual significa que faltan `r 670 - 489` figuritas para completar el álbum con la base de datos actual.
+
+Adicionalmente, con la información de la nueva variable `Identificador` se puede obtener la cantidad de veces que está repetida la figurita más repetida.
+
+```{r}
+max(table(DF$Identificador))
+```
+
+Asimismo, para la variable `Posición`, es necesario contextualizar sobre su distribución intrínseca dentro de cada escuadra de los países. Es decir, para entender completamente las frecuencias de las diferentes posiciones y sus posibles causas naturales se precisa saber exactamente de qué manera se suelen distribuir las 19 plazas disponibles por país. Por ejemplo, es muy común que hayan muchos menos porteros que cualquier otra posición. 
+
+Para ello, se hará uso de diagramas de telaraña divididos por confederación continental.
+
+**CONMEBOL**
+
+```{r echo = FALSE, eval = FALSE}
+DF %>% filter(`País / Código` == "BRA" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> BRA
+
+DF %>% filter(`País / Código` == "ARG" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> ARG
+
+DF %>% filter(`País / Código` == "URU" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> URU
+
+DF %>% filter(`País / Código` == "ECU" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> ECU
+```
+
+```{r echo = FALSE, eval = FALSE}
+table(BRA$Posición)
+
+table(ARG$Posición)
+
+table(URU$Posición)
+
+table(ECU$Posición)
+```
+
+```{r echo = FALSE}
+CONMEBOL = data.frame(Defensas = c(15, 0, 6, 6, 7, 6),
+                 Delanteros = c(15, 0, 4, 9, 2, 4),
+                 Mediocampistas = c(15, 0, 5, 4, 9, 4),
+                 Porteros = c(15, 0, 2, 1, 2, 2),
+                 row.names = c("max", "min", "BRA", "ARG", "URU", "ECU"))
+
+colors_fill = c(scales::alpha("gray", 0.1),
+                scales::alpha("gold", 0.1),
+                scales::alpha("tomato", 0.2),
+                scales::alpha("skyblue", 0.2))
+
+colors_line = c(scales::alpha("darkgray", 0.9),
+                scales::alpha("gold", 0.9),
+                scales::alpha("tomato", 0.9),
+                scales::alpha("royalblue", 0.9))
+
+radarchart(CONMEBOL,
+           seg = 10,
+           title = "Posiciones en CONMEBOL",
+           pcol = colors_line,
+           pfcol = colors_fill,
+           plwd = 2)
+
+legend(x = 1,
+       y = 1.35,
+       legend = rownames(CONMEBOL[-c(1,2),]),
+       bty = "n", pch = 20, col = colors_line, cex = 1.2, pt.cex = 3)
+```
+Para los países sudamericanos, se puede apreciar que la figura formada por el gráfico es similar, salvo por los delanteros. En este aspecto, la selección argentina parecer tener tres figuritas de delanteros más que el segundo. Sin embargo, para el resto de posiciones, los polígonos están superposicionados coincidentemente, en líneas generales.
+
+**UEFA**
+```{r echo = FALSE, eval = FALSE}
+DF %>% filter(`País / Código` == "GER" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> GER
+DF %>% filter(`País / Código` == "BEL" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> BEL
+DF %>% filter(`País / Código` == "CRO" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> CRO
+DF %>% filter(`País / Código` == "DEN" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> DEN
+DF %>% filter(`País / Código` == "ESP" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> ESP
+DF %>% filter(`País / Código` == "FRA" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> FRA
+DF %>% filter(`País / Código` == "ENG" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> ENG
+DF %>% filter(`País / Código` == "POL" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> POL
+DF %>% filter(`País / Código` == "POR" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> POR
+DF %>% filter(`País / Código` == "SRB" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> SRB
+DF %>% filter(`País / Código` == "SUI" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> SUI
+DF %>% filter(`País / Código` == "NED" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> NED
+DF %>% filter(`País / Código` == "WAL" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> WAL
+```
+
+```{r echo = FALSE, eval = FALSE}
+table(GER$Posición)
+table(BEL$Posición)
+table(CRO$Posición)
+table(DEN$Posición)
+table(ESP$Posición)
+table(FRA$Posición)
+table(ENG$Posición)
+table(POL$Posición)
+table(POR$Posición)
+table(SRB$Posición)
+table(SUI$Posición)
+table(NED$Posición)
+table(WAL$Posición)
+```
+
+```{r echo = FALSE}
+UEFA = data.frame(Defensas = c(15, 0, 8, 4, 6, 6, 8, 4, 7, 7, 7, 4, 6, 3, 9),
+                 Delanteros = c(15, 0, 1, 5, 5, 7, 5, 7, 6, 4, 4, 5, 6, 6, 3),
+                 Mediocampistas = c(15, 0, 6, 11, 8, 6, 6, 3, 5, 10, 7, 12, 13, 4, 1),
+                 Porteros = c(15, 0, 2, 0, 2, 1, 1, 5, 3, 3, 3, 2, 2, 2, 2),
+                 row.names = c("max", "min", "GER", "BEL", "CRO", "DEN", "ESP", "FRA", "ENG", "POL", "POR", "SRB", "SUI", "NED", "WAL"))
+
+colors_fill = c(scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2),
+                scales::alpha("gray8", 0.2))
+
+colors_line = c(scales::alpha("gray8", 0.2),
+                scales::alpha("gray8" ,   0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2),
+                scales::alpha("gray8" ,  0.2))
+
+radarchart(UEFA,
+           seg = 15,
+           title = "Posiciones en UEFA",
+           pcol = colors_line,
+           pfcol = colors_fill,
+           plwd = 1)
+
+legend(x = 1.75,
+       y = 1.35,
+       legend = rownames(UEFA[-c(1,2),]),
+       bty = "n", pch = 20, col = colors_line, cex = 1, pt.cex = 1)
+```
+Asimismo, en el caso de Europa, parece que los mediocampistas son la posición dominante dentro de las escuadras. Suiza es el país que lidera el vértice del polígono para dicha sección. Además, la distribución de las demás posiciones es similar, ya que el color de la figura se ve bastante concentrado en aquellos vértices.
+
+**AFC**
+```{r echo = FALSE, eval = FALSE}
+DF %>% filter(`País / Código` == "KOR" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> KOR
+
+DF %>% filter(`País / Código` == "IRN" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> IRN
+
+DF %>% filter(`País / Código` == "JPN" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> JPN
+
+DF %>% filter(`País / Código` == "KSA" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> KSA
+
+DF %>% filter(`País / Código` == "AUS" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> AUS
+
+DF %>% filter(`País / Código` == "QAT" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> QAT
+```
+
+```{r echo = FALSE, eval = FALSE}
+table(KOR$Posición)
+table(IRN$Posición)
+table(JPN$Posición)
+table(KSA$Posición)
+table(AUS$Posición)
+table(QAT$Posición)
+```
+
+```{r echo = FALSE}
+AFC = data.frame(Defensas = c(15, 0, 7, 8, 7, 9, 8, 8),
+                 Delanteros = c(15, 0, 4, 4, 10, 4, 2, 9),
+                 Mediocampistas = c(15, 0, 2, 6, 7, 9, 4, 4),
+                 Porteros = c(15, 0, 3, 2, 1, 2, 1, 3),
+                 row.names = c("max", "min", "KOR", "IRN", "JPN", "KSA", "AUS", "QAT"))
+
+colors_fill = c(scales::alpha("gray", 0.1),
+                scales::alpha("gold", 0.1),
+                scales::alpha("tomato", 0.2),
+                scales::alpha("skyblue", 0.2),
+                scales::alpha("green4", 0.1))
+
+colors_line = c(scales::alpha("darkgray", 0.9),
+                scales::alpha("gold", 0.9),
+                scales::alpha("tomato", 0.9),
+                scales::alpha("royalblue", 0.9),
+                scales::alpha("green3", 0.9))
+
+radarchart(AFC,
+           seg = 10,
+           title = "Posiciones en AFC",
+           pcol = colors_line,
+           pfcol = colors_fill,
+           plwd = 2)
+
+legend(x = 1.7,
+       y = 1.35,
+       legend = rownames(AFC[-c(1,2),]),
+       bty = "n", pch = 20, col = colors_line, cex = 1, pt.cex = 3)
+```
+Por otro lado, Catar y Japón tienen la mayor cantidad de delanteros en las figuritas del continente asiático. No obstante, los polígonos de las demás selecciones parecen tener formas parecidas, lo que sugiere que la cantidad de jugadores por posición es similar para todas. Sin embargo, si bien Australia aparenta tener la misma forma que las demás, la cantidad de jugadores es claramente menor.
+
+**CAF**
+```{r echo = FALSE, eval = FALSE}
+DF %>% filter(`País / Código` == "SEN" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> SEN
+
+DF %>% filter(`País / Código` == "GHA" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> GHA
+
+DF %>% filter(`País / Código` == "TUN" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> TUN
+
+DF %>% filter(`País / Código` == "MAR" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> MAR
+
+DF %>% filter(`País / Código` == "CMR" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> CMR
+```
+
+```{r echo = FALSE, eval = FALSE}
+table(SEN$Posición)
+table(GHA$Posición)
+table(TUN$Posición)
+table(MAR$Posición)
+table(CMR$Posición)
+```
+
+```{r echo = FALSE}
+CAF = data.frame(Defensas = c(15, 0, 7, 5, 9, 6, 8),
+                 Delanteros = c(15, 0, 6, 6, 4, 3, 2),
+                 Mediocampistas = c(15, 0, 10, 5, 7, 4, 4),
+                 Porteros = c(15, 0, 0, 3, 1, 0, 1),
+                 row.names = c("max", "min", "SEN", "GHA", "TUN", "MAR", "CMR"))
+
+colors_fill = c(scales::alpha("gray", 0.1),
+                scales::alpha("gold", 0.1),
+                scales::alpha("tomato", 0.2),
+                scales::alpha("skyblue", 0.2),
+                scales::alpha("green4", 0.1))
+
+colors_line = c(scales::alpha("darkgray", 0.9),
+                scales::alpha("gold", 0.9),
+                scales::alpha("tomato", 0.9),
+                scales::alpha("royalblue", 0.9),
+                scales::alpha("green3", 0.9))
+
+radarchart(CAF,
+           seg = 10,
+           title = "Posiciones en CAF",
+           pcol = colors_line,
+           pfcol = colors_fill,
+           plwd = 2)
+
+legend(x = 1,
+       y = 1.35,
+       legend = rownames(CAF[-c(1,2),]),
+       bty = "n", pch = 20, col = colors_line, cex = 1, pt.cex = 3)
+```
+En África, las distribuciones de todos los países son muy similares. Ahora bien, hay un ligero dominio de Ghana en los porteros y de Senegal en los mediocampistas.
+  
+**CONCACAF**
+```{r echo = FALSE, eval = FALSE}
+DF %>% filter(`País / Código` == "USA" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> USA
+
+DF %>% filter(`País / Código` == "CAN" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> CAN
+
+DF %>% filter(`País / Código` == "MEX" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> MEX
+
+DF %>% filter(`País / Código` == "CRC" & `Clase` == "Jugador") %>% select(Posición) %>% data.frame() -> CRC
+```
+
+```{r echo = FALSE, eval = FALSE}
+table(USA$Posición)
+table(CAN$Posición)
+table(MEX$Posición)
+table(CRC$Posición)
+```
+
+```{r echo = FALSE}
+CONCACAF = data.frame(Defensas = c(15, 0, 6, 7, 5, 7),
+                 Delanteros = c(15, 0, 6, 3, 4, 8),
+                 Mediocampistas = c(15, 0, 4, 5, 10, 2),
+                 Porteros = c(15, 0, 2, 2, 1, 1),
+                 row.names = c("max", "min", "USA", "CAN", "MEX", "CRC"))
+
+colors_fill = c(scales::alpha("gray", 0.1),
+                scales::alpha("gold", 0.1),
+                scales::alpha("tomato", 0.2),
+                scales::alpha("skyblue", 0.2),
+                scales::alpha("green4", 0.1))
+
+colors_line = c(scales::alpha("darkgray", 0.9),
+                scales::alpha("gold", 0.9),
+                scales::alpha("tomato", 0.9),
+                scales::alpha("royalblue", 0.9),
+                scales::alpha("green3", 0.9))
+
+radarchart(CONCACAF,
+           seg = 10,
+           title = "Posiciones en CONCACAF",
+           pcol = colors_line,
+           pfcol = colors_fill,
+           plwd = 2)
+
+legend(x = 1,
+       y = 1.35,
+       legend = rownames(CONCACAF[-c(1,2),]),
+       bty = "n", pch = 20, col = colors_line, cex = 1, pt.cex = 3)
+```
+Finalmente, dentro de CONCACAF, México domina claramente la categoría de mediocampistas, mientras que Costa Rica la de delanteros. Para el resto de posiciones, la distribución de frecuencias, aparentemente, es similar.
+
+Por otra parte, se procederá a mostrar el gráfico de barras de las frecuencias países repetidos. Esto servirá para mostrar si existen algunos países más o menos representados que los demás.
+
+```{r}
+barplot(table(DF$`País / Código`), las = 3, main = "Figuritas por paises")
+```
+
+```{r}
+table(DF$`País / Código`)
+```
+
+Dejando de lado a las figuritas _FWC_, se puede notar que los países más repetidos (20 o más veces) son Argentina, Bélgica, Croacia, Dinamarca, Inglaterra, España, Francia, Ghana, Irán, Japón, Arabia Saudita, México, Polonia, Portugal, Catar, Senegal, Serbia, Suiza, Túnez y Uruguay.
+
+Por lo tanto, la media aritmética de la cantidad de países repetidos es:
+```{r}
+round(mean(table(DF$`País / Código`)),2)
+```
+Con una desviación estándar de:
+```{r}
+round(sd(table(DF$`País / Código`)),2)
+```
+Lo cual significa que el coeficiente de variación es el siguiente:
+```{r}
+round(sd(table(DF$`País / Código`)) / mean(table(DF$`País / Código`)),2) 
+```
+Consecuentemente, la media aritmética es un descriptor apropiado para la posición de los datos. Debido a esto, es aceptable decir que, en líneas generales, contamos con 20 figuritas de cada país.
+
+Asimismo, resulta interesante saber la repartición de las figuritas de acuerdo a la posición de los jugadores, una vez hecha la contextualización sobre la composición predeterminada de las escuadras mundialistas. Es posible que ésta sea desigual en este criterio.
+
+Esto nos da una idea prematura de que la distribución de países (y por lo tanto de figuritas individuales) es justa por parte de Panini.
+
+```{r}
+barplot(table(DF$Posición), main = "Figuritas por posición")
+```
+A simple vista, la cantidad de porteros es mucho menor al resto de lugares dentro del terreno de juego. Esto tiene sentido si se toma en cuenta que dentro de cada convocatoria, todas las selecciones llevan consigo entre dos o tres arqueros, usualmente.
+
+No obstante, los descriptores de posición relevantes son los siguientes:
+
+Media:
+```{r}
+round(mean(table(DF$Posición)),2)
+```
+Desviación estándar:
+```{r}
+round(sd(table(DF$Posición)),2)
+```
+Coeficiente de variación:
+```{r}
+round(sd(table(DF$Posición)) / mean(table(DF$Posición)),2)
+```
+
+Por consiguiente, en este caso, la media aritmética no es un descriptor conveniente para la posición, ya que $0.44 > 0.3$.
+
+Entonces, el descriptor de posición más apropiado para esta variable es la mediana:
+
+```{r}
+median(table(DF$Posición))
+```
+Ahora bien, si excluimos a los porteros para solamente analizar a los jugadores de campo, es evidente que los parámetros van a cambiar.
+
+```{r}
+DFL = data.frame(DF[DF$Posición != "Portero", ])
+```
+
+En este caso, el gráfico de barras es el siguiente:
+
+```{r}
+barplot(table(DFL$Posición), main = "Figuritas por posición de campo")
+```
+Así pues, los descriptores son los siguientes:
+
+Media:
+```{r}
+round(median(table(DFL$Posición)),2)
+```
+Desviación estándar:
+```{r}
+round(sd(table(DFL$Posición)),2)
+```
+Coeficiente de variación:
+```{r}
+round(sd(table(DFL$Posición)) / median(table(DFL$Posición)),2)
+```
+De esta forma, el promedio sí es un parámetro adecuado para la descripción de los datos. 
+En consecuencia, queda demostrado que, aunque las proporciones dentro de las convocatorias finales y en las páginas del álbum sean, de todas formas, diferentes para los jugadores de campo, se tiene una cantidad muy similar de figuritas por posición.
+
+Del mismo modo, es relevante verificar si distribuciones como las anteriores cambian dependiendo del origen del sobre. Es posible que el hecho de que la figurita venga de un sobre individual o un paquetón tenga algún efecto.
+
+```{r}
+PQT = data.frame(DF[DF$Origen == "Paquete", ])
+PQTN = data.frame(DF[DF$Origen == "Paqueton", ])
+```
+
+Países repetidos en `Origen`= Paquete:
+```{r}
+barplot(table(PQT$País...Código), las = 3, main = "Figuritas por países en paquetes")
+```
+Evidentemente, la distribución de las frecuencias ha variado, haciéndose más irregular. De hecho, el rango de la variable es:
+
+```{r}
+range(table(PQT$País...Código))
+```
+Lo cual indica que hay una diferencia grande entre el valor mínimo y el máximo. Esto dificulta la ubicación de los datos utilizando la media, dado que es evidente que el coeficiente de variación no va a ser lo suficientemente pequeño. Por lo tanto, el mejor método de ubicación de los datos es la mediana.
+
+```{r}
+median(table(PQT$País...Código))
+```
+```{r}
+round(sd(table(PQT$País...Código)) / mean(table(PQT$País...Código)),2)
+#Coeficiente de variación de repetidas por país en paquetes.
+```
+
+Por otra parte, al analizar las figuritas provenientes del paquetón, el gráfico de barras resultante es el siguiente:
+
+```{r}
+barplot(table(PQTN$País...Código), las = 3, main = "Figuritas por paises en paquetón")
+```
+A diferencia de las figuritas provenientes de paquetes, esta distribución parece ser más regular, a excepción de las _FWC_.
+
+En efecto, la media aritmética es la siguiente:
+```{r}
+round(mean(table(PQTN$País...Código)),2)
+```
+El coeficiente de variación es:
+```{r}
+round(sd(table(PQTN$País...Código)) / mean(table(PQTN$País...Código)),2)
+```
+Por lo que el descriptor anterior sí es adecuado.
+
+No obstante, con la intención de solo analizar las figuritas repetidas por naciones reales, se generará una tabla excluyendo a las figuritas _FWC_.
+
+```{r}
+nFWC = data.frame(PQTN[PQTN$País...Código != "FWC", ])
+```
+
+Consecuentemente, la nueva distribución es la siguiente:
+
+```{r}
+barplot(table(nFWC$País...Código), las = 3, main = "Figuritas por país en paquetón sin FWC")
+```
+```{r}
+round(mean(table(nFWC$País...Código)),2)
+```
+Por ello, se puede afirmar que, de las figuritas salidas del paquetón, se tiene, en promedio, 11.56 de ellas por cada país real. Asimismo, la distribución de las repetidas por país del paquetón es más regular y varía menos que la distribución de las repetidas por país de los paquetes, ya que $0.22 < 0.32$ (comparación de coeficientes de variación).
+
+Del mismo modo se revisarán las distribuciones de frecuencia de figuritas por posición dependiendo del origen de las mismas.
+
+En el caso de las figuritas salidas de paquetes, el gráfico de barras es el siguiente:
+```{r}
+barplot(table(PQT$Posición), main = "Por posiciones en paquetes", ylim = c(0,100))
+```
+De modo que, el promedio de cantidad de figuritas de la misma posición que salieron de sobres individuales es:
+```{r}
+mean(table(PQT$Posición))
+```
+Mientras que el coeficiente de variación es:
+```{r}
+round(sd(table(PQT$Posición)) / mean(table(PQT$Posición)),2)
+```
+Al igual que el caso anterior, los porteros provocan que la variación de los datos sea excesiva debido a su escasez natural, por lo que se procederá a excluirlos para solamente analizar la distribución de los jugadores de campo.
+
+```{r}
+PQTC = data.frame(PQT[PQT$Posición != "Portero", ])
+```
+
+```{r}
+barplot(table(PQTC$Posición), main = "Por posiciones de campo en paquetes", ylim = c(0,100))
+```
+Entonces, ahora la media es `r round(mean(table(PQTC$Posición)), 2)`, con un coeficiente de variación de `r round(sd(table(PQTC$Posición)) / mean(table(PQTC$Posición)),2)`, por lo que es factible afirmar que la cantidad de jugadores de la misma posición es parecida para las figuritas que salieron de los paquetes.
+
+Similar mente, para el caso del paquetón, se mostrará el gráfico de barras para jugadores de campo.
+
+```{r}
+PQTNC = data.frame(PQTN[PQTN$Posición != "Portero", ])
+```
+
+```{r}
+barplot(table(PQTNC$Posición), main = "Posiciones de campo en paquetón")
+```
+Por lo tanto, la nueva media de este gráfico es `r round(mean(table(PQTNC$Posición)),2)` con un coeficiente de variación de `r round(sd(table(PQTNC$Posición)) / mean(table(PQTNC$Posición)),2)`. Es decir, el promedio es adecuado para describir la posición de esta variable, ya que, es factible afirmar que que la variación no es muy alta debido a que el coeficiente de variación es pequeño.
+
+
+### Análisis probabilístico
+
+En este punto se busca demostrar la existencia de rarezas en las figuras del álbum, si bien teóricamente todas las figuras tienen las mismas posibilidades de aparecer, usaremos los datos recabados y se plantearan modelos mediante los cuales podamos ver algún indicio de rareza.
+
+#### **Distribución uniforme Discreta**
+
+Teóricamente todas las figuras tienen las mismas posibilidades de salir en un sobre, y en un mismo sobre no pueden salir figuras repetidas. Visto este punto entonces, podemos decir que si los agrupamos mediante clases y queremos calcular la probabilidad de obtener una figura de una determinada clase, la probabilidad de obtener dicha figura sera la suma de la probabilidad de una figura tantas veces como una clase  tenga elementos.
+
+primero calcularemos la función de probabilidad de una variable que seria:
+
+$$RanX = \left\lbrace0,1,2,3,4,5,6…….,670\right\rbrace\rightarrow{Misma\:probabilidad}\: P(X = x) = 1/n = 1/670$$
+
+$$\mathbb{P}(670\geq X) = \sum_{i=1}^{670} \mathbb{P}(X=i) = \sum_{i=1}^{670} 1/670 = 1$$
+Ahora implementaremos dichas probabilidades en muestra muestra, para ellos utilizaremos todos nuestras clases menos la clase leyenda, pues esta es un caso especial, y no afecta en la probabilidad del resto de figuras.
+```{r}
+GG = data.frame(DF[DF$Clase != "Leyenda", ])
+GG
+```
+Comenzamos obteniendo la cantidad de figuras por clases que se encontraron luego de obtener 685 figuras:
+calculamos el número de figuras que son de la clase pelota, que es igual a 1.
+```{r}
+AC = data.frame(GG[GG$Clase != "Pelota", ])
+AC
+```
+Calculamos el número de Figuras de estadios que salió, que es 9.
+
+```{r}
+ES = data.frame(GG[GG$Clase != "Estadio", ])
+ES
+```
+Calculamos el número de figuras de escudos que salio, que es 30
+
+```{r}
+EC = data.frame(GG[GG$Clase != "Escudo", ])
+EC
+```
+Calculamos el número de figuras de equipos que salio, que es 10
+
+```{r}
+EQ = data.frame(GG[GG$Clase != "Equipo", ])
+EQ
+```
+
+Calculamos el numero de figuras de logos que salio, que es 9
+
+```{r}
+LO = data.frame(GG[GG$Clase != "Logo", ])
+LO
+```
+
+Calculamos el número de figuras de Jugadores que salio, que es 626
+
+```{r}
+EQ = data.frame(GG[GG$Clase != "Jugador", ])
+EQ
+```
+
+
+con estos datos realizamos una gráfica para observar como es que esta la distribución entre los datos obtenidos:
+
+```{r}
+  barplot(table(GG$Clase), las = 2, main = "observaciones")
+```
+
+según esto se puede observar como hay una gran diferencia con respecto a las figuras de jugadores, y tiene sentido pues los jugadores representan la mayor parte del álbum, con los datos obtenidos compararemos con lo que teóricamente se debería obtener con respecto a este modelo.
+
+*Probabilidades obtenidas Teóricamente*
+
+Pelota
+
+$$\mathbb{P}(1\geq X) = \sum_{i=1}^{1} \mathbb{P}(X=i) = \sum_{i=1}^{1} 1/670 = 1/670$$
+Equipo
+$$\mathbb{P}(12\geq X) = \sum_{i=1}^{12} \mathbb{P}(X=i) = \sum_{i=1}^{12} 1/670 = 12/670$$
+Escudo
+$$\mathbb{P}(32\geq X) = \sum_{i=1}^{32} \mathbb{P}(X=i) = \sum_{i=1}^{32} 1/670 = 32/670$$
+Estadio
+$$\mathbb{P}(10\geq X) = \sum_{i=1}^{10} \mathbb{P}(X=i) = \sum_{i=1}^{10} 1/670 = 10/670$$
+Jugador
+$$\mathbb{P}(576\geq X) = \sum_{i=1}^{576} \mathbb{P}(X=i) = \sum_{i=1}^{576} 1/670 = 576/670$$
+
+Logo
+$$\mathbb{P}(7\geq X) = \sum_{i=1}^{7} \mathbb{P}(X=i) = \sum_{i=1}^{7} 1/670 = 7/670$$
+
+*Probabilidades obtenidas Experimentalmente*
+
+Pelota
+$$\mathbb{P}(1\geq X) = \sum_{i=1}^{1} \mathbb{P}(X=i) = \sum_{i=1}^{1} 1/685 = 1/685$$
+Equipo
+$$\mathbb{P}(10\geq X) = \sum_{i=1}^{10} \mathbb{P}(X=i) = \sum_{i=1}^{10} 1/685 = 10/685$$
+Escudo
+$$\mathbb{P}(30\geq X) = \sum_{i=1}^{30} \mathbb{P}(X=i) = \sum_{i=1}^{30} 1/685 = 30/685$$
+Estadio
+$$\mathbb{P}(9\geq X) = \sum_{i=1}^{9} \mathbb{P}(X=i) = \sum_{i=1}^{9} 1/685 = 9/685$$
+Jugador
+$$\mathbb{P}(626\geq X) = \sum_{i=1}^{626} \mathbb{P}(X=i) = \sum_{i=1}^{626} 1/685 = 626/685$$
+
+Logo
+$$\mathbb{P}(9\geq X) = \sum_{i=1}^{9} \mathbb{P}(X=i) = \sum_{i=1}^{9} 1/685 = 9/685$$
+
+Aparentemente se puede observar que son valores cercanos, y se podría afirmar que el modelo de distribución uniforme discreta, se aplica para este caso, si bien la muestra no es lo suficientemente grande para ver algo mas especifico, nos podemos arriesgar a decir que es válido, este modelo y que en teoría todas las figuras tienen las misma posibilidad de salir.
+podemos reforzar esta idea con las siguientes gráficas y dar la razón a panini, el cual asegura una distribución homogénea de las figuras y una posibilidad igualitaria entre todas. En la gráfica se aprecia los datos de diversos paquetes comprados en diversos lugares, para este caso se planteó la idea de si es cierto que hay una distribución irregular de las figuras entonces si se compra de diversos lugares  alejados, se puede llegar a obtener figuras en menor cantidad repetidas, es decir que se obtendría mejores resultados:
+
+```{r}
+barplot(table(PQT$País...Código), las = 3, main = "Países repetidos en paquetes")
+```
+
+La gráfica contradice ese punto pues observamos que hay una irregularidad y no se puede rescatar que se haya obtenido figuras por igual de cada país, es más parece que según la gráfica hay países que son más fácil de completar pues tocan más seguidos. Pero la siguiente gráfica da la razón a panini, comprando un paquete se puede observar como la distribución entre países y figuras es más homogénea, es decir que te dan figuras de países por igual, donde prácticamente la media por país es de "15", y se aprecia que se puede dar la razón a panini pues al comprar por paquetes se podría completar más fácil pues la distribución de figuras reduce la posibilidad de encontrar repetidas:
+
+```{r}
+barplot(table(PQTN$País...Código), las = 3, main = "Repetidas por país de paquete")
+```
+Según los resultados los únicos que notamos diferentes o especiales las figuras que nos tocan o salen somos los que lo coleccionamos, pues el sentimiento de que te toque un Messi o un CR7 no es el mismo de a tocarte algún qatarí, y por ende la razón la tendría panini y verdaderamente se cumple que las figuras tienen la misma posibilidad de salirte.
+
+#### **Hipergeométrica**
+
+Debido a la naturaleza del estudio, se concluyó que el llenado del álbum se puede modelar con una variable aleatoria discreta hipergeométrica. Esto es posible porque cada vez que aparece de un sobre una figura faltante en el álbum, entonces la cantidad de figuritas necesarias para completar el álbum disminuye. Es decir, se incurre a una extracción **sin reemplazo**. Para ello, es necesario asumir que los eventos de aparición de todas las figuritas son equiprobables.
+
+Por lo tanto, los parámetros del modelo teórico son los siguientes:
+
+$$X\sim\mathsf{Hiper}(m, n, k)$$
+$m = 670$ -> Cantidad de figuritas disponibles en álbum del mundial Catar 2022.
+
+$n = 181$ -> Cantidad de figuritas faltantes para completar el álbum. Valor sujeto a la base de datos actual.
+
+$k = 5N$ -> Cantidad de figuritas obtenidas o compradas. $N$ representa la cantidad de sobres conseguidos.
+
+
+En el caso de que sólo se compre un paquete:
+```{r}
+m = 670
+n = m - length(unique(DF$Identificador))
+k = 5
+
+x_hyper = seq(0, k, by = 1)
+y_hyper = dhyper(x_hyper, n, m-n, k)
+
+plot(x_hyper, y_hyper, main = "Probabilidad de obtener X figuritas nuevas en un sobre", xlab = "X = cantidad de figuritas nuevas", ylab = "Probabilidad de X", type = "h") 
+```
+```{r}
+round(summary(y_hyper),2)
+```
+
+Así pues, la gráfica muestra que el evento más probable es que aparezca una sola figurita nueva en el siguiente paquete adquirido. Específicamente, esta probabilidad es de `r round(dhyper(2, n, m-n, k),2)`. Asimismo la curva es decreciente, tal como lo sugiere la lógica, y está sesgada hacia la derecha.
+
+Ahora bien, resulta interesante analizar el comportamiento de la distribución cuando se obtienen más sobres. Es decir, $k$ aumenta.
+
+```{r echo = FALSE}
+m = 670
+n = m - length(unique(DF$Identificador))
+k2 = 100
+
+x2_hyper = seq(0, k2, by = 1)
+y2_hyper = dhyper(x2_hyper, n, m-n, k2)
+
+plot(x2_hyper, y2_hyper, main = "Probabilidad de obtener X figuritas nuevas en 20 sobres", xlab = "X = cantidad de figuritas nuevas", ylab = "Probabilidad de X", type = "h") 
+```
+```{r}
+round(summary(y2_hyper),2)
+```
+
+```{r echo = FALSE}
+m = 670
+n = m - length(unique(DF$Identificador))
+k3 = 200
+
+x3_hyper = seq(0, k3, by = 1)
+y3_hyper = dhyper(x3_hyper, n, m-n, k3)
+
+plot(x3_hyper, y3_hyper, main = "Probabilidad de obtener X figuritas nuevas en 40 sobres", xlab = "X = cantidad de figuritas nuevas", ylab = "Probabilidad de X", type = "h") 
+```
+```{r}
+round(summary(y3_hyper),2)
+```
+Como se puede apreciar, a medida que el valor de sobres comprados aumenta, la gráfica se estrecha debido a que tiene que distribuir la densidad de probabilidad entre más valores. Por ello, el valor máximo y la media se reducen, tal como se mostró en los resúmenes debajo de las gráficas.
+
+Por consiguiente, definida la esperanza de una distribución hipergeométrica como:
+$$E(X) = k \frac{n}{m}$$ 
+Se puede concluir que la cantidad ideal de sobres que se deben adquirir para conseguir la cantidad faltante de figuritas es `r 181 * m / n`.
+
+#### **Geométrica**
+
+Del mismo modo, se puede modelar el crecimiento de nuestra colección de figuritas leyenda que no forman parte del álbum original. En este sentido, el único método disponible para obtener la probabilidad individual del evento que consiste en la aparición de una figurita leyenda es a través de la base de datos.
+
+Por lo tanto, para obtener la cantidad total de sobres adquiridos se hace lo siguiente:
+```{r}
+nrow(DF[DF$`Extra sticker` == FALSE, ]) / 5
+```
+Entonces, la probabilidad de que salga una figura leyenda, a partir de nuestra base de datos es:
+```{r}
+pgeom = round((nrow(DF[DF$`Extra sticker` == TRUE,])) / (nrow(DF[DF$`Extra sticker` == FALSE, ]) / 5),2)
+
+pgeom
+
+pgeo = (nrow(DF[DF$`Extra sticker` == TRUE,])) / (nrow(DF[DF$`Extra sticker` == FALSE, ]) / 5)
+```
+Por consiguiente, esta gráfica muestra el comportamiento de la probabilidad de obtener la siguiente figurita leyenda si se compran $X$ paquetes.
+
+$$X\sim\mathsf{Geo}(p)$$
+```{r}
+x_geo = seq(1, 100, by = 1)
+y_geo = dgeom(x_geo-1, pgeom)
+
+plot(x_geo, y_geo, main = "Probabilidad de obtener una leyenda nueva", xlab = "X = cantidad de paquetes obtenidos", ylab = "Probabilidad de X", type = "h") 
+```
+Así pues, a partir de la definición de la esperanza:
+$$E(X) = \frac{1}{p}$$ 
+Idealmente, se necesitarían comprar `r 1/pgeo` sobres para ver a la siguiente leyenda.
+
+#### **Binomial**
+
+Para comenzar, es necesario simular el experimento realizado para este proyecto múltiples veces. El experimento consistió en abrir varios sobres y anotar su contenido.
+
+```{r}
+Fig <- c(rep(1:32, 19), rep(0, 670 - 19*32))
+
+M <- replicate(1000, table(replicate(137, sample(Fig, 5))))
+
+```
+
+La pieza de código anterior repite 1000 veces la acción de comprar 137 sobres de 5 figuritas cada uno, como se mencionó anteriormente. Esto se hace con la intención de minimizar las coincidencias despreciables producto de la aleatoriedad.
+
+Por ello, la distribución de la probabilidad de que aparezcan $X$ figuritas de un país cualquiera es:
+
+```{r}
+a = sample(1:32, 1)
+hist(M[a, ], breaks = 30, prob = TRUE, main = "Probabilidad de que salgan X figuritas de un país aleatorio", xlab = "X = cantidad de figuritas")
+lines(density(M[a, ]), col = "gray35", lwd = 3)
+```
+Entonces, comparando con la información de la base de datos, podemos ver que la cantidad media de figuritas por país es:
+
+```{r}
+round(mean(table(DF$`País / Código`), na.rm = TRUE),2)
+```
+Lo cual coincide con uno de los puntos más probables de la gráfica, la cual arroja que hay una probabilidad más alta de obtener 20 figuras por país, luego de realizar el experimento de abrir 137 sobres de figura.
+
+Asimismo, se determinó que este modelo se puede ajustar a una distribución binomial por las siguientes razones.
+El modelo está planteado en base a dos posibles resultados, esto debido a que el problema no acepta otra respuesta, además de que cada respuesta por independiente posee una probabilidad igual que el resto de respuesta. Donde:
+
+- Éxito: está definido como toco una figura del país VVV.
+- Fracaso: no toca una figura del país VVV.
+
+Ya está comprobando que efectivamente en nuestros resultados se puede obtener una media similar a lo teórico y habiendo modelado la gráfica de posibilidades para nuestro modelo podemos calculamos la probabilidad de que salga figuras del país 20 luego de abrir 138 sobres:
+
+```{r}
+probabilidad_b <- dbinom(20, size=685, prob=19/670)
+probabilidad_b
+```
+
+calculamos la esperanza
+```{r}
+Esperanza <- 690*probabilidad_b 
+Esperanza
+```
+
+calculamos la varianza
+```{r}
+Varianza <- 690*probabilidad_b*(1-probabilidad_b)
+Varianza
+```
+
+calculamos la desviación estándar
+```{r}
+dv <- sqrt(Varianza)
+dv
+```
+
+Comparando los datos teóricos con los datos experimentales, se puede afirmar que el modelo binomial cumple con nuestro planteamiento.
+
+### Conclusiones
+
+Tras realizar el experimento se puede observar una respuesta afirmativa para lo planteado por Panini, además de un sesgo claro por el tipo de figura que representa un jugador más que por su rareza. Es cierto que en diferentes circunstancias es más difícil obtener una figura, pero no es por ser más rara. Si nos basamos en la experiencia realizada, la probabilidad de una sola figura es muy baja, y para llegar a tener la certeza de obtenerla es necesario realizar muchas más veces el experimento. Asimismo, se observó cómo la cantidad de figuras por país era más uniforme a medida que realizábamos el experimento más veces, lo que concurrió en que sea más fácil decir que tiene un valor promedio de figuras por país. 
+
+<div/>
+

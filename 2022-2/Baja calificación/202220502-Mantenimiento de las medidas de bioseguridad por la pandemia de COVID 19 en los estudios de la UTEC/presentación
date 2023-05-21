@@ -1,0 +1,860 @@
+---
+title: "PG2"
+author: "Grupo 2"
+date: "2022-11-25"
+output:
+  ioslides_presentation: default
+  slidy_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## DIAGRAMA DE GANTT
+
+<center>
+
+<img src="logo_utec.png" alt="60" width="200"/>
+
+</center>
+
+<center>
+## RELEVANCIA
+
+Ahora que hemos vuelto a la presencialidad , es de gran  importancia conocer cuales son las medidas de bioseguridad que los estudiantes de la UTEC siguen manteniendo dentro de las instalaciones de la universidad,cuales se están dejando de practicar paulatinamente y cuales ya no se realizan, teniendo en cuenta que algunas ya son opcionales según decreto supremo n° 108-2022-PCM  ,así que la decisión de garantizar un ambiente estudiantil seguro es responsabilidad de todos .
+
+**Objetivo general:**
+Identificar las medidas de bioseguridad que los estudiantes de la UTEC practican, mediante un análisis estadístico para medir la frecuencia en que lo realizan
+
+**Objetivos específicos :**
+-Realizar una estimación de cuantas medidas de bioseguridad siguen practicando los estudiantes de la UTEC.
+-Conocer el grado de seguridad de de los estudiantes respecto a la prevención del COVID-19 en los espacios dentro de la universidad.
+-Utilizar descriptores estadísticos para determinar de manera precisa la relación entre variables.
+
+
+## DATOS
+
+
+Para la realización de este trabajo estadístico recolectamos nuestros datos mediante una encuesta creada en google form , el cual contaba con preguntas puntuales relacionadas a las variables, ademas la mayoría fueron con opciones para evitar que se ingresen datos erróneos o atípicos y se realizara más rápido.
+
+Para tener un mayor alcance cada uno de los integrantes de este grupo salimos a encuestar en puntos concurridos  de la universidad y compartimos nuestro link por grupos masivos de whatsap y Telegram en la que se encontraban estudiantes de la UTEC, además par dar un incentivo decidimos realizar un sorteo dirigido a todos los que llenaran la encuesta.
+## Población ,Muestra, Muestreo
+**Población:**
+
+Nuestra población de estudio fueron los estudiantes de pregrado de la Universidad de Ingeniería y Tecnología (UTEC) de todas las carreras y ciclos.
+
+**Muestra:**
+
+El tamaño de nuestra muestra fue de 211 observaciones
+
+**Muestreo:**
+
+Nuestro muestreo es de tipo probabilístico "Aleatorio simple" ya que fue seleccionada  totalmente al azar, ademas confiamos en que las respuestas brindadas fueron con sinceridad.
+
+```{r}
+library(readr)
+library(dplyr)
+```
+Cargamos librerías adicionales
+```{r}
+library(stringr)
+library(ggplot2)
+library(stringr)
+library (FinCal)
+library (hexbin)
+```
+
+Ahora que las librerías estén llamadas, estás nos ayudaran a poder leer nuestra tabla de datos, a esta tabla que será leída la llamaremos DB ---> que significará datos bioseguridad
+
+```{r}
+DB <- read_csv(file = "Prueba19.csv")
+```
+Una vez incorporada la tabla y asignada al Rstudio dentro de nuestra variable la llamamos, Para un mejor panorama tambien usaremos `head` y `tail` para poder observar las 6 y ultimas filas de nuestra tabla.
+```{r}
+DB
+```
+```{r}
+head(DB)#Está función nos ayudará para visualizar las 6 primeras filas
+tail(DB)#Está función nos ayudará para visualizar las 6 ultimas filas
+```
+Usaremos `ncol` que sirve para ver el numero de variables (columnas) y `nrow` para conocer las observaciones(la cantidad de filas)
+```{r}
+ncol(DB)
+```
+```{r}
+nrow(DB)
+```
+Observamos que la cantidad de **variables** es 19 de los cuales tendremos que revisar si todas son significativas para nuestro estudio estadístico, de lo contrario tendremos que eliminarlas. Por otro lado tenemos 211 observaciones.
+
+Usando `names` conoceremos dichas variables, Ahora que tenemos nuestras variables a la vista, existen variables que no son son relevantes para nuestro estudio estadístico, entonces las eliminaremos, por ejemplo: `Marca temporal` , `Dirección de correo electrónico` y `Nombres y apellidos`.
+```{r}
+names(DB)
+```
+Para poder descartar las variables mencionadas anteriormente usaremos `selec` y escojemos el rango de variables descartadas en este caso por ser contiguas, estás serán almacenadas en otra variable llamada **DA**.
+```{r}
+select(DB,-1:-3)->DA
+DA
+```
+
+Observamos que tenemos 16 variables significativas para el estudio estadístico, pero con los nombres de estás no tan manejables. Ahora lo que haremos es renombrarlas, Por ejemplo `¿En qué ciclo te encuentras actualmente?` podemos cambiarlo a `Ciclo`.
+
+**Renombramos** las variables para facilitar el uso de estas mediante `rename`, estás nuevas variables serán guardadas en **DDHS** .
+
+VARIABLES:
+
+ - Ciclo = '¿En qué ciclo te encuentras actualmente?'
+ 
+ - Medidas='¿Qué medidas bioseguridad usas para evitar contagiarte de Covid - 19 dentro de UTEC?', Alcohol='¿Llevas alcohol en gel al salir?
+', 
+ - Lavado='Cantidad de veces que se lava las manos al día (Ej: 4)', 
+ 
+ - Mascarilla='¿Con qué frecuencia sueles desechar tu mascarilla a la semana?', Dispensadores='Cantidad de veces al día que utiliza   - los dispensadores de alcohol en gel ubicado en los distintos espacios de la UTEC', 
+ - Quitarte='¿Sueles quitarte la mascarilla dentro del campus? Recuerda que ahora es opcional.', Dosis= '¿Cuántas dosis de la vacuna contra el Covid-19 tienes?\nhttps://carnetvacunacion.minsa.gob.pe/#/auth (Mediante este link puedes acceder a tu carnet de vacunación)\n', 
+Contagiado='¿Te has contagiado de COVID-19 anteriormente?', 
+Num_covid='¿Cuántas veces has tenido Covid-19? (Comprobado mediante prueba)', 
+Ventilada='Durante tus clases presenciales ¿Suelen tener el aula ventilada?', Num_medidas='¿Cuántas medidas de bioseguridad encontraste en la universidad (UTEC) ?', Riesgo='¿Consideras que dentro de la universidad hay espacios de riesgo de contagio?', Espacios='¿Qué espacios consideras que son propensos a contagios?' )->DDHS
+
+```{r}
+rename(DA,Ciclo = '¿En qué ciclo te encuentras actualmente?', Medidas='¿Qué medidas bioseguridad usas para evitar contagiarte de Covid - 19 dentro de UTEC?', Alcohol='¿Llevas alcohol en gel al salir?
+', Lavado='Cantidad de veces que se lava las manos al día (Ej: 4)', Mascarilla='¿Con qué frecuencia sueles desechar tu mascarilla a la semana?', Dispensadores='Cantidad de veces al día que utiliza los dispensadores de alcohol en gel ubicado en los distintos espacios de la UTEC', Quitarte='¿Sueles quitarte la mascarilla dentro del campus? Recuerda que ahora es opcional.', Dosis= '¿Cuántas dosis de la vacuna contra el Covid-19 tienes?\nhttps://carnetvacunacion.minsa.gob.pe/#/auth (Mediante este link puedes acceder a tu carnet de vacunación)\n', Contagiado='¿Te has contagiado de COVID-19 anteriormente?', Num_covid='¿Cuántas veces has tenido Covid-19? (Comprobado mediante prueba)', Ventilada='Durante tus clases presenciales ¿Suelen tener el aula ventilada?', Num_medidas='¿Cuántas medidas de bioseguridad encontraste en la universidad (UTEC) ?', Riesgo='¿Consideras que dentro de la universidad hay espacios de riesgo de contagio?', Espacios='¿Qué espacios consideras que son propensos a contagios?',Tiempo='¿Que tiempo demoras lavandote las manos?' )->DDHS
+
+DDHS
+```
+### DataFrame(implementacion y descarte de variables)
+
+Una vez llamamos a nuestra nueva y actualizada data frame (DDHS) se aprecia el cambio de variables correctamente.
+
+Para categorizar  nuestras variables nos podemos apoyar mediante funciones de **R** como `str`, luego a `spec`, incluso con lineas de código.
+
+```{r}
+str(DDHS)
+```
+```{r}
+unique(DDHS$Num_medidas)
+unique(DDHS$Alcohol)
+unique(DDHS$Quitarte)
+```
+
+```{r}
+spec(DDHS)
+```
+
+
+
+```{r}
+tipos =  DDHS%>% sapply(class) %>% as.data.frame() %>% rename(tipo = 1)
+tipos
+```
+Seleccionamos las columnas tipo factor .Un factor es una variable categórica con número finito de valores o niveles
+```{r}
+numeCol <- c("Edad", "Lavado", "Mascarilla", "Dispensadores", "Dosis", "Num_covid", "Num_medidas","Tiempo")
+facCol <- names(DDHS)[!names(DDHS) %in% numeCol]
+DDHS[facCol] <- lapply(DDHS[facCol],FUN =factor)
+str(DDHS)
+```
+```{r}
+numéricas <- length(select_if(DDHS, is.numeric)) #cantidad de variables numéricas (length mide la cantidad de un vector)
+numéricas
+```
+```{r}
+categóricas <-length(DDHS)-numéricas
+categóricas
+```
+
+Ahora que nuestras variables están categorizadas y renombradas buscaremos si existen datos faltantes en nuestro data frame(*DDHS*), esto mediante  `sum` y `is.na`.
+```{r}
+sum(is.na(DDHS))
+```
+
+```{r}
+summary(DDHS)
+```
+
+Observamos que tenemos **81** datos faltantes
+
+Ahora si queremos saber la cantidad de datos incompletos y completos lo podemos hacer mediante `complete.cases` y su respectiva negación.
+
+```{r}
+datos_c <- sum(complete.cases(DDHS))
+datos_i <- sum(!complete.cases(DDHS))
+datos_c
+datos_i
+```
+### Ciclo
+
+```{r}
+table(DDHS$Ciclo)
+```
+Como podemos apreciar los ciclos están desordenados, no existen datos atípicos ni tampoco datos faltantes. Solo necesitaríamos el orden.
+
+```{r}
+table(factor(DDHS$Ciclo, levels = c("Primer ciclo", "Segundo ciclo", "Tercer ciclo", "Cuarto ciclo", "Quinto ciclo", "Sexto ciclo", "Séptimo ciclo", "Octavo ciclo", "Noveno ciclo", "Décimo ciclo"), ordered = TRUE))
+
+```
+Ya tenemos ordenado nuestros ciclos.
+
+### Carrera
+
+```{r}
+table(DDHS$Carrera)
+```
+En nuestra encuesta existía la opcion de marcar tu carrera, por ende no existe respuestas propensas al mal formato o diferentes caracteres. 
+
+
+### Edad
+
+```{r}
+table(DDHS$Edad)
+```
+Si  queremos revisar la existencia de datos faltantes...
+```{r}
+sum(is.na(DDHS$Edad))
+```
+Tenemos 0 datos faltantes y con edades que corresponden de cierta manera o no se prestan como **Datos Atípicos**, esta explicación se vera de mejor manera en el diagrama de Caja y bigotes en el proximo slide.
+
+
+
+### Alcohol
+
+Como tenemos valores numerarios que representan frecuencia de uso de alcohol en gel, sería conveniente describirla de mejor manera literalmente.
+
+```{r}
+table(DDHS$Alcohol)
+```
+Esta limpieza es **AGRESIVA**.
+
+Veamos una limpieza menos agresiva (más elucubrativa)
+
+Revisen las funciones `grep` y `gsub`.
+
+```{r}
+? gsub
+
+```
+
+
+```{r}
+? grep
+```
+
+
+```{r}
+DDHS$Alcohol <- gsub(1, "Nunca", DDHS$Alcohol) 
+DDHS$Alcohol <- gsub(2, "A veces", DDHS$Alcohol) 
+DDHS$Alcohol <- gsub(3, "Siempre", DDHS$Alcohol) 
+```
+```{r}
+DDHS$Alcohol
+```
+Ahora ya están correctamente descritas.
+
+
+
+### Lavado
+
+```{r}
+table(DDHS$Lavado)
+```
+De la tabla de datos se observa que existen datos donde personas se lavan la mano con frecuencias fuera de lo común, podríamos considerarlo que a partir de 20 veces al día se vuelve fuera de lo común, pero ¿Existirá en sí personas que se laven la mano hasta 58 veces por día?, la respuesta de cierta manera tiene algo de veracidad, pues poniéndonos en el peor caso es que exista personas con **TOC** (Trastorno obsesivo Compulsivo), pues este tipo de personas se lavan la mano hasta más de 100 veces al día. 
+
+### Mascarilla - ¿Con qué frecuencia sueles desechar tu mascarilla a la semana?
+
+```{r}
+table(DDHS$Mascarilla)
+```
+La base de datos para la variable `Mascarilla` se encuentra conforme y no encontramos nada fuera de la realidad.
+
+
+###  Dispensadores - Cantidad de veces al día que utiliza - los dispensadores de alcohol en gel ubicado en los distintos espacios de la UTEC
+```{r}
+table(DDHS$Dispensadores)
+```
+Los datos brindados por parte de los encuestados **no** se prestan para posibles malas interpretaciones, luego en el análisis descriptivo observaremos que en el diagrama de cajas las edades no están tan dispersas.
+
+
+### Quitarte - ¿Sueles quitarte la mascarilla dentro del campus? Recuerda que ahora es opcional
+
+```{r}
+table(DDHS$Quitarte)
+```
+Observamos que existen valores numéricos, lo cual no es cierto pues estás son categoricas dado que representan intensidad, entonceslo que haremos es darle un formato literal para su mejor interpretacion gráfico un proximo gráfico. 
+
+```{r}
+DDHS$Quitarte <- gsub(1, "Nunca", DDHS$Quitarte) 
+DDHS$Quitarte <- gsub(2, "A veces", DDHS$Quitarte) 
+DDHS$Quitarte <- gsub(3, "Siempre", DDHS$Quitarte) 
+```
+
+## VARIABLES
+
+
++---------------------------------+--------------------+-------------------------------+
+|VARIABLE                         | tipo               |restricción                    |
+|                                 |                    |                               |
++---------------------------------+--------------------+-------------------------------+
+|Ciclo                            | categórica-ordinal |Solo se puede escoger  un ciclo|
+|                                 |                    |del 1 al 10.                   |
++---------------------------------+--------------------+-------------------------------+
+|Carrera                          |categórica-nominal  |Solo se puede elegir una de las|
+|                                 |                    |12 opciones.                   |
++---------------------------------+--------------------+-------------------------------+
+|Edad                             |numérica-discreta   |entero no negativo mayor o     |
+|                                 |                    |igual a 15                     |
++---------------------------------+--------------------+-------------------------------+
+|Medidas                          |categórica-nominal  |No hubo restricciones          |
+|                                 |                    |                               |
++---------------------------------+--------------------+-------------------------------+
+|Alcohol                          |categórica-nominal  |Escoger la frecuencia de uso   |
+|                                 |                    |entre 1 y 3.                   |
++---------------------------------+--------------------+-------------------------------+
+|Lavado                           |numérica-discreta   |Números enteros y positivos.   |
+|                                 |                    |                               |
++---------------------------------+--------------------+-------------------------------+
+|Mascarilla                       |numérica -discreta  |Escoger la frecuencia de uso   |
+|                                 |                    |entre 1 y 7.                   |
++---------------------------------+--------------------+-------------------------------+
+|Dispensadores                    |numérica-discreta   |Escoger entre 0,1,2 o          |
+|                                 |                    |más de dos veces.              |
++---------------------------------+--------------------+-------------------------------+
+
+
+## VARIABLES
+
++---------------------------------+--------------------+-------------------------------+
+|Quitarte                         |categórica-nominal  |Frecuencia entre 1 y 3.        |
+|                                 |                    |                               |
++---------------------------------+--------------------+-------------------------------+
+|Dosis                            | numérica-discreta  |Número entero entre el 0 y 4.  |
+|                                 |                    |                               |
++---------------------------------+--------------------+-------------------------------+
+|Contagio                         | categórica-nominal |Escoger solo entre si, no y    |
+|                                 |                    |no lo  sé.                     |
++---------------------------------+--------------------+-------------------------------+
+|Num_Covid                        | numérica-discreta  |Valores entre 0 y 3.           |
+|                                 |                    |                               |
++---------------------------------+--------------------+-------------------------------+
+|Aula_ventilada                   |categórica-nominal  |Valores entre si, no y         |
+|                                 |                    |a veces.                       |
++---------------------------------+--------------------+-------------------------------+
+|Num_medidas                      |numérica-discreta   |Valores entre 1 a 3 y          |
+|                                 |                    |más de tres.                   |
++---------------------------------+--------------------+-------------------------------+
+|Riesgo                           |categórica-nominal  |Escoger valores entre          |
+|                                 |                    |si y no.                       |
++---------------------------------+--------------------+-------------------------------+
+|Espacios                         |categórica-nominal  |Entre, ascensor,cubículo       |
+|                                 |                    |aula sin ventilación,comedor.  |
++---------------------------------+--------------------+-------------------------------+
+
+## ANÁLISIS DESCRIPTIVO
+Esta variable nos permitirá conocer si el nivel del ciclo influye en la responsabilidad de cuidado.
+```{r}
+ggplot(DDHS) +
+  aes(x = reorder(Ciclo, Ciclo, function(x)+length(x))) +
+  geom_bar(fill = "light blue") +
+  labs(
+    x = "Ciclos",
+    y = "Frecuencia",
+    title = "VARIABLE CICLO"
+  ) +
+  coord_flip() +
+  theme_gray() +
+  theme(
+    plot.title = element_text(size = 15L,
+    face = "bold.italic",
+    hjust = 0.5),
+    axis.title.y = element_text(size = 13L,
+    face = "bold.italic"),
+    axis.title.x = element_text(size = 13L,
+    face = "bold.italic")
+  )
+```
+
+## CARRERA
+
+
+```{r}
+ggplot(DDHS) +
+  aes(x = reorder(Carrera, Carrera, function(x)+length(x))) +
+  geom_bar(fill = "green") +
+  labs(
+    x = "Carreras",
+    y = "Frecuencia",
+    title = "VARIABLE CARRERA"
+  ) +
+  coord_flip() +
+  theme_gray() +
+  theme(
+    plot.title = element_text(size = 15L,
+    face = "bold.italic",
+    hjust = 0.5),
+    axis.title.y = element_text(size = 13L,
+    face = "bold.italic"),
+    axis.title.x = element_text(size = 13L,
+    face = "bold.italic")
+  )
+```
+
+## ALCOHOL
+
+Esta variable nos permitirá conocer si suelen llevar alcohol en gel los estudiantes de UTEC.
+
+```{r}
+ggplot(DDHS) +
+  aes(x = reorder(Alcohol,Alcohol, function(x)-length(x))) +
+  geom_bar(fill = "blue") +
+  labs(
+    x = "Llevar alcohol en gel al salir",
+    y = "Frecuencia",
+    title = "VARIABLE ALCOHOL"
+  ) +
+  theme_gray() +
+  theme(
+    plot.title = element_text(size = 15L,
+    face = "bold.italic",
+    hjust = 0.5),
+    axis.title.y = element_text(size = 13L,
+    face = "bold.italic"),
+    axis.title.x = element_text(size = 13L,
+    face = "bold.italic")
+  )
+```
+
+## MASCARILLA
+
+
+```{r}
+#Quitarte mascarilla                                                            ```{r}
+ggplot(DDHS) +
+  aes(x = reorder(Quitarte,Quitarte, function(x)-length(x))) +
+  geom_bar(fill = "red") +
+  labs(
+    x = "Sueles quitarte la mascarilla dentro de la universidad",
+    y = "Frecuencia",
+    title = "VARIABLE QUITARTE_MASCARILLA"
+  ) +
+  theme_gray() +
+  theme(
+    plot.title = element_text(size = 15L,
+    face = "bold.italic",
+    hjust = 0.5),
+    axis.title.y = element_text(size = 13L,
+    face = "bold.italic"),
+    axis.title.x = element_text(size = 13L,
+    face = "bold.italic")
+  )
+```
+El gráfico nos refleja la comparación de las 3 posibles respuestas  acerca si sueles quitarte la mascarilla dentro de la Universidad, el cuál respondieron con mayor frecuencia "A veces" SUmando un total de 121 respuestas, 28 de que nunca y que siempre suman un total de 62 respuestas.
+
+
+## CONTAGIADO
+
+Esta variable nos permitirá mapear la cantidad de Utecinos que se han contagiado 
+
+```{r}
+ggplot(DDHS) +
+  aes(x = Contagiado) +
+  geom_bar(fill = "light blue") +
+  labs(
+    x = "Contagiado - ¿Te has contagiado de COVID-19 anteriormente?",
+    y = "Frecuencia",
+    title = "VARIABLE CONTAGIADO"
+  ) +
+  theme_gray() +
+  theme(
+    plot.title = element_text(size = 15L,
+    face = "bold.italic",
+    hjust = 0.5),
+    axis.title.y = element_text(size = 13L,
+    face = "bold.italic"),
+    axis.title.x = element_text(size = 13L,
+    face = "bold.italic")
+  )
+  
+```
+
+
+## EDAD 
+
+Esta variable se utilizó para verificar que se está cumpliendo y llegando con el público objetivo, para analizarlo se realizó una tabla de esa variable
+
+```{r}
+boxplot(DDHS$Edad
+        , main = "Edades registradas"
+        , xlab = "Edad (años)"
+        , horizontal = TRUE
+        )
+```
+
+
+## DOSIS
+
+Esta variable se utilizó para poder saber la cantidad de veces que la persona se vacuno.
+
+```{r}
+ggplot(DDHS) +
+  aes(x = "", y = as.numeric(Dosis)) +
+  geom_boxplot(fill = "light blue") +
+  labs(y = "Dosis", title = "¿Cuántas dosis de la vacuna contra el Covid-19 tienes?") +
+  coord_flip() +
+  theme_gray() +
+  theme(
+    plot.title = element_text(size = 15L,
+    face = "bold.italic",
+    hjust = 0.5),
+    axis.title.y = element_text(size = 13L,
+    face = "bold.italic")
+  )
+```
+
+
+## LAVADO
+
+```{r}
+boxplot(DDHS$Lavado
+        , main = "Variable Lavado"
+        , xlab = "Cantidad de veces que se lava las manos al día"
+        , horizontal = TRUE
+        )
+```
+
+
+## LAVADO 
+
+```{r}
+library(modeest)
+hist(DDHS$Lavado, xlab="Lavado - Cantidad de veces que se lava las manos al día (Ej: 4)", main="HISTOGRAMA DE LAVADO", breaks=15, col="light blue")
+abline(v=mean(DDHS$Lavado),col="red")
+abline(v=mfv(DDHS$Lavado),col="green")
+abline(v=median(DDHS$Lavado),col="blue")
+legend("topright", c("Promedio", "Moda","Mediana"), col=c("red", "green", "blue"), lty=1:1, lwd=5)
+
+```
+
+
+## MASCARILLA
+
+```{r}
+boxplot(DDHS$Mascarilla
+        , main = "Variable Mascarilla"
+        , xlab = "¿Con qué frecuencia sueles desechar tu mascarilla a la semana?"
+        , horizontal = TRUE
+        )
+```
+
+## MASCARILLA
+
+```{r}
+hist(DDHS$Mascarilla, xlab="Mascarilla", main="HISTOGRAMA DE MASCARILLA", breaks=15, col="light blue")
+abline(v=mean(DDHS$Mascarilla),col="red")
+abline(v=mfv(DDHS$Mascarilla),col="green")
+abline(v=median(DDHS$Mascarilla),col="blue")
+legend("topright", c("Promedio", "Moda","Mediana"), col=c("red", "green", "blue"), lty=1:1, lwd=5)
+```
+
+
+## DISPENSADORES
+
+```{r}
+hist(DDHS$Dispensadores, xlab="Dispensadores", main="HISTOGRAMA DE EDAD",breaks=15,col="light blue")
+abline(v=mean(DDHS$Dispensadores),col="red")
+abline(v=mfv(DDHS$Dispensadores),col="green")
+abline(v=median(DDHS$Dispensadores),col="blue")
+legend("topright",c("Promedio","Moda","Mediana"),col=c("red","green","blue"),lty=1:1,lwd = 5)
+```
+
+
+## DISPENSADORES
+
+
+```{r}
+boxplot(DDHS$Dispensadores
+        , main = "Variable Dispensadores"
+        , xlab = "Cantidad de veces al día que utiliza los dispensadores de alcohol en gel ubicado en los distintos espacios de la UTEC"
+        , horizontal = TRUE
+        )
+table(DDHS$Dispensadores)
+```
+
+
+## NUM_COVID
+
+```{r}
+boxplot(DDHS$Num_covid)
+table(DDHS$Num_covid)
+```
+
+
+## NUM_COVID
+
+```{r}
+hist(DDHS$Num_covid, xlab="Numero de veces que se han contagiado de Covid-19 certificado con prueba", main="HISTOGRAMA DE N° DE VECES QUE SE HAN CONTAGIADO DE COVID-19",breaks=15,col="light blue")
+abline(v=mean(DDHS$Num_covid),col="red")
+abline(v=mfv(DDHS$Num_covid),col="green")
+abline(v=median(DDHS$Num_covid),col="blue")
+legend("topright",c("Promedio","Moda","Mediana"),col=c("red","green","blue"),lty=1:1,lwd = 5)
+```
+
+
+## NUM_MEDIDAS
+
+```{r}
+boxplot(DDHS$Num_medidas)
+table(DDHS$Num_medidas)
+```
+
+
+## NUM_MEDIDAS
+
+```{r}
+hist(DDHS$Num_medidas, xlab="Num_medidas - ¿Cuántas medidas de bioseguridad encontraste en la universidad (UTEC) ?", main=" N° medidas de bioseguridad encontraste en la universidad (UTEC)",breaks=15,col="light blue")
+abline(v=mean(DDHS$Num_medidas),col="red")
+abline(v=mfv(DDHS$Num_medidas),col="green")
+abline(v=median(DDHS$Num_medidas),col="blue")
+legend("topright",c("Promedio","Moda","Mediana"),col=c("red","green","blue"),lty=1:1,lwd = 5)
+```
+
+
+## QUITARTE VS DOSIS
+
+```{r}
+mosaicplot(DDHS$Quitarte~DDHS$Dosis, xlab = "Quitarse la mascarilla", ylab = "Dosis", main = "GRAFICA DE RELACION SISTEMA VS SATISFACCIÓN", col = "light blue")
+```
+
+
+## MEDIDAS VS RIESGO
+
+```{r}
+mosaicplot(DDHS$Num_medidas~DDHS$Riesgo, xlab = "Número de medidas que practica", ylab = "Espacios de riesgo en la UTEC", main = "GRAFICA DE RELACION RIESGO CON NÚMEROS DE MEDIDAS QUE PRÁCTICA", col = "light blue")
+with(DDHS, boxplot(Num_medidas ~ Riesgo))
+```
+
+
+## EDAD VS DOSIS
+
+```{r}
+plot(DDHS$Edad, DDHS$Dosis)
+# Línea de regresión
+
+model1 <-lm(DDHS$Dosis~ DDHS$Edad)
+abline(model1,col="red" , lwd=2)
+
+# Correlación de Pearson
+text(paste("Correlación:", round(cor(DDHS$Edad, DDHS$Dosis), 2)), x = 18, y = 2.5)
+
+```
+
+
+## EDAD VS DOSIS
+
+```{r}
+smoothScatter(DDHS$Dosis~ DDHS$Edad)
+abline(model1, col="red", lwd=2)
+```
+
+## EDAD VS DOSIS
+
+```{r}
+summary(model1)
+```
+
+## LAVADO VS DOSIS
+
+```{r}
+plot(DDHS$Lavado, DDHS$Tiempo)
+# Línea de regresión
+
+model2 <-lm(DDHS$Tiempo~ DDHS$Lavado)
+abline(model2,col="red" , lwd=2)
+
+# Correlación de Pearson
+text(paste("Correlación:", round(cor(DDHS$Lavado, DDHS$Tiempo), 2)), x = 18, y = 2.5)
+
+```
+
+
+## LAVADO VS DOSIS
+
+```{r}
+smoothScatter(DDHS$Tiempo~ DDHS$Lavado)
+abline(model2, col="red", lwd=2)
+```
+
+
+## LAVADO VS DOSIS
+
+
+```{r}
+summary(model1)
+```
+
+## VARIABLE ALEATORIA - BERNOULLI
+
+**Bernoulli**
+
+Usaremos la variable "Riesgo" la cual refiere si los estudiantes de la Utec, consideran que hay o no espacios de riesgo dentro del campus.
+
+```{r}
+plot(DDHS$Riesgo)
+```
+
+Definimos la variable aleatoria X
+
+```{r}
+
+bernoulli <- gsub("Sí",1, DDHS$Riesgo) 
+bernoulli2<- gsub("No",0, bernoulli) 
+s<-sum(as.numeric(bernoulli2))
+n<-nrow(DDHS)
+probabilidad=(s/n)
+
+```
+Éxito:
+$$(\mathbb{X}=1)si \hspace{0.1cm}el\hspace{0.1cm}alumno\hspace{0.1cm}considera\hspace{0.1cm}espacios\hspace{0.1cm}de\hspace{0.1cm}riesgos$$
+Fracaso
+$$(\mathbb{X}=0)si \hspace{0.1cm}el\hspace{0.1cm}alumno\hspace{0.1cm}no\hspace{0.1cm}considera\hspace{0.1cm}espacios\hspace{0.1cm}de\hspace{0.1cm}riesgos$$
+Entonces:
+$$\mathbb{X}\hspace{0.1cm}\mathbb{=}\hspace{0.1cm}Ber\hspace{0.1cm}(p)$$
+
+
+$$\mathbb{X}\sim \mathrm{Ber}\left(p\right)$$
+¿Cual es la probabilidad que los alumnos encuestados consideren que exiten expacios de riesgo dentro de la utec?
+$$\mathbb{X}\sim \mathrm{Ber}\left(p\right)$$
+
+```{r}
+probabilidad
+```
+
+##  BERNOULLI
+
+¿Cual es la probabilidad que los alumnos encuestados consideren que no existen  expacios de riesgo dentro de la utec?
+
+```{r}
+1-probabilidad
+```
+
+##  NORMAL 
+
+Nuestra Variable *Tiempo* sigue una distribución Normal , ya que la gráfica de distribución es una campana de Gauss simétrica.
+
+GRAFICA DE DENSIDAD DE LA  DISTRIBUCIÓN NORMAl:
+```{r}
+P <-DDHS$Tiempo[!is.na(DDHS$Tiempo) & DDHS$Tiempo!= 0]
+#des
+  Mu <- mean(P)
+Sigma <- sd(P)
+Xs <- seq(min(P) - 5, max(P) + 5, 0.1)
+Ys <- dnorm(Xs, mean=Mu, sd=Sigma) #Función de Densidad
+hist(P, prob=TRUE, ylim=c(0,0.15), xlim=c(min(P) - 5, max(P) + 5),breaks=seq(0,30,3), ylab="Densidad",xlab="Tiempo de lavado de manos", main=paste("Comparación de aproximación normal con histograma de P"), col="cyan")
+lines(Xs, Ys, type="l", col="green", lwd=2)
+abline(v=mean(DDHS$Tiempo),col="red")
+
+```
+
+## NORMAL
+
+Estandarización de la variable
+
+```{r}
+X<-DDHS$Tiempo
+ex <-mean(DDHS$Tiempo)
+sd <-sd(DDHS$Tiempo)
+Z <-(X-ex)/sd
+
+```
+
+
+## NORMAL
+
+
+```{r}
+Q <- Z
+#des
+  Mu <- mean(Q)
+Sigma <- sd(Q)
+Xs <- seq(min(Q) - 5, max(Q) + 5, 0.1)
+Ys <- dnorm(Xs, mean=Mu, sd=Sigma) #Función de Densidad
+hist(P, prob=TRUE, ylim=c(0,0.5), xlim=c(min(P) - 5, max(P) + 5),breaks=seq(-10,50,0.5), ylab="Densidad",xlab="Tiempo de lavado de manos", main=paste("Comparación de aproximación normal con histograma de P"), col="cyan")
+lines(Xs, Ys, type="l", col="green", lwd=2)
+abline(v=mean(DDHS$Tiempo),col="red")
+```
+
+##  ANALISIS PROBABILISTICO
+
+ANÁLISIS PROBABABILISTICO
+
+**Normal**
+
+La variable aleatoria normal se denota:
+
+$$X\sim\mathsf{Nor}(\mu, \sigma)$$
+```{r}
+round(mean(DDHS$Tiempo),2)
+median(DDHS$Tiempo)
+round(sd(DDHS$Tiempo),2)
+```
+
+## PROBLEMA
+
+MODELO DE PROBLEMA.
+
+PROBLEMA 1:
+
+El tiempo de lavado de manos de los alumnos UTEC tiene una distribución normal con una media de 16.23 segundos y una desviación estándar de 16.73 segundos. Halle la probabilidad de que el tiempo de lavado de un alumno requiera más de 15 segundos.
+
+
+```{r}
+pnorm(15,16.23,16.73)
+```
+
+
+## PROBLEMA 2
+
+
+PROBLEMA 2:
+
+Se sabe que X es una distribución normal de media igual a 16.23 y desviación estándar igual a 16.73, entonces calcule la media y desviación estándar para Z=(X-1)/2
+
+Por propiedad sabemos que:
+$$Si\ \ \ X\sim\mathsf{Nor}(\mu, \sigma){  \ \ } entonces {\ \ }{\displaystyle aX+b\sim N(a\mu +b,a^{2}\sigma ^{2})}. $$
+
+$$X\sim\mathsf{Nor}(1/2\mu\ -1/2, \ a^2\sigma^2)$$
+
+$$X\sim\mathsf{Nor}(1/2\ (16.23)\ -1/2, \ (1/2)^2\ (16.76)^2)$$
+$$Media\ = \mathsf{}(1/2(16.23))\ =\ 8.12 $$
+$$Desviación \ \ estándar\ = \mathsf{}((1/2)^2(16.23)^2)\ =\ 65.85 $$
+
+## DISTRIBUCIÓN MUESTRAL UNIFORME
+
+Mi experimento ahora es tomar `n` observaciones de una VA y promediarlas.
+Voy a repetir ese experimento `m` veces y mostrar el resultado gráficamente.
+```{r}
+n <- 211
+m <- 100000
+X <- replicate(m, mean(runif(n, min = 2, max = 11)))
+```
+
+```{r}
+Xs <- seq(1, 12, by = 0.01)
+hist(X, prob = TRUE, xlim = c(1, 12), ylim = c(0, 2), breaks = 50)
+lines(Xs, dunif(Xs, min = 2, max = 11), col = "blue")
+abline(v=(2+11)/2, lty = 3) 
+```
+
+## PROBLEMA
+
+PROBLEMA:
+
+¿Cuál es la probabilidad de que todas las observaciones de la muestra sean mayores o iguales a 8?
+```{r}
+(punif(8,2,11,lower.tail=F))^n
+```
+PROBLEMA 2:
+¿Cuál es la probabilidad de que todas las observaciones de la muestra sean mayores o iguales a 6 Y menor o iguales que 7?
+
+```{r}
+(punif(7,2,11,lower.tail=F))^n -(punif(6,2,11,lower.tail=F))^n
+```
+
+

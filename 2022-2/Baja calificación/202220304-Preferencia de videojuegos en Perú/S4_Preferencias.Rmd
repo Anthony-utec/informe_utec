@@ -1,0 +1,511 @@
+---
+title: "Informe"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+ifelse(require(dplyr)==T, "Cargado", "No cargado")
+  install.packages("dplyr")
+  
+ifelse(require(readr)==T, "Cargado", "No cargado")
+  install.packages("readr")
+
+library(rlang)
+library(readr)
+library(dplyr)
+  
+  
+DF<-read_csv("Limpieza_final.csv")
+red <- function(x){
+  round(x,digits = 2)
+}
+
+num_mode <- function(x) {
+   return(as.numeric(names(which.max(table(x)))))
+}
+
+fact_mode <- function(x) {
+   names(table(x))[table(x) == max(table(x))]
+}
+
+NumCol<-c("Edad","Años_Jugando","Horas_libres_semanales","Horas_de_juego_semanales","Personas_con_quien_juega","Dinero_gastado","Semanas_pase_de_batalla","Meses_actualizacion")  
+FactCol<-names(DF)[!names(DF) %in% NumCol]
+DF[FactCol] <-lapply(DF[FactCol], FUN = factor)
+
+```
+
+![](logo.png)
+
+# **Introducción**
+
+## Relevancia
+Nuestra audiencia serán aquellas empresas o instituciones que se encargan del desarrollo de videojuegos que desean saber las preferencias de los usuarios de diferentes departamentos del Perú. Algunos desarrolladores de juegos son: “AMAZING GAMES STUDIO”, “ARTIGAMES”, ”BAMTANG”, “BONELESS”, “BOOMWARE TECHNOLOGIES”, etc). En la actualidad, estos producen rendimientos económicos mayores a los de cualquier tipo de industria.
+Nos interesa estudiar y profundizar las opiniones de los usuarios, preferencias en las características de un juego, la plataforma qué más se utiliza,  gustos de acuerdo a géneros, relación entre la edad y el dinero gastado para saber en qué rango de edad se gasta más en compras por internet, etc. Con el fin de encontrar patrones en las preferencias de los usuarios que servirían para que reciban un mejor servicio.
+
+
+## Planificación
+En el grupo se dividieron trabajos, La encuesta y el informe serán realizados por Angel Yapurasi y Kelvin Gavilan. Ellos tendrán un plazo desde el día 05 de setiembre hasta el día 24 de setiembre, para realizar la encuesta y reunir como mínimo 200 encuestados. y desde el día 24 de setiembre hasta el 29 de setiembre, realizar el informe.
+La limpieza de datos y los descriptores numéricos serán realizados por John Baca, y será del 24 de septiembre hasta el 25 de septiembre. 
+Los descriptores gráficos del trabajo serán realizados por Bruss Meneses y Jhoan Huallulo. Este será realizado desde el 25 de septiembre hasta el 27 de septiembre. 
+El análisis e interpretación de los resultados serán realizados por todos en una reunión. Y serán realizados desde el 27 hasta el 29 de septiembre.
+
+```{r include=FALSE}
+
+# GGPLOT GANTT CHART
+library(ggplot2)
+library(tidyr)
+library(lubridate)
+```
+
+
+```{r include=FALSE}
+
+xd <- data.frame(Stage = c("Búsqueda de posibles temas a analizar" , "Diagrama de Gantt"
+                           , "PG - Entrega previa 0"          , "Análisis descriptivo"
+                           , "Recolección de datos"   , "Entrega 1"
+                           ,"Instrumento Datos Diversos", "Búsqueda de feedback Prof. Brigida 1", "Regresión", "Revisión final", "Entrega 2"
+                           ,"Análisis probabilistico")
+                 , Start = c("2022-08-25"      ,"2022-08-25"
+                             ,"2022-08-25"        ,"2022-09-02",        "2022-09-02"
+                             ,"2022-09-02"        ,"2022-08-25",        "2022-09-30"
+                             ,"2022-09-30"
+                             ,"2022-09-30"        ,"2022-09-30",        "2022-11-01" )
+                 
+                 ,End = c("2022-08-25"      ,"2022-08-30"
+                             ,"2022-09-02"        ,"2022-09-26",        "2022-09-25"
+                             ,"2022-09-30"        ,"2022-08-28",        "2022-10-18"
+                             ,"2022-10-24"
+                             ,"2022-11-18"        ,"2022-11-25",        "2022-11-15")
+                 , Complete = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE))
+
+
+
+
+xd$Start <- ymd(xd$Start)
+xd$End <- ymd(xd$End)
+
+
+
+xd.melt <- xd%>%
+  tidyr::pivot_longer(col = c(Start,End))
+
+
+today <- as.Date('2022-11-25')
+
+```
+
+```{r echo=FALSE}
+pl <- ggplot(xd.melt, aes(x = value, y = Stage, colour = Complete ))
+pl <- pl + geom_line( alpha = 0.5, size = 9)
+pl <- pl + geom_text(aes(label = format(value, "%d %b")), vjust = 0, angle = 30, size = 3
+                  , color = "blue")
+pl <- pl +  theme_gray()
+pl <- pl + geom_vline(xintercept = today, color = "green", size = 2, alpha = 0.5)
+pl <- pl + labs(title = "Diagrama de Gantt")
+pl <- pl + labs(subtitle = "Planificacion de avances")
+
+pl <- pl + labs(x = "Fechas")
+pl <- pl + labs(y = "Actividad")
+pl <- pl + scale_color_manual(values = c("green", "blue"))
+pl <- pl + theme(legend.position = "none")
+pl <- pl + scale_x_date( 
+                       , minor_breaks = "1 day")
+pl
+```
+
+# **Datos**
+
+## Recolección de datos
+Los datos se extraerán mediante encuestas virtuales de muestreo por conveniencia mediante el formulario de  Google Forms. Esto debido a que solamente se enviará la encuesta a aquellos grupos o personas que juegan videojuegos en el Perú y para poder llegar a ellos, se realizó de manera virtual, ya que no podíamos viajar a cada región y recopilar encuestas. El formulario  nos muestra detalladamente las opiniones de los usuarios que optan por los videojuegos, también nos muestra las preferencias,  los registros de actividad durante el tiempo, etc. Este fue enviado por varios grupos de Facebook, Whatsapp, Instagram, Discord, etc; que tienen de temática principal, los videojuegos, con el permiso debido de sus administradores para publicarlo. En estos se compartió información del proyecto, cuál era su finalidad, y el porqué lo realizábamos. Esto para evitar la desconfianza de las personas y tratar de llegar a ellos.
+
+## Población
+Nuestro población de estudio son  todos los jugadores o gamers del Perú que juegan videojuegos, en cualquier plataforma o dispositivo.
+
+## Muestra
+Se seleccionaron solamente a aquellos grupos (ya sea de whatsapp, Facebook, Discord, etc.) que tenían a usuarios que jueguen videojuegos y que sean de Perú. Hemos recopilado 206 resultados. Y una de nuestras preguntas fue el departamento en dónde vive. Esto para comprobar que en todos estos, tengan por lo menos un encuestado. Afortunadamente fue así, en la mayoría de los casos los departamentos tienen 2 o más encuestados. Hicimos esto para fomentar la representatividad de la muestra.
+
+## Muestreo
+Se realizó un muestreo por conveniencia, ya que solo se seleccionaron y se les envió la encuesta a los usuarios que juegan videojuegos en el Perú. Esto para recolectar datos que se necesitan para la investigación de valores verdaderos.
+
+## Variables
+
+|   Variable                |       Clase      |       Tipo        |   Restricciones    |
+|:--------------------------|:----------------:|:-----------------:|:------------------:|
+|Edad                       |    Numérica      |    Discreta       |  Entero Positivo   |
+|Años jugando               |    Numérica      |    Continua       |  Real Positivo     |
+|Dinero que gasta           |    Numérica      |    Continua       |  Real Positivo     |
+|Horas que juega            |    Numérica      |    Continua       |  Entero Positivo   |
+|Cantidades de personas     |    Numérica      |    Discreta       |  Real Positivo     |
+|Tiempo del pase de batalla |    Numérica      |    Continua       |  Real Positivo     |
+|Horas libres a la semana   |    Numérica      |    Continua       |  Real Positivo     |
+|Tiempo de actualización    |    Numérica      |    Continua       |  Real Positivo     |
+|Procedencia                |    Ordinal       |    Nominal        |  Que no sea número |
+|Género                     |    Ordinal       |    Nominal        |  Que no sea número |
+|Tipo de juego favorito     |    Ordinal       |    Nominal        |  Que no sea número |
+|Método de enterarse        |    Ordinal       |    Nominal        |  Que no sea número |
+|Tipo de dispositivo        |    Ordinal       |    Nominal        |  Que no sea número |
+|Elemento favorito          |    Ordinal       |    Nominal        |  Que no sea número |
+|Rango de edad              |    Ordinal       |    Ordinal        |  Que no sea número |
+
+
+
+##  Limpieza de datos
+La limpieza se ha realizado en el archivo "Limpieza_de_Datos.Rmd", en resumen: 
+
++ En el caso de las variables numéricas: 
+    + Se han encontrado datos atípicos con valores mayores a 53, los cuales consideramos atípicos debido a que     creemos que ningún jugador quisiera que una temporada durase más de 1 año
+    + Se ha eliminado los datos de la variable horas de juegos semanales si esta era mayor a los datos registrados en horas libres semanales
++ En el caso de las categóricas:
+    + Cuando las personas en tipos de juego puso un nombre de juego, se investigó el género al que pertenece este juego para corregirlo. Además incluimos los FPS dentro de los "shooters", ya que estos son un subgénero de este. En caso hayan respondido con 2 o más géneros se marcó como NA
+
+# **Análisis descriptivo**
+
+Evaluaremos los descriptores gráficos y numéricos de posición y dispersión de cada variable recolectada.
+
+### Edad
+
+Hemos registrado la edad de los usuarios encuestados. Para describir la posición de la variable usaremos la media ya que nos da la edad promedio de nuestros encuestados. Para describir la dispersión utilizaremos el rango, ya que nos da la edad mínima y máxima de los encuestados. Además, la moda es un descriptor util ya que nos dice que edad es la más frecuente. Para gráficar esta variable utilizamos un hisograma ya que se observa la frecuencia.
+
+```{r}
+cat("El promedio de edad es:", red(mean(DF$Edad,na.rm = TRUE)),"años")
+cat("La mayor cantidad de jugadores tiene", num_mode(DF$Edad),"años")
+cat("El rango de edades de los jugadores es:", red(range(DF$Edad,na.rm = TRUE)),"años")
+
+
+hist(DF$Edad,col = c("#FF0000"), main="Edad de Jugadores", breaks=20, xlab="Edad")
+```
+
+### Años jugando
+
+La cantidad de años que han jugado los usuarios nos da una idea de su experiencia con los videojuegos. Para describir la posición de la variable hemos usado la media, y para su dispersión la desviación estandar, ya que esta nos indica que tan dispersos están los datos con respecto a la media. Para la gráfica utilizamos un histograma.
+
+```{r}
+cat("El promedio de años jugando es", red(mean(DF$Años_Jugando,na.rm = TRUE)),"años")
+cat("La desviación estandar de los años de juego es", red(sd(DF$Años_Jugando,na.rm = TRUE)),"años")
+hist(DF$Años_Jugando, col = c("#FF0000"), main="Años jugando", xlab="Años", breaks=15)
+
+hist(DF$Años_Jugando,freq=FALSE, col = c("#FF0000"), main="Años jugando", xlab="Años", breaks=15)
+
+lines(density(DF$Años_Jugando), lwd = 2, col = 'blue')
+```
+
+### Dinero gastado
+
+El dinero que gastan los usuarios nos permite conocer cuanto estan dispuestos a invertir en los videojuegos. Como descriptor de posición utilizamos la media para tener un valor promedio, y como descriptor de dispersión utilizamos la desviación estandar. 
+
+Al observar la data nos dimos cuenta de que la mayoría de los usuarios gastaban 0 soles en videojuegos, por lo cual hicimos otro analisis tomando solamente a los usuarios que gastan más que 0 soles en videojuegos.
+
+Los que gastaron más de 0 tienen una media mayor de gasto y también están mas dispersos.
+
+```{r}
+cat("El promedio de gasto de todos los encuestados es ", red(mean(DF$Dinero_gastado,na.rm = TRUE)),"Soles")
+cat("La desviación estandar del gasto de todos los encuestados es ", red(sd(DF$Dinero_gastado,na.rm = TRUE)),"Soles")
+
+cat("El promedio de gasto de los encuestados que gastaron mas que 0 es", red(mean(DF$Dinero_gastado[DF$Dinero_gastado>0],na.rm = TRUE)),"Soles")
+cat("La desviación estandar del gasto de los encuestados que gastaron mas que 0 es", red(sd(DF$Dinero_gastado[DF$Dinero_gastado>0],na.rm = TRUE)),"Soles")
+
+hist(DF$Dinero_gastado, freq=FALSE,col= c("#FF0000"), main="Dinero gastado por Jugadores", xlab="Dinero gastado", breaks=20)
+#plot(factor(DF$Dinero_gastado[DF$Dinero_gastado>0]),col= rainbow(25), main="Número de usuarios que gastaron más que 0")
+lines(density(DF$Dinero_gastado), lwd = 2, col = 'blue')
+
+hist(DF$Dinero_gastado[DF$Dinero_gastado>0],freq=FALSE,col= c("lightblue"), main="Dinero gastado (eliminando a los que gastaron 0)", xlab="Dinero gastado", breaks=20)
+lines(density(DF$Dinero_gastado[DF$Dinero_gastado>0]), lwd = 2, col = 'blue')
+```
+
+### Horas de juego semanales
+
+Las horas de juego semanales nos permite conocer la dedicación a los videojuegos. Para describir la posición de la variable utilizamos la media, y para su dispersión la desviación estandar. Para graficar usamos un histograma. 
+
+```{r}
+cat("El promedio de horas de juego semanales del usuario", red(mean(DF$Horas_de_juego_semanales,na.rm = TRUE)),"horas semanales")
+cat("La desviación estandar de los jugadores es", red(sd(DF$Horas_de_juego_semanales,na.rm = TRUE)),"horas semanales")
+#cat("La mayor cantidad de jugadores peruanos  juega ", num_mode(DF$Horas_de_juego_semanales),"horas semanales")
+hist(DF$Horas_de_juego_semanales,freq=FALSE,col= rainbow(20), main="Horas de juego semanales", xlab="Número de horas", breaks=20)
+lines(density(DF$Horas_de_juego_semanales[!is.na(DF$Horas_de_juego_semanales)]), lwd = 2, col = 'blue')
+```
+
+### Cantidades de personas 
+
+La cantidad de personas con las que juegan los usuarios nos permite conocer su forma de juego, individual, o grupal. Para su descriptor de posición usamos la media y para su dispersión la desviación estandar. Para graficar usamos un histograma.
+
+```{r}
+cat("El promedio de personas con quien juega el usuario", red(mean(DF$Personas_con_quien_juega,na.rm = TRUE)),"personas")
+cat("La desviación de la cantidad de personas con las que juegan los encuestados es", red(sd(DF$Personas_con_quien_juega,na.rm = TRUE)),"personas")
+#cat("La cantidad de personas con quien juega el jugador peruano mayormente es", num_mode(DF$Personas_con_quien_juega),"personas")
+hist(DF$Personas_con_quien_juega,col= rainbow(12), breaks=15, main="Cantidad de personas con las que juega", xlab="Personas")
+
+```
+
+### Tiempo del pase de batalla
+
+El pase de batalla es un beneficio en el juego (poder adicional, armas, skins) que se obtiene al pagar una cantidad de dinero especial, y este beneficio tiene una duración definida. La duración esperada de este nos permite conocer la preferencia de los jugadores acerca de este. 
+
+Para su descriptor de posición usamos la media y para su dispersión la desviación estandar. Para graficar usamos un boxplot ya que nos muestra la mediana y los valores atípicos.
+
+```{r}
+cat("En promedio, el usuario cree que un pase de batalla debe durar", red(mean(DF$Semanas_pase_de_batalla,na.rm = TRUE)),"semanas")
+cat("La desviación del tiempo esperado de duración del pase de batalla es", red(sd(DF$Semanas_pase_de_batalla,na.rm = TRUE)),"semanas")
+#cat("La mayor parte de los jugadores peruanos cree que un pase de batalla debe durar", num_mode(DF$Semanas_pase_de_batalla),"semanas")
+boxplot(DF$Semanas_pase_de_batalla,col= c("#FF0000"), main="Tiempo esperado de duración del pase de batalla")
+
+```
+
+
+### Horas libres semanales
+
+La cantidad de horas libres que tienen los usuarios nos da una idea acerca de su tiempo para jugar videojuegos. Para su descriptor de posición usamos la media y para su dispersión la desviación estandar. Para graficar usamos un histograma.
+
+```{r}
+cat("El promedio de horas libres semanales del usuario es", red(mean(DF$Horas_libres_semanales,na.rm = TRUE)),"horas semanales")
+cat("La desviación estandar de las horas libres semanales del usuario es", red(sd(DF$Horas_libres_semanales,na.rm = TRUE)),"horas semanales")
+#cat("La mayor cantidad de jugadores peruanos  tiene", num_mode(DF$Horas_libres_semanales),"horas libres semanales")
+hist(DF$Horas_libres_semanales,freq=FALSE,col= rainbow(38), breaks=20, main="Horas libres semanales", xlab="Horas libres")
+lines(density(DF$Horas_libres_semanales[!is.na(DF$Horas_libres_semanales)]), lwd = 2, col = 'blue')
+```
+
+
+### Tiempo de actualización
+
+Los juegos se actualizan periodicamente, usualmente luego de varios meses. El tiempo esperado para la siguiente actualizacion nos permite conocer la necesidad de los usuarios de contenido nuevo y diferente.
+
+Para su descriptor de posición usamos la media y para su dispersión la desviación estandar. Para graficar usamos un histograma.
+
+```{r}
+cat("En promedio, el usuario cree que un juego debe actualizarse cada", red(mean(DF$Meses_actualizacion,na.rm = TRUE)),"meses")
+cat("La desviación del numero de meses esperado para una actualizacion es de", red(mean(DF$Meses_actualizacion,na.rm = TRUE)),"meses")
+#cat("La mayor parte de los jugadores peruanos cree que un juego debe actualizarse cada", num_mode(DF$Meses_actualizacion),"meses")
+hist(DF$Meses_actualizacion,freq=FALSE,col= rainbow(38), breaks=10, main="Tiempo esperado para siguiente actualización", xlab="Tiempo", ylab="Densidad")
+lines(density(DF$Meses_actualizacion[!is.na(DF$Meses_actualizacion)]), lwd = 2, col = 'blue')
+```
+
+### Género 
+
+El género de los usuarios nos permite ver las preferencias de cada género. Como descriptor de posición utilizaremos la moda ya que nos da el género que más prefiere los videojuegos. En este caso un descriptor de dispersión no sería reelevante, graficamos con un gráfico de barras.
+
+```{r}
+cat("El género que más juega videojuegos es", fact_mode(DF$Genero)) 
+plot(DF$Genero,col=rainbow(4),main="Género")
+```
+
+### Departamento
+
+Esta variable nos permite conocer el origen de los encuestados. Como descriptor de posición usamos la moda. No es necesario usar un descriptor de dispersión. Para graficar usamos una gráfica de barras.
+
+```{r}
+cat("El departamento de mas jugadores es:", fact_mode(DF$Departamento)) 
+plot(DF$Departamento,col=rainbow(24), main="Departamento")
+
+```
+
+
+### Dispositivo
+
+Recolectamos información acerca del uso de 3 dispositivos para videojuegos. Como descriptor de posición usamos la moda ya que nos da el dispositivo más usado. En este caso no es necesario un descriptor de dispersión. Para graficar usamos un grafico de barras.
+
+```{r}
+cat("El dispositivo para jugar más usado es", fact_mode(DF$Dispositivo)) 
+plot(DF$Dispositivo,col=rainbow(3), main="Dispositivo usado")
+```
+
+### Género de videojuegos
+
+Esta variable nos permite conocer el tipo de videojuego que más prefieren los usuarios. Como descriptor de posición usamos la moda. No es necesario un descriptor de dispersión y graficamos con un grafico de barras.
+
+```{r,fig.width=17, fig.height=7}
+cat("El género de videojuegos más popular es", fact_mode(DF$Genero_favorito)) 
+plot(DF$Genero_favorito,col=rainbow(15), main="Género favorito de videojuego")
+```
+
+### Elemento favorito
+
+El elemento favorito de los videojuegos es otro dato importante acerca de las preferencias de los usuarios. Como descriptor de posición usamos la moda. Graficamos con un grafico de barras.
+
+```{r}
+cat("El elemento favorito de un videojuego es", fact_mode(DF$Elemento_favorito)) 
+plot(DF$Elemento_favorito,col=rainbow(15), main="Elemento favorito del videojuego")
+```
+
+### Forma de enterarse
+
+El canal que usaron los usuarios también es reelvante para las compañias de videojuegos, ya que permite conocer que canales tienen más alcance. Para describir a la variable usaremos la moda, y la graficamos con un gráfico de barras.
+
+```{r}
+cat("Las personas se enteran de los videojuegos mediante", fact_mode(DF$Metodo_de_enterarse)) 
+plot(DF$Metodo_de_enterarse,col=rainbow(9), main="Canal por el cual descubren videojuegos")
+```
+
+## **Variables Aleatorias y cálculo de probabilidades**
+
+En base a las variables recolectadas, hemos encontrado 3 variables aleatorias que podrían ser de utilidad para las empresas de videojuegos. Estas permitirían conocer las preferencias de los usuarios.
+
+### **Duración del pase de batalla**
+
+A las empresas les interesa saber cuanto tiempo desean los usuarios que dure el pase de batalla, para poder ajustar sus precios adecuadamente y brindar una experiencia más agradable.
+
+```{r}
+boxplot(DF$Semanas_pase_de_batalla,col= c("#FF0000"), main="Tiempo esperado de duración del pase de batalla")
+```
+
+Esta variable debido a su naturaleza se caracteriza como una variable normal, ya que es continua y conocemos su media y su desviación estandar.
+
+
+```{r}
+cat("MEDIA:", red(mean(DF$Semanas_pase_de_batalla,na.rm = TRUE)),"semanas")
+cat("DESVIACIÓN ESTANDAR:", red(sd(DF$Semanas_pase_de_batalla,na.rm = TRUE)),"semanas")
+hist(rnorm(10000, mean=6.67, sd=6.98), breaks=20, main="Distribución de tiempo esperado de duración del pase de batalla", xlab="semanas", col=rainbow(35))
+```
+
+### Cálculo probabilístico
+
+Por lo tanto, usando esta variable aleatoria, podemos hacer cálculos probabilísticos.
+
+Imaginemos que una empresa quiere lanzar un videojuego con un pase de batalla con duración más de 10 semanas. 
+
+¿Cuál es la probabilidad de que un usuario esté satisfecho con el tiempo de duración del pase de batalla?
+
+
+```{r}
+cat("Probabilidad de que el usuario este satisfecho con un pase de batalla de más de 10 semanas:", red(round((1-pnorm(10, 6.67, 6.98))*100,2)),"%")
+```
+Por lo tanto la empresa debería considerar un tiempo menor de duración ya que la probabilidad no es muy alta.
+
+
+### **Probabilidad de que en un salón de clases haya n interesados en el uso de PC**
+
+A las empresad de videojuegos les interesa saber que dispositivos prefieren los usuarios. En base a ello planteamos una variable que nos da la probabilidad de que en una muestra de 30 personas haya n interesados en el uso de PC.
+
+Esta variable por su naturaleza se caracteriza como una binomial, ya que queremos calcular la probabilidad de exito en una muestra.
+
+Para constuir la variable usamos la probabilidad de que un usuario tenga interés en el uso de PC.
+
+```{r}
+plot(DF$Dispositivo,col=rainbow(3), main="Dispositivo preferido")
+disp <- as.character(DF$Dispositivo)
+cat("La probabilidad de que el usuario prefiera PC según nuestra muestra es: ", round(length(which(disp=="PC"))/length(disp)*100,2), "%") 
+```
+
+En base a esto caracterizamos la variable aleatoria binomial que determina la cantidad de usuarios que prefieren PC en una muestra, con probabilidad de exito 65.56% y tamaño de muestra 30
+
+
+```{r}
+hist(rbinom(10000, 30, 0.6456), breaks=25, main="Distribución de Número de personas interesadas en PC en un salón de clases", xlab="N° personas", col=rainbow(35))
+```
+
+### Cálculo probabilístico
+
+Por lo tanto ahora podemos hacer cálculos probabilísticos. 
+
+Imaginemos que una empresa desea vender más de 10 videojuegos para PC en un salón de clases de 30 personas.
+
+¿Cuál es la probabilidad de que encuentre más de 10 interesados en un juego de PC en el salón de clases?
+
+```{r}
+cat("Probabilidad de que haya más de 10 interesados en PC en un salon de clases de 30:", red(round((1-pbinom(10, 30, 0.6456))*100,2)),"%")
+```
+Por lo cual a la empresa le convendría hacer publicidad ya que muy probablemente encuentre personas interesadas.
+
+
+
+### **Probabilidad de que al intento n se encuentre una persona que pagaría por videojuegos**
+
+Muchas empresas de videojuegos hacen publicidad en las calles y en redes sociales, por lo que les debe interesar saber a cuantas personas deben alcanzar para encontrar una que pagaría por un videojuego.
+
+Por esto hemos planteado una variable de naturaleza geométrica que nos da la probabilidad de que al intento n se encuentre una persona que pagaría más de 0 soles por videojuegos.
+
+Para esto usamos la variable recolectada del dinero gastado por los usuarios en videojuegos.
+
+```{r}
+hist(DF$Dinero_gastado, freq=FALSE,col= c("#FF0000"), main="Dinero gastado por Jugadores", xlab="Dinero gastado", breaks=20)
+#plot(factor(DF$Dinero_gastado[DF$Dinero_gastado>0]),col= rainbow(25), main="Número de usuarios que gastaron más que 0")
+lines(density(DF$Dinero_gastado), lwd = 2, col = 'blue')
+
+hist(DF$Dinero_gastado[DF$Dinero_gastado>0],freq=FALSE,col= c("lightblue"), main="Dinero gastado (eliminando a los que gastaron 0)", xlab="Dinero gastado", ylab="Densidad", breaks=20)
+lines(density(DF$Dinero_gastado[DF$Dinero_gastado>0]), lwd = 2, col = 'blue')
+```
+
+Con esto calculamos la probabilidad de que un usuario gaste más que 0 soles en videojuegos, según nuestra muestra.
+
+```{r}
+
+cat("Probabilidad de que un usuario gaste más de 0 soles en videojuegos:", red(round(length(DF$Dinero_gastado[DF$Dinero_gastado>0])/length(DF$Dinero_gastado)*100,2)),"%")
+```
+
+Y ahora caracterizamos la variable geométrica:
+
+```{r}
+hist(rgeom(1000, 0.3981), breaks=10, main="Probabilidad de encontrar persona que pague por videojuegos", xlab="N° intento", ylab="Frecuencia", col=rainbow(35))
+```
+
+### Cálculo probabilístico
+
+Con la cual podemos hacer calculos probabilisticos.
+
+Imaginemos que una empresa decide contratar a un empleado para que reparta volantes en la calle acerca de un nuevo videojuego.
+
+¿Cual es la probabilidad que en cualquiera de los primeros 3 intentos consiga una persona dispuesta a pagar por videojuegos?
+
+```{r}
+cat("Probabilidad de que en los primeros 3 intentos haya una persona interesada en pagar por videojuegos:", red(round((pgeom(2,  0.3981))*100,2)),"%")
+```
+
+Por lo cual, según los datos de nuestra muetra, a la empresa le conviene contratar repartidores de volantes.
+
+
+## **Patrones**
+
+Por último hemos identificado unos patrones en las variables que hemos recolectado que podrían ser de interés a las empresas desarrolladoras de videojuegos.
+
+### Edad-Años jugando
+
+La relación entre la variable edad y la de años jugando podría parecer evidente, sin embargo es importante confirmarla calculando su coorelación.
+
+
+```{r}
+c2 <-cov(DF$Edad,DF$Años_Jugando)/(sd(DF$Edad,na.rm=TRUE)*sd(DF$Años_Jugando,na.rm=TRUE))
+plot(DF$Edad,DF$Años_Jugando, xlab="Edad", ylab="Años jugando")
+cat("La correlación entre la edad y los años que llevan jugando es",red(c2))
+
+abline(lm( DF$Años_Jugando ~ DF$Edad ), col="red",)
+```
+
+Como se puede observar, en nuestra muestra la coorelación entre la edad y los años jugando no es muy alta, por lo que no recomendamos que se use la edad como un factor que influye en la cantidad de años de juego del usuario.
+
+### Género y Tipo de dispositivo
+
+Luego analizamos las diferentes preferencias de los géneros acerca de los tipos de dispositivo.
+
+```{r}
+plot(DF$Genero,DF$Dispositivo,col = c("#99cc99", "#cc9999", "#9999cc"),xlab="Género", ylab="Tipo de dispositivo")
+```
+
+Observamos que el género másculino prefiere el uso de PC en mayor porcentaje que el género femenino, y vemos que las mujeres prefieren PC y dispositivo móvil con magnitudes similares.
+
+
+
+
+## Referencias Bibliográficas
+
+- Technologies, R. (2021, 9 diciembre). Cómo crear gráficos básicos con R sin paquetes adicionales. Geoinnova. https://geoinnova.org/blog-territorio/crear-graficos-con-r/?gclid=CjwKCAiA7IGcBhA8EiwAFfUDsYCEknZQMXJS-pivSkSt68Pxa4oIR3uiMMUFMQ89qZUIOSvDvb7m6BoCyg0QAvD_BwE
+
+- González, R. (2019). Cómo graficar en R [ Base graphics. Rafa González Gouveia; Rafa. https://gonzalezgouveia.com/como-graficar-en-r-base-graphics-ggplot/
+
+- R CODER. (s. f.-c). GRÁFICOS en R 📈 [TUTORIALES de todos los tipos de GRÁFICAS].
+ https://r-coder.com/graficos-r/page/2/
+
+- Peng, R. D. (s. f.). Exploratory Data Analysis with R. Leanpub. https://leanpub.com/exdata
+
+- Peng, R. D. (s. f.-b). R Programming for Data Science. Leanpub. https://leanpub.com/rprogramming
+
+- Cobo, E.; Cortés, J. & Rius, R. (2014). Modelos para variables continuas. Universidad politécnica de Catalunya. Bioestadística para no estadísticos. Cap. 6. https://upcommons.upc.edu/bitstream/handle/2117/186425/06_modelos_continuos-5328.pdf
+
+- Aroca, P. R., García, C. L., & López, J. J. G. (2009). Estadística descriptiva e inferencial. Revista el auge de la estadística en el siglo XX, 22, 165-176.https://www.researchgate.net/profile/Pedro-Romero-Aroca/publication/275021043_Estadistica_Descriptiva_e_Inferencial/links/55bfd42b08aec0e5f4476a2a/Estadistica-Descriptiva-e-Inferencial.pdf
+
+- Guerrero, A., Buitrago, M. V., & de los Ángeles Curieses, M. (2007). Estadística básica. ITM. https://books.google.es/books?hl=es&lr=&id=pLF16E8nF6gC&oi=fnd&pg=PA11&dq=modelos+de+variables+discreta+en+estadistica&ots=mRrisZCsJu&sig=WpY6CsCTcalEAlDPejzAF1IRYvI
+
+- Bouzas, J. C., & Quindimil, M. A. P. (2002). Estadística I. http://quegrande.org/apuntes/ETIX/1/Est1/teoria/06-07/apuntes_de_teoria.pdf
+

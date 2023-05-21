@@ -1,0 +1,808 @@
+---
+title: ''
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+<center> ![](utec_trans.png){align="center" width=15%} </center>
+<br>
+<center style = 'font-size : 25px; font-family : Times New Roman '>***Estadística y Probabilidades I***</center>
+<br>
+<center style = 'font-size : 25px; font-family : Times New Roman ' > **Nivel de satisfacción de los estudiantes de pregrado de UTEC respecto a las áreas verdes y/o de descanso en el periodo 2022-2** </center>
+<br>
+
+***
+## 1. Introducción
+
+#
+
+#### **1.1 Relevancia**
+
+Con la vuelta a la presencialidad, se volvieron a utilizar diversas áreas de la     universidad de ingeniería y tecnología (UTEC), áreas que los estudiantes usan para descansar o estudiar. Por lo tanto, algo interesante de estudiar es el impacto que tienen el uso de estas áreas con la sensación de aprendizaje del estudiante y la satisfacción del mismo sobre la disponibilidad y condiciones en las que se encuentran.
+
+Y aunque sería más interesante poder evaluar la existencia de un efecto directo entre el uso de estos espacios con el desempeño académico, es imposible en este momento debido a la ausencia de data de un ciclo inmediato previo presencial.
+
+#    
+
+#### **1.2 Planificación**
+
+Para esto en el presente trabajo se analiza, mediante encuestas a una muestra de 200 estudiantes
+
+De esta forma se analizará la relación que existe entre la frecuencia de uso y la sensación de aprendizaje del estudiante, para determinar la eficiencia, insuficiencia o falta de aforo para los estudiantes.
+
+Por otro lado, se comparará la comodidad que encuentran antes, durante y después de la estancia de los espacios, mediante la medición del coeficiente NPS con los datos recogidos.
+
+
+***
+## 2. Objetivo
+
+#
+
+#### **2.1. Objetivo general**
+
+Determinar el nivel de satisfacción de los estudiantes de pregrado de UTEC respecto a las áreas verdes y de descanso en el campus de la universidad en el periodo 2022-2.
+
+#
+
+#### **2.2. Objetivos específicos**
+
+- Determinar los lugares más concurridos en la universidad para descansar y/o estudiar.
+- Determinar el tiempo aproximado por personas que se pasa en dichas áreas.
+- Describir qué tan cómodas son estas áreas para el alumnado y posibles mejoras para mejorar dichas áreas.
+- Conocer si las áreas destinadas al estudio como áreas verdes son suficientes para los estudiantes de UTEC.
+- Analizar la relación del tiempo que se pasa en estas áreas con el nivel de comodidad en estos.
+
+
+***
+## 3. Hipótesis
+
+El nivel de satisfacción de los estudiantes respecto a esta áreas está relacionado directamente con la comodidad de estas y el tiempo que los estudiantes pasan en dichas áreas.
+
+***
+## 4. Marco Teórico
+
+#
+
+#### **4.1. Definiciones importantes**
+
+- **NPS: ** El Net Promoter Score es un sistema indicador del nivel de satisfacción del cliente, mayormente es usado en el área de Marketing.
+
+#
+
+#### **4.2. Población**
+
+Los estudiantes de pregrado de la universidad de ingeniería y tecnología (UTEC).
+
+#
+
+#### **4.3. Muestra y tipo de Muestreo**
+
+Utilizaremos una muestra de 200 alumnos de la UTEC a través de un muestreo aleatorio simple (MAS)
+
+***
+## 5. Datos
+
+#
+
+#### **5.1. Recolección de datos**
+
+La recolección de datos se realizó mediante una encuesta virtual en la plataforma de google forms y se difundió en su mayoría vía web, pero también de manera presencial mediante interceptación de los estudiantes.
+
+Link de la encuesta: https://forms.gle/XQsvTmgDLa7yU6kG7
+
+#
+
+#### **5.2. Clasificación de Variables**
+
+#
+
+##### _**5.2.1. Variables Categóricas**_
+
+#
+
+|   Variable    | Tipo de Variable   | Restricciones  |
+|--------------:|:------------------:|:--------------:|
+| Sexo | Categórica nominal | Femenino o Masculino |
+| Carrera | Categórica nominal | De las opciones |
+| Lugares de estudio | Categórica nominal | De las opciones |
+| Dias frecuentes | Categórica ordinal | De Lunes a Sabado |
+| Incomodiades | Categórica nominal | De las opciones |
+| Aumento de áreas | Categórica nominal | Ambas, ninguna, solo areas verdes o solo areas de descanso |
+
+#
+
+##### _**5.2.2. Variables Numéricas**_
+
+#
+
+|   Variable    | Tipo de Variable   | Restricciones  |
+|--------------:|:------------------:|:--------------:|
+| Edad | Numérica discreta | entero mayor de 13 |
+| Ciclo actual | Numérica discreta | Numero entero del 1 al 10 |
+| Tiempo de estudio | Numérica discreta | Numero entero en horas |
+| Indice de accesibilidad | Numérica discreta | Del 1 al 10 |
+| Indice de comodidad | Numérica discreta | Del 1 al 10 |
+| Nivel de concentración | Numérica discreta | Del 1 al 10 |
+| Nivel de apoyo percibido por estas áreas | Numérica discreta | Del 1 al 10 |
+
+#
+
+***
+## 6. Limpieza de datos
+
+# 
+
+#### **6.1. Importando librerías**
+
+```{r}
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(stringr)
+library(graphics)
+library(tidyr)
+library(modeest)
+library(reshape2)
+```
+
+#### **6.2. Cargando la data**
+
+```{r}
+datos<-read_csv("importancia.csv")
+```
+
+##### **Creando funciones**
+
+```{r}
+fixh <- function(tuple) {
+    #' retira el head del dataframe de una osla fila, asi se convertirá en un arreglo con solo los valores.
+    names(tuple) <- NULL;  return (tuple);
+}
+#' redondeo de un decimal
+rd3 <- function(x) {  return (round(x, 3)); }
+```
+
+Algunas variables del Google Forms contienen mutiples respuestas separados por comas, entonces se tendrá que recopilar cada observación en spliteo entre comas para una variable categórica como una columna de 1 o 0 con la función `separate_var`.
+
+```{r}
+separate_var <- function(data, variable, refer) {
+    part <- paste("", refer, sep ="")
+    for(i in 1: length(refer)) {
+        data[part[i]] <- as.numeric(str_detect(variable, refer[i]))
+    }; return (data)
+}
+```
+
+#
+
+#### **6.3. Renombrando variables**
+
+Se cambia los nombres de las variables para que sean más sencillas de utilizar en la creación de los diagramas a estudiarse.
+
+```{r}
+part <- c("nombre" , "apellido" , "codigo" , "edad" , "sexo" , "ciclo" , "carrera" , "lugares" , "horasS" , "accesibilidad" , "dias" , "comodidad" , "incomodidad" , "aumentos" , "concentracion" , "apoyo")
+#' seleccionando las columnas necesarias
+datos <- datos[3:18]
+colnames(datos) <- part 
+names(datos)
+```
+```{r}
+datos1<-datos[,-1]
+```
+
+
+#
+
+#### **6.4. Reasignación de datos**
+
+Creamos una lista donde detallamos los símbolos que deseamos quitar, como las tildes y espacios para que no aparezcan en nuestras observaciones y simplificar su uso.
+
+```{r}
+cambios <- c( " "="", "á"="a"
+            , "é"="e", "í"="i")
+datos$lugares %>% str_replace_all(cambios) -> datos$lugares
+datos$dias %>% str_replace_all(cambios) -> datos$dias
+datos$incomodidad %>% str_replace_all(cambios) -> datos$incomodidad
+```
+
+## 7. Análisis descriptivo
+
+#
+
+#### **7.1. Variables Categóricas**
+
+#
+
+##### **Sexo**
+
+```{r}
+ggplot(datos, aes(x=sexo)) +geom_bar(fill= c("pink","skyblue","gray"))
+```
+
+Como primera gráfica tenemos una que nos permite deducir que el género predominante entre los estudiantes de UTEC, el cual resulto ser el masculino.
+
+#
+
+##### **Carrera**
+
+```{r}
+ggplot(datos,aes(x=carrera)) +geom_bar(fill="orange")+ coord_flip()
+```
+
+La carrera con la mayor cantidad de observaciones recogidas es `r mfv(datos$carrera)`. También observamos que las carreras de Ciencias de Datos y Administración y Negocios Digitales son las de menos densidad, esto es debido a que son carreras recién instauradas en el periodo 2022-1.
+
+#
+
+##### **Ciclo**
+
+```{r}
+ggplot(datos,aes(x=ciclo)) +geom_bar(fill="orange")
+```
+
+#
+
+##### **Lugares frecuentes**
+
+```{r}
+lug <- c("Comedor", "Cubiculos-Piso8"
+         , "Saladeestudio-Piso1", "Piso6"
+         , "Biblioteca", "Aulaslibres"
+         , "Piso11", "Saladepingpong", "Otros")
+```
+
+```{r}
+datos_lug <- separate_var(datos, datos$lugares, lug)
+```
+
+```{r}
+lugar_des <- c(sum(datos_lug$Comedor), sum(datos_lug$`Cubiculos-Piso8`)
+               , sum(datos_lug$`Saladeestudio-Piso1`), sum(datos_lug$Piso6)
+               , sum(datos_lug$Biblioteca), sum(datos_lug$Aulaslibres)
+               , sum(datos_lug$Piso11), sum(datos_lug$Saladepingpong), sum(datos_lug$Otros))
+reg_lugar <- data.frame(name = lug, frec = lugar_des)
+part <- paste("DeEn_", lug, sep ="")
+for(i in 1: length(lug)){
+  datos1[part[i]] <- as.numeric(str_detect(datos$lugares, lug[i]))
+}
+```
+
+```{r}
+ggplot(reg_lugar, aes(x=name, y=frec)) + geom_bar(stat="identity", fill="brown", width = 0.5)+ coord_flip()
+```
+
+Lo que podemos deducir a partir de esta gráfica es que los estudiantes de Utec prefieren pasar su tiempo libre tanto para estudiar como para descansar en las aulas libres del campus, pero seguido a esto observamos que la sala de estudio, situada en el piso 1, y las mesas en el piso 6 también son muy concurridos por los estudiantes.
+
+#
+
+##### **Días frecuentes**
+
+```{r}
+dia <- c("Lunes", "Martes", "Miercoles", "Jueves"
+         , "Viernes", "Sabado")
+```
+
+```{r}
+datos_dia <- separate_var(datos, datos$dias, dia)
+```
+
+```{r}
+dia_des <- c(sum(datos_dia$Lunes), sum(datos_dia$Martes)
+            , sum(datos_dia$Miercoles), sum(datos_dia$Jueves)
+            , sum(datos_dia$Viernes), sum(datos_dia$Sabado))
+reg_dia <- data.frame(name = dia, frec = dia_des)
+reg_dia
+```
+
+```{r}
+ggplot(reg_dia, aes(x=name, y=frec)) + geom_bar(stat="identity", fill="violet", width = 0.5)+ coord_flip()
+```
+
+Según esta gráfica podemos observar que los días lunes, martes, miercoles, jueves y viernes no tienen mucha diferencia en cuanto al tamaño de sus barras, pero observamos que el día sábado sí hay una gran diferencia respecto a los otros, esto es debido a que la cantidad de estudiantes que estan en el campus los días sabado es menor respecto a los otros días.
+
+#
+
+##### **Motivos por los cuales no se eligen estos espacios**
+
+```{r}
+incomoda <- c("Faltadeespacio", "Demasiadoruido"
+              , "Faltadeenchufes", "Bajavelocidaddelinternet"
+              , "Pocadisponibilidaddeloscubiculos", "Otros")
+```
+
+```{r}
+datos_inc <- separate_var(datos, datos$incomodidad, incomoda)
+```
+
+```{r}
+incomoda_des <- c(sum(datos_inc$Faltadeespacio), sum(datos_inc$Demasiadoruido)
+            , sum(datos_inc$Faltadeenchufes), sum(datos_inc$Bajavelocidaddelinternet)
+            , sum(datos_inc$Pocadisponibilidaddeloscubiculos), sum(datos_inc$Otros))
+reg_incomoda <- data.frame(name = incomoda, frec = incomoda_des)
+```
+
+```{r}
+ggplot(reg_incomoda, aes(x=c("F.de espacio", "D. ruido", "F. de enchufes", "Internet bajo", "Poca dispon.", "Otros"), y=frec)) + 
+        geom_bar(stat="identity", fill="blue", width = 0.5)+ coord_flip() + 
+        theme(axis.text.y = element_text(angle = 30, vjust = 1)) + labs(x = "Motivo")
+```
+
+Observamos que en esta gráfica "la poca disponibilidad" y "la cantidad de ruido" en estos espacios son las incomodidades que más han presentado los estudiantes respecto a estos espacios.
+
+#
+
+##### **Opinión de los estudiantes sobre aumentos de estas áreas**
+
+```{r}
+ggplot(datos,aes(x=aumentos)) +geom_bar(fill="orange")
+```
+
+Según esta gráfica gran parte de estudiantes al cuales se les realizó la encuesta, coinciden en que deberian aumentarse ambas áreas.
+
+#
+
+#### **7.2. Variables Numéricas**
+
+#
+
+##### **Edad**
+
+```{r}
+ggplot(datos,aes(x=edad)) +geom_bar(fill="orange")
+```
+
+#
+
+##### **Horas de permanencia**
+
+- Los estudiantes recurren a estos lugares en un tiempo promedio de `r rd3(mean(datos$horasS))` horas.
+- Aproximadamente el 50% de los estudiantes recurren por debajo de `r rd3(median(datos$horasS))` horas y los otro 50% encima de este tiempo.
+
+```{r}
+q25 <- quantile(datos$horasS, 0.25)
+q75 <- quantile(datos$horasS, 0.75)
+itq <- IQR(datos$horasS)
+```
+
+Eliminando valores atípicos en las horas de permanencia.
+
+```{r}
+no_atip <- filter(datos, horasS >= q75+1.5*itq)
+```
+
+```{r}
+boxplot(no_atip$horasS, horizontal = TRUE)
+abline(v = c(mean(no_atip$horasS)), col = "red")
+```
+
+- Se observa que la mayoria de las registros se ubican entre las `r fixh(q25)` y `r fixh(q75)` horas.
+- La muestra de las horas registradas son sesgadas a la derecha.
+
+#
+
+##### **Grado de comodidad y accesibilidad de estos espacios**
+
+Juntamos ambas variables tomando como factor de frecuencia los grados del 1 al 10.
+
+```{r}
+com_acc <- merge(x = data.frame(table(datos$comodidad)), y = data.frame(table(datos$accesibilidad)), by = c("Var1"))
+names(com_acc) <- c("Grado", "Comodidad", "Accesibilidad")
+com_shape <- melt(com_acc, id='Grado')
+```
+
+```{r}
+ggplot(com_shape, aes(Grado, value, fill=variable, group=variable)) + 
+        geom_bar(stat='identity', position='dodge')
+```
+
+#
+
+##### **Grado de concentración y nivel de apoyo de estos espacios**
+
+```{r}
+com_apo <- merge(x = data.frame(table(datos$concentracion)), y = data.frame(table(datos$apoyo)), by = c("Var1"))
+names(com_apo) <- c("Grado", "Concentración", "Apoyo")
+com_shape <- melt(com_apo, id='Grado')
+```
+
+```{r}
+ggplot(com_shape, aes(Grado, value, fill=variable, group=variable)) + 
+        geom_bar(stat='identity', position='dodge')
+```
+
+#
+
+#### **7.3. Relacion entre variables**
+
+#
+
+##### **Carrera vs. accesibilidad de los espacios**
+
+```{r}
+carreras <- c(unique(datos$carrera))
+newcarreras <- c("Ing. Mecan", "Ing. Mecatr", "Ing. Indus", "Ing. Energ", "Ing. Quim", "Bioing", "Ing. Civil", "CS", "Ing. Elec", "Ing. Amb", "Admin", "DS")
+for (it in 1:length(carreras)) {
+    datos$carrera[datos$carrera == carreras[it]] <- newcarreras[it]
+}
+```
+
+```{r}
+qplot(datos$carrera, datos$accesibilidad, data=datos, geom=c("boxplot","jitter"), 
+      fill=datos$carrera, xlab = "Carrera", ylab = "Accesibilidad") +
+      theme(axis.text.x = element_text(size=rel(0.6), angle = 90))
+```
+
+#
+
+##### **Sexo vs. aporte académico**
+
+```{r}
+ggplot(datos, aes(x=sexo,y=apoyo, fill=apoyo)) + geom_col(position="dodge", width = 0.6)
+```
+
+Aquí, equitativamente, tanto en hombres como en mujeres existen puntos de vista variados acerca del apoyo.
+
+#
+
+##### **Dias vs. accesibilidad de los espacios**
+
+```{r}
+acc_dia <- datos_dia %>% group_by(accesibilidad) %>% 
+            summarise(lunes = sum(Lunes),martes = sum(Martes),
+                    miercoles = sum(Miercoles), jueves = sum(Jueves),
+                    viernes = sum(Viernes), sabado = sum(Sabado))
+```
+
+```{r}
+par(mfrow=c(3,2))
+barplot(acc_dia$lunes, names.arg = acc_dia$accesibilidad, xlab = "Lunes")
+barplot(acc_dia$martes, names.arg = acc_dia$accesibilidad, xlab = "Martes")
+barplot(acc_dia$miercoles, names.arg = acc_dia$accesibilidad, xlab = "Miercoles")
+barplot(acc_dia$jueves, names.arg = acc_dia$accesibilidad, xlab = "Jueves")
+barplot(acc_dia$viernes, names.arg = acc_dia$accesibilidad, xlab = "Viernes")
+barplot(acc_dia$sabado, names.arg = acc_dia$accesibilidad, xlab = "Sabado")
+```
+
+#
+
+##### **Carrera vs. horas de permanencia a la semana**
+
+```{r}
+qplot(datos$carrera, datos$horasS, data=datos, geom=c("boxplot","jitter"), 
+      fill=datos$carrera, xlab = "Carrera", ylab = "Horas semanales") +
+      theme(axis.text.x = element_text(size=rel(0.6), angle = 90))
+```
+
+#
+
+## 8. Variables aleatorias
+
+- Edad
+- Horas frecuentes
+- Accesibilidad de los lugares
+- Grado de comodidad y concentración 
+- Grado de apoyo
+
+```{r}
+par(mfrow=c(3,2))
+hist(datos$edad, xlab = 'Edad',breaks = 10, freq = TRUE,col = "#856609")
+hist(datos$horasS, xlab = 'Horas',breaks = 10, freq = TRUE,col = "#856609")
+hist(datos$accesibilidad, xlab = 'Accesibilidad',breaks = 10, freq = TRUE,col = "#856609")
+hist(datos$comodidad, xlab = 'Comodidad',breaks = 10, freq = TRUE,col = "#856609")
+hist(datos$concentracion, xlab = 'Concentracion',breaks = 10, freq = TRUE,col = "#856609")
+hist(datos$apoyo, xlab = 'Apoyo',breaks = 10, freq = TRUE,col = "#856609")
+```
+
+#
+
+***
+
+## 9. Gráfica con histograma y densidad
+
+#### **9.1. Modelo exponencial - Variable Edad**
+
+```{r}
+summary(datos$edad)
+```
+
+
+```{r}
+hist(datos$edad, breaks=10, freq = FALSE, main="Histograma de Edad",xlab="años",ylab = "Densidad", col = "lightblue")
+curve(dnorm(x, mean(datos$edad,na.rm = TRUE), sd = sd(datos$edad,na.rm = TRUE)), 
+      0, 200, 500,
+      yaxs = "i", add = TRUE)
+points(datos$edad, dnorm(datos$edad, mean(datos$edad,na.rm = TRUE), sd = sd(datos$edad,na.rm = TRUE)), ylab = "f(x)", pch = 20,  lwd = 0.1, col = "navyblue")
+```
+
+```{r}
+desv_edad <- rd3(sd(datos$edad , na.rm = TRUE))
+round(desv_edad,digits=2)
+```
+```{r}
+cv_edad <-rd3((sd(datos$edad, na.rm = TRUE)/mean(datos$edad, na.rm = TRUE)))
+round(cv_edad,digits=2)
+```
+
+
+- Graficamente podemos observar que esta variable tiene un comportamiento exponencial, a pesar de que la media, mediana y moda son parecidas.
+- El parecido entre la mediana y la media se debe a que hay mucha concentración de datos entre los 18 y 20 años, esto probablemente se debe a que la población encuestada es contemporánea a los estudiantes encargados de este proyecto, esta gran concentracion hace que ocurra una variación muy significativa entre dos dato (20-21), por lo que la grifica tambien muestra una curva con caracter "normal".
+- La desviacion estandar es pequeña (`r desv_edad``), entonces la variablidad de edades es minima.
+- El coeficiente de variación es mínimo (`r cv_edad``), lo que nos revela que exite gran homogeneidad entre los datos.
+
+#
+
+#### **9.2. Modelo normal  - Variable Horas**
+
+```{r}
+summary(datos$horasS)
+```
+
+```{r}
+hist(datos$horasS, breaks=10, freq = FALSE, main="Histograma de Horas de uso ",xlab="horas",ylab = "Densidad", col = "lightblue")
+curve(dnorm(x, mean(datos$horasS,na.rm = TRUE), sd = sd(datos$horasS,na.rm = TRUE)), 
+      0, 200, 500, 
+      yaxs = "i", add = TRUE) 
+points(datos$horasS, dnorm(datos$horasS, mean(datos$horasS,na.rm = TRUE), sd = sd(datos$horasS,na.rm = TRUE)), ylab = "f(x)", pch = 20,  lwd = 0.1, col = "red")
+```
+
+```{r}
+desv_hor <- rd3(sd(datos$horasS , na.rm = TRUE))
+round(desv_hor,digits=2)
+```
+```{r}
+cv_hor <-rd3((sd(datos$horasS, na.rm = TRUE)/mean(datos$horasS, na.rm = TRUE)))
+round(cv_hor,digits=2)
+```
+
+
+- Graficamente podemos observar que esta variable tiene un comportamiento normal, a pesar de que la media sea diferente a la mediana.
+- La diferencia entre la mediana y la media se debe a que hay mucha concentración de datos entre las 5 y 10 horas, esta ocasiona que la media sea diferente a la mediana.
+- La desviacion estandar es media (`r desv_hor`), entonces la variablidad de horas de uso es  media.
+- El coeficiente de variación es medio (`cv_hor`), lo que nos revela que no existe gran homogeneidad entre los datos.
+
+#
+
+#### **9.3. Modelo normal - Variable Accesibilidad**
+
+```{r}
+summary(datos$accesibilidad)
+```
+
+```{r}
+hist(datos$accesibilidad, breaks=10, freq = FALSE, main="Histograma de Nivel de accesibilidad ",xlab = "nivel de accesibilidad",ylab = "Densidad", col = "lightblue")
+curve(dnorm(x, mean(datos$accesibilidad,na.rm = TRUE), sd = sd(datos$accesibilidad,na.rm = TRUE)),
+      0, 200, 500, 
+      yaxs = "i", add = TRUE) 
+points(datos$accesibilidad, dnorm(datos$accesibilidad, mean(datos$accesibilidad,na.rm = TRUE), sd = sd(datos$accesibilidad,na.rm = TRUE)), ylab = "f(x)", pch = 20,  lwd = 0.1, col = "red")
+```
+
+```{r}
+desv_acc <- rd3(sd(datos$accesibilidad , na.rm = TRUE))
+round(desv_acc,digits=2)
+```
+```{r}
+cv_acc <-rd3((sd(datos$accesibilidad, na.rm = TRUE)/mean(datos$accesibilidad, na.rm = TRUE)))
+round(cv_acc,digits=2)
+```
+
+
+- Graficamente podemos observar que esta variable tiene un comportamiento normal, cumple con el criterio de la media, mediana y moda, el cual nos indica que estas tienen que ser similares.
+- La desviacion estandar es pequeña (1.87), entonces la variablidad en el nivel de comodidad percibida es minima.
+- El coeficiente de variación es pequeño (0.32), lo que nos revela que existe gran homogeneidad entre los datos.
+
+#
+
+#### **9.4. Modelo normal - Variable Comodidad**
+
+```{r}
+summary(datos$comodidad)
+```
+
+```{r}
+hist(datos$comodidad, breaks=10, freq = FALSE, main="Histograma de Nivel de accesibilidad ",xlab = "nivel de comodidad",ylab = "Densidad", col = "lightblue")
+curve(dnorm(x, mean(datos$comodidad,na.rm = TRUE), sd = sd(datos$comodidad,na.rm = TRUE)), 
+      0, 200, 500, 
+      yaxs = "i", add = TRUE) 
+points(datos$comodidad, dnorm(datos$comodidad, mean(datos$comodidad,na.rm = TRUE), sd = sd(datos$comodidad,na.rm = TRUE)), ylab = "f(x)", pch = 20,  lwd = 0.1, col = "red")
+```
+
+```{r}
+desv_com <- rd3(sd(datos$comodidad , na.rm = TRUE))
+round(desv_com,digits=2)
+```
+```{r}
+cv_com <-rd3((sd(datos$comodidad, na.rm = TRUE)/mean(datos$comodidad, na.rm = TRUE)))
+round(cv_com,digits=2)
+```
+
+- Graficamente podemos observar que esta variable tiene un comportamiento normal, cumple con el criterio de la media, mediana y moda, el cual nos indica que estas tienen que ser similares.
+- La desviacion estandar es pequeña (1.87), entonces la variablidad en el nivel de comodidad percibida es minima.
+- El coeficiente de variación es pequeño (0.32), lo que nos revela que existe gran homogeneidad entre los datos.
+
+#
+
+#### **9.5. Modelo normal - Variable concentracion**
+```{r}
+summary(datos$concentracion)
+```
+```{r}
+op=par(mfrow=c(1,2))
+
+hist(datos$concentracion, breaks=10, freq = FALSE, main="Histograma de Nivel de accesibilidad ",xlab = "nivel de concentracion",ylab = "Densidad", col = "lightblue")
+curve(dnorm(x, mean(datos$concentracion,na.rm = TRUE), sd = sd(datos$concentracion,na.rm = TRUE)),
+      0, 200, 500, 
+      yaxs = "i", add = TRUE) 
+points(datos$concentracion, dnorm(datos$concentracion, mean(datos$concentracion,na.rm = TRUE), sd = sd(datos$concentracion,na.rm = TRUE)), ylab = "f(x)", pch = 20,  lwd = 0.1, col = "red")
+par(op)
+```
+```{r}
+desv_concen <- rd3(sd(datos$concentracion , na.rm = TRUE))
+round(desv_concen,digits=2)
+```
+```{r}
+cv_concen<-rd3((sd(datos$concentracion, na.rm = TRUE)/mean(datos$concentracion, na.rm = TRUE)))
+round(cv_concen,digits=2)
+```
+
+
+
+
+- Graficamente podemos observar que esta variable tiene un comportamiento normal, cumple con el criterio de la media, mediana y moda, el cual nos indica que estas tienen que ser similares.
+- La desviacion estandar es pequeño (1.52), entonces la variablidad del nivel de concentración es minima.
+- El coeficiente de variación es pequeña (0.22), lo que nos revela que existe gran homogeneidad entre los datos.
+
+#
+
+#### **9.6. Modelo normal - Variable Apoyo**
+
+```{r}
+summary(datos$apoyo)
+```
+```{r}
+op=par(mfrow=c(1,2))
+
+hist(datos$apoyo, breaks=10, freq = FALSE, main="Histograma de Nivel de apoyo ",xlab = "nivel de apoyo",ylab = "Densidad", col = "lightblue")
+curve(dnorm(x, mean(datos$apoyo,na.rm = TRUE), sd = sd(datos$apoyo,na.rm = TRUE)),
+      0, 200, 500, 
+      yaxs = "i", add = TRUE) 
+points(datos$apoyo, dnorm(datos$apoyo, mean(datos$apoyo,na.rm = TRUE), sd = sd(datos$apoyo,na.rm = TRUE)), ylab = "f(x)", pch = 20,  lwd = 0.1, col = "red")
+```
+
+```{r}
+desv_apoy <- rd3(sd(datos$apoyo , na.rm = TRUE))
+round(desv_apoy,digits=2)
+```
+```{r}
+cv_apoy<-rd3((sd(datos$apoyo, na.rm = TRUE)/mean(datos$apoyo, na.rm = TRUE)))
+round(cv_apoy,digits=2)
+```
+
+
+- Graficamente podemos observar que esta variable tiene un comportamiento normal, cumple con el criterio de la media, mediana y moda, el cual nos indica que estas tienen que ser similares.
+- La desviacion estandar es pequeño (1.68), entonces la variablidad del nivel de apoyo es minima.
+- El coeficiente de variación es pequeña (0.25), lo que nos revela que existe gran homogeneidad entre los datos.
+***
+## 10.Analisis probabilístico
+
+#
+
+### **Primera pregunta**
+- **_¿Cuál es la probabilidad de encontrar a un estudiante de bioingeniería, dado que la persona esta en el piso 6?  ._**
+
+Probabilidad de que el estudiante sea de Bioingeniería
+
+```{r}
+round((nrow(filter(datos, carrera=="Bioing")))/201,2)
+```
+
+Probabilidad de que el estudiante este descansando o estudiando en el Piso 6
+
+```{r}
+round((filter(reg_lugar, name=="Piso6")$frec)/201,2)
+```
+
+Probabilidad de que el estudiante este en el Piso 6 y sea de bioingeniería
+
+- Cantidad de estudiantes en el piso 6
+
+```{r}
+filter(reg_lugar, name=="Piso6")$frec
+```
+
+- Cantidad de estudiantes de Bioingeniería en el piso 6
+
+```{r}
+nrow(filter(filter(datos1, DeEn_Piso6 > 0), carrera=="Bioingeniería"))
+```
+
+- Probabilidad de que el estudiante este en el Piso 6 y sea de bioingeniería
+
+```{r}
+round(20/123,2)
+```
+
+$P(A∕B)=\frac{P(A∩B)}{P(B)}$
+
+```{r}
+round(0.16/0.61,2)
+```
+
+La probabilidad de encontrar un estudiante de bioingeniería cuando se busca en el piso 6 es
+
+---
+
+
+26%.
+
+### **Segunda pregunta**
+**Modelo Binomial Negativo**
+- **_De la variable de tipo categórica nominal, aumento de lugares de descanso, donde se concluye que la mayoría desea aumenta en espacios en áreas de descanso y verdes con un valor de 55.72%, un 24.38% desea solo áreas de descanso, un 18.91% desea solo áreas verdes y un 1% no desea ningun aumento._**
+
+```{r}
+table(datos$aumentos)
+```
+```{r}
+round(prop.table(table(datos$aumentos))*100,2)
+```
+
+¿Cuál es la probabilidad de tener que encuestar a 20 estudiantes para obtener al "octavo" estudiante que prefiera solo áreas de descanso
+
+$X=20$ $k=8$ $p=0.2438$
+
+X: Número de casos totales
+
+k: Casos de exito
+
+p: Probabilidad de exito por caso
+
+```{r}
+dnbinom(20-8,10,0.2438)
+```
+
+La probabilidad de que se necesiten 20 encuestas para encontrar a las octava persona que desea solo aumentos de áreas de descanso es de 
+
+---
+
+
+0.0076.
+
+### **Tercera pregunta**
+- ***Según el NPS (Net Promoter Score), los promotores son aquellos que marcaron un puntaje de 9 ó 10 en la escala de satisfacción. Para la variable comodidad, planteando que encontrar un promotor es un caso de éxito; debido a que, este es el objetivo al momento de buscar la comodidad de los estudiantes. Por este motivo podemos definir como:***
+
+  - ***Modelo Normal: Variable usada: Nivel de comodidad***
+La probabilidad de que un estudiante se un promotor es:
+```{r}
+round(nrow(filter(datos, comodidad >= 9))/201, 2)
+```
+
+¿Cual es la probabilidad de que el decimo estudiante entrevistado sea un promotor?
+
+```{r}
+round(dgeom(9, 0.08),2)
+```
+
+La probabilidad de que el 10 estudiante evaluado es un promotor
+
+
+---
+
+
+
+0.57
+
+## 11. Conclusiones
+
+En la investigación realizada pudimos lograr cada uno de los objetivos que nos propusimos, tanto generales como específicos, tales como: 
+
+Saber el indicador NPS general percibido por los estudiantes de utec, en donde relacionamos 4 variables que se encuentran en una escala del 1 al 10, lo que nos permite relacionarla, dichas variables son: Accesibilidad, comodidad, concentración y apoyo. Estas coinciden en magnitud en cuanto a sus distribuciones, presentan como moda el indicador 6 y 7; además, si juntamos los datos que repsondieron entre 1 y 6 ("detractores"), estos se convierten en una mayoria por la cual podemos concluir que el indicador NPS en cuanto a las areas de descanso o areas verdes en Utec esta dentro del intervalo de los "detractores" (1-6). Cabe aclarar que esto es evaluando en cuanto accesibilidad, comodidad, concentracion y apoyo percibido.
+
+También logramos saber que lugar es el más transcurrido en la universidad para descansar y/o estudiar, el cual son aulas libres con 130 respuestas de las 611 totales, podemos inferir que esto es debido a que las aulas se han convertido en un lugar cálido con accesos a corriente y que permite una libre conversación; algunas de estas características tambien las comparten los otros dos lugares que se encuentran muy cerca, como lo es el piso 6 y la sala de estudio en el piso 1.
+
+Asimismo, determinamos el tiempo aproximado que pasan los estudiantes en las áreas de descanso y estudio, obteniendo como resultado 9.47 horas; además, logramos saber a partir de una pregunta en nuestro cuestionario que la comodidad de esta áreas para los estudiantes tiene una moda de 6, y el intervalo con mayor cantidad de datos está entre 4 y 7 en una escala de indicador NPS, esto nos indica que la mayoría de estudiantes se convierten en "detractores" en cuanto a la comodidad de estos espacios, recordemos que los detractores son los que que encuentra entre un indice de 1 a 6 NPS.
+
+Igualmente, cabe mencionar que la cantidad de areas establecidas en el campues de la universidad NO son suficientes para el alumnado, en nuestra variable "aumentos" podemos percibir la respuesta de los estudiantes ante esta pregunta, tomando como respuesta mayoritaria en gran cantidad que SÍ les gustaria tener más areas, tanto de descanso como áreas verdes en la universidad, dado que esta obtuvo 112 respuestas de las 201 en total, lo que nos da mas de un 50 % en esta altenativa.
+
+Finalmente, sabemos que el nivel de comodidad expresado por los estudiantes de utec no es muy alto, la mayoría de datos indican que los estudiantes toman un papel de "detractores" y solo una mínima parte de "promotores", esto junto a la cantidad promedio de horas semanales (9.47) que se pasa en estas área, podemos deducir que si mejorariamos la comodidad para los estudiantes, el nivel de horas en dichos espacios por semana aumentarian; ya que, aumentaria el valor NPS. De la comodidad, podriamos decir que la cantidad de horas semanales que utilizan los estudiantes estos espacios es parcialmente dependiente al nivel de comodidad percibida por los mismos.
+

@@ -1,0 +1,1667 @@
+---
+title: "P2-Informe final"
+date: "2022-06-24"
+df_print: paged
+output:
+  html_document:
+    df_print: paged
+---
+```{r include = FALSE}
+knitr::opts_chunk$set(echo=FALSE, results= "hide")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+
+```{r}
+library(readr)
+library(fitdistrplus)
+library(dplyr)
+library(modeest)
+library(stringr)
+library(tinytex)
+library(ggplot2)
+library(ggthemes)
+library(DiagrammeR)
+library(tidyverse)
+library(ggmosaic)
+```
+
+
+# INTRODUCCIÓN: 
+TEMA: Efectos del COVID 19 en el PBI y la demanda interna del Perú
+
+OBJETIVO PRINCIPAL: Difundir y evidenciar el efecto de la pandemia sobre el PBI y la demanda interna del Perú. 
+
+
+RELEVANCIA: Debido a la pandemia por el corona virus hubo varios cambios en los hábitos de las personas y en el desarrollo del país en distintos aspectos, la cuarentena trajo grandes cambios en cuanto a la economía nos referimos, ya que llego a alterarse significativamente de modo que tuvo gran impacto en el estilo de vida de las personas en general.
+
+IMPORTANCIA: La importancia de este estudio se centra en la difusión de los efectos del COVID 19 en el PBI y la demanda interna del Perú, obteniendo información confiable de las bases de datos del estado y relacionado entre sí para obtener un análisis descriptivo y probabilístico. 
+
+
+PLANIFICACIÓN: Para cumplir con todas las especificaciones, organizar el trabajo y fijar plazos utilizamos el diagrama de Gantt.
+
+# Diagrama de gantt
+
+Para cumplir con todas las especificaciones, organizar el trabajo y fijar plazos utilizamos el diagrama de Gantt.
+
+
+```{r}
+data <- data.frame(
+  Nombres = c("1.Reunión grupal", "2.Ideas de proyecto","3.Eleccion de nuevo proyecto","4.Analizar Feedback","5.Recolección de data Virtual","6.Analisis y limpieza de data recolectada","7.Arreglar los errores","8.Informe P2"),
+  Dias = c("01 Octubre - 03 Octubre","04 Octubre - 11 Octubre", "12 Octubre - 18 Octubre", "19 Octubre","20 Octubre - 31 Octubre","01 Noviembre - 09 Noviembre","10 Noviembre - 13 Noviembre","14 Noviembre - 18 Noviembre"),
+  Inicio = c(8, 8.4, 9.1, 9.7,10, 10.3, 12, 13.5),
+  Fin = c(8.3, 9, 9.6,9.9, 10.2, 12, 13.4, 14)
+)
+
+ggplot(data, aes(x=Inicio, xend=Fin, y=Nombres, yend=Nombres)) + 
+  theme_bw(base_size = 10) + 
+  geom_segment(size=10) +
+  labs(title = "P2", x="Semana", y="Dias")
+```
+
+
+# DATOS:
+PROCESO DE RECOLECCIÓN DE DATOS:  
+Para el proceso de recolección de datos se buscó una base de datos confiable, de acuerdo al tema planteado para la investigación, los datos se obtuvieron de la base de datos del Banco Central de Reserva del Perú, ya que se buscaba una base de datos confiable y completa además de actualizada. La plataforma proporciona datos en formato csv, el cual nos facilita la limpieza de los mismos, los datos obtenidos se fijaron en un rango de tiempo (Enero 2020 -- Agosto 2022), siendo posible esto gracias a la página. 
+En resumen, se escogió una base de datos acorde al tema planteado y dicha información fue obtenida a través de una plataforma confiable del estado, la cual nos facilitaba la información en formato csv.
+
+## Marco Teórico
+
+INSTRUMENTO:la base de datos del Banco Central de Reserva del Perú
+POBLACIÓN: Personas que habitan el Perú.   
+MUESTRA: Población Económicamente Activa en el Perú.   
+MUESTREO: Muestreo Aleatorio Sistemático, puesto que los datos se recopilaron de todos los peruanos económicamente activos, hecho que no podría ser posible por medio de pequeñas empresas.
+
+# CLASIFICACIÓN DE VARIABLES:
+
+#### <span style="color:darkblue">A) Variables numéricas sobre datos generales</span>
+
+|            Variable               |          Tipo            |
+|:---------------------------------:|:------------------------:|
+|	Sexo	                            |  Categórica nominal      |
+|	Edad	                            |  Numérica discreta       |
+|	Trimestre-Año	                    |  Categórica continua     |
+| Puestos de Trabajo                |  Categórica nominal      |
+|	Departamento	                    |  Categórica nominal 	   |
+|	PBI Gasto Millones	              |  Cuantitativa continua	 |
+|	Remuneracion vital real (soles)	  |  Cuantitativa continua	 |
+|	Remuneracion vital              	|  Cuantitativa continua	 |
+|	PBI Variacion Porcentual	        |  Cuantitativa continua   |
+|	Fallecidos	                      |  Numérico discreto       |
+|	Contagiados                       |  Numérico discreto       |
+
+
+# ANÁLISIS DESCRIPTIVO:
+
+# Limpieza de  Base de datos
+
+Se ingresan las bases de datos principales: "Cantidad de fallecidos y contagiados, del COVID 19".
+
+```{r}
+DF<-read.csv("fallecidos_covid.csv", sep=";")
+```
+
+```{r}
+names(DF) 
+```
+
+
+```{r}
+DE<-read.csv("positivos_covid.csv", sep=";")
+```
+
+```{r}
+names(DE)
+```
+
+Se eliminan las variables innecesarias de ambas bases de datos.
+
+```{r}
+DF$`PROVINCIA`<- NULL
+DF$`DISTRITO`<- NULL
+DF$`UBIGEO`<- NULL
+DF$`UUID`<- NULL
+DF$`CLASIFICACION_DEF`<- NULL
+DF$`FECHA_CORTE`<- NULL
+```
+
+```{r}
+DE$`FECHA_CORTE`<- NULL
+DE$`PROVINCIA`<- NULL
+DE$`DISTRITO`<- NULL
+DE$`UBIGEO`<- NULL
+DE$`id_persona`<- NULL
+DE$`METODODX`<- NULL
+```
+
+
+```{r}
+round((sum(!complete.cases(DF))/nrow(DF))*100,2)
+colSums(is.na(DF))
+```
+
+```{r}
+round((sum(!complete.cases(DE))/nrow(DE))*100,2)
+colSums(is.na(DE))
+```
+
+El porcentaje de observaciones incompletas después de eliminar las variables innecesarias de la base de datos de "muertos por COVID 19" es 0. Mientras que por su parte, la base de datos de "contagiados de COVID 19" es 0.06.
+
+
+EliminandO observaciones "NA" de "Contagiados de COVID 19".
+
+```{r}
+DE<-filter(DE, complete.cases(DE))
+```
+
+```{r}
+colSums(is.na(DE))
+```
+
+```{r}
+table(DF$EDAD)
+table(DE$EDAD)
+```
+
+Se limpian los errores de edad recopilada de la base de datos "Contagiados de Covid-19", puesto que hay una edad de "-9" el cual es imposible.
+
+```{r}
+DF[!(DF$EDAD_DECLARADA == "-9"),]->DF
+```
+
+Solo se redujo la cantidad de observaciones iniciales en 1 unidad.  
+
+Por consiguiente, se agrupan a las fechas por "Año-Trimestre". Con la finalidad de relacionarlas con las bases de datos del PBI y Demanda interna, las cuales están agrupadas en trimestres por el "Banco Central de Reserva".  
+
+```{r}
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202003"), "20-T1", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202004"), "20-T2", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202005"), "20-T2", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202006"), "20-T2", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202007"), "20-T3", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202008"), "20-T3", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202009"), "20-T3", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202010"), "20-T4", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202011"), "20-T4", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202012"), "20-T4", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202101"), "21-T1", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202102"), "21-T1", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202103"), "21-T1", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202104"), "21-T2", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202105"), "21-T2", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202106"), "21-T2", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202107"), "21-T3", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202108"), "21-T3", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202109"), "21-T3", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202110"), "21-T4", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202111"), "21-T4", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202112"), "21-T4", FECHA_FALLECIMIENTO)
+) -> DF
+
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202201"), "22-T1", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202202"), "22-T1", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202203"), "22-T1", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202204"), "22-T2", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202205"), "22-T2", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202206"), "22-T2", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202207"), "22-T3", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202208"), "22-T3", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202209"), "22-T3", FECHA_FALLECIMIENTO)
+) -> DF
+
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202210"), "22-T4", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202211"), "22-T4", FECHA_FALLECIMIENTO)
+) -> DF
+DF %>% mutate(
+  FECHA_FALLECIMIENTO = ifelse(str_detect(FECHA_FALLECIMIENTO, "202212"), "22-T4", FECHA_FALLECIMIENTO)
+) -> DF
+```
+
+
+```{r}
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202003"), "20-T1", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202004"), "20-T2", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202005"), "20-T2", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202006"), "20-T2", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202007"), "20-T3", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202008"), "20-T3", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202009"), "20-T3", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202010"), "20-T4", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202011"), "20-T4", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202012"), "20-T4", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202101"), "21-T1", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202102"), "21-T1", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202103"), "21-T1", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202104"), "21-T2", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202105"), "21-T2", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202106"), "21-T2", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202107"), "21-T3", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202108"), "21-T3", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202109"), "21-T3", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202110"), "21-T4", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202111"), "21-T4", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202112"), "21-T4", FECHA_RESULTADO)
+) -> DE
+
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202201"), "22-T1", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202202"), "22-T1", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202203"), "22-T1", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202204"), "22-T2", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202205"), "22-T2", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202206"), "22-T2", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202207"), "22-T3", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202208"), "22-T3", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202209"), "22-T3", FECHA_RESULTADO)
+) -> DE
+
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202210"), "22-T4", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202211"), "22-T4", FECHA_RESULTADO)
+) -> DE
+DE %>% mutate(
+  FECHA_RESULTADO = ifelse(str_detect(FECHA_RESULTADO, "202212"), "22-T4", FECHA_RESULTADO)
+) -> DE
+```
+
+    
+```{r}
+table(DF$FECHA_FALLECIMIENTO)
+```
+
+```{r}
+table(DE$FECHA_RESULTADO)
+```
+```{r}
+DPD<-read.csv("pbi_demandaInterna.csv", sep=",")
+```
+
+
+Con respecto a la base de datos de la "variación porcentual anualizada del PBI y demanda interna" se agrupan por "Año-Trimestre" a los datos recopilados mensualmente.  
+
+```{r}
+DPD_D <- DPD
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Ene20"), "20-T1", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Feb20"), "20-T1", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Mar20"), "20-T1", X)
+) -> DPD_D
+
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Abr20"), "20-T2", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "May20"), "20-T2", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Jun20"), "20-T2", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Jul20"), "20-T3", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Ago20"), "20-T3", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Sep20"), "20-T3", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Oct20"), "20-T4", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Nov20"), "20-T4", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Dic20"), "20-T4", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Ene21"), "21-T1", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Feb21"), "21-T1", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Mar21"), "21-T1", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Abr21"), "21-T2", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "May21"), "21-T2", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Jun21"), "21-T2", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Jul21"), "21-T3", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Ago21"), "21-T3", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Sep21"), "21-T3", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Oct21"), "21-T4", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Nov21"), "21-T4", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Dic21"), "21-T4", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Ene22"), "22-T1", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Feb22"), "22-T1", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Mar22"), "22-T1", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Abr22"), "22-T2", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "May22"), "22-T2", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Jun22"), "22-T2", X)
+) -> DPD_D
+
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Jul22"), "22-T3", X)
+) -> DPD_D
+DPD_D %>% mutate(
+  X = ifelse(str_detect(X, "Ago22"), "22-T3", X)
+) -> DPD_D
+
+```
+
+```{r}
+DPD[!(DPD$X == ""),]->DPD
+table(DPD$X)
+DPD_D[!(DPD_D$X == ""),]->DPD_D
+table(DPD_D$X)
+```
+
+```{r}
+DPD%>% rename ( MES_AÑO =             `X`
+               ,PBI_DEMANDAINTERNA_VARPORCENTUAL = `PN01728AM`) -> DPD
+```
+
+```{r}
+DPD_D%>% rename ( TRIMESTRE_AÑO =             `X`
+               ,PBI_DEMANDAINTERNA_VARPORCENTUAL = `PN01728AM`) -> DPD_D 
+```
+
+El porcentaje de casos incompletos de la "variación porcentual anulizada del PBI y la demanda interna" es 
+  
+```{r}
+round((sum(!complete.cases(DPD))/nrow(DPD))*100,2)
+colSums(is.na(DPD))
+```
+
+```{r}
+DPG<-read.csv("pbi_gasto.csv", sep=",")
+DPG[!(DPG$X == ""),]->DPG
+```
+
+Se re ordena la variable "Trimestre - Año" de la base de datos de "Gastos del PBI" a "Año - Trimestre".
+
+```{r}
+
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T120"), "20-T1", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T220"), "20-T2", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T320"), "20-T3", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T420"), "20-T4", X)
+) -> DPG
+
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T121"), "21-T1", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T221"), "21-T2", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T321"), "21-T3", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T421"), "21-T4", X)
+) -> DPG
+
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T122"), "22-T1", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T222"), "22-T2", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T322"), "22-T3", X)
+) -> DPG
+DPG %>% mutate(
+  X = ifelse(str_detect(X, "T422"), "22-T4", X)
+) -> DPG
+```
+
+```{r}
+DPG %>% rename ( TRIMESTRE_AÑO=             `X`
+               ,PBI_GASTO_EN_MILLONES = `PN02538AQ`) -> DPG 
+```
+
+```{r}
+table(DPG$TRIMESTRE_AÑO_G)
+```
+
+El porcentaje de casos incompletos de "Gastos del PBI" es: 
+
+```{r}
+round((sum(!complete.cases(DPG))/nrow(DPG))*100,2)
+```
+La base de datos de la "variacion porcentual anualizada del PBI y demanda interna" se agrupan por "Año-Trimestre" a los datos recopilados mensualmente.  
+
+```{r}
+DR<-read.csv("remuneracion_vital_real_soles.csv", sep=",")
+DR[!(DR$X == ""),]->DR
+```
+
+```{r}
+DR_T<-DR
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Ene20"), "20-T1", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Feb20"), "20-T1", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Mar20"), "20-T1", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Abr20"), "20-T2", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "May20"), "20-T2", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Jun20"), "20-T2", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Jul20"), "20-T3", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Ago20"), "20-T3", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Sep20"), "20-T3", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Oct20"), "20-T4", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Nov20"), "20-T4", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Dic20"), "20-T4", X)
+) -> DR_T
+
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Ene21"), "21-T1", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Feb21"), "21-T1", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Mar21"), "21-T1", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Abr21"), "21-T2", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "May21"), "21-T2", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Jun21"), "21-T2", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Jul21"), "21-T3", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Ago21"), "21-T3", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Sep21"), "21-T3", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Oct21"), "21-T4", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Nov21"), "21-T4", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Dic21"), "21-T4", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Ene22"), "22-T1", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Feb22"), "22-T1", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Mar22"), "22-T1", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Abr22"), "22-T2", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "May22"), "22-T2", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Jun22"), "22-T2", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Jul22"), "22-T3", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Ago22"), "22-T3", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Sep22"), "22-T3", X)
+) -> DR_T
+
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Oct22"), "22-T4", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Nov22"), "22-T4", X)
+) -> DR_T
+DR_T %>% mutate(
+  X = ifelse(str_detect(X, "Dic22"), "22-T4", X)
+) -> DR_T
+
+
+```
+
+```{r}
+DR %>% rename ( AÑO_TRIMESTRE =             `X`
+               ,REMUNERACIONVIT_REAL_SOLES = `PN37695PM`) -> DR
+```
+
+```{r}
+DR_T %>% rename ( AÑO_TRIMESTRE =             `X`
+               ,REMUNERACIONVIT_REAL_SOLES = `PN37695PM`) -> DR_T
+```
+
+La base de datos de los "puestos de trabajo mensuales" se agrupan por "Año-Trimestre". 
+
+```{r}
+DT<-read.csv("puestos_trabajo.csv", sep=",")
+DT[!(DT$X == ""),]->DT
+
+DT_T<-DT
+
+DT_T %>% rename ( MES_AÑO =             `X`
+               ,PUESTO_TRABAJO_MILES = `PN31879GM`) -> DT_T
+
+DT %>% rename ( MES_AÑO =             `X`
+               ,PUESTO_TRABAJO_MILES = `PN31879GM`) -> DT
+
+```
+
+```{r}
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ene20"), "20-T1", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Feb20"), "20-T1", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Mar20"), "20-T1", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Abr20"), "20-T2", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "May20"), "20-T2", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jun20"), "20-T2", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jul20"), "20-T3", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ago20"), "20-T3", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Sep20"), "20-T3", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Oct20"), "20-T4", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Nov20"), "20-T4", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Dic20"), "20-T4", MES_AÑO)
+) -> DT_T
+
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ene21"), "21-T1", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Feb21"), "21-T1", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Mar21"), "21-T1", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Abr21"), "21-T2", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "May21"), "21-T2", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jun21"), "21-T2", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jul21"), "21-T3", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ago21"), "21-T3", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Sep21"), "21-T3", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Oct21"), "21-T4", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Nov21"), "21-T4", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Dic21"), "21-T4", MES_AÑO)
+) -> DT_T
+
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ene22"), "22-T1", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Feb22"), "22-T1", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Mar22"), "22-T1", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Abr22"), "22-T2", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "May22"), "22-T2", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jun22"), "22-T2", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jul22"), "22-T3", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ago22"), "22-T3", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Sep22"), "22-T3", MES_AÑO)
+) -> DT_T
+
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Oct22"), "22-T4", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Nov22"), "22-T4", MES_AÑO)
+) -> DT_T
+DT_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Dic22"), "22-T4", MES_AÑO)
+) -> DT_T
+
+```
+
+La base de datos de la "tasa de desempleo" se agrupan por "Año-Trimestre" a los datos recopilados mensualmente. 
+
+```{r}
+DD<-read.csv("tasa_desempleo.csv", sep=",")
+DD[!(DD$X == ""),]->DD
+
+DD_T<-DD
+
+
+DD_T %>% rename ( MES_AÑO =             `X`
+               ,REMUNERACIONVIT_REAL_SOLES = `PN38071GM`) -> DD_T
+
+DD %>% rename ( MES_AÑO =             `X`
+               ,REMUNERACIONVIT_REAL_SOLES = `PN38071GM`) -> DD
+```
+
+
+```{r}
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ene20"), "20-T1", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Feb20"), "20-T1", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Mar20"), "20-T1", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Abr20"), "20-T2", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "May20"), "20-T2", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jun20"), "20-T2", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jul20"), "20-T3", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ago20"), "20-T3", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Sep20"), "20-T3", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Oct20"), "20-T4", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Nov20"), "20-T4", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Dic20"), "20-T4", MES_AÑO)
+) -> DD_T
+
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ene21"), "21-T1", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Feb21"), "21-T1", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Mar21"), "21-T1", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Abr21"), "21-T2", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "May21"), "21-T2", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jun21"), "21-T2", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jul21"), "21-T3", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ago21"), "21-T3", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Sep21"), "21-T3", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Oct21"), "21-T4", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Nov21"), "21-T4", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Dic21"), "21-T4", MES_AÑO)
+) -> DD_T
+
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ene22"), "22-T1", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Feb22"), "22-T1", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Mar22"), "22-T1", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Abr22"), "22-T2", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "May22"), "22-T2", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jun22"), "22-T2", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Jul22"), "22-T3", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Ago22"), "22-T3", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Sep22"), "22-T3", MES_AÑO)
+) -> DD_T
+
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Oct22"), "22-T4", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Nov22"), "22-T4", MES_AÑO)
+) -> DD_T
+DD_T %>% mutate(
+  MES_AÑO = ifelse(str_detect(MES_AÑO, "Dic22"), "22-T4", MES_AÑO)
+) -> DD_T
+
+```
+
+```{r}
+DD_T %>% rename ( AÑO_TRIMESTRE =             `MES_AÑO`) -> DD_T
+```
+
+
+# ANÁLISIS DESCRIPTIVO
+
+Se define la desviación estándar como una función.
+
+```{r}
+desviacion_estandar <- function(x){
+  desvi_estan = sqrt(sum((x - mean(x))^ 2) / (length(x)-1))
+  desvi_estan
+}
+```
+
+
+```{r}
+DE[!(DE$SEXO == ""),]->DE
+summary(DE$EDAD)
+round(desviacion_estandar(DE$EDAD),2)
+table(DE$SEXO)
+table(DE$DEPARTAMENTO)
+table(DE$FECHA_RESULTADO)
+```
+El resumen de edades, sexo, departamento y fecha del resultado de la prueba de contagio por el COVID-19, nos indica una desviación estándar de 17.61 con respecto a la única variable de tipo numérica (Edad).
+
+```{r}
+summary(DF$EDAD)
+round(desviacion_estandar(DF$EDAD),2)
+table(DF$SEXO)
+table(DF$DEPARTAMENTO)
+table(DF$FECHA_FALLECIMIENTO)
+```
+El resumen de edades, sexo, departamento y fecha de fallecimiento debido al COVID-19, nos indica una desviación estándar de 15.76 con respecto a la única variable de tipo numérica (Edad).
+
+# [DESCRIPTORES GRAFICOS]{style="color:lightgreen"}
+
+### Analisis de las personas Fallecidas - Contagiadas según: DEPARTAMENTO - EDAD - SEXO - TRIMESTRE_AÑO
+
+```{r}
+mosaicplot(table(DF$DEPARTAMENTO,DF$SEXO),main="Fallecidos: SEXO - DEPARTAMENTO")
+mosaicplot(table(DE$DEPARTAMENTO,DE$SEXO),main="Contagiados: SEXO - DEPARTAMENTO")
+```
++ Gráfico fallecidos: Sexo - Departamento
+  - Nos indica que hay una mayor cantidad de fallecidos en el departamento de Lima, el cual tiene una mayor tasa de     mortalidad en el sexo masculino.
+
++ Gráfico contagiados: Sexo - Departamento
+  - Nos indica que hay una mayor cantidad de contagiados en el departamento de Lima, el cual tiene una cantidad         equiparable con respecto al sexo masculino y femenino.
+
+```{r}
+mosaicplot(table(DF$DEPARTAMENTO,DF$FECHA_FALLECIMIENTO),main="Fallecidos: TRIMESTRE_AÑO - DEPARTAMENTO")
+mosaicplot(table(DE$DEPARTAMENTO,DE$FECHA_RESULTADO),main="Contagiados: TRIMESTRE_AÑO - DEPARTAMENTO")
+```
+
++ Gráfico fallecidos: Trimestre_año - Departamento
+  - Nos indica que en el primer trimestre del 2021 se recopiló más datos de fallecidos por el COVID-19, en el         departamento de Lima. 
+
++ Gráfico contagiados:Trimestre_año - Departamento
+  - Nos indica que en el primer trimestre del 2022 se recopiló más datos de contagiados por el COVID-19, en el departamento de Lima. 
+
+```{r}
+DF %>% ggplot(., aes(FECHA_FALLECIMIENTO, EDAD_DECLARADA, fill=SEXO)) + geom_boxplot()
+DE %>% ggplot(., aes(FECHA_RESULTADO, EDAD, fill=SEXO)) + geom_boxplot()
+```
+ 
++ Gráfico fallecidos: Edad Declarada (por sexo) - Fecha_de_fallecimiento
+  - Se observa que las muertes por COVID-19 afectan principalmente a las mujeres; además, la edad declarada de las    mujeres está por encima de los varones.
+  
++ Gráfico contagiados: Edad Declarada (por sexo) - Fecha_de_fallecimiento
+  - Se observa que los contagios de COVID-19 afectan principalmente a las mujeres; además, la edad declarada de las     mujeres en su mayoría está por encima de los varones.
+  
+  
+
+### Fallecidos  
+
+```{r}
+lista_fall<- str_split_fixed(DF$FECHA_FALLECIMIENTO, ",", n=Inf)
+```
+
+```{r}
+lista_fall<- gsub (" ", "", lista_fall)
+```
+
+```{r}
+max(table(lista_fall, exclude = c('')))
+```
+Porcentaje de fallecidos:  
+```{r results="markup"}
+(50956/nrow(DF))*100
+```  
+
+En la siguiente tabla e histograma se evidencia que en el Trimestre-1 del 2021 hay más fallecidos por el Covid - 19 el cual representaría como moda al total de fallecidos por trimestre desde el comienzo de cuarentena con un porcentaje de 23.49545%.
+
+Tabla:  
+
+```{r results="markup"}
+table(lista_fall, exclude = c( '' ) )
+```
+Histograma:
+
+```{r}
+barplot(table(lista_fall, exclude = c('' ) ), main = "Muertes por trimestre", ylab= "Número de muertes", xlab = "Trimestre", las =3, cex.names = 0.5, cex.axis = 0.8)
+```
+
+### Contagiados
+
+```{r}
+lista_cont<- str_split_fixed(DE$FECHA_RESULTADO, ",", n=Inf)
+```
+
+```{r}
+lista_cont<- gsub (" ", "", lista_cont)
+```
+
+```{r}
+max(table(lista_cont, exclude = c('')))
+```
+Porcentaje de contagiados  
+```{r results="markup"}
+round((1250783/nrow(DE))*100,2)
+```
+
+Por consiguiente en la tabla e histograma de "contagiados por Covid-19" se evidencia que en el Trimestre-1 del 2022 hay más contagiados por el Covid - 19 el cual representaría como moda al total de contagiados por trimestre desde el comienzo de cuarentena con un porcentaje de 30.14%.
+
+```{r results="markup"}
+table(lista_cont, exclude = c( '' ) )
+```
+
+Histograma:
+
+```{r}
+barplot(table(lista_cont, exclude = c('' ) ), main = "Contagios por trimestre", ylab= "Número de personas contagiadas", xlab = "Trimestre", las =3, cex.names = 0.5, cex.axis = 0.8)
+```
+
+
+
+### Analisis de CONTAGIADOS - FALLECIDOS por trimestre
+
+
+Según se aprecia en el gráfico, en el trimestre-1 del 2022 hay un mayor número de personas contagiadas, seguidas por el trimestre-1 del 2021. Y a lo que respecta de personas fallecidas, este tuvo un mayor impacto en el trimestre-1 del 2021. A simple percepción, se podría decir que hay una relación con respecto a la catidad de fallecidos y contagiados en el primer trimestre del año 2021.  
+Para corrborar esta relación se procede a calcular la covarianza de "fallecidos - contagiados". Por lo que se crea una nueva base de datos el cual agrupa a los contagiados y fallecidos por trimestre.
+
+
+Se juntan las bases de datos agrupadas por "Año-Trimestre" en una nueva base de datos llamada "prueba". Y se analiza gráficamente la covarianza de "Contagiados-Fallecidos".
+
+```{r}
+as.data.frame(lista_cont) %>% group_by(V1) %>% summarise(Contagiados=n()) -> Prueba
+as.data.frame(lista_fall) %>% group_by(V1) %>% summarise(Fallecidos=n()) %>% left_join(., Prueba) -> Prueba
+```
+
+```{r}
+cov(Prueba$Fallecidos,Prueba$Contagiados)
+Prueba %>% rename(Trimestre = V1) %>% ggplot(., aes(Fallecidos, Contagiados)) + geom_point()
+```
+Como se puede apreciar, la covarianza de "contagiados - fallecidos" es 2625911662. El cual se evidencia marcadamente en su gráfico de correlación; por lo cual, Es posible asociarlos en una nueva variable "Covid-19", el cual representa la cantidad de fallecidos y contagiados, según el trimetre y año correspondiente. Esto con la finalidad de saber si hay una relación directa del "Covid-19"con el "PBI" y la "demanda Interna".
+
+```{r}
+Prueba$COVID19<-Prueba$Contagiados+Prueba$Fallecidos
+```
+
+En consecuencia, se agrupan las bases de datos del PBI y Demanda Interna en la base de datos "Prueba", agrupados por trimestre.
+
+```{r}
+DPD_D %>% group_by(TRIMESTRE_AÑO) %>% summarise(PBI_VAR_PORCENT = mean(as.numeric(PBI_DEMANDAINTERNA_VARPORCENTUAL))) %>% rename(V1 = TRIMESTRE_AÑO) %>% right_join(., Prueba)->Prueba
+```
+```{r}
+DD_T %>% group_by(AÑO_TRIMESTRE) %>% summarise(REMUNE_VIT_SOL = mean(as.numeric(REMUNERACIONVIT_REAL_SOLES))) %>% rename(V1 = AÑO_TRIMESTRE) %>% right_join(., Prueba)->Prueba
+```
+
+```{r}
+DR_T %>% group_by(AÑO_TRIMESTRE) %>% summarise(REMUNERACION_VIT_REAL_SOLES = mean(as.numeric(REMUNERACIONVIT_REAL_SOLES))) %>% rename(V1 = AÑO_TRIMESTRE) %>% right_join(., Prueba)->Prueba
+```
+
+```{r}
+DT_T %>% group_by(MES_AÑO) %>% summarise(PUESTO_TRABAJO_MILES = mean(as.numeric(PUESTO_TRABAJO_MILES))) %>% rename(V1 = MES_AÑO) %>% right_join(., Prueba)->Prueba
+```
+```{r}
+DPG %>% group_by(TRIMESTRE_AÑO) %>% summarise(PBI_MILLONES = mean(as.numeric(PBI_GASTO_EN_MILLONES))) %>% rename(V1 = TRIMESTRE_AÑO) %>% right_join(., Prueba)->Prueba
+```
+
+Debido a los datos faltantes, solo se analizará las bases de datos hasta el segundo trimestre del 2022.
+
+```{r}
+Prueba<-filter(Prueba, complete.cases(Prueba))
+```
+
+### ANALISIS "COVID-19" - "PBI" 
+Con la nueva base de datos "Prueba" completa, se analiza si existe una correlación entre el "Covid-19" y el "PBI y la demanda interna"
+
+```{r}
+cov(Prueba$COVID19,Prueba$PBI_VAR_PORCENT)
+Prueba %>% rename(Trimestre = V1) %>% ggplot(., aes(COVID19, PBI_VAR_PORCENT)) + geom_point()
+cov(Prueba$COVID19,Prueba$PBI_MILLONES)
+Prueba %>% rename(Trimestre = V1) %>% ggplot(., aes(COVID19, PBI_MILLONES)) + geom_point()
+```
+De este gráfico podemos observar que si existe una relación entre la PBI  y la cantidad de personas afectadas (contagiadas - fallecidas) por el covid-19, en cada trimestre. Puesto que en la variacio general del PVI con respecto al Covid, este tiene una covarianza de 817400.5, el cual se resume que Mientras más afectados existan por el covid-19, más es la variación porcentual del PBI. Inversamente, mientras aumentan los casos de "Covid-19", baja el PBI (en millones) recopilado, siendo su relación de covarianza ("PBI EN MILLONES" - "COVID-19"), un valor de -680503011. 
+
+
+### ANALISIS "COVID-19" - "DEMANDA INTERNA" 
+
+```{r}
+cov(Prueba$COVID19,Prueba$REMUNE_VIT_SOL)
+Prueba %>% rename(Trimestre = V1) %>% ggplot(., aes(COVID19, REMUNE_VIT_SOL)) + geom_point()
+cov(Prueba$COVID19,Prueba$PUESTO_TRABAJO_MILES)
+Prueba %>% rename(Trimestre = V1) %>% ggplot(., aes(COVID19, PUESTO_TRABAJO_MILES)) + geom_point()
+cov(Prueba$REMUNE_VIT_SOL,Prueba$PUESTO_TRABAJO_MILES)
+Prueba %>% rename(Trimestre = V1) %>% ggplot(., aes(REMUNE_VIT_SOL, PUESTO_TRABAJO_MILES)) + geom_point()
+```
+
+
+Segun la data adquirida del BCR la relación entre la demanda interna y tasa de desempleo es indirectamente proporcional. Puesto que su covarianza es negativa , esto se debe a que a mayor tasa de desempleo la demanda de un pais va aumentando significativamente.
+
+A lo que respecta de "remuneración vital" y "puestos de trabajo" se obtiene una covarianza de 331.5456, la cual indica que tienen una relación directamente proporcional. El cual puede apreciarce gráficamente.
+De este modo podemos asociar que la "remuneración vital" y "puestos de trabajo" tienen una grán influencia con respecto a la demanda interna del país.
+
+Así bien, se analiza la relación gráfica del "covid-19" y "remuneración vital", el cual representa una covarianza de 115351.6. Se interpreta que a medida que aumentan las personas afectadas por el covid-19 la remuneración vital aumenta. Por otro lado de la relación gráfica del "covid-19" y "Puestos de trabajo", se obtiene una covarianza de -8206722; interpretandose que a medida que aumentan los casos de covid-19, disminuyen los puestos de trabajo.
+
+
+# Análisis probabilístico 
+
+En esta etapa del estudio, se desarrollará el análisis probabilista aplicado en nuestra base de datos. El
+objetivo es encontrar probabilidades que nos ayuden a conocer eventos importantes para el desarrollo de la
+investigación, además de calcular sus probabilidades de ocurrencia.  
+
+## Análisis de variable discreta: "Covid-19"
+
+Como primea variable a analizar, nos centraremos en el "covid-19" el cual se inspeccionará mediante la distribución discreta de Poisson; ya que, este usa un experimeto aleatorio en el que ocurren una cantidad de sucesos en un intervalo dado de longitud "t" (trimestre-año). El cual está representada por la siguiente función:
+  
+$$
+P(X=x)=\frac{e^λλ^x}{x!}
+$$
+λ = vt = Promedio de sucesos por intervalo de tamaño t.
+v  = Promedio de sucesos por unidad de intervalo.
+t   = Tamaño del intervalo.
+
+$$
+ x ∼ Poisson(λ) 
+$$
+X: Número de veces que ocurre un evento en un intervalo definido.
+
+Por tanto se procederá a calcular el promedio de afectados por el covid 19 por trimestre (λ).
+
+##### Información de covid 19  
+
+```{r}
+summary(Prueba$COVID19)
+```
+
+```{r}
+var(Prueba$COVID19)
+```
+
+```{r}
+sd(Prueba$COVID19)
+```
+
+Se trabajará con el promedio de la media, ya que presenta una alta disperción de datos.
+Por lo tanto el promedio de afectados por Covid-19 por trimestres es λ=263508.
+
+Nos interesa saber la probabilidad de que se registren 1000000 de personas afectadas por el Covid-19 en un trimestre.
+
+$$
+ F(1000000)=f(0)+f(1)+...+f(1000000) 
+$$
+```{r}
+  dpois(x=260000, lambda = 263508)
+```
+Obteniendo el resultado:
+ 
+x ∼ Poisson(λ=263508) = 5.095019e-14
+
+```{r}
+cv <-(sd(Prueba$COVID19, na.rm = TRUE)/mean(Prueba$COVID19, na.rm = TRUE))# Coeficiente de variación
+round(cv,digits = 2)
+```
+Los descriptores numéricos de dispersión basados en la información de las personas con COVID 19 nos muestra que el promedio de personas con COVID19 es de 386138, además el coeficiente de variación obtenido es de 0.98 lo que significa que tiene homogeneidad baja.
+
+```{r}
+#-----------
+# lambda: 263508
+#-----------
+plot(qpois(seq(0, 1.3, 0.1), lambda = 263508),
+     main = "Función cuantil",
+     ylab = "Q(p)", xlab = "p",
+     type = "s", col = 3, xaxt = "n")
+
+axis(1, labels = seq(0, 1, 0.1), at = 0:10 * 100)
+
+```
+
+
+Analizaremos mediante una gráfica, densidad de COVID19
+
+```{r}
+density1<-density(Prueba$COVID19)
+plot(density1, main="DENSIDAD DE COVID 19", xlab="Cantidad de casos de COVID 19 (MILES)", ylab="DENSIDAD")
+polygon(density1, col="yellow", border="black")
+```
+A partir de este gráfico se puede concluir que la mayor cantidad de casos de COVID 19 se encuentran entre los o a 250000 mil.
+
+Así mismo, adjuntamos un gráfico mostrando la curva exponencial y teórica del dicha variable.
+```{r}
+x = 0:100
+hist(Prueba$COVID19,breaks=10, freq=FALSE, main="Histograma del nivel de covid 19",ylab="Densidad" ,xlab="Nivel", col="skyblue")
+lines(density(Prueba$COVID19, na.rm=TRUE),col="red",lwd=3)
+curve(dgamma(x, 3, 0.5), lwd = 2, col = "blue", add = T)
+
+legend("topright", c("curva observada", "curva (exponencial) teórica"),
+       lty = 1, lwd = 2, col = c("red", "blue"), bty = "n",
+       cex = 0.8)
+```
+
+
+
+### Media, mediana y moda
+Implementamos dicha función para describir nuestras variables
+```{r}
+mode <- function(x) {
+   return(as.numeric(names(which.max(table(x)))))
+}
+```
+
+### Variable ***remuneración vital en soles***  
+```{r}
+media <- mean(Prueba$REMUNE_VIT_SOL)
+REMUNE_VIT_SOLSort <- sort(Prueba$REMUNE_VIT_SOL)
+mediana <- median(REMUNE_VIT_SOLSort)
+moda <- mode(Prueba$REMUNE_VIT_SOL)
+
+titulo <- "Histograma de las cantidad de remuneraciones"
+subtitulo <- paste("Media =",round(media,2), " Mediana =",mediana, " Moda =",moda)
+
+ggplot(data = Prueba, mapping = aes(x=REMUNE_VIT_SOL)) +
+  geom_histogram(bins=50) +
+   ggtitle(titulo, subtitle = subtitulo) +
+  xlab('Remuneraciones') + ylab('Frecuencia') +
+  geom_vline(aes(xintercept = media,
+                  color = "media"),
+              linetype = "dashed",
+              size = 1)  +
+   geom_vline(aes(xintercept = mediana,
+                  color = "mediana"),
+              linetype = "dashed",
+              size = 1) +
+   geom_vline(aes(xintercept = moda,
+                  color = "moda"),
+              linetype = "dashed",
+              size = 0.5) 
+```
+Luego de obtener el gráfico, dentro de nuestros datos encontramos que tenemos una media de remuneraciones de 69.62, además de una mediana de 70.38 años y una moda de 63.33.
+
+### Variable ***COVID 19***  
+```{r}
+media <- mean(Prueba$COVID19)
+COVID19Sort <- sort(Prueba$COVID19)
+mediana <- median(COVID19Sort)
+moda <- mode(Prueba$COVID19)
+ 
+titulo <- "Histograma de la variable COVID 19"
+subtitulo <- paste("Media =",round(media,2), " Mediana =",mediana, " Moda =",moda)
+
+ggplot(data = Prueba, mapping = aes(x=COVID19)) +
+  geom_histogram(bins=50) +
+   ggtitle(titulo, subtitle = subtitulo) +
+  xlab('Personas con covid19') + ylab('Frecuencia') +
+  geom_vline(aes(xintercept = media,
+                  color = "media"),
+              linetype = "dashed",
+              size = 1)  +
+   geom_vline(aes(xintercept = mediana,
+                  color = "mediana"),
+              linetype = "dashed",
+              size = 1) +
+   geom_vline(aes(xintercept = moda,
+                  color = "moda"),
+              linetype = "dashed",
+              size = 0.5) 
+```
+Dentro de nuestros datos, con respecto a las personas afectadas por el Covid-19 por cada trimestre, encontramos que tenemos una media de 386138.3, además de una mediana de 263507.5 años y una moda de 1497.
+
+
+
+  
+
+
+
+
+### Continua: Modelo Normal
+##### Variable Remuneración vital en soles  
+
+```{r}
+Descrip<-function(X){
+  return(list('Media  '=round(mean(X,na.rm = TRUE ),2), 'Mediana   '=round(median(X, na.rm = TRUE),2), 'Moda    '=as.numeric(names(which(table(X)==max(table(X)))))))}
+```
+
+```{r}
+mapply(Descrip, list('Remuneración'=Prueba$REMUNE_VIT_SOL))
+```
+
+```{r}
+round(sd(Prueba$REMUNE_VIT_SOL , na.rm = TRUE),digits=2)               #DESVIACIÓN ESTANDAR
+```
+El valor de la desviación estándar para esta variable es 2.38, entonces la variabilidad de las remuneraciones vitales es moderado. Asímismo se tiene una media de 69.62 una mediana de 70.38.
+
+```{r}
+cv <-(sd(Prueba$REMUNE_VIT_SOL, na.rm = TRUE)/mean(Prueba$REMUNE_VIT_SOL, na.rm = TRUE))# Coeficiente de variación
+round(cv,digits = 2)
+```
+Su coeficiente de variación es 0.03, existe mayor homogeneidad en los datos y tenemos una muestra compacta,esto en consecuencia de los valores extremos. 
+
+
+```{r}
+op=par(mfrow=c(1,2))
+
+#---------------------------
+
+hist(Prueba$REMUNE_VIT_SOL, breaks=10, freq = FALSE, main="Histograma de remuneración",xlab="Remuneración(Soles)",ylab = "Densidad", col = "lightblue")
+curve(dnorm(x, mean(Prueba$REMUNE_VIT_SOL,na.rm = TRUE), sd = sd(Prueba$REMUNE_VIT_SOL,na.rm = TRUE)), # Función dnorm a evaluar
+      0, 300, 40, # Límites de x y nº de valores a evaluar
+      col = "Red", 
+      las = 1, # Etiquetas alineadas horizontalmente
+      ann = FALSE, # Sin títulos en los ejes
+      xaxp = c(0, 500, 10),  # Marcas del eje x
+      ylim = c(0,0.03), # Límites del eje
+      yaxs = "i", add = TRUE) # Estilo del eje y, ajustado a los límites
+points(Prueba$REMUNE_VIT_SOL, dnorm(Prueba$REMUNE_VIT_SOL, mean(Prueba$REMUNE_VIT_SOL,na.rm = TRUE), sd = sd(Prueba$REMUNE_VIT_SOL,na.rm = TRUE)), ylab = "f(x)", pch = 20,  lwd = 0.1, col = "navyblue")
+par(op)
+```
+
+```{r}
+hist(Prueba$REMUNE_VIT_SOL,breaks=10, freq=FALSE, main="Histograma de remuneración", xlab="Remuneración (Soles)",ylab = "Frecuencia", col="green")
+lines(density(Prueba$REMUNE_VIT_SOL, na.rm=TRUE),col="red",lwd=3)
+curve(dnorm(x, mean(Prueba$REMUNE_VIT_SOL,na.rm=TRUE), sd(Prueba$REMUNE_VIT_SOL,na.rm=TRUE)), lwd = 2, col = "blue", add = T)
+legend("topleft", c("curva observada", "curva (normal) teórica"),
+       lty = 1, lwd = 2, col = c("red", "blue"), bty = "n",
+       cex = 0.8)
+```
+
+```{r}
+hist(Prueba$REMUNE_VIT_SOL ,main = "Histograma de remuneración vital en soles", ylab = "Frecuencia", col = "lightblue",breaks = 15, xlab = "remuneración vital")
+```
+
+
+### Discreta: Modelo Binomial
+##### Variable puestos de trabajo
+
+```{r}
+round(sd(Prueba$PUESTO_TRABAJO_MILES, na.rm=TRUE),digits=2)               #DESVIACIÓN ESTANDAR
+```
+#La desviación estándar para esta variable toma el valor de 247.45 que indica que el nivel de dispersión de los datos para esta variable no es cuantioso.
+```{r}
+cv <-(sd(Prueba$PUESTO_TRABAJO_MILES, na.rm = TRUE)/mean(Prueba$PUESTO_TRABAJO_MILES, na.rm = TRUE))# Coeficiente de variación
+round(cv,digits = 2)
+```
+```{r}
+hist(Prueba$PUESTO_TRABAJO_MILES,breaks=10, freq=FALSE, main="Histograma de puestos de trabajo", xlab="Puestos de trabajo",ylab = "Frecuencia", col="green")
+lines(density(Prueba$PUESTO_TRABAJO_MILES, na.rm=TRUE),col="red",lwd=3)
+curve(dnorm(x, mean(Prueba$PUESTO_TRABAJO_MILES,na.rm=TRUE), sd(Prueba$PUESTO_TRABAJO_MILES,na.rm=TRUE)), lwd = 2, col = "blue", add = T)
+legend("topleft", c("curva observada", "curva (normal) teórica"),
+       lty = 1, lwd = 2, col = c("red", "blue"), bty = "n",
+       cex = 0.8)
+```
+La variable puestos de trabaja que escogieron los individuos tiene una escala que va de un rango de 4800 a 5600, el coeficiente de variación para esta variable es 0,05 respecto a esta variable, hay menor heterogeneidad en sus valores.
+
+```{r}
+x = 0:100
+hist(Prueba$PUESTO_TRABAJO_MILES,breaks=10, freq=FALSE, main="Histograma de puestos de trabajo",ylab="Densidad" ,xlab="Nivel", col="skyblue")
+lines(density(Prueba$PUESTO_TRABAJO_MILES, na.rm=TRUE),col="red",lwd=3)
+curve(dgamma(x, 3, 0.5), lwd = 2, col = "blue", add = T)
+
+```
+
+
+
+
+### PBI gasto en millones vs "Contagiados
+
+```{r}
+Prueba %>% 
+  drop_na(PBI_MILLONES) %>%
+  drop_na(Contagiados) %>%
+  ggplot(mapping = aes(x = Contagiados,
+                     fill = Contagiados)) +
+  geom_histogram(bins = 9,
+                 position = 'identity',
+                 alpha = 0.6) +
+  ggtitle('Histograma: PBI gasto en millones vs "Contagiados"')
+
+```
+
+
+```{r}
+par(mfrow=c(1,1))
+hist(Prueba$COVID19, main = "COVID 19 VS. Contagiados", ylab = "Frecuencia",xlab="Cantidad de casos COVID 19", ylim=c(0,12))
+hist(Prueba$PBI_MILLONES, add = TRUE, col = rgb(1, 0, 0, alpha = 0.5))
+
+```
+
+
+
+
+### COVID 19 VS fallecidos
+
+```{r}
+boxplot(Prueba$COVID19~Prueba$Fallecidos,main="Covid19 VS. Fallecidos",xlab="Personas con Covid",ylab="CANTIDAD DE muertes (miles)",col=c("yellow","green"))
+```
+
+### Contagiados VS, COVID 19
+```{r}
+barplot(table(Prueba$Contagiados,Prueba$COVID19), main="Contagiados VS. Covid19", col=c("green","yellow"),beside=TRUE)
+legend(x="bottom",legend = c("Contagiados","Personas con COVID19"),fill=c("green","yellow"), title="LEYENDA")
+```
+Debido a la uniformidad de la base de datos, se puede ver que la cantidad de personas contagiadas son las mismas en diferentes rangos de tiempo.
+
+### Variable contagiados 
+
+```{r}
+round(sd(Prueba$Contagiados, na.rm=TRUE),digits=2)               #DESVIACIÓN ESTANDAR
+```
+#La desviación estándar para esta variable toma el valor de 371645.9 que indica que el nivel de dispersión de los datos para esta variable no es cuantioso.
+```{r}
+cv <-(sd(Prueba$Contagiados, na.rm = TRUE)/mean(Prueba$Contagiados, na.rm = TRUE))# Coeficiente de variación
+round(cv,digits = 2)
+```
+```{r}
+hist(Prueba$Contagiados,breaks=10, freq=FALSE, main="Histograma de contagiados", xlab="Contagiados",ylab = "Frecuencia", col="green")
+lines(density(Prueba$Contagiados, na.rm=TRUE),col="red",lwd=3)
+curve(dnorm(x, mean(Prueba$Contagiados,na.rm=TRUE), sd(Prueba$Contagiados,na.rm=TRUE)), lwd = 2, col = "blue", add = T)
+legend("topleft", c("curva observada", "curva (normal) teórica"),
+       lty = 1, lwd = 2, col = c("red", "blue"), bty = "n",
+       cex = 0.8)
+```
+
+
+
+```{r}
+boxplot(Prueba$Contagiados,col= "green", main = "Histograma de contagiados")
+```
+De este diagrama de caja de la variable contagiados, realizamos un diagrama de caja y vemos que hay un dato atípico. 
+
+```{r}
+hist(Prueba$Contagiados ,main = "Contagiados de Covid 19", ylab = "Frecuencia", col = "lightblue",breaks = 10, xlab = "Cantidad de contagiados")
+```
+
+
+
+
+
+### ***Análisis probabílistico***
+```{r}
+dim(Prueba) #Dimensión de la data
+```
+Se tiene un población de 10 encuestados. Para considerar un individuo con buena remuneración tiene que tener más de 72.86667, y se le baja remuneración si la medida es menor, si se toma una muestra de 5 encuestados, calcular la probabilidad de que todos en esta muestra sean altos. Existen 6 individuos considerados altos.
+```{r}
+x=5
+M=9-6
+N=10 
+n=5
+
+plot(dhyper(x, 66:M, N-M, n),col = "cadetblue3",xlab = "REMUNERACIÓN VITAL (SOLES)",ylab = "Probabilidad Hipergeométrica",main = "MODELO HIPERGEOMÉTRICO - REMUNERACIÓN VITAL")
+```
+
+
+En un grupo de encuestados se sabe que tienen una probabilidad de 0.34 de tener una remuneración vital de 72.8666, calcular la probabilidad de que sea necesario encuestar 18 personas para que 4 tengan una remuneración vital de 66.5666.
+
+
+```{r}
+r=4
+k=18
+p=0.34
+
+plot(pnbinom(0:k-r,r,p),col = "Blue",xlab="REMUNERACIÓN VITAL (SOLES)",ylab="Probalidad Binomial Negativa",main = "MODELO BINOMIAL NEGATIVO, REMUNERACIÓN VITAL")
+```
+
+
+
+
+
+Se sabe que en la población de encuestados existe la probabilidad de un 6/10 que tengan un PBI de valor porcentual de 43.793333, si de 8 encuestados tomamos 3 personas ¿calcular la probabilidad de que esas 4 personas tengan un PBI de valor porcentual de 11.976667?
+```{r}
+n=3
+k=8
+p=6/10
+plot(dbinom(n,0:k,p),col = "cadetblue3",xlab = "PBI",ylab = "Probabilidad Binomial" ,main = "MODELO BINOMIAL - PBI valor porcentual")
+```
+
+
+# conclusión: 
+- Después de todo el análisis que se realizó a las variables mas relevantes del estudio, las cuales consideramos a ;  "covid" que es la suma de las personas que fueron contagiadas y los fallecidos , los puestos de trabajo en miles que es la tasa de empleabilidad que esta sucediendo durante un periodo de tiempo , la demanda interna y el pbi en millones que es el centro de nuestro estudio se llegaron a las siguientes conclusiones:  
+- En la covarianza de la empleabilidad con la demanda interna es negativa por ende son inversamente proporcional ya que cuando la tasa de desempleo es baja la demanda tiende a aumentar 
+- Tambien según el BCR Y SIN, reactivar la demanda interna e inversión facilitará mayor puestos laborales y mayor t rabajo, de esta manera frenará la caída de empleos.
+- Hay una mayor cantidad de fallecidos en el departamento de Lima
+- La mortalidad predomina en el sexo masculino.
+
+- Gráfico contagiados: Sexo - Departamento
+  - Nos indica que hay una mayor cantidad de contagiados en el departamento de Lima, el cual tiene una cantidad         equiparable con respecto al sexo masculino y femenino.
+
+# BIBLIOGRAFÍA
+
+1. Fallecidos por COVID-19 - [Ministerio de Salud - MINSA] | [Plataforma Nacional de Datos Abiertos. (s. f.).]
+ (https://www.datosabiertos.gob.pe/dataset/fallecidos-por-covid-19-ministerio-de-salud-minsa)
+ 
+2. Casos positivos por COVID-19 - Ministerio de Salud - MINSA | [Plataforma Nacional de Datos Abiertos. (s. f.).] (https://www.datosabiertos.gob.pe/dataset/casos-positivos-por-covid-19-ministerio-de-salud-minsa) 
+
+3. [PBI gasto. (s. f.).](https://estadisticas.bcrp.gob.pe/estadisticas/series/trimestrales/pbi-gasto) 
+
+4. [Remuneraciones y empleo. (s. f.).] (https://estadisticas.bcrp.gob.pe/estadisticas/series/mensuales/remuneraciones-y-empleo)
+
+5. [BASE DE DATOS DE ESTADÍSTICAS DEL BCRP. (s. f.).](https://estadisticas.bcrp.gob.pe/estadisticas/series)

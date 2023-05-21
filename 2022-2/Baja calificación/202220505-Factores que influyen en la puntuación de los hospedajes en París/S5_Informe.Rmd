@@ -1,0 +1,3116 @@
+---
+title: "S5_Informe"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Tema: Factores que influyen en la puntuación de los hospedajes en París
+
+```{r}
+if(!require(readr)){install.packages('readr')}
+if(!require(dplyr)){install.packages('dplyr')}
+if(!require(stringr)){install.packages('stringr')}
+if(!require(ggplot.multistats)){install.packages('ggplot.multistats')}
+if(!require(ggplot2)){install.packages('ggplot2')}
+if(!require(ggthemes)){install.packages('ggthemes')}
+if(!require(ggpubr)){install.packages('ggpubr')}
+
+
+
+library(readr)
+library(dplyr)
+library(stringr)
+library(ggthemes)
+library(ggplot2)
+library(ggpubr)
+
+```
+
+# Introducción
+
+## Relevancia
+
+Es importante conocer qué tanto se ve afectada la calificación de los turistas y de los habitantes de París hacia el lugar donde se han alojado, especialmente en zonas turísticas  tales como el distrito VII donde se ubica la Torre Eiffel;  El Louvre, Sainte Chapelle, entre otros. Conocer esta información facilitará la toma de decisiones de los hospedajes para brindar un mejor servicio al cliente. 
+
+## Planificación
+
+```{r}
+data2 <- data.frame(name=c('Recopilación propuestas del primer informe','Culminación del primer informe','Limpieza de variables','Finalización del análisis descriptivo','Preparación de slides y segundo informe','Exposición del segundo informe','Arreglo de errores de PG1','Selección de variables aleatorias','Análisis probabilístico','Preparación de la presentación de la PG2'),
+                   start = c(1,2,3,4,5,6,7,9,10,12),
+                   end = c(2,3,4,5,6,7,9,10,12,13),
+                   shift_type = c('pg0','pg0','pg1','pg1','pg1','pg1','pg2','pg2','pg2','pg2')
+                   )
+
+```
+
+
+
+```{r}
+#Convierto a factor mi variable "name" para poderle darle un orden.
+
+data2$name = factor(data2$name,c('Preparación de la presentación de la PG2','Análisis probabilístico','Selección de variables aleatorias','Arreglo de errores de PG1','Exposición del segundo informe','Preparación de slides y segundo informe','Finalización del análisis descriptivo','Limpieza de variables','Culminación del primer informe','Recopilación propuestas del primer informe'))
+```
+
+
+```{r}
+ggplot(data2, aes(x=start, xend=end, y=name, yend=name, color=shift_type)) +
+  theme_bw()+
+  geom_segment(size=8) +
+  labs(title='Cronograma de avances', x='Semanas', y='Trabajo') +
+  scale_colour_manual(values = c('pink', 'purple','red')) +theme_fivethirtyeight() + theme(axis.title = element_text())
+
+```
+
+
+# Preguntas de investigación
+
+1. ¿Qué variables determinan en mayor medida el puntaje que tiene cada hospedaje ?
+
+2. ¿El precio de cada hospedaje se ve afectado por la cantidad de servicios brindados?
+
+3. ¿Qué servicios fundamentales deben tener los hospedajes en París para captar la atención de las personas?
+
+
+# Datos
+
+## Recolección de datos
+
+Obtuvimos nuestra base de datos de la página oficial de Airbnb, empresa que conecta hospedajes con huéspedes. Se optó por trabajar con una base de datos debido a que el enfoque de nuestro tema se basa en un estudio realizado en un país europeo. Por lo tanto, la distancia sería una limitante para obtener los datos mediante encuestas.
+
+## Población, muestra y muestreo
+
+### Población:
+
+La población de nuestro estudio son todos los hospedajes en París.
+
+### Muestra:
+
+Nuestra muestra fue extraída de la base de datos de hospedajes de París, Francia brindada por Airbnb. Según lo requerido, estará conformada por 200 observaciones.
+
+Puede encontrar la base de datos utilizada y muchas más de Airbnb en: http://insideairbnb.com/get-the-data/
+
+### Muestreo:
+
+Se utilizará el método de muestreo aleatorio simple: elegiremos al azar 200 observaciones y las guardaremos en un nuevo archivo csv, lo que permitirá mantener la aleatoriedad. Como se utiliza un método de muestreo probabilístico, la representatividad de la muestra es adecuada.
+
+## Variables
+
+### Variables numéricas:
+
+|VARIABLE|TIPO |RESTRICCIÓN| DESCRIPCIÓN
+|:-------|:----|:---------|:-----
+|longitude|Numérica Continua| Toma valores numéricos reales en grados sexagesimales|Utiliza el sistema geodésico mundial para la longitud
+|latitude|Numérica Continua| Toma valores numéricos reales en grados sexagesimales|Utiliza el sistema geodésico mundial para la latitud
+|bedrooms|Numérica Discreta| Toma valores numéricos enteros positivos| Número de dormitorios
+|beds|Numérica Discreta| Toma valores numéricos enteros positivos| Número de camas
+|number_of_review_ltm|Numérica Discreta| Toma valores numéricos enteros positivos| Cantidad de reviews en el último año    
+|reviews_per_month|Numérica Continua| Toma valores numéricos positivos| Promedio de la cantidad de reviews que recibe un hospedaje al mes
+|price|Numérica Discreta| Toma valores numéricos positivos| Precio del alquiler del hospedaje en dólares
+|minimum_nights|Numérica Discreta| Toma valores numéricos enteros positivos| Noches mínimas indicadas por el dueño
+|maximum_nights|Numérica Discreta| Toma valores numéricos enteros positivos| Noches máximas indicadas por el dueño
+|number_of_reviews|Numérica Discreta| Toma valores numéricos enteros positivos| Cantidad de reseñas totales al hospedaje
+|bathrooms_text| Numérica Discreta |Toma un valor numérico positivo| Cantidad de baños
+|review_scores_value|Numérica discreta| Toma valores numéricos positivos en un rango de 0 a 5| Promedio del puntaje asignado por los usuarios del hospedaje 
+|review_scores_cleanliness|Numérica Discreta| Toma valores numéricos positivos en un rango de 0 a 5| Promedio del puntaje asignado por los usuarios al hospedaje por la limpieza
+|review_scores_checkin|Numérica Discreta| Toma valores numéricos positivos en un rango de 0 a 5| Promedio del puntaje asignado por los usuarios al hospedaje por el servicio en el CheckIn
+|review_scores_communication|Numérica Discreta| Toma valores numéricos positivos en un rango de 0 a 5| Promedio del puntaje asignado por los usuarios al hospedaje por la atención al cliente
+|review_scores_location|Numérica Discreta| Toma valores numéricos positivos en un rango de 0 a 5| Promedio del puntaje asignado por los usuarios al hospedaje por la localización
+|host_response_time| Numérica continua |  | Indica el tiempo que el dueño demora en responder medido en horas
+
+### Variables categóricas:
+
+|VARIABLE|TIPO |RESTRICCIÓN|DESCRIPCIÓN
+|:-------|:----|:---------|:-----
+|has_availability| Categórica Nominal | Esta representado por TRUE o FALSE| Informa si es que hay habitaciones desocupadas en el hospedaje
+|name|Categórica Nominal | | Indica el nombre del hospedaje 
+|neighbourhood|Categórica Nominal | | Indica el nombre del vecindario
+|instant_bookable| Categórica Nominal | Esta representado por TRUE o FALSE | Indica si es que se puede reservar al instante.|
+|room_type| Categórica Nominal| | Indicando el tipo de cuarto que se ofrece como por ejemplo: privado, compartido, cuarto completo, etc. |
+|property_type| Categórica Nominal | | Indica el tipo de propiedad al que pertenece el hospedaje
+|wifi| Categórica Nominal | Esta representado por TRUE o FALSE | Informa si es que hay servicio de Wifi en el hospedaje
+|hot_water| Categórica Nominal | Esta representado por TRUE o FALSE | Informa si es que hay servicio de agua caliente en el hospedaje
+|host_has_profile_pic| Categórica Nominal | Esta representado por TRUE o FALSE | Informa si es que el dueño tiene una foto de perfil.
+|host_identity_verified| Categórica Nominal | Esta representado por TRUE o FALSE | Informa si es que el dueño ha verificado su identidad.
+
+## Limpieza de base de datos
+
+
+
+```{r}
+#Usado para hallar al azar 200 observaciones, no ejecutar nuevamente o cambiará todo el análisis.
+
+
+#hallarFilas <- function(){
+    #return (sample(1:56739,200)) #1er parámetro:  vector elementos de los que se escogerá al azar.
+                        #2do parámetro: cantidad de elementos a escoger del vector
+ # }
+
+#filas <- hallarFilas() #Hallamos filas al azar. Esto lo debemos de comentar en la entrega y trabajar siempre con el DF2.csv que le salió a Yulinio
+
+#DF <- DF[filas,]
+#write_csv(DF,"DF2244")
+```
+
+### Recortando la cantidad de observaciones al azar (200 filas)
+```{r}
+DF <- read_csv("DF2244.csv")
+```
+
+
+Nos quedamos solo con las variables que utilizaremos
+
+```{r}
+DF <- select(DF,5,15,25,26,27,30,31,32,33,36,37,38,40,41,42,50,56,57,67,63,64,65,66,69,74)
+```
+
+### Adición de variables obtenidas de la data original
+
+Existen datos importantes para el estudio que se encuentran dentro de una sola variable "Amenities", las cuales toman valores de TRUE o FALSE. Para poder estudiarlas, debemos de copiarlas a mano a partir de las filas elegidas al azar de la base de datos original anteriormente.
+
+#### Agregando la variable Wifi
+```{r}
+wifi<-c("TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE","TRUE", "FALSE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE","TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "TRUE", "FALSE", "TRUE", "TRUE", "TRUE", "TRUE",  "TRUE", "TRUE", "TRUE", "TRUE", 
+        "TRUE", #50
+        "TRUE", #51
+        "TRUE", #52
+        "TRUE", #53
+        "TRUE", #54
+        "FALSE", #55
+        "TRUE", #56
+        "TRUE", #57
+        "TRUE", #58
+        "TRUE", #59
+        "TRUE", #60
+        "TRUE", #61
+        "TRUE", #62
+        "TRUE", #63
+        "TRUE", #64
+        "TRUE", #65
+        "TRUE", #66
+        "TRUE", #67
+        "TRUE", #68
+        "TRUE", #69
+        "TRUE", #70
+        "TRUE", #71
+        "TRUE", #72
+        "TRUE", #73
+        "TRUE", #74
+        "TRUE", #75
+        "TRUE", #76
+        "TRUE", #77
+        "TRUE", #78
+        "TRUE", #79
+        "TRUE", #80
+        "TRUE", #81
+        "TRUE", #82
+        "TRUE", #83
+        "TRUE", #84
+        "TRUE", #85
+        "FALSE", #86
+        "TRUE", #87
+        "TRUE", #88
+        "TRUE", #89
+        "TRUE", #90
+        "TRUE", #91
+        "TRUE", #92
+        "TRUE", #93
+        "TRUE", #94
+        "TRUE", #95
+        "TRUE", #96
+        "TRUE", #97
+        "TRUE", #98
+        "TRUE", #99
+        "TRUE", #100
+        "TRUE", #101
+        "TRUE", #102
+        "TRUE", #103
+        "TRUE", #104
+        "TRUE", #105
+        "TRUE", #106
+        "TRUE", #107
+        "TRUE", #108
+        "TRUE", #109
+        "TRUE", #110
+        "TRUE", #111
+        "TRUE", #112
+        "TRUE", #113
+        "TRUE", #114
+        "TRUE", #115
+        "TRUE", #116
+        "TRUE", #117
+        "TRUE", #118
+        "TRUE", #119
+        "TRUE", #120
+        "TRUE", #121
+        "TRUE", #122
+        "TRUE", #123
+        "TRUE", #124
+        "FALSE", #125
+        "TRUE", #126
+        "TRUE", #127
+        "TRUE", #128
+        "TRUE", #129
+        "TRUE", #130
+        "TRUE", #131
+        "TRUE", #132
+        "FALSE", #133
+        "TRUE", #134
+        "TRUE", #135
+        "TRUE", #136
+        "TRUE", #137
+        "TRUE", #138
+        "TRUE", #139
+        "FALSE", #140
+        "TRUE", #141
+        "TRUE", #142
+        "TRUE", #143
+        "TRUE", #144
+        "TRUE", #145
+        "TRUE", #146
+        "TRUE", #147
+        "TRUE", #148
+        "TRUE", #149
+        "TRUE", #150
+        "TRUE", #151
+        "TRUE", #152
+        "TRUE", #153
+        "TRUE", #154
+        "TRUE", #155
+        "TRUE", #156
+        "TRUE", #157
+        "FALSE", #158
+        "TRUE", #159
+        "TRUE", #160
+        "TRUE", #161
+        "TRUE", #162
+        "TRUE", #163
+        "TRUE", #164
+        "TRUE", #165
+        "TRUE", #166
+        "TRUE", #167
+        "TRUE", #168
+        "TRUE", #169
+        "TRUE", #170
+        "TRUE", #171
+        "TRUE", #172
+        "TRUE", #173
+        "TRUE", #174
+        "TRUE", #175
+        "TRUE", #176
+        "TRUE", #177
+        "TRUE", #178
+        "TRUE", #179
+        "TRUE", #180
+        "TRUE", #181
+        "TRUE", #182
+        "TRUE", #183
+        "TRUE", #184
+        "TRUE", #185
+        "TRUE", #186
+        "TRUE", #187
+        "TRUE", #188
+        "TRUE", #189
+        "TRUE", #190
+        "TRUE", #191
+        "TRUE", #192
+        "TRUE", #193
+        "TRUE", #194
+        "TRUE", #195
+        "TRUE", #196
+        "TRUE", #197
+        "TRUE", #198
+        "TRUE", #199
+        "TRUE") #200
+DF$wifi<-wifi
+
+```
+
+#### Agregando la variable Hot_water
+
+```{r}
+hot_water<-c("TRUE",#1
+             "FALSE",#2
+             "TRUE",#3
+             "TRUE",#4
+             "TRUE",#5
+             "TRUE",#6
+             "TRUE",#7
+             "TRUE",#8
+             "TRUE",#9
+             "TRUE",#10
+             "TRUE",#11
+             "TRUE",#12
+             "TRUE",#13
+             "FALSE",#14
+             "TRUE",#15
+             "TRUE",#16
+             "TRUE",#17
+             "TRUE",#18
+             "TRUE",#19
+             "FALSE",#20
+             "TRUE",#21
+             "FALSE",#22
+             "TRUE",#23
+             "FALSE",#24
+             "FALSE",#25
+             "TRUE",#26
+             "TRUE",#27
+             "TRUE",#28
+             "FALSE",#29
+             "FALSE",#30
+             "TRUE",#31
+             "FALSE",#32
+             "FALSE",#33
+             "FALSE",#34
+             "FALSE",#35
+             "FALSE",#36
+             "TRUE",#37
+             "TRUE",#38
+             "TRUE",#39
+             "TRUE",#40
+             "TRUE",#41
+             "TRUE",#42
+             "TRUE",#43
+             "TRUE",#44
+             "TRUE",#45
+             "TRUE",#46
+             "TRUE",#47
+             "TRUE",#48
+             "TRUE",#49
+             "FALSE",#50
+             "FALSE",#51
+             "TRUE",#52
+             "FALSE",#53
+             "TRUE",#54
+             "FALSE",#55
+             "TRUE",#56
+             "FALSE",#57
+             "TRUE",#58
+             "FALSE",#59
+             "TRUE",#60
+             "FALSE",#61
+             "TRUE",#62
+             "FALSE",#63
+             "FALSE",#64
+             "TRUE",#65
+             "FALSE",#66
+             "FALSE",#67
+             "FALSE",#68
+             "FALSE",#69
+             "TRUE",#70
+             "TRUE",#71
+             "FALSE",#72
+             "TRUE",#73
+             "TRUE",#74
+             "TRUE",#75
+             "TRUE",#76
+             "FALSE",#77
+             "TRUE",#78
+             "TRUE",#79
+             "FALSE",#80
+             "TRUE",#81
+             "TRUE",#82
+             "TRUE",#83
+             "TRUE",#84
+             "FALSE",#85
+             "TRUE",#86
+             "TRUE",#87
+             "TRUE",#88
+             "FALSE",#89
+             "TRUE",#90
+             "TRUE",#91
+             "TRUE",#92
+             "FALSE",#93
+             "TRUE",#94
+             "TRUE",#95
+             "TRUE",#96
+             "FALSE",#97
+             "FALSE",#98
+             "TRUE",#99
+             "FALSE",#100
+             "TRUE",#101
+             "FALSE",#102
+             "FALSE",#103
+             "FALSE",#104
+             "TRUE",#105
+             "TRUE",#106
+             "TRUE",#107
+             "TRUE",#108
+             "TRUE",#109
+             "TRUE",#110
+             "TRUE",#111
+             "TRUE",#112
+             "TRUE",#113
+             "FALSE",#114
+             "FALSE",#115
+             "TRUE",#116
+             "TRUE",#117
+             "FALSE",#118
+             "FALSE",#119
+             "FALSE",#120
+             "FALSE",#121
+             "FALSE",#122
+             "FALSE",#123
+             "TRUE",#124
+             "TRUE",#125
+             "TRUE",#126
+             "TRUE",#127
+             "TRUE",#128
+             "TRUE",#129
+             "TRUE",#130
+             "TRUE",#131
+             "TRUE",#132
+             "FALSE",#133
+             "TRUE",#134
+             "TRUE",#135
+             "FALSE",#136
+             "TRUE",#137
+             "FALSE",#138
+             "FALSE",#139
+             "FALSE",#140
+             "TRUE",#141
+             "TRUE",#142
+             "FALSE",#143
+             "TRUE",#144
+             "TRUE",#145
+             "FALSE",#146
+             "TRUE",#147
+             "FALSE",#148
+             "TRUE",#149
+             "FALSE",#150
+             "TRUE",#151
+             "TRUE",#152
+             "TRUE",#153
+             "TRUE",#154
+             "TRUE",#155
+             "FALSE",#156
+             "TRUE",#157
+             "TRUE",#158
+             "FALSE",#159
+             "TRUE",#160
+             "TRUE",#161
+             "TRUE",#162
+             "TRUE",#163
+             "TRUE",#164
+             "TRUE",#165
+             "TRUE",#166
+             "FALSE",#167
+             "TRUE",#168
+             "FALSE",#169
+             "TRUE",#170
+             "TRUE",#171
+             "FALSE",#172
+             "FALSE",#173
+             "FALSE",#174
+             "TRUE",#175
+             "TRUE",#176
+             "TRUE",#177
+             "TRUE",#178
+             "TRUE",#179
+             "FALSE",#180
+             "TRUE",#181
+             "TRUE",#182
+             "FALSE",#183
+             "TRUE",#184
+             "TRUE",#185
+             "TRUE",#186
+             "TRUE",#187
+             "TRUE",#188
+             "TRUE",#189
+             "TRUE",#190
+             "TRUE",#191
+             "FALSE",#192
+             "FALSE",#193
+             "TRUE",#194
+             "TRUE",#195
+             "TRUE",#196
+             "TRUE",#197
+             "TRUE",#198
+             "FALSE",#199
+             "TRUE")#200
+DF$hot_water<- hot_water
+```
+
+
+
+### Resumen de las variables
+
+```{r}
+summary(DF)
+```
+
+
+
+### Análisis de dormitorios
+
+```{r}
+DF %>% count(bedrooms)
+```
+
+Todos son datos numéricos, parece limpia.
+
+### Análisis de camas
+
+```{r}
+DF %>% count(beds)
+```
+
+Todos son datos numéricos, parece limpio.
+
+
+### Análisis de la cantidad de reviews por mes (promedio)
+
+```{r}
+DF %>% count(reviews_per_month)
+```
+
+Todas son respuestas numéricas y decimales, lo que indica que las cifras se hallaron de una media. La variable está limpia.
+
+
+### Análisis del precio
+
+```{r}
+DF %>% count(price)
+```
+
+
+
+Todos los precios siguen un mismo formato (con $ antes del número), pero sería mejor utilizarla como dato numérico.
+
+La convertimos a numérico:
+
+
+```{r}
+DF$price[DF$price == "$1,005.00"] <- 1005
+DF$price[DF$price == "$1,700.00"] <- 1700
+DF$price[DF$price == "$100.00"] <- 100
+DF$price[DF$price == "$102.00"] <- 102
+DF$price[DF$price == "$103.00"] <- 103
+DF$price[DF$price == "$105.00"] <- 105
+DF$price[DF$price == "$106.00"] <- 106
+DF$price[DF$price == "$108.00"] <- 108
+DF$price[DF$price == "$109.00"] <- 109
+DF$price[DF$price == "$110.00"] <- 110
+DF$price[DF$price == "$112.00"] <- 112
+DF$price[DF$price == "$113.00"] <- 113
+DF$price[DF$price == "$115.00"] <- 115
+DF$price[DF$price == "$118.00"] <- 118
+DF$price[DF$price == "$113.00"] <- 113
+DF$price[DF$price == "$115.00"] <- 115
+DF$price[DF$price == "$118.00"] <- 118
+DF$price[DF$price == "$119.00"] <- 119
+DF$price[DF$price == "$120.00"] <- 120
+DF$price[DF$price == "$125.00"] <- 125
+DF$price[DF$price == "$127.00"] <- 127
+DF$price[DF$price == "$129.00"] <- 129
+DF$price[DF$price == "$130.00"] <- 113
+DF$price[DF$price == "$133.00"] <- 133
+DF$price[DF$price == "$135.00"] <- 135
+DF$price[DF$price == "$137.00"] <- 137
+DF$price[DF$price == "$140.00"] <- 140
+DF$price[DF$price == "$143.00"] <- 143
+DF$price[DF$price == "$146.00"] <- 146
+DF$price[DF$price == "$150.00"] <- 150
+DF$price[DF$price == "$151.00"] <- 151
+DF$price[DF$price == "$154.00"] <- 154
+DF$price[DF$price == "$156.00"] <- 156
+DF$price[DF$price == "$170.00"] <- 170
+DF$price[DF$price == "$173.00"] <- 173
+DF$price[DF$price == "$18.00"] <- 18
+DF$price[DF$price == "$180.00"] <- 180
+DF$price[DF$price == "$182.00"] <- 182
+DF$price[DF$price == "$186.00"] <- 186
+DF$price[DF$price == "$190.00"] <- 190
+DF$price[DF$price == "$2,400.00"] <- 2400
+DF$price[DF$price == "$20.00"] <- 20
+DF$price[DF$price == "$200.00"] <- 200
+DF$price[DF$price == "$210.00"] <- 210
+DF$price[DF$price == "$22.00"] <- 22
+DF$price[DF$price == "$236.00"] <- 236
+DF$price[DF$price == "$25.00"] <- 25
+DF$price[DF$price == "$250.00"] <- 250
+DF$price[DF$price == "$264.00"] <- 254
+DF$price[DF$price == "$267.00"] <- 267
+DF$price[DF$price == "$27.00"] <- 27
+DF$price[DF$price == "$30.00"] <- 30
+DF$price[DF$price == "$33.00"] <- 33
+DF$price[DF$price == "$34.00"] <- 34
+DF$price[DF$price == "$35.00"] <- 35
+DF$price[DF$price == "$38.00"] <- 38
+DF$price[DF$price == "$40.00"] <- 40
+DF$price[DF$price == "$42.00"] <- 42
+DF$price[DF$price == "$43.00"] <- 43
+DF$price[DF$price == "$44.00"] <- 44
+DF$price[DF$price == "$443.00"] <- 443
+DF$price[DF$price == "$45.00"] <- 45
+DF$price[DF$price == "$450.00"] <- 450
+DF$price[DF$price == "$47.00"] <- 47
+DF$price[DF$price == "$48.00"] <- 48
+DF$price[DF$price == "$49.00"] <- 49
+DF$price[DF$price == "$5,000.00"] <- 5000
+DF$price[DF$price == "$50.00"] <- 50
+DF$price[DF$price == "$500.00"] <- 500
+DF$price[DF$price == "$51.00"] <- 51
+DF$price[DF$price == "$510.00"] <- 510
+DF$price[DF$price == "$53.00"] <- 53
+DF$price[DF$price == "$54.00"] <- 54
+DF$price[DF$price == "$55.00"] <- 55
+DF$price[DF$price == "$56.00"] <- 56
+DF$price[DF$price == "$57.00"] <- 57
+DF$price[DF$price == "$59.00"] <- 59
+DF$price[DF$price == "$60.00"] <- 60
+DF$price[DF$price == "$61.00"] <- 61
+DF$price[DF$price == "$62.00"] <- 62
+DF$price[DF$price == "$63.00"] <- 63
+DF$price[DF$price == "$64.00"] <- 64
+DF$price[DF$price == "$65.00"] <- 65
+DF$price[DF$price == "$66.00"] <- 66
+DF$price[DF$price == "$67.00"] <- 67
+DF$price[DF$price == "$68.00"] <- 68
+DF$price[DF$price == "$69.00"] <- 69
+DF$price[DF$price == "$697.00"] <- 697
+DF$price[DF$price == "$70.00"] <- 70
+DF$price[DF$price == "$71.00"] <- 71
+DF$price[DF$price == "$73.00"] <- 73
+DF$price[DF$price == "$75.00"] <- 75
+DF$price[DF$price == "$76.00"] <- 76
+DF$price[DF$price == "$77.00"] <- 77
+DF$price[DF$price == "$79.00"] <- 79
+DF$price[DF$price == "$80.00"] <- 80
+DF$price[DF$price == "$81.00"] <- 81
+DF$price[DF$price == "$83.00"] <- 83
+DF$price[DF$price == "$85.00"] <- 85
+DF$price[DF$price == "$89.00"] <- 89
+DF$price[DF$price == "$90.00"] <- 90
+DF$price[DF$price == "$91.00"] <- 91
+DF$price[DF$price == "$92.00"] <- 92
+DF$price[DF$price == "$94.00"] <- 94
+DF$price[DF$price == "$95.00"] <- 95
+DF$price[DF$price == "$97.00"] <- 97
+DF$price[DF$price == "$99.00"] <- 99
+
+```
+
+
+Analizo si se ha eliminado el signo dolar, puntos y comas
+
+```{r}
+DF %>% count(price)
+```
+
+La convierto a numérica
+
+```{r}
+DF$price <- strtoi(DF$price)
+```
+
+
+Comprobamos que sea numérica
+
+```{r}
+DF %>% count(price)
+```
+
+
+
+
+### Análisis de la cantidad de baños
+
+```{r}
+DF %>% count(bathrooms_text)
+```
+
+Debemos quitar texto convertirla a numérica
+
+```{r}
+DF$bathrooms_text[DF$bathrooms_text == "0 baths"] <- 0
+DF$bathrooms_text[DF$bathrooms_text == "1 bath"] <- 1
+DF$bathrooms_text[DF$bathrooms_text == "1 private bath"] <- 1
+DF$bathrooms_text[DF$bathrooms_text == "1 shared bath"] <- 1
+DF$bathrooms_text[DF$bathrooms_text == "1.5 shared baths" | DF$bathrooms_text == "1.5 baths"] <- 1
+DF$bathrooms_text[DF$bathrooms_text %in% c("2 baths", "2.5 baths")] <- 2
+DF$bathrooms_text[DF$bathrooms_text %in% c("3 baths", "3 shared baths")] <- 3
+DF$bathrooms_text[DF$bathrooms_text == "4 baths"] <- 4
+DF$bathrooms_text[DF$bathrooms_text %in% c("Half-bath","Shared half-bath")] <- 1
+```
+
+Revisamos que se haya limpiado
+
+```{r}
+DF %>% count(bathrooms_text)
+```
+
+La convertimos a variable numérica
+
+```{r}
+DF$bathrooms_text <- strtoi(DF$bathrooms_text)
+```
+
+```{r}
+DF %>% count(bathrooms_text)
+```
+
+Ahora la variable es numérica. Está limpia.
+
+
+### Análisis del tiempo de respuesta del dueño
+
+```{r}
+DF %>% count(host_response_time)
+```
+
+Esta variable permitirá saber si es que el tiempo en que demora en responder el dueño afecta en la elección o puntaje de los hospedajes. Para ello, la convertimos a categórica ordinal:
+
+```{r}
+DF$host_response_time <- factor(DF$host_response_time, levels = c(NA,"within an hour", "within a few hours", "within a day","a few days or more"))
+```
+
+```{r}
+DF %>% count(host_response_time)
+```
+
+
+# Análisis descriptivo
+
+
+## host_response_time
+
+```{r}
+DF %>% count(host_response_time)
+```
+
+Es una variable categóricas, entonces solo podemos hallar la moda.
+
+### Moda
+```{r}
+table(DF$host_response_time)[table(DF$host_response_time) == max(table(DF$host_response_time))]
+# La mayoria de los dueños responde en within an hour
+```
+La mayoría de los dueños responde en 1 hora aprox.
+
+### Gráfica de barras
+
+```{r}
+x <- table(DF$host_response_time)
+barplot(x,xlab = "host_response_time",ylab = "Frecuencia",main = "Tiempo que demora en contestar un hospedador",col = "light green")
+```
+
+El gráfico confirma el resultado obtenido de la moda.
+
+## host_has_porfile
+
+```{r}
+DF %>% count(host_has_profile_pic)
+```
+
+### Moda
+```{r}
+table(DF$host_has_profile_pic)[table(DF$host_has_profile_pic) == max(table(DF$host_has_profile_pic))]
+```
+
+La mayoría de los dueños cuenta con foto de perfil.
+
+### Gráfico de barras
+
+```{r}
+x <- table(DF$host_has_profile_pic)
+barplot(x,xlab = "host_has_profile_pic",ylab = "Frecuencia",main = "¿El hospedador cuenta con foto de perfil?",col = "light green")
+```
+Podemos interpretar del gráfico que la mayoría de las personas posee una foto de perfil.
+
+## host_identity_verified
+
+```{r}
+DF %>% count(host_identity_verified)
+```
+
+### Moda
+```{r}
+table(DF$host_identity_verified)[table(DF$host_identity_verified) == max(table(DF$host_identity_verified))]
+```
+
+La mayoría de los dueños tiene identidad verificada.
+
+### Gráfico de barras
+
+```{r}
+x <- table(DF$host_identity_verified)
+barplot(x,xlab = "host_identity_verified",ylab = "Frecuencia",main = "¿El hospedador cuenta con identidad verificada?",col = "light green")
+```
+Interpretando la gráfica podemos concluir que la mayoría de las personas tienen identidad verificada.
+
+## Descriptores de property_type
+
+```{r}
+table(DF$property_type)
+```
+Es una variable categórica con muchos datos. Entonces solo podemos hallar la moda (R no puede representar tantos datos en un gráfico).
+
+
+### Moda
+
+```{r}
+table(DF$property_type)[table(DF$property_type)==max(table(DF$property_type))]
+```
+
+La propiedad más común es de tipo Entire rental unit.
+
+
+## Descriptores de room_type
+
+```{r}
+table(DF$room_type)
+```
+Es una variable categórica. Entonces, solo podemos hallar la moda.
+
+
+### Descriptores gráficos
+
+```{r}
+x <- table(DF$room_type)
+barplot(x,xlab = "room_type",ylab = "Frecuencia",main = "Digrama de la variable room_type",col = "light green")
+```
+Se observa que hay más habitaciones del tipo Entire home/apt y muy pocas del tipo Hotel room.
+#### Moda
+
+
+```{r}
+table(DF$room_type)[table(DF$room_type)==max(table(DF$room_type))]
+```
+
+Los tipos de viviendas más ofrecidas son casas o apartamentos completos.
+
+### Descriptores de bathrooms_text
+
+```{r}
+table(DF$bathrooms_text)
+```
+
+Es una variable numérica, entonces podemos hallar sus descriptores numéricos.
+
+
+#### Descriptores gráficos
+
+##### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$bathrooms_text)
+```
+
+Análisis:
+
+- El 50% de los datos ronda por el valor de 1.
+- El resto de cantidades de baños son considerados datos atípicos.
+
+##### Gráfica de puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identificar  datos atípicos
+stripchart(DF$bathrooms_text,col=rgb(0,0,0,0.2))
+```
+Podemos observar de una mejor manera los datos atípicos. 
+##### Histograma
+
+```{r}
+#Histograma
+hist(DF$bathrooms_text)
+```
+La mayor cantidad de baños se encuentran entre 0.5 y 1.
+
+### Media
+
+```{r}
+mean(DF$bathrooms_text,na.rm=TRUE)
+```
+Podemos afirmar que poseen en promedio un baño.
+### Mediana
+
+```{r}
+median(DF$bathrooms_text,na.rm=TRUE)
+```
+
+### Moda
+
+
+```{r}
+table(DF$bathrooms_text)[table(DF$bathrooms_text)==max(table(DF$bathrooms_text))]
+```
+
+La única moda es 1. La mayoría de hospedajes cuenta con un solo baño.
+
+
+### Cuantiles
+
+```{r}
+cuantiles <- quantile(DF$bathrooms_text, type=2,na.rm=TRUE)
+cuantiles
+```
+
+Análisis: El 100% de los hospedajes tienes 3 o menos baños. Por otro lado, el 75% de los baños tienen 1 o menos baños.
+
+### Rango
+
+```{r}
+rango <- max(DF$bathrooms_text,na.rm=TRUE) - min(DF$bathrooms_text,na.rm=TRUE)
+rango
+```
+
+La distancia entre el máximo y mínimo valor es 3.
+
+
+### Rango intercuartil
+
+```{r}
+IQR(DF$bathrooms_text,na.rm=TRUE)
+```
+Análisis: El 50% de los datos son el mismo valor, pues el rango intercuartil es 0.
+
+
+### Desviación estándar
+
+```{r}
+dv <- sd(DF$bathrooms_text,na.rm=TRUE)
+dv
+```
+
+Los datos están muy juntos, pues la desviación estándar es muy pequeña.
+
+### Varianza
+
+```{r}
+varianza <- dv^2
+varianza
+```
+Nos indica que hay una medida de dispersión del 0.09 aprox. en torno a la media.
+### Coeficiente de variación
+
+```{r}
+
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$bathrooms_text)
+```
+
+Los datos no están muy dispersos de la media.
+
+## Bedrooms
+
+```{r}
+table(DF$bedrooms)
+```
+
+Es una variable numérica, entonces podemos hallar sus descriptores numéricos.
+
+
+### Descriptores gráficos
+
+#### Boxplot
+
+```{r}
+boxplot(DF$bathrooms_text)
+```
+Análisis:
+
+- El 50% de los datos se encuentra en 1.
+- Son muy raros los casos en que hay 0, 2 o 3 habitaciones.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$bathrooms_text,col=rgb(0,0,0,0.2))
+```
+
+Hay 4 datos atípicos. 
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$bathrooms_text)
+```
+
+Nuevamente, se puede apreciar que la mayoría de hospedajes cuentan con solamente 1 baño.
+
+### Descriptores de bedrooms
+
+### Media
+
+```{r}
+mean(DF$bedrooms,na.rm=TRUE)
+```
+En promedio poseen un dormitorio.
+### Mediana
+
+```{r}
+median(DF$bedrooms,na.rm=TRUE)
+```
+
+### Moda
+
+
+```{r}
+table(DF$bedrooms)[table(DF$bedrooms)==max(table(DF$bedrooms))]
+```
+
+La única moda es 1, se puede concluir que existen muchos hospedajes de un solo dormitorio. 
+
+
+### Cuantiles
+
+```{r}
+cuantiles <- quantile(DF$bedrooms, type=2,na.rm=TRUE)
+cuantiles
+```
+
+El 75% de los hospedajes tiene 1 o menos habitaciones. El 100% de los hospedajes tiene 4 o menos habitaciones.
+
+### Rango
+
+```{r}
+rango <- max(DF$bedrooms,na.rm=TRUE) - min(DF$bedrooms,na.rm=TRUE)
+rango
+```
+
+Los datos en general no están muy dispersos.
+
+### Rango intercuartil
+
+```{r}
+IQR(DF$bedrooms,na.rm=TRUE)
+```
+
+El 50% de los datos son el mismo valor.
+
+### Desviación estandar
+
+```{r}
+dv <- sd(DF$bedrooms,na.rm=TRUE)
+dv
+```
+
+Los datos no parecen dispersos.
+
+### Varianza
+
+```{r}
+varianza <- dv^2
+varianza
+```
+
+### Coeficiente de variación
+
+```{r}
+
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$bedrooms)
+```
+
+Los datos no parecen muy dispersos de la media.
+
+## Beds
+
+```{r}
+table(DF$beds)
+```
+
+Es variable numérica, hallo sus descriptores numéricos.
+
+### Descriptores gráficos
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$beds)
+```
+
+Análisis:
+
+- El 50% de los datos se encuentra entre 1 y 2.
+- Existen datos atípicos como tener 4, 5 y 6 camas.
+- El 75% de los hospedajes tiene 3 o menos camas.
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$beds,col=rgb(0,0,0,0.2))
+```
+
+
+Se observa que los datos están dispersos entre 1 y 4. Existen datos atípicos entre 5 y 6.
+
+```{r}
+#Histograma
+hist(DF$beds)
+```
+
+
+Los hospedajes tienen en su mayoría 1 cama. Le siguen los hospedajes con 2 camas y luego los que tienen 3.
+
+### Media
+
+```{r}
+mean(DF$beds,na.rm=TRUE)
+```
+La mayoría de los hospedajes poseen un cama.
+### Mediana
+
+```{r}
+median(DF$beds,na.rm=TRUE)
+```
+
+### Moda
+
+
+```{r}
+table(DF$beds)[table(DF$beds)==max(table(DF$beds))]
+```
+
+La única moda es 1.Quiere decir que hay más hospedajes de 1 cama.
+
+
+### Cuantiles
+
+```{r}
+cuantiles <- quantile(DF$beds, type=2,na.rm=TRUE)
+cuantiles
+```
+
+El 75% tiene 2 o menos camas. El 100% tiene 6 o menos camas.
+
+### Rango
+
+```{r}
+rango <- max(DF$beds,na.rm=TRUE) - min(DF$beds,na.rm=TRUE)
+rango
+```
+
+En el contexto de camas, los datos se encuentran relativamente dispersos (un hospedaje con 1 habitación difiere bastante de una con 7 camas).
+
+### Rango intercuartil
+
+```{r}
+IQR(DF$beds,na.rm=TRUE)
+```
+
+El 50% de los datos varían en 1, es decir toman 2 valores enteros a lo mucho.
+
+### Desviación estandar
+
+```{r}
+dv <- sd(DF$beds,na.rm=TRUE)
+dv
+```
+
+La dispersión de los datos existe. Sin embargo, en el contexto de camas podría considerarse significante.
+
+### Varianza
+
+```{r}
+varianza <- dv^2
+varianza
+```
+
+### Coeficiente de variación
+
+```{r}
+
+
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$beds)
+```
+Los datos varían regular respecto a la media.
+
+## Price
+
+```{r}
+table(DF$price)
+```
+
+Es numérica, podemos hallar sus descriptores numéricos.
+
+### Descriptores gráficos
+
+#### De boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$price)
+```
+
+Análisis: 
+
+- El 50% de los precios se encuentran entre 110 y 50 aprox.
+- El 25% de los precios son 50 unidades o menos aprox.
+- El 75% de los precios son 180 o menos aprox.
+- Existen precios atípicos que son los que superan las 200 unidades aprox.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$price, col=rgb(0,0,0,0.2))
+```
+
+Se observa que los precios rondan más entre los 40 y 120.
+
+
+####Histograma
+
+```{r}
+#Histograma
+hist(DF$price)
+```
+
+En su mayoría, los hospedajes cuestan 80 a 100 unidades. Le siguen los que cuestan entre 101 y 150 aprox.
+
+### Media
+
+```{r}
+mean(DF$price,na.rm=TRUE)
+```
+
+### Mediana
+
+```{r}
+median(DF$price,na.rm=TRUE)
+```
+
+La media difiere un poco de la mediana.
+
+### Moda
+
+
+```{r}
+table(DF$price)[table(DF$price)==max(table(DF$price))]
+```
+
+Existen 2 modas: 60 y 80 unidades.
+
+
+### Cuantiles
+
+```{r}
+cuantiles <- quantile(DF$price, type=2,na.rm=TRUE)
+cuantiles
+```
+
+El el precio del 25% de los hospedajes es 60 o menos. Del 50%, es 80 o menos. Y del 100%, son 450 o menos.
+
+### Rango
+
+```{r}
+rango <- max(DF$price,na.rm=TRUE) - min(DF$price,na.rm=TRUE)
+rango
+```
+
+En este caso los datos varían bastante. Sin embargo, para ser hospedajes es una variación razonable.
+
+### Rango intercuartil
+
+```{r}
+IQR(DF$price,na.rm=TRUE)
+```
+
+El 50% de los datos varía entre casi 51 unidades.
+
+### Desviación estandar
+
+```{r}
+dv <- sd(DF$price,na.rm=TRUE)
+dv
+```
+
+Se observa una dispersión moderada en los datos en general.
+
+### Varianza
+
+```{r}
+varianza <- dv^2
+varianza
+```
+En la varianza se nota mucho más puesto que es la elevación al cuadrado de la varianza.
+
+### Coeficiente de variación
+
+```{r}
+
+
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$price)
+```
+
+
+## Minimum_nights
+
+```{r}
+table(DF$minimum_nights)
+```
+
+Es numérica, entonces podemos hallar sus descriptores numéricos.
+
+
+### Descriptores gráficos
+
+#### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$minimum_nights)
+```
+Análisis:
+
+- Casi el 100% de los hospedajes tienen noches máximas entre 10 y 80.
+- Existen ciertas excepciones que tienen más de 300 noches como máximo.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$minimum_nights,col=rgb(0,0,0,0.2))
+```
+Podemos observar que se concentra entre 0 y 50 noche aproximadamente.
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$minimum_nights)
+```
+Efectivamente el mínimo de noches son de 0 a 50 aproximadamente. 
+### Media
+
+```{r}
+mean(DF$minimum_nights,na.rm=TRUE)
+```
+En promedio la cantidad mínima de noches es de 95, aunque esto se ve bastante afectada por los datos atípicos. 
+### Mediana
+
+```{r}
+median(DF$minimum_nights,na.rm=TRUE)
+```
+Varia mucho de la media, podemos afirmar que los datos atípicos influyeron en esto.
+### Moda
+
+
+```{r}
+table(DF$minimum_nights)[table(DF$minimum_nights)==max(table(DF$minimum_nights))]
+```
+
+La única moda es 49. Por tanto podemos decir que mayormente en los hospedajes el mínimo de noches es de 49.
+
+
+### Cuantiles
+
+```{r}
+cuantiles <- quantile(DF$minimum_nights, type=2,na.rm=TRUE)
+cuantiles
+```
+
+El mínimo de noches del 25% de los hospedajes es 2 o menos. Del 50%, es 4 o menos. Y del 100%, son 365 o menos.
+### Rango
+
+```{r}
+rango <- max(DF$minimum_nights,na.rm=TRUE) - min(DF$minimum_nights,na.rm=TRUE)
+rango
+```
+La diferencia entre el mínimo de noches y el máximo es de 364.
+### Rango intercuartil
+
+```{r}
+IQR(DF$minimum_nights,na.rm=TRUE)
+```
+El 50% de los datos varía entre casi 88 noches.
+### Desviación estandar
+
+```{r}
+dv <- sd(DF$minimum_nights,na.rm=TRUE)
+dv
+```
+Observamos que se varia bastante de la media.
+
+### Varianza
+
+```{r}
+varianza <- dv^2
+varianza
+```
+
+### Coeficiente de variación
+
+```{r}
+
+
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$minimum_nights)
+```
+Hay una variación notable.
+
+## Maximum_nights
+
+```{r}
+table(DF$maximum_nights)
+```
+
+Es numérica, entonces podemos hallar sus descriptores numéricos.
+
+### Descriptores gráficos
+
+#### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$maximum_nights)
+```
+
+Interpretación: El 50% de los datos se encuentran entre 400 y más de 1000, lo que indica que los datos están bastante distribuidos.
+
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$maximum_nights,col=rgb(0,0,0,0.2))
+```
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$maximum_nights)
+```
+La mayoría se encuentra entre 1100 y 1200 noches maximas.
+### Media
+
+```{r}
+mean(DF$maximum_nights,na.rm=TRUE)
+```
+En promedio la cantidad máxima de noche es de 759. 
+### Mediana
+
+```{r}
+median(DF$maximum_nights,na.rm=TRUE)
+```
+Observamos que la mediana varia bastante de la media, debido a los datos atípicos. 
+### Moda
+
+
+```{r}
+table(DF$maximum_nights)[table(DF$maximum_nights)==max(table(DF$maximum_nights))]
+```
+
+La única moda es 1125.
+
+
+### Cuantiles
+
+```{r}
+cuantiles <- quantile(DF$maximum_nights, type=2,na.rm=TRUE)
+cuantiles
+```
+25 % es menor-igual a 365 noche máximas, el 50% menor-igual de 1125, el 75% menor o igual de 1125, y 100% menor-igual de 1125
+### Rango
+
+```{r}
+rango <- max(DF$maximum_nights,na.rm=TRUE) - min(DF$maximum_nights,na.rm=TRUE)
+rango
+```
+La diferencia entre dato mínimo y máximo es de 1119.
+### Rango intercuartil
+
+```{r}
+IQR(DF$maximum_nights,na.rm=TRUE)
+```
+El 50% datos varia entre 760 noches máximas.  
+### Desviación estandar
+
+```{r}
+dv <- sd(DF$maximum_nights,na.rm=TRUE)
+dv
+```
+
+### Varianza
+
+```{r}
+varianza <- dv^2
+varianza
+```
+
+### Coeficiente de variación
+
+```{r}
+
+
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$maximum_nights)
+```
+
+## has_availability
+
+```{r}
+DF %>% count(has_availability)
+```
+
+Es una variable categórica con un solo tipo de respuesta, entonces un gráfico no es necesario.
+
+### Moda
+```{r}
+table(DF$has_availability)[table(DF$has_availability) == max(table(DF$has_availability))] # Moda
+```
+La moda es únicamente TRUE.
+
+## number_of_reviews
+```{r}
+summary(DF$number_of_reviews)
+```
+
+### Descriptores de posicion
+
+#### Media
+```{r}
+round(mean(DF$number_of_reviews),2)
+```
+En promedio los hospedajes tienen 22 reseñas.
+
+#### Mediana
+```{r}
+round(median(DF$number_of_reviews),2)
+```
+Se observa que la mediana varia bastante de la media, debido a los datos atipicos.
+#### Moda
+
+```{r}
+table(DF$number_of_reviews)[table(DF$number_of_reviews)==max(table(DF$number_of_reviews))]
+```
+Observamos que la moda es 0. Quiere decir que hay muchos hospedajes sin reseñas. 
+
+#### Cuantiles
+```{r}
+quantile(DF$number_of_reviews)
+```
+El 25% menor_igual de 1 reseña, el 50% menor-iguañ de 5.5 reseñas, el 75% menor-igual de 28% y el 100% menor-igual de 239 reseñas.
+#### Maximo y minimo
+```{r}
+max(DF$number_of_reviews)
+min(DF$number_of_reviews)
+```
+### Descriptores de dispersión
+#### Rango
+```{r}
+max(DF$number_of_reviews, na.rm = TRUE) - min(DF$number_of_reviews, na.rm = TRUE)
+```
+Indica la diferencia entre la cantidad de reseña mínima y máxima. 
+#### Varianza
+```{r}
+var(DF$number_of_reviews)
+```
+#### Desviación Estandar
+```{r}
+sd(DF$number_of_reviews)
+```
+#### Rango intercuartil
+```{r}
+IQR(DF$number_of_reviews)
+```
+El 50% de los datos varía entre 27 numero de reseñas.
+### Gráficos
+
+#### Histograma
+
+```{r}
+hist(DF$number_of_reviews,breaks = 15,main = "Histograma de la variable number_of_reviews",col = "orange")
+abline(v=mean(DF$number_of_reviews),col="red",lwd=2)
+```
+Observamos que hay más reseñas entre 0 y 23 aproximadamente. 
+#### De puntos
+
+```{r}
+#library(graphics)
+y=0.025
+d=0.025
+stripchart(DF$number_of_reviews,method="overplot",pch=19,bty="n",frame.plot = FALSE,at=y+d,main="Gráfica de puntos de la variable number_of_reviews",ylim = c(0,1),xlab="number_of_reviews",col=rgb(0,0,0,0.2))
+lines(c(min(DF$number_of_reviews),max(DF$number_of_reviews)),c(y,y),col="black")
+points(c(mean(DF$number_of_reviews)),c(y-d),pch=17,col="red")
+```
+Se observa claramente que el número de reseñas se concentra entre 0 y 23 aproximadamente. 
+#### Boxplot
+
+```{r}
+boxplot(DF$number_of_reviews,col = "orange")
+abline(h=mean(DF$number_of_reviews),col="red",lwd=2)
+```
+-El 50% de las reseñas se encuentran entre 0 y 23.
+-Existen muchos datos atípicos que están por encima de 75 aprox.
+
+### Coeficiente de Variación
+```{r}
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+```
+```{r}
+cv(DF$number_of_reviews)
+```
+
+## review_scores_value
+
+```{r}
+table(DF$review_scores_value)
+```
+
+
+Es numérica, se pueden hallar sus descriptores numéricos
+
+### Descriptores gráficos
+
+#### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$review_scores_value)
+```
+- El 50% de review_scores_value se encuentra entre 4.5 y 4.8 aproximadamente. 
+-Existen muchos datos atípicos por debajo de 4.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$review_scores_value,col=rgb(0,0,0,0.2))
+```
+
+-Efectivamente los datos se concentran entre 4.5 y 5.
+-Podemos observar que hay mas de 9 datos atípicos.
+
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$review_scores_value)
+```
+La mayoría de los datos se encuentran entre 4.8 y 5 aproximadamente. 
+### Media
+```{r}
+mean(DF$review_scores_value,na.rm=TRUE)
+```
+En promedio el review_scores_value es de 4.6298.
+### Mediana
+```{r}
+median(DF$review_scores_value,na.rm=TRUE)
+```
+La media no varia mucho de la mediana.
+### Moda
+```{r}
+table(DF$review_scores_value)[table(DF$review_scores_value)==max(table(DF$review_scores_value))]
+```
+
+La única moda es 5.
+
+
+### Cuantiles
+```{r}
+cuantiles <- quantile(DF$review_scores_value, type=2,na.rm=TRUE)
+cuantiles
+```
+El 25 % tiene menor_igual de 4.5, el 50% menor-igual de 4.725, el 75% menor-igual de 4.880 y el 100% menor-igual de 5.
+### Rango
+```{r}
+rango <- max(DF$review_scores_value,na.rm=TRUE) - min(DF$review_scores_value,na.rm=TRUE)
+rango
+```
+La diferencia entre el dato mínimo y máximo es de 2.
+### Rango intercuartil
+```{r}
+IQR(DF$review_scores_value,na.rm=TRUE)
+```
+El 50% de los datos varía entre 0.38 números de review_scores_value.
+### Desviación estandar
+```{r}
+dv <- sd(DF$review_scores_value,na.rm=TRUE)
+dv
+```
+Se observa que la dispersión de la distribución de datos es pequeña. 
+### Varianza
+```{r}
+varianza <- dv^2
+varianza
+```
+La varianza es pequeña, podemos decir que es representativa. 
+### Coeficiente de variación
+```{r}
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$review_scores_value)
+```
+Por el valor del coeficiente de variación, podemos afirmar que la dispersión de la distribucion es pequeña. 
+## review_scores_cleanliness
+```{r}
+table(DF$review_scores_cleanliness)
+```
+
+Es numérica, se pueden hallar sus descriptores numéricos.
+
+### Descriptores gráficos
+
+#### Bopxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$review_scores_cleanliness)
+```
+- El 50% de los datos se encuentran entre 4.5 y 4.8 aproximadamente.
+- Se observan aproximadamente 6 datos atípicos por debajo de la caja.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$review_scores_cleanliness,col=rgb(0,0,0,0.2))
+```
+Observamos que los datos se concentran entre 4.5 y 5 aproximadamente.
+
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$review_scores_cleanliness)
+```
+-Se observa que hay mas datos entre 4.5 y 5.
+### Media
+```{r}
+mean(DF$review_scores_cleanliness,na.rm=TRUE)
+```
+-El promedio de review_scores_cleanliness de los hospedajes.
+### Mediana
+```{r}
+median(DF$review_scores_cleanliness,na.rm=TRUE)
+```
+- Podemos notar que la media y mediana no varian mucho. La distribucion es casi simetrica.
+### Moda
+```{r}
+table(DF$review_scores_cleanliness)[table(DF$review_scores_cleanliness)==max(table(DF$review_scores_cleanliness))]
+```
+
+La única moda es 5.
+
+### Cuantiles
+```{r}
+cuantiles <- quantile(DF$review_scores_cleanliness, type=2,na.rm=TRUE)
+cuantiles
+```
+El 25% de review_scores_cleanliness son menor-igual a 4.5, el 50% menor-igual a 4.79, el 75% menor-igual a 4.91 y el 100% menor-igual a 5.
+
+### Rango
+```{r}
+rango <- max(DF$review_scores_cleanliness,na.rm=TRUE) - min(DF$review_scores_cleanliness,na.rm=TRUE)
+rango
+```
+La diferencia entre el dato mínimo y máximo es de 2.58.
+
+### Rango intercuartil
+```{r}
+IQR(DF$review_scores_cleanliness,na.rm=TRUE)
+```
+El 50% de los datos varían entre 0.41 review_scores_cleanliness.
+### Desviación estandar
+```{r}
+dv <- sd(DF$review_scores_cleanliness,na.rm=TRUE)
+dv
+```
+Se observa que la dispersión entre los datos es bastante pequeña.
+### Varianza
+```{r}
+varianza <- dv^2
+varianza
+```
+Los datos no estan tan dispersos respecto a la media.
+### Coeficiente de variación
+```{r}
+cv <- function(x){
+  return(sd(x, na.rm= TRUE)/mean(x, na.rm = TRUE))
+}
+
+cv(DF$review_scores_cleanliness)
+```
+El grado de variabilidad es pequeña. 
+## review_scores_checkin
+
+### Descriptores de Posición
+
+#### Promedio
+```{r}
+
+mean(DF$review_scores_checkin, na.rm=TRUE)
+```
+El promedio de review_scores_checkin de los hospedajes es 7.780533.
+#### Mediana
+```{r}
+##Hallamos mediana
+median(DF$review_scores_checkin, na.rm=TRUE)
+```
+La media y mediana, varia muy poco, siguen casi una distribución simétrica.
+#### Cuantiles
+```{r}
+##Hallamos los cuantiles generales
+##Elcuantial 0% pertenece al minimo valor y cuantil del 100% pertenece al maximo valor
+quantile(DF$review_scores_checkin,type=2, na.rm = TRUE)
+```
+El 25% de review_scores_checkin es menor-igual de 4.77, el 50% menor-igual de 4.92, el 75% menor-igual de 5 y el 100% de 5.
+
+#### Moda
+```{r}
+##Hallamos la moda,es decir, el valor que se repite mas veces
+table(DF$review_scores_checkin)[table(DF$review_scores_checkin)==max(table(DF$review_scores_checkin))]
+
+```
+La única moda es 5.
+### Descriptores de dispersión
+
+#### Rango
+```{r}
+##Descriptores de dispersion, para review_scores_checkin.
+#Hallamos el rango
+rango<-max(DF$review_scores_checkin, na.rm=TRUE)-min(DF$review_scores_checkin,na.rm=TRUE)#Rango
+rango
+#Nos da el valor minimo y maximo
+range(DF$review_scores_checkin, na.rm=TRUE)#min valor y max valor
+#Rango intercuartil
+IQR(DF$review_scores_checkin, na.rm=T)
+```
+#### Varianza
+```{r}
+##Hallamos varianza
+var(DF$review_scores_checkin, na.rm=T)
+```
+Los datos no varían mucho respecto a la media.
+#### Desviació estandar
+```{r}
+##Hallamos desviacion estandar
+sd(DF$review_scores_checkin, na.rm=T)
+```
+La distribución entre los datos es pequeña.
+#### Coeficiente de Variación
+```{r}
+##Hallamos el coeficiente de variacion, para ello se crea la funcion dada.
+cv<-function(x){ 
+  return(sd(x,na.rm=TRUE)/mean(x,na.rm=T))}
+cv(DF$review_scores_checkin)
+```
+El grado de variabilidad es baja.
+### Gráficos
+
+#### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$review_scores_checkin)
+
+```
+-El 50% de los datos se encuentran entre 4.7 y 5.
+-Se observa más de 6 datos atipicos por debajo de la caja.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$review_scores_checkin)
+```
+Se confirma que los datos se concentran bastante entre 4.7 aprox. y 5.
+
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$review_scores_checkin)
+```
+La mayoría de review_scores_checkin se encuentran entre 4.5 aprox. y 5.
+## review_scores_communication
+
+### Descriptores de posición
+
+#### Media
+```{r}
+#Descriptores de Ubicacion
+##Hallamos el promedio
+mean(DF$review_scores_communication, na.rm=TRUE)
+```
+El promedio de review_scores_communication es de 4.745865.
+#### Mediana
+```{r}
+##Hallamos mediana
+median(DF$review_scores_communication, na.rm=TRUE)
+```
+La media y mediana varian poco.
+#### Cuantiles
+```{r}
+##Hallamos los cuantiles generales
+##Elcuantial 0% pertenece al minimo valor y cuantil del 100% pertenece al maximo valor
+quantile(DF$review_scores_communication,type=2,na.rm=T)
+```
+El 25% de review_scores_communication es menor-igual de 4.710, el 50% menor-igual de 4.905, el 75% menor-igual de 5, el 100% menor-igual de 5.
+#### Moda
+```{r}
+##Hallamos la moda,es decir, el valor que se repite mas veces
+table(DF$review_scores_communication)[table(DF$review_scores_communication)==max(table(DF$review_scores_communication))]
+
+```
+La única moda es 5.
+### Descriptores de dispersión
+
+#### Rango
+```{r}
+##Descriptores de dispersion, para review_scores_checkin.
+#Hallamos el rango
+rango<-max(DF$review_scores_communication, na.rm=TRUE)-min(DF$review_scores_communication,na.rm=TRUE)#Rango
+rango
+#Nos da el valor minimo y maximo
+range(DF$review_scores_communication, na.rm=TRUE)#min valor y max valor
+#Rango intercuartil
+IQR(DF$review_scores_communication, na.rm=T)
+```
+#### Varianza
+```{r}
+##Hallamos varianza
+var(DF$review_scores_communication, na.rm=T)
+```
+Los datos varían poco respecto a la media.
+#### Desviación estandar
+```{r}
+##Hallamos desviacion estandar
+sd(DF$review_scores_communication, na.rm=T)
+```
+La dispersión de los datos es pequeña.
+#### Coeficiente de variación
+```{r}
+##Hallamos el coeficiente de variacion, para ello se crea la funcion dada.
+cv<-function(x){ 
+  return(sd(x,na.rm=TRUE)/mean(x,na.rm=T))}
+cv(DF$review_scores_communication)
+```
+El grado de variabilidad es bastante pequeña.
+### Gráficos
+
+#### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$review_scores_communication)
+
+```
+-El 50% de los datos se encuentran entre 4.7 y 5.
+-Se observan mas de 8 datos atípicos por debajo de la caja.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$review_scores_communication)
+```
+Se observa que los datos se concentran entre 4.7 aprox y 5.
+
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$review_scores_communication)
+```
+La mayor cantidad de review_scores_communication se encuetran entre 4.5 aprox y 5.
+
+## review_scores_location
+
+
+### Descriptores de posición
+
+#### Media
+```{r}
+#Descriptores de Ubicacion
+##Hallamos el promedio
+mean(DF$review_scores_location, na.rm=TRUE)
+```
+El promedio de review_scores_location de los hospedajes es de 4.8432.
+#### Mediana
+```{r}
+##Hallamos mediana
+median(DF$review_scores_location, na.rm=TRUE)
+```
+La media y mediana, no varían mucho, eso afirma la buena distribución de los datos.
+#### Cuantiles
+```{r}
+##Hallamos los cuantiles generales
+##Elcuantial 0% pertenece al minimo valor y cuantil del 100% pertenece al maximo valor
+quantile(DF$review_scores_location,type=2,na.rm=T)
+```
+El 25% de review_scores_location es menor-igual a 4.8, el 50% menor-igual de 4.93, el 75% es menor-igual de 5 y el 100% menor-igual de.
+#### Moda
+```{r}
+##Hallamos la moda,es decir, el valor que se repite mas veces
+table(DF$review_scores_location)[table(DF$review_scores_location)==max(table(DF$review_scores_location))]
+
+```
+La única moda es de 5. 
+
+### Descriptores de dispersión
+
+#### Rango
+```{r}
+##Descriptores de dispersion, para review_scores_checkin.
+#Hallamos el rango
+rango<-max(DF$review_scores_location, na.rm=TRUE)-min(DF$review_scores_location,na.rm=TRUE)#Rango
+rango
+#Nos da el valor minimo y maximo
+range(DF$review_scores_location, na.rm=TRUE)#min valor y max valor
+#Rango intercuartil
+IQR(DF$review_scores_location, na.rm=T)
+```
+#### Varianza
+```{r}
+##Hallamos varianza
+var(DF$review_scores_location, na.rm=T)
+```
+Los datos no varían mucho respecto a la media.
+#### Desviación estandar
+```{r}
+##Hallamos desviacion estandar
+sd(DF$review_scores_location, na.rm=T)
+```
+La dispersión entre los datos es pequeña.
+#### Coeficiente de variación
+```{r}
+##Hallamos el coeficiente de variacion, para ello se crea la funcion dada.
+cv<-function(x){ 
+  return(sd(x,na.rm=TRUE)/mean(x,na.rm=T))}
+cv(DF$review_scores_location)
+```
+La variabilidad de los datos es bastante pequeña.
+
+### Gráficos
+
+#### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$review_scores_location)
+```
+-El 50% de los datos se encuentran entre 4.8 y 5.
+-Observamos atípicos de 7 datos atípicos por debajo de la caja.
+
+#### De puntos
+
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$review_scores_location)
+```
+Se puede observar de una mejor manera los datos atípicos. Se confirma que los datos se concentran entre 4.8 y 5.
+
+#### Histograma
+
+```{r}
+#Histograma
+hist(DF$review_scores_location)
+```
+La mayor parte de los datos se encuentran entren 4.9 aprox. y 5.
+## instant_bookable
+
+```{r}
+DF %>% count(instant_bookable)
+```
+
+Es categórica y tiene pocas respuestas. Se puede hallar un gráfico de barras con ella y hallar su moda.
+
+### Gráfico
+
+#### De barras
+
+```{r}
+x <- table(DF$instant_bookable)
+barplot(x,xlab = "room_type",ylab = "Frecuencia",main = "Digrama de la variable instant_bookable",col = "light green")
+```
+Se observa que la mayoría de las reservas no son instantáneas.
+### Moda
+
+```{r}
+table(DF$instant_bookable)[table(DF$instant_bookable)==max(table(DF$instant_bookable))]
+```
+La moda es False.
+
+## reviews_per_month
+
+### Descriptores de Posición
+
+#### Media
+```{r}
+#Descriptores de Ubicacion
+##Hallamos el promedio
+mean(DF$reviews_per_month, na.rm=TRUE)
+```
+El promedio de reviews_per_month es de 0.9690909 en los hospedajes.
+#### Mediana
+```{r}
+##Hallamos mediana
+median(DF$reviews_per_month, na.rm=TRUE)
+```
+Se observa que que la media es mayor que la mediana, por ende las distribución esta sesgada hacia la derecha.
+#### Cuantiles
+```{r}
+##Hallamos los cuantiles generales
+##Elcuantial 0% pertenece al minimo valor y cuantil del 100% pertenece al maximo valor
+quantile(DF$reviews_per_month,type=2,na.rm=T)
+```
+El 25% de reviews_per_month es menor-igual a 0.16, el 50% menor-igual de 0.515, el 75% menor-igual de 1.290 y el 100% menor-igual de 6.6770.
+#### Moda
+```{r}
+##Hallamos la moda,es decir, el valor que se repite mas veces
+table(DF$reviews_per_month)[table(DF$reviews_per_month)==max(table(DF$reviews_per_month))]
+
+```
+Se observan 4 modas de 0.02, 0.1, 0.14, 1 y 2.
+### Descriptores de dispersión
+
+#### Rango
+```{r}
+##Descriptores de dispersion, para review_scores_checkin.
+#Hallamos el rango
+rango<-max(DF$reviews_per_month, na.rm=TRUE)-min(DF$reviews_per_month,na.rm=TRUE)#Rango
+rango
+#Nos da el valor minimo y maximo
+range(DF$reviews_per_month, na.rm=TRUE)#min valor y max valor
+#Rango intercuartil
+IQR(DF$reviews_per_month, na.rm=T)
+```
+#### Varianza
+```{r}
+##Hallamos varianza
+var(DF$reviews_per_month, na.rm=T)
+```
+La dispersión de los datos respecto a la media es considerable.
+#### Desviación estandar
+```{r}
+##Hallamos desviacion estandar
+sd(DF$reviews_per_month, na.rm=T)
+```
+La dispersión entre los datos es considerable.
+#### Coeficiente de variación
+```{r}
+##Hallamos el coeficiente de variacion, para ello se crea la funcion dada.
+cv<-function(x){ 
+  return(sd(x,na.rm=TRUE)/mean(x,na.rm=T))}
+cv(DF$reviews_per_month)
+```
+El grado de variabilidad es alta.
+### Gráficos
+
+#### Boxplot
+
+```{r}
+#Grafica de bigotes, para identificar los datos atipicos
+boxplot(DF$reviews_per_month)
+
+```
+-El 50% de los datos se encuentran entre 0.4 aprox. y 1.2 aprox..
+-Existen más de 7  datos atípicos por encima de la caja.
+
+#### De puntos
+
+```{r}
+#Grafica de puntos en linea recta, se usa para identficar  datos atipicos
+stripchart(DF$reviews_per_month)
+```
+Efectivamente los datos se concentran más en entre 0 y 1.
+
+#### Histograma
+
+
+```{r}
+#Histograma
+hist(DF$reviews_per_month)
+```
+La mayoría de los datos se encuentran entre 0 y 1, luego entre 1 y 2.
+
+#Analisis descriptivo de wifi
+
+```{r}
+class(wifi)
+```
+
+Es categórica y solo tiene 2 posibles respuestas. Se puede hallar su moda y gráfico descriptivo.
+
+## Moda
+
+```{r}
+table(DF$wifi)[table(DF$wifi)==max(table(DF$wifi))]
+```
+La moda es TRUE.
+## Gráficos
+
+#### Gráfico de barras
+
+```{r}
+x <- table(DF$wifi)
+barplot(x,xlab = "room_type",ylab = "Frecuencia",main = "Digrama de la variable wifi",col = "light green")
+
+```
+Se observa que la mayoría de hospedajes tienen wifi, confirmando la moda anterior.
+
+
+# Análisis de la variable hot_water
+
+```{r}
+class(hot_water)
+```
+
+Solo puede tener 2 valores y es categórica. Entonces, podemos hallar su moda y descriptor gráfico.
+
+## Gráfico de barras
+
+```{r}
+x <- table(DF$hot_water)
+barplot(x,xlab = "room_type",ylab = "Frecuencia",main = "Digrama de la variable hot_water",col = "light green")
+```
+Se observa que hay un gran porcentaje de habitaciones que poseen agua caliente.
+## Moda
+
+```{r}
+table(DF$hot_water)[table(DF$hot_water)==max(table(DF$hot_water))]
+```
+La moda es True, quiere decir que muchas más habitaciones con agua caliente que con agua fría.
+
+
+# Descriptores de 2 variables
+
+
+## 1) Variables que se relacionen con review_scores_value
+
+El propósito de este estudio es hallar las variables que tienen mayor relación al puntaje de cada hospedaje. Por lo tanto, relacionaremos todas las variables que creamos convenientes con la variable "review_scores_value". Para todas las variables, primero hallaremos su correlación (estandarización de la covarianza) y luego su gráfica de dispersión, pues tendremos que comparar 2 variables numéricas.
+
+
+## Relación entre review_scores_value y bathrooms_text
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$bathrooms_text,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$bathrooms_text, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$bathrooms_text ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos se encuentran dispersos, correspondiendo a la correlación hallada que es casi nula.
+## Relación entre review_scores_value y bedrooms
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$bedrooms,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$bedrooms, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$bedrooms ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos se encuentran muy dispersos, el grado de correlación es bajísima.
+
+
+## Relación entre review_scores_value y beds
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$beds,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$beds, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$beds ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos se encuentran muy dispersos, por tanto la correlación es casi nula.
+
+## Relación entre review_scores_value y price
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$price,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$price, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$price ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos se encuentran muy dispersos, por tanto la correlación es bastante cercana a cero.
+
+## Relación entre review_scores_value y minimum_nights
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$minimum_nights,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$minimum_nights, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$minimum_nights ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos están bastante dispersos, por eso el grado de correlación entre estas dos variables es cercana a cero.
+
+
+## Relación entre review_scores_value y maximum_nights
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$maximum_nights,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$maximum_nights, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$maximum_nights ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos estas muy dispersos, por tanto la correlación es muy cerca o casi cero.
+
+## Relación entre review_scores_value y number_of_reviews
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$number_of_reviews,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$number_of_reviews, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$number_of_reviews ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos se encuentran muy dispersos, por ende la correlacion entre estas dos variables es cercena a cero.
+## Relación entre review_scores_value y review_scores_cleanliness
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$review_scores_cleanliness,use="complete.obs")
+```
+
+Existe una relación lineal moderadamente alta entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$review_scores_cleanliness, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$review_scores_cleanliness ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos tienden linealmente, es una correlación directa.
+
+
+## Relación entre review_scores_value y review_scores_communication
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$review_scores_communication,use="complete.obs")
+```
+
+Existe una relación lineal baja, pero existente entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$review_scores_communication, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$review_scores_communication ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos entre estas dos variables siguen una tendencia de correlación directa.
+
+## Relación entre review_scores_value y review_scores_location
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$review_scores_location,use="complete.obs")
+```
+
+Existe una relación lineal baja, pero existente entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$review_scores_location, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$review_scores_location ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos siguen una pequeña tendencia lineal, por eso la correlación es baja.
+## Relación entre review_scores_value y reviews_per_month
+
+### Correlación
+
+```{r}
+cor(DF$review_scores_value,DF$reviews_per_month,use="complete.obs")
+```
+
+La relación es bastante baja entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_value,DF$reviews_per_month, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$reviews_per_month ~ DF$review_scores_value), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos siguen una tendencia pero es baja.
+
+
+## Conclusiones de las relaciones de review_scores_value
+
+La limpieza es la variable que más relación lineal tiene con la puntuación general del hospedaje, es decir, la limpieza influye fuertemente en la valoración de un hospedaje en Francia. Además, también influyen los puntajes de atención al cliente y la localización, pero en menor medida. El resto de variables no influyen.
+
+
+## Variables que se relacionen con price
+
+También nos interesa saber qué variables se relacionan con el precio, puesto que el estudio va dirigido a los dueños de hospedajes que buscan un precio justo acorde a lo que ofrezcan.
+
+## Relación entre price y bathrooms_text
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$bathrooms_text,use="complete.obs")
+```
+
+Existe una relación lineal entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$price,DF$bathrooms_text, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$bathrooms_text ~ DF$price), col = "red") #Se coloca en orden contrario al plot
+```
+La correlación entre estas dos variables es mayor de 0.5, podemos afirmar que siguen una tendencia lineal negativa.
+
+## Relación entre price y bedrooms
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$bedrooms,use="complete.obs")
+```
+
+La relación lineal es baja, pero existente entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$bedrooms,DF$price, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$price ~ DF$bedrooms), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos siguen una leve tendencia.
+
+## Relación entre price y beds
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$beds,use="complete.obs")
+```
+
+La relación lineal es moderada entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$beds,DF$price, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$price ~ DF$beds), col = "red") #Se coloca en orden contrario al plot
+```
+Se observa que los datos siguen una tendencia, no se encuentran muy dispersos.
+## Relación entre price y review_scores_cleanliness
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$review_scores_cleanliness,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$review_scores_cleanliness,DF$price, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$price ~ DF$review_scores_cleanliness), col = "red") #Se coloca en orden contrario al plot
+```
+Se observa que los datos se encuentran bastante dispersos, por tanto la correlación es casi nula.
+## Relación entre price y review_scores_checkin
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$review_scores_checkin,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$price,DF$review_scores_checkin, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$review_scores_checkin ~ DF$price), col = "red") #Se coloca en orden contrario al plot
+```
+Se observa que los datos se encuentran bastante disperso, esto explica su correlación nula.
+
+## Relación entre price y review_scores_communication
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$review_scores_communication,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$price,DF$review_scores_communication, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$review_scores_communication ~ DF$price), col = "red") #Se coloca en orden contrario al plot
+```
+Se observa que los datos se encuentran dispersos, no siguen una tendencia.
+
+
+## Relación entre price y review_scores_location
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$review_scores_location,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$price,DF$review_scores_location, pch=20, col=rgb(0,0,0,0.2))
+abline(lm(DF$review_scores_location ~ DF$price), col = "red")
+```
+Se observa que los datos se encuentran bastante dispersos, por ende la correlación e nula.
+
+## Relación entre price y reviews_per_month
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$reviews_per_month,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$price,DF$reviews_per_month, pch=20, col=rgb(0,0,0,0.2))
+abline(lm(DF$reviews_per_month ~ DF$price), col = "red") 
+```
+
+
+Se observa que los datos se encuentran dispersos, no siguen una tendencia, por ende una correlación nula.
+
+
+## Relación entre price y number_of_reviews
+
+### Correlación
+
+```{r}
+cor(DF$price,DF$number_of_reviews,use="complete.obs")
+```
+
+La relación prácticamente es nula entre estas 2 variables.
+
+### Gráfica de dispersión
+
+```{r}
+plot(DF$number_of_reviews,DF$price, pch=20, col=rgb(0,0,0,0.2)) #pch indica el icono para representar los elementos
+abline(lm(DF$price ~ DF$number_of_reviews), col = "red") #Se coloca en orden contrario al plot
+```
+Observamos que los datos se encuentran dispersos, no siguen ninguna tendencia, explica la correlación nula.
+
+## Relaciones entre variables categóricas
+
+Esta información puede informar a los dueños de departamente si es que necesitan estar verificados y tener agua caliente para poder competir contra otros hospedajes.
+
+### Mosaico de hot_water y wifi
+
+```{r}
+mosaicplot(table(DF$hot_water,DF$wifi), xlab="hot_water", ylab="wifi")
+```
+Se observa que la mayoría de los hospedajes cuenta con agua caliente y wifi.
+
+## Conclusiones de las relaciones entre 2 variables
+
+
+1. Las variables que más influyen linealmente en el puntaje de un hospedaje son la limpieza, atención al cliente y la rapidez en el registro. También existe una leve relación lineal con la localización del hospedaje.
+
+2. El precio se ve influido linealmente por la cantidad de baños y dormitorios.
+
+3. Para que un hospedaje pueda competir contra los demás, debe tener mínimamente agua caliente y wifi.
+
+
+
+# Relaciones entre 3 variables
+
+Ya hemos determinado cuáles variables se relacionan mejor linealmente. Ahora resumiremos las conclusiones obtenidas en gráficos de 3 variables.
+
+
+## Diagramas de dispersión
+
+
+### Relaciones con el Puntaje total
+
+#### Relaciones entre puntaje total, puntaje de limpieza, wifi y agua caliente
+
+```{r}
+grafica1 <- ggplot(DF,aes(review_scores_value,review_scores_cleanliness,colour=wifi))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de limpieza") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Limpieza y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica1))
+```
+
+
+Se observa claramente que la mayoría de hospedajes tienen Wifi.
+
+```{r}
+grafica2 <- ggplot(DF,aes(review_scores_value,review_scores_cleanliness,colour=hot_water))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de limpieza") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Limpieza y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica2))
+```
+Se observa que la mayoría de hospedajes tiene agua caliente, pero hay varios hospedajes que no cuentan con este servicio.
+
+#### Relaciones entre puntaje total, puntaje de check-in, wifi y agua caliente
+
+```{r}
+grafica1 <- ggplot(DF,aes(review_scores_value,review_scores_checkin,colour=wifi))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de check-in") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Atención en el Check-in y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica1))
+```
+Se observa que entre estas tres variables existe una pequeña relación, notamos que los puntos siguen una tendencia leve.
+
+
+```{r}
+grafica2 <- ggplot(DF,aes(review_scores_value,review_scores_checkin,colour=hot_water))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de check-in") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Atención en el Check-in y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica2))
+```
+
+Se observa que la relación entre estas tres variables existe, pero es mínima.
+
+
+#### Relaciones entre puntaje total, puntaje de atención al cliente, wifi y agua caliente
+
+```{r}
+grafica1 <- ggplot(DF,aes(review_scores_value,review_scores_communication,colour=wifi))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de atención al cliente") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Atención al cliente y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica1))
+```
+
+Se observa que la relación entre las tres variables existe, ya que los puntos siguen una tendencia.
+
+
+```{r}
+grafica2 <- ggplot(DF,aes(review_scores_value,review_scores_communication,colour=hot_water))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de atención al cliente") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Atención al cliente y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica2))
+```
+Observamos que la relación entre estas tres variables existe, por tanto los puntos siguen una tendencia.
+
+
+#### Relaciones entre puntaje total, puntaje de localización, wifi y agua caliente
+
+
+```{r}
+grafica1 <- ggplot(DF,aes(review_scores_value,review_scores_location,colour=wifi))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de localización") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Localización y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica1))
+```
+Análisis:
+
+- Se observa que en su mayoría los hospedajes cuentan con Wifi.
+
+```{r}
+grafica2 <- ggplot(DF,aes(review_scores_value,review_scores_location,colour=hot_water))+
+            geom_point() +
+            labs(x="Puntaje total",y="Puntaje de localización") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre Localización y Puntaje") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica2))
+```
+
+Los hospedajes con agua caliente son más que los que no cuentan con este servicio, pero no son pocos los que aún no cuentan con éste.
+
+### Relaciones con el precio
+
+#### Relaciones con el precio, cantidad de baños, disponibilidad de wifi y agua caliente
+
+```{r}
+grafica1 <- ggplot(DF,aes(price,bathrooms_text,colour=wifi))+
+            geom_point() +
+            labs(x="Precio total",y="Cantidad de baños") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre # de baños y Precio") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica1))
+```
+```{r}
+cor(DF$price,DF$bathrooms_text,use="complete.obs")
+```
+
+
+La cantidad de baños tiene una relación lineal con el precio del hospedaje.
+
+
+
+```{r}
+grafica2 <- ggplot(DF,aes(price,bathrooms_text,colour=hot_water))+
+            geom_point() +
+            labs(x="Precio total",y="Cantidad de baños") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre # de baños y Precio") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica2))
+```
+
+#### Relaciones con el precio, cantidad de dormitorios, disponibilidad de wifi y agua caliente
+
+
+```{r}
+grafica1 <- ggplot(DF,aes(price,bedrooms,colour=wifi))+
+            geom_point() +
+            labs(x="Precio total",y="Cantidad de dormitorios") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre # de dormitorios y Precio") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica1))
+```
+
+La cantidad de dormitorios tiene una relación lineal con el precio del hospedaje.
+
+```{r}
+cor(DF$price,DF$bedrooms,use="complete.obs")
+```
+
+
+
+```{r}
+grafica2 <- ggplot(DF,aes(price,bedrooms,colour=hot_water))+
+            geom_point() +
+            labs(x="Precio total",y="Cantidad de dormitorios") +
+            geom_smooth(method = "lm", colour="Red",formula = y ~ x)+
+            ggtitle("Relación entre # de dormitorios y Precio") +
+            theme(plot.title=element_text(family="Serif",
+                                          size=rel(1.5),
+                                          vjust=0.5,hjust=0.5,
+                                          face="bold",
+                                          lineheigh=1.5))
+
+suppressWarnings(print(grafica2))
+```
+
+
+## Boxplots
+
+
+
+
+```{r}
+P5 <- ggboxplot(
+  title = "Relación entre Precio y Cantidad de baños y agua caliente",
+  DF, x="bathrooms_text",y="price", color="hot_water",
+  palette=c("#E7B800","#00AFBB"),
+  ylab="Precio",xlab="Cantidad de baños"
+)
+
+
+suppressWarnings(print(P5))
+```
+
+Análisis:
+
+- Solo existen hospedajes con 0, 1 o 2 baños.
+- En el caso de los que no tienen baño, sorprendentemente el precio es mayor cuando no cuentan con agua caliente.
+- En cambio, en el caso de los que tienen 1 o 2 baños, el precio es mayor cuando cuentan con agua caliente
+- La diferencia de precio en los hospedajes con agua caliente y los que no cuentan con este servicio aumenta a medida que hay más baños.
+
+
+```{r}
+P1 <- ggboxplot(
+  title = "Relación entre Precio, cantidad de baños y wifi",
+  DF, x="bathrooms_text",y="price", color="wifi",
+  palette=c("#E7B800","#00AFBB"),
+  ylab="Precio",xlab="Cantidad de baños"
+)
+
+suppressWarnings(print(P1))
+```
+
+
+- El único caso en que hay baños, pero no hay wifi se da en los hospedajes con 1 solo baño.
+- En todos los hospedajes el precio es mayor cuando este cuenta con Wifi.
+
+# Análisis probabilístico
+
+## Identificación de modelos
+
+### Modelo Normal
+
+
+#### Review_scores_value
+
+```{r}
+hist(DF$review_scores_value, breaks=40, freq=FALSE, main="Histograma de la Variable review_scores_value", xlab="review_scores_value", col="green")
+lines(density(DF$review_scores_value, na.rm=TRUE), col="red", lwd=3)
+mu <- mean(DF$review_scores_value, na.rm=TRUE)
+sigma <- sd(DF$review_scores_value, na.rm=TRUE)
+curve(dnorm(x,mu,sigma),lwd = 2, col="blue", add = TRUE)
+legend("topleft", c("Curva Observada", "Curva Normal Teórica"), col= c("red","blue"), lty=1, lwd=2, bty="n", cex=0.8 )
+```
+
+Se puede observar que la función de densidad de probabilidad de la variable review_scores_value tiene una curva similar a la curva de la distribución Normal Teórica.
+
+#### Latitude
+
+
+```{r}
+hist(DF$latitude, breaks=10, freq=FALSE, main="Histograma de la Variable Latitude", xlab="Latitud", col="green")
+lines(density(DF$latitude, na.rm=TRUE), col="red", lwd=3)
+mu <- mean(DF$latitude, na.rm=T)
+mu
+sigma <- sd(DF$latitude, na.rm=T) 
+sigma
+
+#Con mu y sigma calculamos la distribución Normal más aproximada a nuestra variable
+curve(dnorm(x,mu,sigma),lwd = 2, col="blue", add = T)
+legend("topright", c("Curva Observada", "Curva Normal Teórica"), col= c("red","blue"), lty=1, lwd=2, bty="n", cex=0.8 ) #topright es la posición de la leyenda
+
+```
+
+
+Se puede observar que la función de densidad de probabilidad de la variable Latitude tiene una curva similar a la curva de la distribución Normal Teórica.
+
+
+
+
+### Modelo Exponencial
+
+#### Number_of_reviews
+
+```{r}
+hist(DF$number_of_reviews, breaks=10, freq=FALSE, main="Histograma de la Variable number_of_reviews", xlab="Número de reseñas", col="green")
+lines(density(DF$number_of_reviews, na.rm=TRUE), col="red", lwd=3)
+
+esperanza <- mean(DF$number_of_reviews,na.rm=T)
+lambda <- 1/esperanza
+
+#Con la Esperanza calculamos la distribución Normal más aproximada a nuestra variable
+curve(dexp(x,lambda),lwd = 2, col="blue", add = T)
+legend("topright", c("Curva Observada", "Curva Normal Teórica"), col= c("red","blue"), lty=1, lwd=2, bty="n", cex=0.8 ) #topright es la posición de la leyenda
+
+```
+
+Se puede observar que la función de densidad de probabilidad de la variable Latitude tiene una curva similar a la curva de la distribución Exponencial Teórica.
+
+## Problemas que se pueden resolver
+
+### Puntaje de un hospedaje
+
+El puntaje que recibe un hospedaje en París está sujeto a una variable aleatoria con distribución Normal tal que X~Norm(mu,sigma). Si los puntajes que pueden recibir son todos los números reales entre 0 y 5, ¿cuál es la probabilidad de que un hospedaje reciba un puntaje menor o igual que 4?
+
+Solución:
+
+A partir de nuestra muestra, sabemos los valores de mu (media) y sigma (desviación estándar).
+
+```{r}
+mu <- mean(DF$review_scores_value,na.rm=T)
+#mu
+sigma <- sd(DF$review_scores_value,na.rm=T)
+#sigma
+
+round(pnorm(4,mu,sigma),2)
+```
+
+
+Respuesta: La probabilidad es del 5% aprox.
+
+
+### Latitud de un hospedaje
+
+Una familia francesa está buscando un lugar para ir de paseo en París. La madre propone como idea elegir un hospedaje cuya latitud se elija al azar mediante un aplicativo móvil muy preciso. Si se sabe que la latitud se comporta como una variable aleatoria con distribución Normal Y~Norm(mu,sigma), ¿cuál es la probabilidad de que el hospedaje elegido tenga latitud mayor a 48.85?
+
+```{r}
+mu <- mean(DF$latitude, na.rm=T)
+sigma <- sd(DF$latitude, na.rm=T) 
+
+round(pnorm(48.85,mu,sigma,lower.tail=F),2)
+```
+
+
+Respuesta: La probabilidad es del 77% aprox.
+
+
+
+### Cantidad de opiniones
+
+Un preocupado dueño de un hospedaje en París desea saber si es que la cantidad de opiniones que recibe es menor de lo que la mayoría de hospedajes reciben. Por lo tanto, decide hallar la probabilidad de que un hospedaje en París haya recibido más opiniones que el suyo. Si la cantidad de opiniones que recibió hasta la fecha es 23, ¿el dueño tiene razones para estar preocupado?
+
+
+```{r}
+esperanza <- mean(DF$number_of_reviews,na.rm=T)
+lambda <- 1/esperanza
+
+pexp(23,lambda,lower.tail = F)
+```
+
+Respuesta: No, ya que la probabilidad de que un hospedaje en París tenga más opiniones que él es solo del 36% aprox., lo que quiere decir que la mayoría tiene menos opiniones que él.
+
+
+## Conclusiones y recomendaciones finales
+
+- Los dueños de hospedajes deben invertir más en limpieza, atención al cliente y la rapidez en el registro del cliente para obtener mejores ganancias.
+- Si el dueño piensa en adicionar baños, dormitorios y camas, debe de aumentar el precio en consecuencia para no perder dinero.
+- Casi todo hospedaje tiene el servicio de Wifi. En consecuencia, los dueños de hospedajes deben de contratar servicio de Wifi para competir contra los demás.
+- La probabilidad de obtener 4 o menos puntos (de 5 en total) de calificación es del 5% aprox., lo que indica que, en general, los hospedajes en París son de buena calidad.
+
+
+
+## Correcciones respecto a la PG1
+
+- Diagrama de Gant ahora contiene plazos desde semana 1 hasta la entrega del proyecto.
+- Colocamos descriptores numéricos de 1, 2 y 3 variables (con su respectivo análisis) de las variables más relevantes en el estudio.
+- Colocamos títulos y etiquetas a los gráficos más importantes.
+- Presentamos boxplots y gráficas de barras.
+- Realizamos un análisis de todos los descriptores gráficos.
+- Explicamos más detalladamente los patrones hallados para las variables más relevantes (relaciones lineales entre variables).
+
+
+# Bibliografía
+
+Get the Data. (s.f.). http://insideairbnb.com/get-the-data/
