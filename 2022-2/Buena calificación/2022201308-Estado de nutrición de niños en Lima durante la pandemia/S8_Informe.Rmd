@@ -1,0 +1,831 @@
+---
+title: " PG2- Estadística y Probabilidades"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r,echo=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(car)
+```
+
+
+El Estado de Nutrición de niños menores de 5 años durante el 2020 en Lima
+
+## INTRODUCCIÓN
+
+***- Relevancia***
+
+La llegada de la pandemia en el 2020 afectó seriamente al mundo. La nutrición de los niños del Perú se vió impactado negativamente. En este proyecto estudiaremos minuciosamente  el estado de nutrición de Niños menores de 5 años en Lima durante el 2020.Además, con este estudio lograremos conocer las causas que estuvieron involucradas en el estado de nutrición de nuestra unidad muestral y sacar conclusiones respecto a ellas.
+
+***Objetivos***
+
+**Objetivos generales: **
+
+- Determinar el impacto de la pandemia en el Estado de Nutrición de los niños de Lima durante el año 2020
+
+- Determinar los factores que influyeron en el Estado de Nutrición por la pandemia de la COVID-19 en los niños del Perú 
+
+
+## DATOS
+**- Proceso de Recolección de los datos:**
+
+En este caso utilizamos una base datos, dicha base de datos  se encuentra en la Plataforma Nacional de Datos Abiertos y se llama Sistema de información del Estado Nutricional de niños y gestantes Perú - INS/CENAN (Instituto Nacional de Salud - Centro Nacional de Alimentación y Nutrición). Luego para definir mejor nuestra muestra y hacer más viable nuestro proyecto escogimos los datos del Estado Nutricional de los niños en el año 2020 (año de la pandemia).. Del mismo modo, se consideró esta base de datos dado que proviene de una plataforma confiable e instituciones avaladas por el Perú.
+
+**- Población, muestra y muestreo**
+
+**Población: **La población que tomamos son las personas de nacionalidad peruana.
+Claramente decidimos tomar como población a nuestro país porque sabemos donde podemos encontrar la información confiable para nuestro proyecto. Por otro lado, sabemos lo mucho que la pandemia afectó a todo nuestro país y especialmente a nuestra muestra seleccionada.
+
+
+**Unidad muestral: **La muestra que tomamos son los niños menores de 5 años. Al inicio estábamos buscando información acerca del impacto nutricional en jóvenes de nuestra edad ( 17 a 20 años ) , pero los resultados eran similares a los de años anteriores. Por lo que concluimos que no había tal impacto, por eso optamos por el análisis en niños.
+
+
+**Muestreo: **El muestreo utilizado es el muestreo probabilístico. Nuestra base de datos es realizada por el Instituto Nacional de Estadística e Informática (INEI)  a través de la Encuesta Nacional de Hogares (ENAHO) 2020. Dicha encuesta se aproxima a todos los peruanos en los 24 departamentos del país tanto en las zonas urbanas como zonas rurales.
+
+
+### VARIABLES:
+- Diresa: Es una variable categórica nominal y su restricción es que solo se puede seleccionar una de las veinticuatro opciones
+- Red: Es una variable categórica nominal
+- Sexo: Es una variable categórica nominal y su restricción es seleccionar una de las dos opciones. 
+- EdadMeses: Es una variable numérica discreta y su restricción es que sea un entero no negativo. (en meses)
+- JUntos: Es una variable Categórica nominal y su restricción es seleccionar 1 si es que tiene acceso a ese programa y 0 si no tiene acceso.
+- SIS: Es una variable Categórica nominal y su restricción es seleccionar 1 si es que tiene y 0 si no tiene SIS.
+- Pin: Es una variable Categórica nominal y su restricción es seleccionar 1 si es que tiene y 0 si no tiene Pin.
+- Qaliwarma: Es una variable Categórica nominal y su restricción es seleccionar 1 si es que tiene acceso a ese programa y 0 si no tiene acceso.
+- Peso: Es una variable categórica nominal y su restricción es que sea un número decimal no negativo.
+- Talla: Es una variable numérica continua y su restricción es que sea en cm y un número decimal no negativo.
+- Hemoglobina: Es una variable numérica continua y su restricción es que sea un número decimal no negativo
+- Cred: Es una variable Categórica nominal y su restricción es seleccionar 1 si realiza el Servicio de control de crecimiento y desarrollo y 0 si no.
+- Suplementación:Es una variable Categórica nominal y su restricción es seleccionar 1 si es que tiene acceso a ese programa y 0 si no tiene acceso.
+- Consejería: Es una variable categórica nominal y su restricción es seleccionar 1 si recibió consejería y 0 si es lo contrario.
+- Sesión: Es una variable categórica nominal y su restricción es seleccionar 1 si recibió Sesiones de apoyo y 0 si es lo contrario.
+- Análisis de Sangre para detectar la hepatitis B (HBC): Es una variable numérica continua y su restricción es que sea un número decimal no negativo.
+- Anemia: Es una variable categórica ordinal y su restricción es escoger una de las opciones. 
+
+
+
+
+### LIMPIEZA DE DATOS
+
+- Primero empezamos con una base de datos que contiene información del estado de nutrición de niños menores a 5 años de todo el Perú, leemos la base de datos con la función read.csv.
+```{r}
+library(readr)
+library(ggplot2)
+data<-read.csv("DataFramePG1.csv",sep=";")
+#View(data)
+```
+- Eliminamos variables (columnas) que no serán necesarias en nuestro proyecto con la función select de la librería dplyr, luego añadimos la variable Edad(años) al data frame con la función Mutate.
+```{r}
+library(dplyr)
+DataFrame1 <- select(data,-Microred,-EESS,-Dpto_EESS,-Dist_EESS,-Renipress,-FechaAtencion,-UbigeoPN,-FechaNacimiento,-DepartamentoPN,-ProvinciaPN,-DistritoPN,-CentroPobladoPN,-FechaHemoglobina,-UbigeoREN,-DepartamentoREN,-ProvinciaREN,-AlturaREN,-Prov_EESS,-DistritoREN)
+#View(DataFrame1)
+```
+
+```{r}
+DataFrame1=mutate(DataFrame1,Edadaños=as.integer(EdadMeses/12))
+```
+
+- Filtramos la base de datos para trabajar solo con los datos de los niños del departamento de Lima
+
+```{r}
+DataFrame2 <- filter(DataFrame1, Diresa %in% c("LIMA DIRIS CENTRO","LIMA DIRIS ESTE","LIMA DIRIS NORTE","LIMA DIRIS SUR", "LIMA"))
+```
+
+- Utilizamos una función llamada remove_outliers, la cual reemplaza por un na a los valores atípicos, esta función utilizamos conceptos de quantiles y rango intercuartil.
+```{r}
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+```
+
+- Aplicamos la función llamada remove_outliers para las variables que necesitan eliminar datos atípicos, en este caso las variables peso y talla. Anteriormente se vió que necesitaban de una eliminación de datos atípicos con la función range.
+
+```{r}
+set.seed(1)
+DataFrame_nueva<-DataFrame2
+DataFrame_nueva$Peso <- remove_outliers(DataFrame_nueva$Peso)
+DataFrame_nueva$Talla <- remove_outliers(DataFrame_nueva$Talla)
+#View(DataFrame_nueva)
+```
+
+- Eliminamos todas las observaciones que tengan algún NA.
+
+```{r}
+DataFrame_nueva <- na.omit(DataFrame_nueva)
+#View(DataFrame_nueva)
+```
+
+- Por último, re-nombramos variables, en caso de que el nombre de alguna sea muy ambigua o confusa. 
+```{r}
+colnames(DataFrame_nueva)[1:18] <-c("Diresa","Red","Sexo","Edad(meses)","Juntos","SIS","Pin","Qaliwarma","Peso(kg)","Talla(cm)","Hemoglobina","Cred","Suplementación","Consejería","Sesión","Hbc","Anemia","Edad(años)")
+View(DataFrame_nueva)
+
+```
+
+
+
+## Análisis descriptivo
+
+### Descriptores numéricos
+
+```{r}
+cat('Número de observaciones:', nrow(DataFrame_nueva),'\n')
+```
+
+TABLA 1: Anemia vs Diresa**
+
+```{r, echo=FALSE, include = FALSE}
+Normal<-filter(DataFrame_nueva, Anemia %in% c("Normal")) %>% group_by(Diresa) %>% summarise(Normal=n())
+Anemia_leve<-filter(DataFrame_nueva, Anemia %in% c("Anemia Leve")) %>% group_by(Diresa) %>% summarise(Anemia_Leve =n())
+Anemia_moderada<-filter(DataFrame_nueva, Anemia %in% c("Anemia Moderada")) %>% group_by(Diresa) %>% summarise(Anemia_Moderada=n())
+Anemia_severa<-filter(DataFrame_nueva, Anemia %in% c("Anemia Severa")) %>% group_by(Diresa) %>% summarise(Anemia_Severa =n())
+DataFrame_nueva %>% group_by(Diresa, Anemia) %>% summarise(Anenia = n())
+Tabla1<-data.frame(Diresa=c("LIMA","LIMA DIRIS CENTRO","LIMA DIRIS ESTE","LIMA DIRIS NORTE","LIMA DIRIS SUR","TOTAL"), Normal=c(10577,3779,2981,7201,7012,31550),Anemia_Leve = c(1446,854,1084,2435,2393,8212),Anemia_Moderada=c(781,260,374,859,824,3098),Anemia_severa=c(17,1,0,9,8,35),Total=c(12821,4894,4439,10504,10237,42895)) 
+```
+
+```{r, echo = FALSE}
+colnames(Tabla1)[3:5] <-c("Anemia Leve","Anemia Moderada","Anemia Severa")
+```
+
+```{r, echo=FALSE}
+Tabla1
+```
+Según la tabla 1, podemos decir:
+
+```{r}
+cat('Moda de la variable Diresa según el tipo de anemia que tiene cada niño:','Anemia normal -',31550 , '\n')
+```
+
+**- Variable Sexo.**
+
+```{r}
+a<-table(DataFrame_nueva$Sexo)
+barp<-barplot(a,beside=TRUE,main = "Frecuencia del genero", xlab='', ylab='Frecuencia',col = c("mistyrose", "lightblue"))
+text(barp, a-7.25, labels = a)
+
+```
+
+```{r}
+table(DataFrame_nueva$Sexo)
+```
+```{r}
+cat('Moda de la variable Sexo:', "Maculino", '\n')
+```
+
+**Variable Edad(meses)**
+
+```{r}
+summary(DataFrame_nueva$`Edad(meses)`)
+```
+
+**-Variable Talla(cm)**
+```{r}
+summary(DataFrame_nueva$`Talla(cm)`)
+```
+**- Variable Peso(kg)**
+
+```{r}
+summary(DataFrame_nueva$`Peso(kg)`)
+```
+
+
+**- Promedio de hemoglobina y HBC de acuerdo al nivel de anemia.**
+
+Lo que haremos será sacar el promedio de la la hemoglobina de acuerdo al tipo de anemia.
+
+```{r, eval=FALSE}
+DataFrame_nueva %>% group_by(Anemia) %>% summarise(Hemoglobina=mean(Hemoglobina, na.rm = T), Hbc=mean(Hbc, na.rm=T))
+```
+
+Como vemos la Hemoglobina disminuye cuanto más nivel de anemia tiene el niño, si el niño se encuentra en normal, su hemoglobina es alta.
+
+**-Promedio de Talla y Peso de acuerdo a la edad.**
+```{r, eval=FALSE}
+DataFrame_nueva %>% group_by(`Edad(años)`) %>% summarise(Talla=mean(`Talla(cm)`, na.rm = T), Peso=mean(`Peso(kg)`, na.rm=T))
+```
+
+Como vemos el promedio de la talla y de la edad aumentan conforme los niños van creciendo (tienen más años).
+
+
+
+
+### Descriptores gráficos
+
+#### *Variables*
+
+#### - **Género**
+
+**Anemia de acuerdo al sexo:**
+En este caso analizamos dos variables categóricas, la variable del sexo y el nivel de anemia, para ver si se presenta alguna relación entre ambas variables o si hay algún sexo en particular que tenga mayor frecuencia de anemia.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(funModeling)
+
+DataFrame_nueva$Sexo <- ifelse(DataFrame_nueva$Sexo=="F", "Femenino", "Masculino")
+table(DataFrame_nueva$Sexo)
+
+cross_plot(data = DataFrame_nueva, input = c("Anemia"), target = "Sexo")
+```
+
+En este caso, en la gráfica podemos ver que no hay ninguna relación, pues la frecuencia de anemia de acuerdo al sexo es similar, es decir se presenta por igual en ambos sexos.
+
+#### - **Edad**
+
+Gráficos de barras de anemia de acuerdo a la edad.
+
+Año 0.
+```{r, echo=FALSE}
+Grafica0 <- filter(DataFrame_nueva, DataFrame_nueva$`Edad(años)`==0)
+
+tab <- table(Grafica0$Anemia)
+barplot(tab, main = "Anemia de acuerdo a la edad 0", ylab = "Frecuencia", 
+     col = c("royalblue", "orange","grey","purple"))
+```
+
+Año 1.
+```{r, echo=FALSE}
+Grafica1 <- filter(DataFrame_nueva, DataFrame_nueva$`Edad(años)`==1)
+
+tab <- table(Grafica1$Anemia)
+barplot(tab, main = "Anemia de acuerdo a la edad 1", ylab = "Frecuencia", 
+     col = c("royalblue", "orange","grey","purple"))
+```
+
+Año 2.
+```{r,echo=FALSE}
+Grafica2 <- filter(DataFrame_nueva, DataFrame_nueva$`Edad(años)`==2)
+
+tab <- table(Grafica2$Anemia)
+barplot(tab, main = "Anemia de acuerdo a la edad 2", ylab = "Frecuencia", 
+     col = c("royalblue", "orange","grey","purple"))
+```
+
+Año 3.
+```{r, echo=FALSE}
+Grafica3 <- filter(DataFrame_nueva, DataFrame_nueva$`Edad(años)`==3)
+
+tab <- table(Grafica3$Anemia)
+barplot(tab, main = "Anemia de acuerdo a la edad 3", ylab = "Frecuencia", 
+     col = c("royalblue", "orange","grey","purple"))
+```
+
+Año 4.
+```{r, echo=FALSE}
+Grafica4 <- filter(DataFrame_nueva, DataFrame_nueva$`Edad(años)`==4)
+
+tab <- table(Grafica4$Anemia)
+barplot(tab, main = "Anemia de acuerdo a la edad 4", ylab = "Frecuencia", 
+     col = c("royalblue", "orange","grey","purple"))
+```
+
+Año 5.
+```{r, echo=FALSE}
+Grafica5 <- filter(DataFrame_nueva, DataFrame_nueva$`Edad(años)`==5)
+tab <- table(Grafica5$Anemia)
+barplot(tab, main = "Anemia de acuerdo a la edad 5", ylab = "Frecuencia", 
+     col = c("royalblue", "orange","grey","purple"))
+```
+
+Con estos gráficos podemos ver como varía la frecuencia de los niños con Anemia de acuerdo a su edad.
+
+### - **Anemia de acuerdo al lugar**
+
+```{r}
+library(ggplot2)
+g1 <- ggplot(DataFrame_nueva,aes(x=Diresa)) + geom_bar(aes(fill=Anemia),position="dodge") + theme_classic()+ scale_fill_manual(values=c("orange","red","black","skyblue"))
+g1 + scale_fill_manual(values=c("orange","red","black","skyblue"))
+```
+- OJITO: Anemia Normal = Niño Sano
+
+**Conclusiones:**
+
+1. La anemia severa tiene la frecuencia mas baja en todas las Diresas.
+
+2. De los 31550 casos de anemia normal  , la Diresa Lima tiene mayor frecuencia.
+
+3. La anemia normal en todas las Diresas es mayor al doble de la anemia moderada.
+
+### DIRESA Y CONSEJERIA
+
+Las variables DIRESA y Consejeria son categoricas, y en el siguiente grafico evaluaremos en que parte de LIMA se recibieron mayor Consejeria respecto al tema de Nutrición de niños menores de 5 años.
+
+```{r}
+b<-table(DataFrame_nueva$Diresa,DataFrame_nueva$Consejería)
+barp<-barplot(b,beside=TRUE,main = "Lugares de Lima que recibieron consejeria", xlab='Consejeria', ylab='Lima',col = c("lightblue", "violet","green","orange","red"))
+text(barp, b-2, labels = b)
+legend('topleft', legend=rownames(b), bty='n',
+       fill=c("lightblue", "violet","green","orange","red"))
+```
+Según el grafico, los niños que vivian por LIMA SUR recibian mayor consejeria que los niños que vivian por LIMA ESTE.
+
+### DIRESA y SIS
+
+Las variables Diresa y SIS son categóricas y en este caso las analizamos para verificar en que parte de LIMA la mayoría de niños tenían un seguro Integral de Salud y por lo contrario en que lugar no tenian.
+
+```{r}
+b<-table(DataFrame_nueva$Diresa,DataFrame_nueva$SIS)
+barp<-barplot(b,beside=TRUE,main = "Lugares de Lima que tienen Seguro Integral de Salud", xlab='SIS', ylab='Lima',col = c("lightblue", "snow3","lightgreen","thistle3","lightyellow"))
+text(barp, b-2, labels = b)
+legend('topleft', legend=rownames(b), bty='n',
+       fill=c("lightblue", "snow3","lightgreen","thistle3","lightyellow"))
+```
+Según el grafico observado los niños que viven en LIMA tienen una mayor proporción de tener el seguro, y por otro lado LIMA NORTE es el de menor proporción en tener el seguro.
+
+
+
+
+## ANÁLISIS PROBABILISTICO
+
+
+
+#### 1. PROBABILIDAD FRECUENTISTA
+
+Para realizar un buen análisis frecuentista, construiremos dos tablas de doble entrada para en base a eso analizar de mejor nuestras variables y por lo tanto, nuestras probabilidades. La primera tabla relacionará las variables de Anemia y Diresa, la segunda tabla relacionará las variables de sexo y hemoglobina.
+
+
+##### **TABLA 1: Anemia vs Diresa**
+
+```{r, echo=FALSE, include = FALSE}
+Normal<-filter(DataFrame_nueva, Anemia %in% c("Normal")) %>% group_by(Diresa) %>% summarise(Normal=n())
+Anemia_leve<-filter(DataFrame_nueva, Anemia %in% c("Anemia Leve")) %>% group_by(Diresa) %>% summarise(Anemia_Leve =n())
+Anemia_moderada<-filter(DataFrame_nueva, Anemia %in% c("Anemia Moderada")) %>% group_by(Diresa) %>% summarise(Anemia_Moderada=n())
+Anemia_severa<-filter(DataFrame_nueva, Anemia %in% c("Anemia Severa")) %>% group_by(Diresa) %>% summarise(Anemia_Severa =n())
+DataFrame_nueva %>% group_by(Diresa, Anemia) %>% summarise(Anenia = n())
+Tabla1<-data.frame(Diresa=c("LIMA","LIMA DIRIS CENTRO","LIMA DIRIS ESTE","LIMA DIRIS NORTE","LIMA DIRIS SUR","TOTAL"), Normal=c(10577,3779,2981,7201,7012,31550),Anemia_Leve = c(1446,854,1084,2435,2393,8212),Anemia_Moderada=c(781,260,374,859,824,3098),Anemia_severa=c(17,1,0,9,8,35),Total=c(12821,4894,4439,10504,10237,42895)) 
+```
+
+```{r, echo = FALSE}
+colnames(Tabla1)[3:5] <-c("Anemia Leve","Anemia Moderada","Anemia Severa")
+```
+
+```{r, echo=FALSE}
+Tabla1
+```
+
+
+La leyenda para hallar las probabilidades es la siguiente:
+ 
+ - LC = Lima Diris Centro
+ 
+ - LE = Lima Diris Este
+ 
+ - LN= Lima Diris Norte
+ 
+ - LS= Lima Diris Sur
+ 
+ - L = Lima
+ 
+ - N = Normal
+ 
+ - A1= Anemia Leve
+ 
+ - A2= Anemia Moderada
+ 
+ - A3= Anemia Severa
+
+Empezamos con la probabilidades:
+
+1. ¿Cuál es la probabilidad de que un niño tenga anemia leve y residan en Lima Diris Norte?
+ 
+$$P(A1 \cap LN) = 2435/42895 = 0.0568 = 5.68\%$$
+
+
+2. ¿Cuál es la probabilidad de que un niño no tengan anemia y pertenezcan a Lima Diris Sur?
+ 
+$$P(N \cap LS) = 7012/42895 = 0.1635 = 16.35\%$$
+
+3. ¿Cuál es la probabilidad de que un niño tenga anemia y pertenezcan a Lima?
+  
+$$P(N^c \cap L) = P((A1 \cup A2 \cup A3) \cap L)= 2244/42895 = 0.0523 = 5.23\%$$
+
+4. ¿Cuál es la probabilidad de que un niño tenga anemia?
+  
+$$P(N^c) = P(A1 \cup A2 \cup A3)= \frac{8212}{42895} + \frac{3098}{42895} + \frac{35}{42895} = 0.2645 = 26.45\%$$
+
+$$P(N^c) = 1 - P(N) = 1- 31550/42895 = 0.2645 = 26.45\%$$
+
+5. ¿Cuál es la probabilidad de que un niño tenga anemia moderada y pertenezca a Lima?
+  
+$$P(A3 \cap L) = 781/42895 = 0.0182 = 1.82\%$$  
+  
+  6. ¿Cuál es la probabilidad de que no pertenezca a Lima Diris Norte?
+  
+$$P(LN^c) = 1 - P(LN) = 1- 10504/42895 = 0.7551 = 75.51\%$$  
+7. ¿Cuál es la probabilidad de que tenga anemia leve dado que pertenezca a Lima Diris Sur?
+  
+$$P (A1 | LS) = \frac{P (A1 \cap LS)}{P(LS)} =  \frac{2393/42895}{10237/42895} = \frac{2393}{10237} = 0.2338 = 23.38\%$$
+
+  8. ¿Cuál es la probabilidad de que tenga anemia moderada dado que es Lima Diris Este?
+
+$$P (A2 | LE) = \frac{P (A2 \cap LE)}{P(LE)} =  \frac{374/42895}{4439/42895} = \frac{374}{4439} = 0.0843 = 8.43\%$$  
+
+
+##### **TABLA 2: Sexo vs Nivel de hemoglobina**
+
+
+Primero categorizamos la variable continua de Hemoglobina con las siguientes condiciones, para niños de la edad con la que estamos trabajando:
+
+Normal: >10.9
+
+Leve: 10-10.9
+
+Moderada: 7-9.9
+
+Grave: <7
+
+Las cuales fueron obtenidas de un artículo realizado por Jessica Yunconza.
+
+```{r,echo=FALSE}
+DataFrame_nueva <- mutate(DataFrame_nueva, Hemoglobina_cat = cut(DataFrame_nueva$Hbc, breaks = c(0, 7, 9.9, 10.9, Inf),
+    labels = c("Grave", "Moderada", "Leve", "Normal")))
+```
+
+```{r include=FALSE}
+n<-DataFrame_nueva %>% group_by(Sexo, Hemoglobina_cat) %>% summarise(n = n())
+Tabla2<-data.frame(Sexo=c("FEMENINO","MASCULINO","TOTAL"), Normal=c(16338,16338,32676), Leve = c(3557,3958,7515), Moderada=c(1164,1505,2669),Grave=c(16,19,35),Total=c(21075,21820,42895)) 
+```
+
+```{r, echo = FALSE}
+Tabla2
+```
+La leyenda para hallar las probabilidades es la siguiente:
+ 
+ - F = Femenino
+ 
+ - M = Masculino
+ 
+ - HN = Nivel de hemoglobina normal
+ 
+ - HM = Nivel de hemoglobina moderada 
+ 
+ - HG = Nivel de hemoglobina grave
+
+Empezamos con la probabilidades:
+
+1. Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que sea del sexo femenino y tenga nivel de hemoglobina moderada?
+
+$$P(F \cap HG) = 1164/42895 = 0.0271 = 2.71\%$$
+
+2. Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que sea del sexo masculino y tenga nivel de hemoglobina normal?
+
+$$P(M \cap HN) = 16338/42895 = 0.3809 = 38.09\%$$
+
+3.  Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que sea del sexo femenino y no tenga nivel de hemoglobina normal?
+
+$$P(F \cap HN^c) = P(F \cap HL) + P(F \cup HM) + P(F \cup HG) = \frac{3557}{42895} + \frac{1664}{42895} + \frac{16}{42895} = \frac{4737}{42895} = 0.1104 = 11.04\%$$
+
+4.  Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que sea del sexo masculino y no tenga nivel de hemoglobina normal?
+
+$$P(M \cap HN^c) = P(M \cap HL) + P(M \cup HM) + P(M \cup HG) = \frac{3958}{42895} + \frac{1505}{42895} + \frac{19}{42895} = \frac{5482}{42895} = 0.1278 = 12.78\%$$
+
+5.  Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que tenga nivel de hemoglobina grave dado que es del sexo masculino?
+
+$$P(HG | M ) =  \frac{P (HG \cap M)}{P(M)} =  \frac{19/42895}{21820/42895} = \frac{19}{21820} = 0.0009 = 0.09\%$$
+
+5.  Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que tenga nivel de hemoglobina leve dado que es del sexo femenino?
+
+$$P(HL | F ) =  \frac{P (HL \cap F)}{P(F)} =  \frac{3557/42895}{21075/42895} = \frac{3557}{21075} = 0.1688 = 16.88\%$$
+
+6.  Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que sea del sexo masculino dado que tiene un nivel de hemoglobina normal?
+
+$$P(M | HN ) =  \frac{P (M \cap HN)}{P(HN)} =  \frac{16338/42895}{32676/42895} = \frac{16338}{32676} = 0.5 = 50\%$$
+
+7.  Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que sea del sexo femenino dado que tiene un nivel de hemoglobina leve?
+
+$$P(F | HL ) =  \frac{P (F \cap HL)}{P(HL)} =  \frac{3557/42895}{7515/42895} = \frac{3557}{7515} = 0.4733 = 47.33\%$$
+
+8.  Si elegimos aleatoriamente a un niño  ¿Cual es la probabilidad de que no sea del sexo masculino?
+
+$$P(M^c) =  P(F) = 1- P(M) = 1 - \frac{21820}{42895} = 0.4913 = 49.13\%$$
+
+**RESULTADOS**
+
+Podemos concluir que realizando este tipo de tablas de los datos obtenidos, podemos agilizar el análisis y obtención de las respectivas probabilidades, las cuales nos permitirán desarrollar predicciones a futuro.
+
+En base a estas tablas podemos obtener montón de probabilidades, sin embargo utilizamos solo las que son útiles para nuestra investigación. Por ejemplo, en la tabla 1 y 2 uno obtuvimos datos como:
+
+  - La probabilidad de que un niño pertenezca a cualquiera de las DIRESAS que se encuentran en el departamento de Lima tenga anemia es de un 26.45%, el cual es un indicador de que hay altos nivel de anemia en el departamente de Lima.
+  
+  - La probabilidad de que un niño que pertence a Lima Diris Sur tenga anemia es de un 23.38%, el cual también un indicador de altos niveles de anemia.
+  
+  - La probabilidad de que un niño que tiene hemoglobina leve sea del sexo femenino es de 47.33%, lo que quiere decir que las proporciones entre niños y niñas en el nivel de hemoglobina moderada es igualitario. Del mismo modo, también vemos estás tendencias en el nivel de hemoglobina normal, moderada y grave, lo que quiere decir que tanto niños como niñas son afectados de forma similar.
+  
+De este manera, en base a nuestra probabilidades, podemos sacar algunas conclusiones, en las cuales también hay que considerar que es una aproximación y tiene un margen de error, pues estamos trabajando con una muestra.
+
+#### 2. MODELOS PROBABILISTICOS
+
+##### Obejetivos propuestos:
+
+  - Encontrar relaciones entre las variables para así poder plantear correctas distribuciones probabilisticas .
+
+  - Determinar un análisis de posibilidad de ocurrencia de los eventos con la teoría de métodos probabilisticos aprendida y practicada en clase.
+
+##### - DISTRIBUCIÓN BINOMIAL:
+
+Caso1:  Analizaremos la variable Anemia, en la cual observaremos la cantidad de niños según el estado de anemia en el que se encuentran. En cual se divide en 4 tipos, anemia Leve(8212 niños), Moderada(3098), Severa(35 niños) y los niños que se encuentran con una hemoglobina adecuada(Normal, 31550 niños) de un total de 42895 niños. 
+
+En este caso vamos a determinar la probabilidad de que dentro de un grupo de 85 niños, más de 25 se encuentran con anemia Leve dado que viven en Lima Diris Este. Asimismo, buscaremos hallar el valor esperado de nuestra función probabilidad, su varianza y su desviación estándar: 
+
+P(x > 25), p=1084/4439, n = 85
+
+```{r}
+table(DataFrame_nueva$Diresa)
+```
+
+```{r}
+table(DataFrame_nueva$Anemia)
+```
+Probabilidad (1 - pbnimon(x, n, p)):
+
+```{r}
+1-pbinom(25,85,1084/4439)
+```
+
+Valor esperado
+
+```{r}
+85*(1084/4439)
+```
+
+VARIANZA
+
+
+```{r}
+85*(1084/4439)*(1-(1084/4439))
+```
+
+Desviación estándar
+
+```{r}
+(85*(1084/4439)*(1-1084/4439))^0.5
+```
+
+Funcion de probabilidad
+
+```{r}
+n=85
+p=1084/4439
+valor=25
+
+dbinom(valor,size=n,prob=p)
+
+```
+
+
+
+```{r}
+library(ggplot2)
+rango = 0:n
+df = data.frame(x = rango, y = dbinom(rango, size=n, prob=p))
+
+
+```
+```{r}
+ggplot(df, aes(x = x, y = y, fill=factor(ifelse(x>valor,"Valor","Resto")))) +
+geom_bar(stat = "identity",width=0.35) + xlab("x") + ylab("Densidad") +
+ggtitle("Función de Probabilidad (85, 1084/4439)") +
+scale_fill_manual(name = "", values=c("grey50","green")) + theme_bw()
+
+```
+
+
+RESULTADOS:
+
+Se ha empleado este método probabilistico, debido a que se las variables que se utilizaron tienen las características para poder emplear este tipo de distribución. Por ello, obtuvimos que 0.1170346 es la probabilidad de que más de 50 niños se encuentran con anemia leve dado una muestra de niños que vive en Lima Diris Este. Asimismo también se hallo la valor esperado o la esperanza de nuestra función que viene a ser 20.75693, mientras la varianza es 15.6881, la desviación estándar es 3.960821.
+
+#### - Distribución Hipergeométrica
+
+Caso 2: Si se extrae una muestra aleatoria de 75 niños del total de los niños que se tiene en la base de datos para una estudio de una empresa informática. ¿Cúal es la probabilidad de que de estos 75 niños exactamente 58 estudiantes tengan SIS?
+
+1. Hallamos la cantidad de niños con SIS en total
+
+```{r,echo=TRUE}
+nrow(filter(DataFrame_nueva,DataFrame_nueva$SIS == 1))
+```
+
+2. Hallamos la cantidad de niños sin SIS en total. (Tenemos 2 formas)
+
+```{r,echo=TRUE}
+nrow(filter(DataFrame_nueva,DataFrame_nueva$SIS == 0))
+nrow(DataFrame_nueva)-nrow(filter(DataFrame_nueva,DataFrame_nueva$SIS == 1))
+```
+
+3. Planteamos un modelo, en este caso sería la distribución hipergeométrica ya que se extrae una muestra de toda la población.
+
+a) Definimos los parámetros que utilizaremos
+
+  - x (seleccion) = 58
+  - m (exitos)= 33002
+  - n (fracasos)= 9893
+  - k ( muestra ) = 75
+
+$$P(X=58)$$
+
+```{r echo=TRUE}
+m = 33002
+n = 9893
+k = 75
+dhyper(58,33002,9893,75)
+```
+
+Entonces la probabilidad sería: 0.1092 o 10.92%
+
+La función de probabilidad es:
+
+```{r echo=TRUE}
+datos<-rhyper(m+n,m,n,k)
+barplot(prop.table(table(datos)),col=c("skyblue"),main="Función de probabilidad Hiper(42895,75,58)", ylab ="Probabilidad", las=0,font.axis=14)
+```
+Además, la sección de informática de la empresa desea hallar los siguientes descriptores numéricos de dispersión.
+
+1. Varianza  ( Tenemos dos formas )
+
+```{r}
+varianza1<- n*p*(1-p)*choose(42895-75,42894)
+varianza1
+varianza2<-(75 * p)*choose(42895-33002,42895)*choose(42895-75,42895-1)
+varianza2
+```
+
+2.Desviación estándar
+
+```{r}
+desv = sqrt(varianza1)
+desv
+```
+
+3. Valor esperado -> nr/N
+```{r}
+(75*33002)/42895
+```
+
+
+Resultados:
+
+Tal como se muestra, la varianza resulta 0. Por lo que podemos interpretar que todods los valores tienen puntuaciones iguales y se acercan a la media de la distribución,se comprueba con el resultado de la media,la cual resulta 57.70.
+
+#### - Distribución Geométrica
+
+Hallando la probabilidad de niños sin anemia (Normal)
+
+Cant. total de niños que no tienen anemia (Normal) = 31550
+```{r}
+n_sin_anemia <- sum(DataFrame_nueva$Anemia=="Normal")
+n_sin_anemia
+```
+Población total de niños = 42895
+
+```{r}
+poblacion <- nrow(DataFrame_nueva)
+poblacion
+```
+Por lo tanto nuestra probabilidad de niños sin anemia (p) será:
+```{r}
+p <- n_sin_anemia/poblacion
+p
+```
+p = 0.735517 ~ 73.55%
+
+Pregunta de probabilidad 1:
+
+En el departamento de Lima, la probabilidad de encontrar a un niño de entre 0 a 5 años que no tengan anemia es del 73.55% ¿Cuál es la probabilidad de que el tercer niño que analicemos, este sea el primero que no tenga anemia?
+solución:
+x = 3 
+p = 0.7355
+
+dgeom( x - 1, p)
+
+```{r}
+dgeom(2,p)
+```
+La probabilidad de que el primer niño sin anemia sea el tercer niño que se analiza es del 0.05145035 ~ 5.15%
+
+Función de probabilidad:
+```{r echo=TRUE}
+datos_geom<-rgeom(42895,p)
+barplot(prop.table(table(datos_geom)),col=c("skyblue"),main="Función de probabilidad G(0.7355)", ylab ="Probabilidad", las=0,font.axis=14)
+```
+
+Además,se tiene los siguientes descriptores numéricos de dispersión.
+
+1. Valor esperado
+
+```{r echo=TRUE}
+esperanza<-1/p
+esperanza
+```
+Tenemos que esperar 1.36 ensayos hasta obtener el primer acierto incluido el ensayo que es acierto.
+
+```{r echo=TRUE}
+esperanza<-(1-p)/p
+esperanza
+```
+Tenemos que esperar 0.36 fracasos para llegar al primer acierto.
+
+
+2. Varianza
+```{r echo=TRUE}
+varianza<-(1/p)*((1/p)-1)
+varianza
+```
+
+3. Desviación estándar
+
+```{r echo=TRUE}
+desv = sqrt(varianza)
+desv
+```
+
+#### Distribución normal
+
+Caso 4: Hallando una distribución normal analizando el dato de la talla en los niños que tienen la edad de 3.
+
+Para obtener la distribución normal, primero filtramos los datos, para tener la data solo de los niños que tienen 3.
+
+```{r}
+pob_3<-filter(DataFrame_nueva,DataFrame_nueva$`Edad(años)` == 3)
+```
+
+Luego, mediante el siguiente código mediante la función sample y saply, obtenemos el vector muestra, el cual contiene los promedios de la talla de los niños de 3 años de 5000 muestras sacadas aleatoriamente del total de niños que tienen 3 años.
+
+```{r}
+muestra<-sapply(1:5000, function(x){mean(sample(pob_3$`Talla(cm)`,1000,rep=T))})
+```
+
+Realizamos el histograma del vector muestra.
+
+```{r}
+hist(muestra)
+```
+
+Del mismo modo, para probar normalidad, usaremos la prueba shapiro Wilks: 
+```{r}
+shapiro.test(muestra)
+```
+Ho: Los datos provienen de una población con distribución normal
+
+H1: Los datos no provienen de una población con distribución normal
+
+Al tener un valor mayor a 0.05 estoy aceptando la Ho, es decir tenemos una distribución normal.
+
+
+Luego obtenemos los datos de la media y desviación estándar para definir los parámetros de la distribución normal sobre la que trabajaremos:
+
+```{r}
+media<-mean(muestra)
+media
+sd<-sd(muestra)
+sd
+```
+
+Pregunta de probabilidad:
+
+En el departamento de Lima, un programa del Estado que tiene como objetivo reducir los niveles de anemia, desea saber la talla promedio de los niños de Lima, para lo cual realiza un estudio experimental de tamaño de muestra x. ¿Cuál es la probabilidad de que el promedio de la talla de los niños de la muestra de tamaño x sea mayor o igual a 95?
+
+Solución:
+$$P(X\geq95)$$
+
+```{r}
+pnorm(95,media,sd,lower.tail = F)
+```
+Respuesta: La probrabilidad de que el promedio de la talla de los niños de 3 años de la muestra de tamaño sea mayor o igual a 95 es de 17.91 % con un nivel de confianza de 5%.
+
+
+Función de densidad:
+```{r}
+# Grid para una distribución normal no estándar
+x <- seq(0.5, 1.5, length = 5) * media + sd
+
+# Función de densidad
+f <- dnorm(x, media, sd)
+
+plot(x, f, type = "l", lwd = 2, col = "blue", ylab = "", xlab = "Weight")
+abline(v = media) # Línea vertical en la media
+```
+
+
+
+
+
+
+## REFERENCIAS BIBLIOGRAFICAS
+-Instituto Nacional de la salud (2021). SISTEMA DE INFORMACIÓN DEL ESTADO NUTRICIONAL de niños y gestantes Perú - INS/CENAN. Plataforma Nacional de Datos Abiertos. Consultado el 5 de septiembre del 2022. https://www.datosabiertos.gob.pe/dataset/sistema-de-informaci%C3%B3n-del-estado-nutricional-de-ni%C3%B1os-y-gestantes-per%C3%BA-inscenan-instituto.
+
+-Yunconza, J. (2019). Cuáles son los valores normales de hemoglobina en sangre. unCOMO. Consultado el 25 de noviembre. https://www.mundodeportivo.com/uncomo/salud/articulo/cuales-son-los-valores-normales-de-hemoglobina-en-sangre-46677.html.
+
+
+
+
+
+

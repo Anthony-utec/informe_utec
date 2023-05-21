@@ -1,0 +1,1205 @@
+---
+title: "S6_informe"
+date: "22 de Noviembre del 2022"
+output: 
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: journal
+---
+
+##### Libreria a utlizar
+```{r}
+# Librerias a cargar
+if (!require(stringr)){install.packages(stringr);library(stringr)}
+if (!require(tidyverse)){install.packages(tidyverse);library(tidyverse)}
+if (!require(tidyr)){install.packages(tidyr);library(tidyr)}
+if (!require(lubridate)){install.packages(lubridate);library(lubridate)}
+
+if (!require(readr)){install.packages(readr);library(readr)}
+if (!require(dplyr)){install.packages(dplyr);library(dplyr)}
+if (!require(ggplot2)){install.packages(ggplot2);library(ggplot2)}
+```
+
+# Introduccion
+
+Se hizo una recoleccion de datos a traves de una encuesta realizada a traves de google forms ([Enlace de la encuesta virtual](https://forms.gle/fYQEr8hcK6j76DfHA)) en la que se busca determinar la veracidad de distintas hipotesis acerca de la independencia familiar entre los estudiantes UTEC, haciendo comparaciones entre los estudiantes que viven de manera independiente y aquellos que no, asi tambien hacer analisis entre las variables de los datos recolectados. A su vez, este estudio estadistico puede ser de gran interes para analisis posteriores en materia de investigacion concerniente a los estudiantes de la Universidad de Ingenieria y Tecnologia - UTEC.  
+
+A su vez el presente informe de estudio de investigacion es de tipo transversal correlacional, el cual tiene un diseño de investigación no experimental.
+
+## Objetivo:
+
+Determinar la relacion entre la independencia familiar y el resto de variables, realizando multiples cuadros comparativos interpretando y analizando el comportamiento de estas relaciones con los estudiantes que aun no viven de manera independiente, todo esto a traves de la base de datos.
+
+Para ello, definimos los siguientes objetivos específicos:
+
+### Objetivos específicos: 
+
+
+- Determinar los modelos probabilísticos que describen la relación entre las variables. 
+- Hallar las probabilidades de los casos supuestos en base a nuestra muestra y variables.
+- Analizar los datos de las variables, para encontrar datos atípicos y limpiar nuestra base de datos para no arrastrar errores.
+
+
+
+## Planificación General
+
+Para realizar este trabajo, se dividió las tareas de la siguiente manera:
+
+### Diagrama de Gantt
+
+```{r, echo=FALSE}
+df <- data.frame(Stage = c("Busqueda y seleccion de 3 posibles temas","Pre-entrega del proyecto" , "Eleccion del tema y elaboracion de la encuesta", "Recoleccion de datos","Limpieza de datos y elaboracion de la introduccion","Elaboracion de grafica de Gantt,descriptores y R presentation","P1-Entrega del proyecto","Segunda entrega del proyecto","Correcccion de entregas previas del proyecto","Elaboracion de modelos Estadisticos")
+                 , Start = c("2022-08-19", "2022-08-19"
+                           , "2022-09-05", "2022-09-12"
+                           , "2022-09-25", "2022-09-27"
+                           , "2022-09-20", "2022-10-24"
+                           ,"2022-10-3","2022-10-10")
+                 
+                 ,End = c("2022-08-26","2022-09-02"
+                          , "2022-09-12", "2022-09-25"
+                          , "2022-09-27", "2022-09-29"
+                          , "2022-09-30", "2022-11-25"
+                          ,"2022-11-24","2022-11-24")
+                 , Complete = c(TRUE, TRUE, TRUE , TRUE , TRUE , TRUE , TRUE , TRUE, TRUE,TRUE))
+
+df$Start <- ymd(df$Start)
+df$End <- ymd(df$End)
+
+df.melt <- df%>%
+  tidyr::pivot_longer(col = c(Start,End))
+
+pl <- ggplot(df.melt, aes(x = value, y = Stage, colour = Complete ))
+pl <- pl + geom_line( alpha = 0.3, linewidth = 4)
+pl <- pl + geom_text(aes(label = format(value, "%d %b")), vjust = -0.5, angle = 45, size = 3, color = "black")
+pl <- pl +   theme_classic()
+pl <- pl + labs(title = "Diagrama de Gantt")
+pl <- pl + labs(x = "Fecha")
+pl <- pl + labs(y = "Proyecto")
+pl <- pl + scale_color_manual(values = c("blue", "purple"))
+pl <- pl + theme(legend.position = "none")
+pl <- pl + theme(panel.background = element_rect(color = "black"))
+pl <- pl + scale_x_date(name = "Fecha"
+                        ,  date_labels = "%d %b"
+                        ,  date_breaks = "2 week"
+                        , minor_breaks = "2 day")
+pl
+```
+
+
+# Datos  
+
+La recolección de datos se realizó mediante un tipo de muestreo no probabilístico por conveniencia, debido a que realizamos una encuesta a través de google forms, la cual se envió por sitios de difusión masiva como grupos de WhatsApp, Telegram y Discord, cabe destacar que la encuesta realizada fue exclusiva para los estudiantes de UTEC  
+
+Se tomó esta forma de recolección de datos, debido a que de esta forma la obtención de la muestra es la más rápida.  
+A su vez, cabe señalar que uno de los principales obstáculos al realizar la recolección de datos, fue la dificultad de poder llegar a los 200 alumnos encuestados de la UTEC. No obstante, planteamos estrategias que nos ayudaron a superar este problema, tales como ampliar el tiempo de recolección de datos, un pequeño sorteo a los que respondieran la encuesta y recolección de datos a estudiantes de manera presencial en la universidad, mostrándoles el código QR de nuestra encuesta.
+
+
+## Población, muestra y muestreo  
+Nuestra población son todos los estudiantes de la universidad UTEC, en donde la unidad muestral son cada uno de los alumnos de la comunidad. 
+El tamaño de la muestra es de 207 alumnos
+
+- **POBLACIÓN:** Los estudiantes de la Universidad de Ingenieria y Tecnologia - UTEC.
+- **MUESTRA:** Los estudiantes de la comunidad UTEC.
+  - **UNIDAD MUESTRAL:** Un estudiante de UTEC.
+  - **TAMAÑO:** 207 estudiantes.
+  - **REPRESENTATIVIDAD:** No
+- **MUESTREO:** Muestreo Probabilístico Aleatorio Simple.
+
+## Base de Datos:
+```{r}
+data0 <- read_csv("dataframe.csv")
+```
+
+## Variables
+ 
+ 
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| VARIABLE            | CLASE       | TIPO      |RESTRICCION           |          DESCRIPCION                             |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Beca                | Categórica  | Nominal   | Alternativas         | Hace referencia a si cuenta con algun tipo de    |
+|                     |             |           | consideradas         | beca                                             |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Carrera             | Categórica  | Nominal   | Carreras UTEC        | Hace referencia a la carrera que estudia         |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Causas              | Categórica  | Nominal   | Alternativas         | Hace referencia a las causa por las que cree que |
+|                     |             |           | consideradas         | no se esta desenvolviendo bien este ciclo        |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Consumo menos       | Categórica  | Nominal   | Alternativas         | Referido al alimento del dia que con menor       |
+| frecuente           |             |           | consideradas         | frecuencia consume durante un dia                |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Independencia       | Categórica  | Nominal   | Si o No              | Referido a si vive de manera independiente       |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Gastos comunes      | Categórica  | Nominal   | Alternativas         | Referido a los gastos que comunmente hace        |
+|                     |             |           | consideradas         | durante el mes                                   |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Motivo              | Categórica  | Nominal   | Alternativas         | Hace referencia al motivo de independencia       |
+|                     |             |           | consideradas         |                                                  |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Org. Estudiantil    | Categórica  | Nominal   | Alternativas         | Hace referencia a si pertenece a alguna          |
+|                     |             |           | consideradas         | organizacion estudiantil en UTEC                 |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Voluntariado        | Categórica  | Nominal   | Alternativas         | Hace referencia a si pertenece a alguna          |
+|                     |             |           | consideradas         | organizacion de voluntarios                      |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Procedencia         | Categórica  | Nominal   | Deptos. del Perú     | Hace referencia al lugar de donde viene          |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Residencia          | Categórica  | Nominal   | Distritos de Lima    | Hace referencia al lugar donde vive actualmente  |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Sexo                | Categórica  | Nominal   | Masculino o Femenino | Hace referencia a los componentes biológicos     |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Sociabilidad        | Categórica  | Nominal   | Si o No              | Referido al desenvolvimiento frente al resto     |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Amigos              | Categórica  | Ordinal   | Escalas de Likert    | Referido a la facilidad para conseguir amigos    |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Autoevaluación      | Categórica  | Ordinal   | Escalas de Likert    | Referido a como siente que le esta yendo         |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Ciclo               | Categórica  | Ordinal   | I - X                | Hace referencia al ciclo academico en el         |
+|                     |             |           |                      | que se encuentra                                 |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Consumo saludable   | Categórica  | Ordinal   | Escalas de Likert    | Referido a la frecuencia de consumo de alimentos |
+|                     |             |           |                      | saludables y nutritivos                          |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+|Problemas Académicos | Categórica  | Ordinal   | Escalas de Likert    | Referido a la frecuencia con la que suele hablar |
+|                     |             |           |                      | con sus familiares sobre temas academicos        |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+|Problemas Económicos | Categórica  | Ordinal   | Escalas de Likert    | Referido a la frecuencia con la que suele hablar |
+|                     |             |           |                      | con sus familiares sobre temas economicos        |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+|Problemas Emocionales| Categórica  | Ordinal   | Escalas de Likert    | Referido a la frecuencia con la que suele hablar |
+|                     |             |           |                      | con sus familiares sobre temas emocionales       |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Estatura            |Cuantitativa | Continua  | Numero entero        | Hace referencia a la altura en centimetros       |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Peso                |Cuantitativa | Continua  | Numero entero        | Hace referencia al peso en kilogramos            |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Promedio            |Cuantitativa | Continua  | Número mayor a 0     | Hace referencia a su promedio del ciclo anterior |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Promedio Acumulado  |Cuantitativa | Continua  | Número mayor a 0     | Hace referencia a su promedio general            |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Actividades         |Cuantitativa | Discreta  | Número entero        | Referido al numero de horas que realiza          |
+| extracurriculares   |             |           |                      | actividades extracurriculares o de ocio          |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Ahorros             |Cuantitativa | Discreta  | Número Entero        | Referido al dinero ahorrado al mes               |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Cursos Jalados      |Cuantitativa | Discreta  | Número Entero        | Hace referencia a la cantidad de cursos jalados  |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Edad                |Cuantitativa | Discreta  | Numero entero        | Hace referencia a la edad en años                |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Edad de Ingreso     |Cuantitativa | Discreta  | Número Entero        | Hace referencia a la edad con la que ingreso a la|
+|                     |             |           |                      | universidad                                      |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Egresos             |Cuantitativa | Discreta  | Número Entero        | Referido a la cantidad de dinero gasta al mes    |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Horas de estudio    |Cuantitativa | Discreta  | Número Entero        | Referido a las horas que estudia fuera de clase  |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Horas familiares    |Cuantitativa | Discreta  | Número Entero        | Referido al tiempo usado para comunicarse con sus|
+|                     |             |           |                      | familiares en la semana                          |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Horas de sueño      |Cuantitativa | Discreta  | Número Entero        | Referido a las horas que duerme normalmente      |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+| Ingresos            |Cuantitativa | Discreta  | Número Entero        | Referido al dinero que percibe para subsistir    |
+|                     |             |           |                      | durante el mes                                   |
++---------------------+-------------+-----------+----------------------+--------------------------------------------------+
+
+## Limpieza de la base de datos
+
+Para este proceso se consideró limpiar la base de datos de acuerdo a los siguiente puntos:
+
+- Información irrelevante para el estudio.
+- Datos incoherentes y confusos
+- Tomar muy en cuenta que las repuestas ingresadas por parte de los encuestados vayan de acuerdo al tipo de variable requerido, esto con el fin de no tener problemas posteriores en el analisis de datos.  
+
+### Criterios de eliminacion de datos  
+
+- En esta investigación se hará un análisis variable por variable a través de barplot o boxplot para determinar y localizar si la variable es confusa o incoherente, teniendo en cuenta la pregunta planteada, debido a la segregación generada en la misma debido a factores tales como la pertenencia a un determinado ciclo y/o la de ser independiente o no   
+
+Posterior a todo ello se podria afirmar que la base de datos quedó "limpia" debido a que se pudo realizar un analisis objetivizado y sistematico en R el cual funcionó correctamente sin ningún problema de datos errados.
+
+
+
+```{r, echo=FALSE}
+names(data0)
+```
+La Marca temporal no tiene relevancia en este estudio, por ello se procede a eliminar la variable
+```{r, echo=FALSE}
+data0<- select(data0, -"Marca temporal",-"...36",-"...37",-"...38",-"...39",-"...40",-"...41")
+names(data0)
+```
+```{r, echo=FALSE}
+cat('Tenemos', nrow(data0), 'observaciones y', ncol(data0), 'variables de la base de datos.')
+```
+
+Ahora, se realiza la observación de casos incompletos.
+```{r, echo=FALSE}
+
+nrow(data0) - sum(complete.cases(data0))
+```
+
+Se hace una observacion de los datos debido a que 76 de los datos totales estan incompletos
+```{r, echo=FALSE}
+View(data0)
+```
+De lo anterior se vio que las personas que no se independizaron no se les permitió responder algunas de las preguntas del cuestionario, porque a criterio del grupo no serian relevantes, debido a que su respuesta seria perjudicial en la data, puesto que se pretende segregar la base de datos por distintas variables.  
+Para confirmar esto recurriremos al siguiente gráfico para ver que tenemos una importante cantidad de personas que no viven de manera independiente
+
+```{r, echo=FALSE}
+Table1 = table(data0$Independiente)
+barplot(table(data0$Ciclo,data0$Independiente),main="INDEPENDENCIA FAMILIAR ENTRE LOS ESTUDIANTES UTEC",ylab ="Numero de personas" ,beside=TRUE,legend.text=TRUE,col=rainbow(20))
+```
+
+La gráfica demuestra que efectivamente hay una cantidad importante de personas que están entre las que no son independientes o pertenecen al ciclo I académico, este suceso se esperaba en nuestra base de datos, por lo cual realizamos nuestro plan de criterios de eliminación de datos.   
+
+Cabe resaltar que después de analizar esta gráfica, concluimos que nuestra muestra no es representativa, puesto que faltan unidades muestrales que representen a estudiantes que no son independientes de algunos ciclos. Además para el caso de estudiantes independientes los estudiantes de tercer ciclo son más numerosos, esto debido a que los integrantes en un principio recabaron información por medio de conexiones próximas a sí mismas y dado que el curso se lleva antes del quinto ciclo no es nada raro ver ese comportamiento.
+
+## Descriptores Númericos
+
+Según el resultado nuestras 207 encuestas son correctas. Sin embargo, no todos los datos son completos debido a que para este estudio se aplicaron restricciones frente a algunas preguntas a un grupo de estudiantes, tales como los no independientes y los estudiantes de primer ciclo.
+- funciones a usar:
+```{r}
+cv <- function(x, ...){
+  return((sd(x, ...)/mean(x, ...))*100)
+}
+```
+```{r}
+r <- function(x){
+    return(round(x,digits = 2)) #funcion para redondear a 2 decimales
+}
+```
+```{r}
+mode <- function(x) {
+   return(as.numeric(names(which.max(table(x)))))
+}
+```
+
+
+Determinamos si las variables tienen datos atípicos, con el fin de poder identificar las variables a las cuales podemos calcular sus descriptores numéricos y si cumplen condiciones, ya que en las gráficas de caja el símbolo * o ° identifica los valores atípicos. Estos valores atípicos son observaciones que están a por lo menos 1.5 veces el rango intercuartil (Q3 – Q1) del borde de la caja. en los cuales no sera viable calcular todos sus descriptores numéricos, por ello se hará un análisis interpretativo de las gráficas antes de calcular sus descriptores numéricos.
+
+--> *Edad* 
+ 
+```{r}
+boxplot(data0$Edad, 
+        main = "Edad",
+        boxwex = 0.7,col="green")
+```
+No presenta datos atipicos  
+*Descriptores de la variable edad:*
+```{r, echo=FALSE}
+cat('Moda:',mode(data0$Edad),'\n') # calcula la moda de la edad
+cat('Mediana:',r(median(data0$Edad)),'\n') # calcula la mediana de la edad
+
+cat('Desviación Estándar:',r(sd(data0$Edad)),'\n') # calcula la desviación estándar de la edad
+
+cat('Rango:',r(range(data0$Edad)),'\n') # calcula el rango de la edad
+
+cat('Rango Intercuartílico:',r(IQR(data0$Edad)),'\n') # calcula el rango intercuartílico de la edad
+
+cat('Coeficiente de Variación:', r(cv(data0$Edad, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$Edad)),'\n') # varianza
+
+shapiro.test(data0$Edad)
+
+```
+Hay evidencia suficiente para decir que la muestra no proviene de una población con distribución normal.
+
+
+ --> *Estatura* 
+ 
+```{r}
+boxplot(data0$Estatura, 
+        main = "Estatura",
+        boxwex = 0.7,col="red")
+```
+No presenta datos atipicos  
+*Descriptores de la variable Estatura:*
+```{r, echo=FALSE}
+cat('Promedio:' ,r(mean(data0$Estatura)),'\n') # calcula el promedio de la Estatura
+cat('Mediana:',r(median(data0$Estatura)),'\n') # calcula la mediana de la Estatura
+
+cat('Desviación Estándar:',r(sd(data0$Estatura)),'\n') # calcula la desviación estándar de la Estatura
+
+cat('Rango:',r(range(data0$Estatura)),'\n') # calcula el rango de la Estatura
+
+cat('Rango Intercuartílico:',r(IQR(data0$Estatura)),'\n') # calcula el rango intercuartílico de la Estatura
+
+cat('Coeficiente de Variación:', r(cv(data0$Estatura, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$Estatura)),'\n') # varianza
+shapiro.test(data0$Estatura)
+```
+Hay evidencia suficiente para decir que la muestra no proviene de una población con distribución normal.
+ -->  *Peso* 
+ 
+```{r}
+boxplot(data0$Peso, 
+        main = "Peso",
+        boxwex = 0.7,col="yellow")
+```
+No presenta datos atipicos  
+*Descriptores de la variable Peso:*
+```{r, echo=FALSE}
+cat('Promedio:',r(mean(data0$Peso)),'\n')
+cat('Mediana:',r(median(data0$Peso)),'\n') #calcula la mediana del Peso
+
+cat('Desviación Estándar:',r(sd(data0$Peso)),'\n') #calcula la desviación estándar del Peso
+
+cat('Rango:',r(range(data0$Peso)),'\n') #calcula el rango del Peso
+
+cat('Rango Intercuartílico:',r(IQR(data0$Peso)),'\n') #calcula el rango intercuartílico de la variable Peso
+
+cat('Coeficiente de Variación:', r(cv(data0$Peso, na.rm = T)),'\n')
+
+cat('Varianza:', r(var(data0$Peso)),'\n') # varianza
+shapiro.test(data0$Peso)
+```
+ 
+ -->  *Promedio de nota del ciclo anterior* 
+En esta variable debemos tener cuidado, puesto que los estudiantes de 1er ciclo no tienen un promedio previo ni una nota acumulada a analizar con respecto a la UTEC
+```{r}
+prom1 <- data0
+nrow(prom1) - sum(complete.cases(prom1))
+prom1 <- na.omit(prom1) # eliminamos los N/A
+```
+identificamos los casos incompletos y los sacamos para obtener una nueva lista de datos de esta variable
+```{r}
+nrow(prom1) - sum(complete.cases(prom1)) # indica que tenemos casos incompletos
+prom2<-select(prom1,"Promedio")
+```
+ 
+```{r}
+
+boxplot(prom2$Promedio, 
+        main = "Promedio de Notas",
+        boxwex = 0.7,col="orange")
+```
+El grafico indica que no hay observaciones atipicas dentro de aquellos que no registran respuesta como "N/A" debido a la seleccion previa de la encuesta, por lo cual se va a seleccionar solo los datos que tengan una respuesta diferente de "N/A" para indentificar sus descriptores numericos  
+SI presenta datos atipicos  
+
+*Descriptores de la variable Promedio:*
+```{r, echo=FALSE}
+cat('Mediana:',r(median(prom2$Promedio)),'\n') # calcula la mediana de la Estatura
+
+cat('Desviación Estándar:',r(sd(prom2$Promedio)),'\n') # calcula la desviación estándar de la Estatura
+
+cat('Rango:',r(range(prom2$Promedio)),'\n') # calcula el rango de la Estatura
+
+cat('Rango Intercuartílico:',r(IQR(prom2$Promedio)),'\n') # calcula el rango intercuartílico de la Estatura
+
+cat('Coeficiente de Variación:', r(cv(prom2$Promedio, na.rm = T)),'\n') 
+cat('Varianza:', r(var(prom2$Promedio)),'\n') # varianza
+```
+
+
+ -->  *Promedio de notas acumulados de todos los ciclos* 
+ 
+En esta variable debemos tener cuidado, puesto que los estudiantes de 1er ciclo no tienen un promedio previo ni una nota acumulada a analizar con respecto a la UTEC, ademas los estudiantes de segundo deben ingresar el promedio acumulado igual al promedio del ciclo anterior, si esta condicion no se cumple, entonces esta variable se elimina por incoherencia entre sus datos. Esto debido a que representa a una importante cantidad de nuestra muestra
+
+```{r}
+muestra1 <- select(data0,"Promedio","Promedio_acumulado","Ciclo")
+nrow(muestra1) - sum(complete.cases(muestra1))
+muestra1 <- na.omit (muestra1) # eliminamos los N/A
+```
+identificamos los casos incompletos y los sacamos para obtener una nueva lista de datos de esta variable
+```{r}
+muestra <- muestra1[muestra1$Ciclo=="II",]
+muestra
+
+```
+En teoria si hacemos graficas de estas dos variables, deberian describir el mismo comportamiento en un boxplot, de no ser el caso se procedera a eliminar la variable de nuestra data principal 
+```{r}
+boxplot(muestra$Promedio,muestra$Promedio_acumulado, 
+        main = "Promedio",
+        boxwex = 0.7,col="violet")
+```
+Eliminamos el promedio acumulado por que es un dato que no coincide con promedio anterior
+```{r}
+data0<- select(data0, -"Promedio_acumulado")
+names(data0)
+```
+
+ -->  *Horas dedicadas a actividades extracurriculares en la semana* 
+```{r}
+boxplot(data0$Extra, 
+        main = "Horas dedicadas a Actividades extracurriculares",
+        boxwex = 0.7,col="green")
+```
+No presenta datos atipicos  
+*Descriptores de la variable Extra:*
+```{r, echo=FALSE}
+cat("Promedio:",r(mean(data0$Extra)),'\n')
+cat("Moda:",r(mode(data0$Extra)),'\n')
+cat('Mediana:',r(median(data0$Extra)),'\n') 
+
+cat('Desviación Estándar:',r(sd(data0$Extra)),'\n') 
+
+cat('Rango:',r(range(data0$Extra)),'\n') 
+
+cat('Rango Intercuartílico:',r(IQR(data0$Extra)),'\n') 
+
+cat('Coeficiente de Variación:', r(cv(data0$Extra, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$Extra)),'\n') 
+```
+
+ -->  *Dinero ahorrado a fin de mes* 
+```{r}
+boxplot(data0$din_ahorro, 
+        main = "Dinero ahorrado a fin de mes",
+        boxwex = 0.7,col="yellow")
+```
+Si presenta datos atipicos 
+*Descriptores de la variable din_ahorro:*
+```{r, echo=FALSE}
+cat("Moda:",r(mode(data0$din_ahorro)),'\n')
+cat('Mediana:',r(median(data0$din_ahorro)),'\n') 
+
+cat('Desviación Estándar:',r(sd(data0$din_ahorro)),'\n') 
+
+cat('Rango:',r(range(data0$din_ahorro)),'\n') 
+
+cat('Rango Intercuartílico:',r(IQR(data0$din_ahorro)),'\n') 
+
+cat('Coeficiente de Variación:', r(cv(data0$din_ahorro, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$din_ahorro)),'\n') 
+```
+
+ -->  *Cursos jalados a lo largo de sus carrera* 
+ Esta variable al igual que la variables de Promedio acumulado no esta disponible para los de primer ciclo asi como esta variable no es posible analizarla debido a que depende del ciclo en el que se encuentre. 
+```{r}
+data0<- select(data0, -"Cursos_jalados")
+names(data0)
+```
+
+ -->  *Edad de ingreso* 
+Esta variable debido a que nuestra muestra no es representativa no nos va a ayudar con el estudio que realizamos, por lo tanto se elimina
+```{r}
+data0<- select(data0, -"Edad_ingreso")
+names(data0)
+```
+
+
+ -->  *Cantidad de dinero gastado durante el mes* 
+```{r}
+boxplot(data0$din_gasto, 
+        main = "Cantidad de dinero gastado durante el mes",
+        boxwex = 0.7,col="gray")
+```
+No presenta datos atipicos  
+
+*Descriptores de la variable dinero gastado durante el mes:*
+```{r, echo=FALSE}
+cat('Media:',r(mean(data0$din_gasto)),'\n')
+cat("Moda:",r(mode(data0$din_gasto)),'\n')
+cat('Mediana:',r(median(data0$din_gasto)),'\n') 
+
+cat('Desviación Estándar:',r(sd(data0$din_gasto)),'\n') 
+
+cat('Rango:',r(range(data0$din_gasto)),'\n') 
+
+cat('Rango Intercuartílico:',r(IQR(data0$din_gasto)),'\n') 
+
+cat('Coeficiente de Variación:', r(cv(data0$din_gasto, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$din_gasto)),'\n') 
+```
+
+
+ -->  *Cantidad de horas que estudia durante el dia fuera de la horas de clases regulares* 
+```{r}
+boxplot(data0$Horas_est, 
+        main = "Horas dedicadas a estudiar",
+        boxwex = 0.7,col="yellow")
+```
+No presenta datos atipicos  
+*Descriptores de la variable horas que estudia durante el dia:*
+
+```{r, echo=FALSE}
+cat('Media:',r(mean(data0$Horas_est)),'\n')
+cat("Moda:",r(mode(data0$Horas_est)),'\n')
+cat('Mediana:',r(median(data0$Horas_est)),'\n') 
+
+cat('Desviación Estándar:',r(sd(data0$Horas_est)),'\n') 
+
+cat('Rango:',r(range(data0$Horas_est)),'\n') 
+
+cat('Rango Intercuartílico:',r(IQR(data0$Horas_est)),'\n') 
+
+cat('Coeficiente de Variación:', r(cv(data0$Horas_est, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$Horas_est)),'\n') 
+```
+
+ -->  *Cantidad de horas que duerme al dia regularmente*
+```{r}
+boxplot(data0$Horas_sue, 
+        main = "Cantidad de horas que duerme al dia regularmente",
+        boxwex = 0.7,col="maroon")
+```
+No presenta datos atipicos  
+*Descriptores de la variable Horas de sueño:*
+```{r, echo=FALSE}
+cat('Media:',r(mean(data0$Horas_sue)),'\n')
+cat("Moda:",r(mode(data0$Horas_sue)),'\n')
+cat('Mediana:',r(median(data0$Horas_sue)),'\n') 
+
+cat('Desviación Estándar:',r(sd(data0$Horas_sue)),'\n') 
+
+cat('Rango:',r(range(data0$Horas_sue)),'\n') 
+
+cat('Rango Intercuartílico:',r(IQR(data0$Horas_sue)),'\n') 
+
+cat('Coeficiente de Variación:', r(cv(data0$Horas_sue, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$Horas_sue)),'\n') 
+```
+
+ -->  *Cantidad de horas que usa a la semana para comunicarse con su familia*
+```{r}
+boxplot(data0$Horas_fam, 
+        main = "Cantidad de horas que usa a la semana para comunicarse con su familia",
+        boxwex = 0.7,col="navy")
+```
+No presenta datos atipicos  
+*Descriptores de la variable Horas para comunicarse con su familia:*
+```{r, echo=FALSE}
+cat('Media:',r(mean(data0$Horas_fam)),'\n')
+cat("Moda:",r(mode(data0$Horas_fam)),'\n')
+cat('Mediana:',r(median(data0$Horas_fam)),'\n') 
+
+cat('Desviación Estándar:',r(sd(data0$Horas_fam)),'\n') 
+
+cat('Rango:',r(range(data0$Horas_fam)),'\n') 
+
+cat('Rango Intercuartílico:',r(IQR(data0$Horas_fam)),'\n') 
+
+cat('Coeficiente de Variación:', r(cv(data0$Horas_fam, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$Horas_fam)),'\n') 
+```
+
+
+ -->  *Ingresos mensuales del estudiante*
+```{r}
+boxplot(data0$Ingreso, 
+        main = "Ingresos mensuales del estudiante",
+        boxwex = 0.7,col="maroon")
+```
+Si presenta datos atipicos  
+
+*Descriptores de la Ingresos mensuales del estudiante:*
+```{r, echo=FALSE}
+cat("Moda:",r(mode(data0$Ingreso)),'\n')
+cat('Mediana:',r(median(data0$Ingreso)),'\n') 
+
+cat('Desviación Estándar:',r(sd(data0$Ingreso)),'\n') 
+
+cat('Rango:',r(range(data0$Ingreso)),'\n') 
+
+cat('Rango Intercuartílico:',r(IQR(data0$Ingreso)),'\n') 
+
+cat('Coeficiente de Variación:', r(cv(data0$Ingreso, na.rm = T)),'\n') 
+cat('Varianza:', r(var(data0$Ingreso)),'\n') 
+```
+
+##  Descriptores Gráficos
+
+
+```{r}
+tabla_edad=table(data0$Edad)
+barplot(tabla_edad/nrow(data0),col = 'pink', main = "Distribución de la Edad de los encuestados", xlab = "Edad", ylab = "Frecuencia relativa")
+```
+
+En la gráfica se muestra la distribución de las personas encuestadas según su edad. Se encuestaron alumnos de 17 a 23 años aproximadamente. Se puede observar que la gráfica tiene un sesgo hacia la derecha por la cola larga en el lado derecho, y esto se confirma debido a que la mediana es menor que la media y por ello, se puede decir que la distribución es asimétrica. Interpretando la gráfica, nos podemos dar cuenta que hay una mayor cantidad de alumnos con 18 años y una minoría con 22 y 23 años. Considerando que la edad es una variable numérica discreta que va desde 0 hasta 98 aproximadamente y que nuestra muestra abarca de 17 a 23 se concluye que los datos son dispersos.
+
+
+```{r}
+tabla_Beca=table(data0$Beca)
+barplot(tabla_Beca/nrow(data0),las=2,main="Tipos de becas entre los encuestados los encuestados", col=rainbow(9), ylab = "Frecuencia relativa")
+```
+La variable Tipo de beca, denota que una proporcion amayor respecto al resto de estudiantes con beca 18
+
+```{r}
+tabla_Carrera=table(data0$Carrera)
+barplot(tabla_Carrera/nrow(data0),las=2,main="Carreras entre los encuestados", col=rainbow(12), ylab = "Frecuencia relativa")
+```
+La grafica muestra las carreras que estudian los encuestados
+
+```{r}
+tabla_Alim=table(data0$Alim_menor)
+barplot(tabla_Alim/nrow(data0),main="Alimento del dia que menos se consume durante el dia", col=rainbow(12), ylab = "Frecuencia relativa")
+```
+Denota que los estudiantes UTEC  ignoran con frecuencia el desayuno
+```{r}
+tabla_Independiente=table(data0$Independiente)
+barplot(tabla_Independiente/nrow(data0),las=2,main="Estudiantes independientes y no independientes", col=rainbow(12), ylab = "Frecuencia relativa")
+```
+En UTEC hay mas estudiantes independientes en relacion a los dependientes
+```{r}
+tabla_Org_estudiantil=table(data0$Org_est)
+barplot(tabla_Org_estudiantil/nrow(data0),las=2,main="Estudiantes que pertenecen a una organizacion estudiantil", col=rainbow(12), ylab = "Frecuencia relativa")
+```
+Denota que los estudiantes no son miembros de organizaciones estudiantiles en mayor proporcion
+```{r}
+tabla_Voluntariado=table(data0$Voluntariado)
+barplot(tabla_Voluntariado,las=2,main="Estudiantes que pertenecen a una organizacion de voluntariado", col=rainbow(12), ylab = "Numero de personas")
+```
+Denota que los estudiantes no son hacen voluntariado en mayor proporcion
+```{r}
+tabla_Procedencia=table(data0$Procedencia)
+barplot(tabla_Procedencia/nrow(data0),las=2,main="Procedencia de los estudiantes UTEC", col=rainbow(24), ylab = "Frecuencia relativa")
+```
+En mayor proporcion los estudiantes provienen del interior del pais
+```{r}
+tabla_Residencia=table(data0$Residencia)
+barplot(tabla_Residencia/nrow(data0),las=2,main="Residencia actual de los estudiantes UTEC", col=rainbow(24), ylab = "Frecuencia relativa")
+```
+Denota que en mayor proporcion hay estudiantes residiendo en Barranco, Chorillos y Surco
+```{r}
+tabla_Sexo=table(data0$Sexo)
+barplot(tabla_Sexo/nrow(data0),main="Sexo de los estudiantes UTEC", col=rainbow(24), ylab = "Frecuencia relativa")
+```
+Denota que la proporcion entre mujeres y varones en utec son similares
+```{r}
+tabla_Sociabilidad=table(data0$Expres_pub)
+barplot(tabla_Sociabilidad/nrow(data0),las=2,main="Capacidad para expresar su ideas y pensamientos con los demas", col=rainbow(24), ylab = "Frecuencia relativa")
+```
+Denota que los si son capaces de expresar sus ideas en mayor proporcion
+```{r}
+tabla_Amigos=table(data0$Amigos)
+barplot(tabla_Amigos/nrow(data0),las=2,main="Capacidad para conseguir amigos", col=rainbow(24), xlab= "(Muy malo - Muy bueno)", ylab = "Frecuencia relativa")
+```
+Denota que los estudiantes no son ni buenos ni malos consiguiendo amigos, esto contrasta con lo anterior
+```{r}
+tabla_Autoeval=table(data0$Autoeval)
+barplot(tabla_Autoeval/nrow(data0),las=2,main="Desenvolvimiento este ciclo", col=rainbow(24), xlab= "(Muy mal - Muy bien)", ylab = "Frecuencia relativa")
+```
+Denota que los estudiantes sienten que les va regular en el presente ciclo academico
+
+
+
+```{r}
+tabla_Ciclo=table(data0$Ciclo)
+barplot(tabla_Ciclo/nrow(data0),las=2,main="Ciclo en los que se encuentran los estudiantes UTEC", col=rainbow(24), ylab = "Frecuencia relativa")
+```
+En la gráfica se muestra la distribución de las personas encuestadas según el ciclo que están cursando. Se han encuestado alumnos del primer hasta el décimo ciclo Se puede observar que la gráfica tiene un sesgo hacia la derecha por la cola larga en el lado derecho, y esto se confirma debido a que la mediana es menor que la media y por ello, se puede decir que la distribución es asimétrica. Analizando la gráfica, apreciamos que hay más alumnos cursando en el 3er ciclo y la minoría se encuentra en el 1er ciclo.
+
+```{r}
+tabla_Alim_nut=table(data0$Alim_nut)
+barplot(tabla_Alim_nut/nrow(data0),las=2,main="Consumo de alimentos nutritivos", col=rainbow(24),xlab="(Nunca - Siempre)", ylab = "Frecuencia relativa")
+```
+
+
+```{r}
+tabla_Prob_Eco=table(data0$Prob_eco)
+barplot(tabla_Prob_Eco/nrow(data0),las=2,main="Contarle a tus familiares que atraviesas por problemas economicos", col=rainbow(24),xlab="(Nada probable - Muy probable)", ylab = "Frecuencia relativa")
+```
+
+```{r}
+tabla_Prob_emo=table(data0$Prob_emo)
+barplot(tabla_Prob_emo/nrow(data0),las=2,main="Contarle a tus familiares que atraviesas por problemas emocionales", col=rainbow(24),xlab="(Nada probable - Muy probable)", ylab = "Frecuencia relativa")
+```
+
+```{r}
+tabla_acad=table(data0$Prob_acad)
+barplot(tabla_acad/nrow(data0),las=2,main="Contarle a tus familiares que atraviesas por problemas academicos", col=rainbow(24),xlab="(Nada probable - Muy probable)", ylab = "Frecuencia relativa")
+```
+
+
+#### Asimismo dada la complejidad tras recabar informacion de nuestra base de datos decidimos eliminara tres variables cualitativas, estas son "causas", "motivos" y "gastos comunes"
+
+```{r}
+
+data0<- select(data0, -"Causas",-"Gastos",-"Motivo")
+names(data0)
+```
+
+Finalmente podemos afirmar que nuestra data esta limpia y cuenta con datos coherentes en todas variables
+
+
+### Analisis del IMC
+Analizaremos las siguientes variables Estatura y Peso dividiendo la dataframe en dos segun la variable independiente.
+
+Hipostesis: Considerames que la mayoria de Estudiates universitarios de UTEC que son independientes tienen indices de masa corporal con valores que indicarian que tenien delgades en su mayoria.
+
+```{r, echo=FALSE}
+DF<-split(data0,f = data0$Independiente)
+IMC<-(DF[[1]]$Peso/(DF[[1]]$Estatura/100)^2)
+hist(IMC, breaks=(min(IMC):(max(IMC) + 1)) - 0.5,xlab = "IMC",ylab = "Frecuencia relativa",main = "Histograma de personas no independientes",prob=T,col="orange")
+abline(v=median(IMC),col="Blue",lwd=2)
+abline(v=25,col="red",lwd=2)
+abline(v=18,col="Green",lwd=2)
+legend("topright", legend=c("Mediana","Obesidad","Delgadez"), col=c( "blue","Red", "Green"), lwd=2)
+IMC2<-(DF[[2]]$Peso/(DF[[2]]$Estatura/100)^2)
+hist(IMC2, breaks=(min(IMC2):(max(IMC2) + 1)) - 0.5,xlab = "IMC",ylab = "Frecuencia relativa",main = "Histograma del personas independientes",col="gray",probability = TRUE)
+abline(v=median(IMC2),col="blue",lwd=2)
+abline(v=25,col="red",lwd=2)
+abline(v=18,col="Green",lwd=2)
+legend("topright", legend=c("Mediana","Obesidad","Delgadez"), col=c( "blue","Red", "Green"), lwd=2)
+
+```
+```{r}
+shapiro.test(IMC)
+shapiro.test(IMC2)
+
+```
+Conclusiones: Segun los datos recopilados y los 2 histogramas mostrados podemos ver que no hay una diferencia notable entre los IMC de los estudiantes independientes como no independientes. sin embargo la distribucion es normal en el caso del IMC de los independientes, ya que si p-value<0.05 hay evidencia suficiente para decir que la muestra no proviene de una población con distribución normal.
+
+
+
+### Análisis de Alimento menos comun
+
+Analizaremos la variable de alimento menos consumido durante el dia con respecto a la independencia, la hipotesis es que los estudiantes de la INDEPENDIENTES son mas propensos a ignorar el desayuno a diferencia de los NO independientes
+```{r, echo=FALSE}
+TA0<-table(data0$Independiente,data0$Alim_menor)
+Colores<-{}
+Colores["Desayuno"]<-"lightblue"
+Colores["Almuerzo"]<-"gray"
+Colores["Cena"]<-"lightgreen"
+
+mosaicplot(TA0,col=Colores[dimnames(TA0)[[2]]],main="Tabla de Alimento menos comun",las = 2)
+```
+Conclusiones: No hay una diferencia significativa entre los estudiantes independientes y no independientes, puesto que en ambos casos hay tendencia a generalmente dejar de lado el desayuno, recomendamos hacer mayor investigacion sobre el tema ya que consigo pueden acarrear problemas de habitos alimenticios y problemas de salud como la gastritis
+
+### Analisis de BECA
+
+Analizamos la variable categorica nominal Beca diferenciando los datos entre independientes y no independientes, partiendo de la hipotesis que en Utec hay mas becados que no becados en relacion a cantidad, asi tambien la hipotesis de que hay mas cantidad de becados inpendientes que dependientes
+
+```{r, echo=FALSE}
+BECA<-table(data0$Independiente,data0$Beca)
+BECA
+barplot(BECA/nrow(data0),cex.names=0.7,las=2,ylab = "Frecuencia relativa",main = "Becas")
+legend("topright", legend=c("Independiente","No Independiente"), col=c( "Gray","Black"), lwd =10)
+
+```
+Conclusiones: Efectivamente las dos hipotesis son ciertas
+
+### Independencia y sexo
+partiendo de la hipotesis, en UTEC hay mas hombres independientes que mujeres independientes y ademas hay mas mujeres dependientes que hombres dependientes
+```{r, echo=FALSE}
+TS<-table(data0$Independiente, data0$Sexo)
+Colores<-{}
+Colores["Femenino"]<-"Pink"
+Colores["Masculino"]<-"Blue"
+mosaicplot(TS,col=Colores[dimnames(TS)[[2]]],main="Sexo e Independencia familiar")
+```
+
+
+### Carreras de los encuestados en relacion a la independencia familiar
+```{r, echo=FALSE}
+TC<-table(data0$Independiente,data0$Carrera)
+barplot(TC/nrow(data0),cex.names=0.7,las=2,ylab = "Frecuencia relativa",main = "Carreras de los encuestados")
+legend("topright", legend=c("Independiente","No Independiente"), col=c( "Gray","Black"), lwd =10)
+
+```
+
+### Independencia familiar y procedencia
+```{r, echo=FALSE}
+TP<-table(data0$Independiente,data0$Procedencia)
+barplot(TP/nrow(data0),cex.names=0.7,las=2,ylab = "Frecuencia relativa",main = "Procedencia")
+legend("topright", legend=c("Independiente","No Independiente"), col=c( "Gray","Black"), lwd =10)
+
+```
+En porporcion lo logico se hace evidente, puesto que es logico que los estudiantes de provincia vivan de manera independiente, esto por ejemplo podriamos corroborarlo con motivos de independencia. No obsteante esta variable fue dificil de manejar y fue eliminada
+
+### Residencia e Independencia
+```{r, echo=FALSE}
+TRe<-table(data0$Independiente,data0$Residencia)
+barplot(TRe/nrow(data0),cex.names=0.7,las=2,ylab = "Frecuencia relativa",main = "Residencia")
+legend("topright", legend=c("Independiente","No Independiente"), col=c( "Gray","Black"), lwd =10)
+```
+Podemos deducir a partir de los graficos que mientras mas cerca esten de la UTEC hay mayor proporcion de estudiantes que son Independientes
+
+### Horas de estudio e independencia
+```{r}
+boxplot(data0$Horas_est~data0$Independiente, col="lightblue", main="Boxplot Horas de estudio vs. independiente", ylab="Horas de estudio al día", xlab="independiente")
+```
+Los estudiantes en general invierten casi la misma cantidad de tiempo para estudiar.
+
+### Extras
+Debido a la cantidad de variables y el limitado numero de palabras a utilizar se ha obtado por presentar graficas de interpretacion grafica, los cuales consideramos que son importantes para analizar.
+
+```{r, echo=FALSE}
+TVO<-table(data0$Independiente,data0$Voluntariado)
+Colores<-{}
+Colores["Sí"]<-"RED"
+Colores["No"]<-"Blue"
+mosaicplot(TVO,col=Colores[dimnames(TVO)[[2]]],main="Tabla de Voluntariado",xlab = "Independiente",ylab = "Voluntariado")
+```
+
+
+```{r}
+boxplot(data0$Promedio~data0$Independiente, col="lightblue", main="Boxplot de promedio vs. independiente", ylab="Promedio", xlab="independiente")
+```
+
+```{r}
+boxplot(data0$Horas_fam~data0$Independiente, col="lightblue", main="Boxplot Horas de familia vs. independiente", ylab="Horas de familia a la semana", xlab="independiente")
+```
+```{r}
+boxplot(data0$Ingreso~data0$Independiente, col="lightblue", main="Boxplot Ingreso vs. independiente", ylab="Ingreso mensual", xlab="independiente")
+```
+Es logico debido a que la mayoria de nuestra muestra es de beca 18, por ende el ingreso es acertado
+```{r}
+boxplot(data0$din_gasto~data0$Independiente, col="lightblue", main="Boxplot Gasto vs. independiente", ylab="Gasto mensual", xlab="independiente")
+```
+```{r}
+boxplot(data0$din_ahorro~data0$Independiente, col="lightblue", main="Boxplot ahorrado vs. independiente", ylab="Ahorro mensual", xlab="independiente")
+```
+```{r}
+boxplot(data0$Extra~data0$Independiente, col="lightblue", main="Boxplot actividades extracurriculares vs. independencia", ylab="Horas extracurriculares", xlab="independiente")
+```
+
+```{r}
+boxplot(data0$Amigos~data0$Independiente, col="lightblue", main="Boxplot Faciliadad de hacer amigos vs. independiente", ylab="Amigos", xlab="independiente")
+TAM<-table(data0$Independiente,data0$Amigos)
+barplot(TAM/nrow(data0),ylab = "Frecuencia relativa",main = "Facilidad de hacer amigos")
+legend("topright", legend=c("Independiente","No Indpendiente"), col=c( "Gray","Black"), lwd =10)
+```
+```{r}
+boxplot(data0$Alim_nut~data0$Independiente, col="lightblue", main="Boxplot Alimentos nutritivos vs. independiente", ylab="Consumo de alimentos nutritivos", xlab="independiente")
+TAL<-table(data0$Independiente,data0$Alim_nut)
+barplot(TAL/nrow(data0),ylab = "Frecuencia relativa",main = "Consumo de alimentos nutritivos")
+legend("topright", legend=c("Independiente","No Indpendiente"), col=c( "Gray","Black"), lwd =10)
+```
+```{r}
+TPA<-table(data0$Independiente,data0$Prob_acad)
+Colores<-{}
+Colores["1"]<-"RED"
+Colores["2"]<-"Blue"
+Colores["3"]<-"Green"
+mosaicplot(TPA,col=Colores[dimnames(TPA)[[2]]],main="Tabla de Problemas Academicos",xlab = "Independiente",ylab = "Escala de likert")
+barplot(TPA/nrow(data0),ylab = "Frecuencia relativa",main = "Problemas academicos")
+legend("topright", legend=c("Independiente","No Indpendiente"), col=c( "Gray","Black"), lwd =10)
+```
+
+```{r}
+TPE<-table(data0$Independiente,data0$Prob_emo)
+Colores<-{}
+Colores["1"]<-"RED"
+Colores["2"]<-"Blue"
+Colores["3"]<-"Green"
+mosaicplot(TPE,col=Colores[dimnames(TPE)[[2]]],main="Tabla de Problemas emocionales",xlab = "Independiente",ylab = "Escala de likert")
+barplot(TPE/nrow(data0),ylab = "Frecuencia relativa",main = "Problemas Emocionales")
+legend("topright", legend=c("Independiente","No Indpendiente"), col=c( "Gray","Black"), lwd =10)
+```
+## Diagramas de dispersión
+```{r}
+cor(data0$Ingreso,data0$din_gasto)
+```
+
+```{r}
+plot(data0$Ingreso,data0$din_gasto)
+```
+El valor de la correlacion entre el dinero gastado y el ingreso, tiende a uno, el grafico muestra una correlacion debil pero directa
+```{r}
+cor(data0$Ingreso,data0$din_ahorro)
+```
+
+```{r}
+plot(data0$Ingreso,data0$din_ahorro)
+```
+El valor de la correlacion entre el dinero ahorrado y el ingreso, tiende a 0, el grafico muestra una incorrelacion
+
+```{r}
+plot(data0$Autoeval,data0$Horas_est)
+cor(data0$Autoeval,data0$Horas_est)
+```
+El valor de la correlacion entre las horas de estudio y la autoevaluacion, tiende a 0, el grafico muestra una incorrelacion, por lo que no estan relacionadas
+```{r}
+plot(DF[[2]]$Horas_fam,DF[[2]]$Promedio)
+cor(DF[[2]]$Horas_fam,DF[[2]]$Promedio,use="na.or.complete")
+```
+El valor de la correlacion entre el promedio y las horas de comunicacion familiar, tiende a 0, el grafico muestra una incorrelacion, por lo que no estan relacionadas
+```{r}
+plot(DF[[2]]$Ingreso,DF[[2]]$Promedio)
+cor(DF[[2]]$Ingreso,DF[[2]]$Promedio,use="na.or.complete")
+```
+El valor de la correlacion entre el promedio y el ingreso, tiende a 0, el grafico muestra una incorrelacion, por lo que no estan relacionadas
+
+
+
+
+## ANÁLISIS PROBABILÍSTICO
+
+### Tablas Cruzadas (Sexo según carrera que estudia)
+
+```{r}
+tabla1<-table(data0$Carrera,data0$Sexo)
+tabla1
+```
+
+### Calculando las proporciones de probabilidades
+```{r}
+prop.tabla1<-r(prop.table(tabla1))
+prop.tabla1
+```
+
+### Probabilidades
+
+```{r}
+#1 Probabilidad de que un estudiante sea Hombre y estudie Ingeniería Ambiental
+p1<-prop.tabla1["Ingeniería Ambiental","Masculino"]
+p1
+```
+
+```{r}
+#2 Probabilidad de que un estudiante sea Mujer y estudie Ingeniería Civil
+p2<-prop.tabla1["Ingeniería Civil","Femenino"]
+p2
+```
+
+```{r}
+#3 Probabilidad de que no estudie Ciencia de datos ni sea Hombre
+p3<-1-prop.tabla1["Ciencia de Datos","Masculino"]
+p3
+```
+
+```{r}
+#4 Probabilidad de que un estudiante sea hombre o estudie Ingeniería Mecánica
+p4<-sum(prop.tabla1[,"Masculino"])+sum(prop.tabla1["Ingeniería Mecánica",])-prop.tabla1["Ingeniería Mecánica","Masculino"]
+p4
+```
+
+```{r}
+#5 Probabilidad de que estudie Mecánica si se sabe que es mujer
+p5<-round(prop.tabla1["Ingeniería Mecánica","Femenino"]/sum(prop.tabla1[,"Femenino"]),2)
+p5
+```
+
+```{r}
+#6 Probabilidad que sea hombre si se sabe que estudia Bioingenieria
+p6<-round(prop.tabla1["Bioingeniería","Masculino"]/sum(prop.tabla1["Bioingeniería",]),2)
+p6
+```
+
+```{r}
+#7 Probabilidad de que estudie Administracion y negocios digitales 
+p7<-sum(prop.tabla1[1,])
+p7
+```
+
+```{r}
+#8 Probabilidad de que estudie alguna Ingeniería y sea hombre
+p8<-sum(prop.tabla1[2,2],prop.tabla1[5,2],prop.tabla1[6,2],prop.tabla1[7,2],prop.tabla1[8,2],prop.tabla1[9,2],prop.tabla1[10,2],prop.tabla1[11,2],prop.tabla1[12,2])
+p8
+```
+
+```{r}
+#9 Probabilidad de que no estudie Ingeniería y sea mujer
+p9<-1-p8
+p9
+```
+
+```{r}
+#10 Probabilidad de que estudie Ingeniería Mecánica o Ciencia de datos y ademas sea mujer
+p10<-sum(prop.tabla1["Ingeniería Mecánica",1],prop.tabla1["Ciencia de Datos",1])
+p10
+```
+
+```{r}
+#11 Probabilidad de que estudie Ingeniería Química o Ambiental si se sabe que es hombre
+p11<-round(sum(prop.tabla1["Ingeniería Química",2],prop.tabla1["Ingeniería Ambiental",2])/sum(prop.tabla1[,2]),2)
+p11
+```
+
+### Modelos Probabilisticos
+
+#### **DISTRIBUCIÓN BINOMIAL**
+
+##### Tablas Cruzadas (Sexo según la independencia)
+
+```{r}
+tabla2<-table(data0$Independiente,data0$Sexo)
+tabla2
+```
+
+### Calculando las proporciones de probabilidades
+```{r}
+prop.tabla2<-r(prop.table(tabla2))
+prop.tabla2
+```
+
+Una distribución binomial es una distribución que está asociada una probabilidad fija y un tamaño de muestra, el tamaño de muestra que consideraremos para este ejemplo es de 50, del total de nuestra población que es de 207. Tenemos que la probabilidad fija es de 0.64 porque esa es la proporción de estudiantes que son independientes.
+
+```{r}
+##Binomial; Supongamos que la variable "alumnos que son independientes se distribuye de forma Binomial"
+bi<-table(data0$Independiente)
+bi
+```
+
+```{r}
+bi2<-round(prop.table(table(data0$Independiente)),2)
+bi2
+```
+
+```{r}
+p<-0.64
+n<-50
+
+#Si tenemos una muestra aleatoria de 207 estudiantes. Hallar la probabilidad de que de los 207, 10 sean independientes.
+p1<-dbinom(10,n,p)
+p1
+```
+
+```{r}
+#Hallar la probabilidad de que menos de 25 sean independientes.
+p2<-pbinom(25,n,p,lower.tail=TRUE)
+p2
+```
+```{r}
+#Hallar la probabilidad de que más de 40 sean independientes.
+p3<-pbinom(40,n,p,lower.tail=FALSE)
+p3
+```
+
+```{r}
+plot(dbinom(0:50,n,p),type="h",xlab="X",ylab="P(X=x)",main="Funcion de Probabilidad B(50, 0.64)")
+```
+
+**DISTRIBUCIÓN HIPERGEOMÉTRICA**
+
+Una distribución Hipergeométrica se da cuando tenemos una población **n** en este caso la población es de 207 y en esta población existen subconjuntos o subpoblaciones con ciertas características, para este ejemplo tenemos que los estudiantes provienen de diferentes departamentos.
+
+Entonces, si de esos 207 yo tomo una muestra **n**, para este ejemplo consideraremos nuestra muestra de 66 estudiantes, cuál es la probabilidad de que de esos 66, por ejemplo 10 sean de Puno. De la misma forma, si deseamos saber la probabilidad de que de esos 66 como máximo 20 sean de Lima metropolitana o de la Provincia Constitucional del Callao y así sacamos más probabilidades con la hipergeométrica.
+
+```{r}
+##Hipergeométrica; tomemos la variable "Lugar de procedencia"
+H<-table(data0$Procedencia)
+H
+```
+
+###  Calculando las proporciones de probabilidades
+```{r}
+H2<-r(prop.table(H))
+H2
+```
+
+```{r}
+#Si tenemos una muestra aleatoria de 66 estudiantes
+n<-66
+k<-13 #Es la cantidad de estudiantes que provienen de Puno
+N<-sum(H) #Población
+```
+
+```{r}
+#Hallar la probabilidad de que 10 estudiantes provengan de Puno
+h1<-dhyper(10,n,N-n,k)
+h1
+```
+
+```{r}
+plot(dhyper(0:66,n,N-n,k),type = "b",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad H(207,66,13)")
+
+```
+
+```{r}
+#Hallar la probabilidad de que como máximo 20 estudiantes provengan de Lima Metropolitana o de la Provincia Constitucional del Callao
+k<-83 #Es la cantidad de estudiantes que provienen de Lima Metropolitana o de la Provincia Constitucional del Callao
+h2<-phyper(20,n,N-n,k)
+h2
+```
+
+```{r}
+plot(dhyper(0:66,n,N-n,k),type = "b",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad H(207,66,83)")
+
+```
+
+```{r}
+#Hallar la cantidad esperada de estudiantes que provengan de Arequipa.
+k<-5 #Es la cantidad de estudiantes que provienen de Arequipa
+
+e<-n*k/N
+e
+```
+
+**DISTRIBUCIÓN POISSON**
+
+Esta distribución de probabilidad se utiliza siempre con solo un parámetro que es el promedio o la taza en un intervalo de tiempo o con un intervalo de área o superficie. En este caso calcularemos el promedio de las horas que estudia un estudiante en un día, porque es la tasa que se estudia en un determinado intervalo de tiempo. En este caso el tiempo está dado por un día.
+El promedio de las horas que estudia un estudiante en un día es 4.49, ya con este parámetro podemos declarar las probabilidades.
+
+```{r}
+#Poisson: Supongamos que la tasa de horas de estudio de un estudiantes es de P por día
+
+P<-r(mean(data0$Horas_est))
+P
+```
+
+```{r}
+#Hallar la probabilidad de dedicar 3 horas de estudio al día
+p1<-dpois(3,P)
+p1
+```
+
+```{r}
+#Hallar la probabilidad de dedicar más de 4 horas de estudio en un día
+p2<-ppois(4,P,lower.tail = FALSE)
+p2
+```
+
+```{r}
+##Probabilidad de estudiar menos de 2 horas en 4 días
+L<-4*P
+p3<-ppois(1,L)
+p3
+```
+
+```{r}
+plot(dpois(0:24,P),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad P(4.49)")
+
+```
+
+**DISTRIBUCIÓN NORMAL**
+
+En esta distribución vamos a suponer que el promedio de las notas se distribuye de manera normal, porque para demostrar que está variable se distribuye de manera normal tenemos que hacer la prueba de Shapiro Wilk. Para este ejemplo consideraremos la nota promedio como 14.55 puntos y la desviación estándar como 1.73, ya con estos parámetros se podrá declarar las probabilidades de notas. Por ejemplo, la probabilidad de que un estudiante tenga menos de 11 puntos de promedio y así sucesivamente declaramos más probabilidades.
+
+
+```{r}
+#Normal: Supongamos que la nota promedio de los estudiantes se distribuyen de manera normal
+
+mu<-14.55
+sigma<-1.73
+```
+
+```{r}
+plot(dnorm(0:20,mu,sigma),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad N(14.55, 2.99)")
+```
+
+```{r}
+#Hallar la probabilidad de que un estudiante tenga menos de 11 puntos de promedio
+N1<-pnorm(11,mu,sigma)
+N1 
+```
+
+```{r}
+plot(dnorm(0:10,mu,sigma),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad N(14.55, 2.99)")
+```
+
+```{r}
+#Hallar la probabilidad de que un alumno tengas más de 15 puntos de promedio
+N2<-pnorm(15,mu,sigma,lower.tail = FALSE)
+N2
+```
+
+```{r}
+plot(dnorm(15:20,mu,sigma),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad N(14.55, 2.99)")
+```
+
+```{r}
+#Hallar la probabilidad de que tenga nota entre 12 y 18 puntos de promedio
+N3<-pnorm(18,mu,sigma)-pnorm(12,mu,sigma)
+N3
+```
+
+```{r}
+plot(dnorm(12:18,mu,sigma),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad N(14.55, 2.99)")
+```
+
+# Bibliografia
+
+[*Rodríguez Rodríguez, Daniel, & Guzmán Rosquete, Remedios. (2019). Rendimiento académico y factores sociofamiliares de riesgo. Variables personales que moderan su influencia. Perfiles educativos, 41(164), 118-134. https://doi.org/10.22201/iisue.24486167e.2019.164.58925* ](https://www.scielo.org.mx/scielo.php?script=sci_arttext&pid=S0185-26982019000200118)
+
+
+[*Martínez Chairez, G. I., Torres Díaz, M. J., & Ríos Cepeda, V. L. (2020). El contexto familiar y su vinculación con el rendimiento académico. IE Revista De Investigación Educativa De La REDIECH, 11, e657. https://doi.org/10.33010/ie_rie_rediech.v11i0.657*](https://www.redalyc.org/journal/5216/521662150008/html/)
+
+
+[*Reyes-González, Nicolás, Meneses-Báez, Alba L., & Díaz-Mujica, Alejandro. (2022). Planificación y gestión del tiempo académico de estudiantes universitarios. Formación universitaria, 15(1), 57-72. https://dx.doi.org/10.4067/S0718-50062022000100057*](https://www.scielo.cl/scielo.php?script=sci_arttext&pid=S0718-50062022000100057&lang=es)
+
