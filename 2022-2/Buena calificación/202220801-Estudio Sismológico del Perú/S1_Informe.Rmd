@@ -1,0 +1,783 @@
+---
+title: " *Estudio Sismológico del Perú*"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: TRUE
+    toc_float:
+      collapsed: FALSE
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+---
+
+# **INTRODUCCIÓN**
+
+## **Relevancia**
+
+  Este tema es relevante, dado que Perú es uno de los países con mayor actividad sísmica en el mundo,    
+  ubicándose entre dos placas tectónicas, la placa de Nazca y la placa Sudamericana . Para abarcar dicho    
+  tema, analizaremos las zonas con coordenadas Epicentro de los sismos. Las relaciones de Magnitud,  
+  Profundidad, fechas y también su evolución en el tiempo desde 1960.    
+```{r, echo=FALSE}
+#instalacion automatica
+# if(!require(readr)){install.packages('readr')}
+# if(!require(plyr)){install.packages('plyr')}
+# if(!require(dplyr)){install.packages('dplyr')}
+# if(!require(ggplot2)){install.packages('ggplot2')}
+# if(!require(readxl)){install.packages('readxl')}
+# if(!require(revealjs)){install.packages('revealjs')}
+# if(!require(plotrix)){install.packages('plotrix')}
+library(readr)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(revealjs)
+library(plotrix)
+```
+
+
+# **DATOS**
+ 
+## **Recolección de datos**
+
+Una de las partes más importantes de un estudio estadístico es la delimitación de la  
+población muestral ya que influirá de manera drástica los resultados posibles que se podrán  
+hallar durante la investigación. En nuestro caso, nosotros quisimos dirigir nuestro estudio  
+exclusivamente hacia un estudio acerca del catálogo sismico ocurrido en nuestro país entre los  
+años de 1960 al 2021.   
+
+Una vez que tenemos identificada a la población de dónde se hallará nuestra muestra representativa,
+realizamos el muestreo aleatorio simple delimitando aún más la población muestral.
+y fuimos seleccionando los tiempos al azar hasta llegar a la muestra requerida.
+
+Para el proceso de recolección de datos se emplearon diversos métodos y estrategias de  
+obtención de datos. Primero buscamos la data necesaria para nuestro tema considerando las variables  
+necesarias que nos ayudarán en nuestro estudio. Se verificó y limpió los datos de esta tabla, todo     
+esto con la intención de llegar a una muestra representativa que nos permita obtener conclusiones 
+precisas y válidas.  
+Por último la finalidad de nuestro estudio busca reducir daños materiales y evitar perdidas humanas  
+con un plan "Anti sismos" que tenga como finalidad la seguridad de la población peruana.
+
+Los datos fueron extraídos de la plataforma nacional de datos abiertos del Perú,  
+mas especificamente del [CATALOGO SISMICO 1960-2021 (IGP)](https://www.datosabiertos.gob.pe/dataset/catalogo-sismico-1960-2021-igp) 
+
+```{r,echo=FALSE}
+
+  DATA_S=read_excel("Catalogo1960_2021_.xlsx")
+ DATA_S
+```
+
+Ordenamiento de datos
+```{r}
+DATA_S1=DATA_S
+DATA_S1=DATA_S1[,-1]
+DATA_S1=DATA_S1[,-7]
+AÑO_UTC=as.numeric(trunc(DATA_S$FECHA_UTC/10000))
+DATA_S1=data.frame(DATA_S1,AÑO_UTC)
+#ordenando fecha
+MES_UTC=substr(as.character(DATA_S1$FECHA_UTC), start = 5, stop = 6) 
+DIA_UTC=substr(as.character(DATA_S1$FECHA_UTC), start = 7, stop = 8)
+DATA_S1=data.frame(DATA_S1,MES_UTC,DIA_UTC)
+DATA_S1=DATA_S1[,-1]
+#extrayendo hora
+HORA_UTC=substr(DATA_S1$HORA_UTC,start = 1,stop = 2)
+MINUTO_UTC=substr(DATA_S1$HORA_UTC,start = 3,stop = 4)
+SEGUNDO_UTC=substr(DATA_S1$HORA_UTC,start = 5,stop = 6)
+DATA_S1=DATA_S1[,-1]
+DATA_S1=data.frame(DATA_S1,HORA_UTC,MINUTO_UTC,SEGUNDO_UTC)
+#datos totalmete ordenados
+ DATOS_SISMOLOGICOS=DATA_S1
+```
+
+
+## **Población, muestra y muestreo**
+
+Ahora presentaremos los datos de población, muestra y muestreo:
+
+La población toma todos los registros sismológicos ocurridos desde 1960 hasta el 2021:
+```{r}
+DATOS_SISMOLOGICOS
+```
+
+```{r}
+dim(DATOS_SISMOLOGICOS)
+```
+Las dimensiones de la población es de:
+- 22712 filas u observaciones
+- 10 columnas o variables
+
+Nuestra muestra toma 2000 de todos los sismos ocurridos, de forma aleatoria:
+```{r}
+m<-DATOS_SISMOLOGICOS[sample(nrow(DATOS_SISMOLOGICOS), 2000), ]
+#Asimismo, cambiamos de nombre a las variables para poder tener un mejor orden y lo asignamos como Muestra.
+Muestra<-rename(m,Latitud=LATITUD,Longitud=LONGITUD, Profundidad=PROFUNDIDAD,Magnitud=MAGNITUD,Año=AÑO_UTC,Mes=MES_UTC,Día=DIA_UTC,Hora=HORA_UTC,Minuto=MINUTO_UTC,Segundo=SEGUNDO_UTC)
+#como hicimos esto varias veces para evitar muestra variable exportamos de un csv
+Muestra=read_csv("Muestra.csv")
+```
+Ahora observamos como se vería la muestra para el trabajo:
+```{r}
+Muestra
+```
+
+Las dimensiones de la muestra son:
+```{r}
+dim(Muestra)
+```
+La función **dim()** me indica que:
+- La muestra presenta *2000* filas u observaciones.
+- La muestra presenta *10* columnas o variables.
+
+Ahora, hay que analizar la categoría de cada variable:
+```{r}
+glimpse(Muestra)
+```
+Con la función **glimpse()** puedo corroborar que mis variables estén correctamente definidas en RStudio.
+
+El tipo de muestreo que hemos realizado es un *muestreo proababilístico *, dado que estamos tomando todos los valores, sin excepción. Asimismo este arreglo está ordenado.
+
+
+## **Variables**
+
+| Nombre  | tipo  | Descripción| Restricción |  
+|:--------------|:-------|:---------------|:------------------|  
+|***Latitud***|Cuantitativa continua|*Distancia en grados, minutos y segundos que hay con respecto al paralelo principal, ecuador (0º)*     |*Según las configuración de las medidas de coordenadas su valor debe ser mayor a -90°,latitud Sur; y menor a 90° ,latitud Norte. -90<LATITUD<90* |    
+|***Longitud***|Cuantitativa continua|*Distancia en grados, minutos y segundos que hay con respecto al meridiano principal*        |*Al igual que el anterior su valor debe ser mayor a -90°,longitud Oeste; y menor a 90° ,longitud Este. -90<LONGITUD<90 *|  
+|***Profundidad***|Cuantitativa continua|*Profundidad del foco sísmisco por debajo de la superficie en Km*        |*La profundidad debe ser mayor a 0 pero menor al radio de la tierra ,0Km<PROFUNDIDAD<6,370Km *|  
+|***Magnitud***| Cuantitativa continua|*cantidad de energía liberada por el sismo, expresada en la escala de magnitud momento Mw*    |*La magnitud del sismo debe ser mayor a , 0<MAGNITUD *|  
+|***Año***| Cuantitativa discreta|*Año universal coordinado*|*Para nuestra base de datos los años estan en el rango de, 1960<=AÑO_UTC<=2021*|  
+|***Mes***| cualitativa ordinal  |*Mes universal coordinado*|*Número de mes entre 1 y 12 *|   
+|***Día***|cualitativa ordinal |*Día universal coordinado*|*día del respectivo mes, entre 1 y 31*|  
+|***Hora***|cualitativa ordinal|*Hora universal coordinada (UTC), Es la fecha con cinco horas adelantadas con respecto a la hora local*|*Hora del dia UTC respectivo, entre 0 y 23 horas*|  
+|***Minuto***|cualitativa ordinal|*Minuto de Hora universal coordinada*|*Entre 0 y 59 minutos*| 
+|***Segundo***|cualitativa ordinal|*Segundo del minuto de Hora universal coordinada *|*Entre 0 y 59 segundos*|  
+  
+## **Limpieza de base de datos**
+
+A continuación, realizaremos el proceso de observación con valores imposibles para la base de datos. De este modo podremos identificar los *datos erróneos*:
+
+```{r}
+#primero vemos si hay datos vacios
+sum(is.na(DATOS_SISMOLOGICOS))
+#segun el resultado los datos estan completos.
+```
+
+
+```{r}
+#Ahora analizaremos el caso de la latitud. En este caso, la zona en la que se ubica Perú es debajo de la línea ecuatorial, es decir, el valor debe ser menor que los 0° y mayor que los -90°.
+min(Muestra$Latitud)
+max(Muestra$Longitud)
+#El resultado  me indica que no hay ningún valor que sobrepase este rango.
+```
+
+```{r}
+#A continuación comprobaremos si los datos funcionan correctamente
+#Primero analizaremos la longitud en Perú, que se encuentra al este del Meridiano de Grenwich,por lo que todos los valores deben ser menores de 0°(este valor debe ser como máximo 0°y como mínimo -90°)
+FiltroLongitud<-filter(Muestra,Muestra$Longitud< -90|Muestra$Longitud>0)
+FiltroLongitud
+#El resultado es un conjunto de datos vacío, esto quiere decir que está bien hecha la recolección de datos
+```
+
+```{r}
+#Para el caso de la profundidad(profundidad focal), para este valor se tiene un rango de 0 a 700 km. Este rango es amplio, debido a que al momento de analizar la profundidad de un movimiento sísmico, el valor puede oscilar mucho y se le atribuye una categoría por cada intervalo.
+FiltroProfundidad<-filter(Muestra,Muestra$Profundidad<0|Muestra$Profundidad>6370)
+FiltroProfundidad
+
+summary(Muestra$Profundidad)
+```
+
+```{r}
+#Para el caso de la magnitud(magnitud de momento), debemos saber que esta mide la energía liberada por el sismo y se expresa en MW
+summary(Muestra$Magnitud)
+#Podemos observar la magnitud mínima  y la máxima . Asimismo, podemos notar una leve tendencia hacia el lado derecho.
+```
+
+Ahora realizaremos el proceso de filtrado para la fecha: en este caso, lo analizaremos para año,mes,día, hora,minuto y segundo:
+```{r}
+#Empezamos comparanado el año de la base de datos recolectada(esta va desde 1960 hasta el 2021)
+
+summary(Muestra$Año)
+```
+
+
+```{r}
+#Seguimos con el filtrado del mes(estos valores deben ser mayores a 0 y menores a 12, tomando este último como diciembre)
+
+FiltradoMes<-filter(Muestra,as.numeric(Muestra$Mes)==0|as.numeric(Muestra$Mes)>12)
+FiltradoMes
+```
+
+
+```{r}
+#Procedemos a revisar que los días en los que ocurrieron sismos se encuentren en los intervalos de un mese real(por lo que no puede tomar ningún valor igual o menor a 0 o mayor a 31, el mayor número en el calendario juliano)
+FiltradoDía<-filter(Muestra,as.numeric(Muestra$Día)<=0|as.numeric(Muestra$Día)>31)
+FiltradoDía
+```
+
+
+```{r}
+#Ahora veremos el caso para las horas, yendo desde 0 a 23(se toma hasta el 23, debido a que la hora empieza de 0 al ser medianoche)
+FiltradoHora<-filter(Muestra,as.numeric(Muestra$Hora)<0|as.numeric(Muestra$Hora)>23)
+FiltradoHora
+```
+
+
+```{r}
+#En el caso de analizar los minutos, notamos que como el caso anterior, se reinicia el valor a 0 cuando se cumple el ciclo de una hora 
+FiltradoMinuto<-filter(Muestra,as.numeric(Muestra$Minuto)<0|as.numeric(Muestra$Minuto)>59)
+FiltradoMinuto
+```
+
+
+```{r}
+#Lo mismo ocurrirá para el caso de los segundos, se reiniciará a 0 al momento de completar un minuto.
+FiltradoSegundo<-filter(Muestra,as.numeric(Muestra$Segundo)<0|as.numeric(Muestra$Segundo)>59)
+FiltradoSegundo
+#El resultado, me indica que no hay ninguna observación que cumpla con estos parametros, lo que indica nuevamente que el día está dentro del rango.
+```
+
+
+
+# **ANÁLISIS DESCRIPTIVO**
+
+## **Descripción y relación de variables**
+
+
+```{r ,echo=FALSE}
+varianza_Magnitud=var(Muestra$Magnitud)#datos no dispersos
+boxplot(Muestra$Magnitud, col="yellow", horizontal = TRUE , main ="Diagrama de caja Magnitud (Mw)",xlab=c("Varianza",varianza_Magnitud))
+```
+
+
+```{r ,echo=FALSE}
+summary(Muestra$Magnitud)
+
+```
+Se puede observar la magnitud mínima, primer cuartil, mediana, media, tercer cuartil y máximo(Mw).  
+Podemos observas que la varianza es un numero pequeño, esto debido a que los datos de la variable magnitud no están dispersos. así como también se tiene los cálculos del mínimo, máximo, media y mediana.
+
+```{r,echo=FALSE}
+varianza_profundidad=var(Muestra$Profundidad)# datos dispersos
+boxplot(Muestra$Profundidad,col="brown",horizontal = TRUE,main="diagrama de caja Profundidad (Km)",xlab=c("Varianza",varianza_profundidad))
+varianza_profundidad=var(Muestra$Profundidad)# datos dispersos
+```
+
+
+```{r,echo=FALSE}
+summary(Muestra$Profundidad)
+```
+Se puede observar la profundidad mínima, primer cuartil, mediana, media, tercer cuartil y máximo en Km.
+
+Al ver la varianza de la variable Profundidad, se concluye que tiene datos muy dispersos. y por el diagrama de cajas podemos ver que esta sesgada a la derecha 
+así como sus valores mínimo, máximo, mediana, media y cuantiares principales.
+
+```{r,echo=FALSE}
+plot(Muestra$Magnitud~Muestra$Profundidad,ylab = "Magnitud (Mw)",xlab="Profundidad (Km)",col="brown",main="Magnitud vs Profundidad")
+print(c("Correlacion=",cor(Muestra$Magnitud,Muestra$Profundidad)))
+```
+
+La relación de Magnitud vs Profundidad, aquí no sigue ninguna tendencia, sin embargo,  
+algo inusual ocurre a la profundidad de mas o menos 300 a 470, pues casi no hay sismos.    
+aquí tenemos un descubrimiento relevante, para el estudio del subsuelo.
+
+```{r,echo=FALSE}
+hi<-hist(DATOS_SISMOLOGICOS$MAGNITUD,col="green",main="Frecuencia de Magnitud de sismos",ylab = "Frecuencia",xlab = "Magnitud (Mw)",border= "red" )
+text(hi$mids,hi$counts,labels=hi$counts, adj=c(0.5, -0.5), cex=.5)
+```
+
+Aquí se considero la frecuencia de magnitud para todo el intervalo de tiempo de 1960 a 2021.  
+y se puede observar que la gran mayoría de sismos ocurridos fue de 4.5<magnitud <5 superando  
+los 11000, y podemos notar un sesgo a derecha  
+
+```{r,echo=FALSE}
+hi2<-hist(DATOS_SISMOLOGICOS$PROFUNDIDAD,col="green",main="Frecuencia de Profundidad de sismos",ylab = "Frecuencia",xlab = "Profundidad (Km)")
+text(hi2$mids,hi2$counts,labels=hi2$counts, adj=c(0.5, -0.5), cex=.5)
+```
+
+La profundidad mas común de los sismos captados en 1960 a 2021 es de 0<profundidad<50.   
+por el histograma los datos están sesgados a la derecha.
+
+```{r,echo=FALSE}
+hi<-hist(DATOS_SISMOLOGICOS$AÑO_UTC,col="green",main="Cantidad de sismos captados por año",ylab = "Frecuencia",xlab = "Años")
+text(hi$mids,hi$counts,labels=hi$counts, adj=c(0.5, -0.5), cex=.5)
+
+```
+
+La mayor cantidad de sismos ocurridos(captados) en Perú fue en los años 2011, 2013,  
+2014. registrándose 1022, 991 y 1025 cantidad de sismos respectivamente. 
+
+## **Tendencias**
+```{r ,echo=FALSE}
+
+Coordenadas=data.frame("X"=Muestra$Longitud,"Y"=Muestra$Latitud,"Ye"=-92.616  -1.072*Muestra$Latitud)
+rectaE=lm(Coordenadas$Y~Coordenadas$X,data=Coordenadas)
+```
+```{r ,echo=FALSE}
+plot(Coordenadas$Y~Coordenadas$X, col = c("red"),main="Coordenadas de sismos ocurridos en Perú(1960-2021)",xlab="Longitud°",ylab="Latitud°")
+abline(rectaE)
+```
+
+```{r ,echo=FALSE}
+summary(rectaE)
+cor.test(Coordenadas$X,Coordenadas$Y)
+```
+
+Se puede observar una tendencia que sigue la figura del mapa del Perú y que hay mas aglomeración de puntos en la zona de costa. 
+Como 2e-16 *** menor que 5%(coeficiente de significancia) lo que quiere decir que la relacion es buena.
+Recta de mejor ajuste: $y=-92.616  -1.072x$
+Al estudiar las variables Longitud y latitud. se puede notar que tiene una tendencia de pendiente negativa. Así al realizar  
+la correlaciones de estas nos da -0.7584, La relación es decreciente. Ademas tenemos que para esta región de la tierra en la  
+ubicación del sismo, La latitud decrece 1.072 grados por cada grado de longitud que queremos pronosticar.  
+
+
+
+```{r,echo=FALSE}
+S_año3Ultimos=filter(DATOS_SISMOLOGICOS,AÑO_UTC %in% c(2019,2020,2021))
+tab1=table(S_año3Ultimos$AÑO_UTC,S_año3Ultimos$MES_UTC)
+barplot(tab1,legend.text = c("2019","2020","2021"),col = c("darkgrey", "darkblue", "red"),main="Gráfico apilado de sismos ocurridos cada mes, los ultimos 3 años")
+tab1
+```
+
+Según la cantidad de sismos ocurridos por mes los últimos tres años, la mayor cantidad de estos     
+fue el mes Mayo para 2019, registrando  77 sismos; así para el mismo mes del año 2020, se tiene  
+99 sismos; y para Octubre del 2021 se cuenta con 87 sismos.  
+
+```{r,echo=FALSE}
+Intervalo_de_años=DATOS_SISMOLOGICOS$AÑO_UTC
+Cantidad_sismos=c()
+for(i in 1960:2021){
+  cantidad=0
+for(j in Intervalo_de_años){
+  if(i==j){
+    cantidad=cantidad+1
+  }
+  
+}
+  Cantidad_sismos=c(Cantidad_sismos,cantidad)
+}
+ListaAños=unique(Intervalo_de_años)
+RectaS=lm(Cantidad_sismos~ListaAños)
+plot(Cantidad_sismos~ListaAños,main="Cantidad de sismos captados vs tiempo en años",ylab="Cantidad de sismos",xlab="Tiempo en años",col="blue")
+abline(RectaS,col="red")
+```
+```{r}
+RectaS
+summary(RectaS)
+cor.test(ListaAños,Cantidad_sismos)
+```
+
+Cada año se detectan mas cantidad de sismos en la zona del Perú.
+La recta de mejor ajuste es $y=-26414.18+13.45x $,  
+la correlación es de 0.8395 y es creciente. La cantidad de sismos captados crece 13.45 cada año.        
+el R_cuadrado ajustado es 0.6999. lo que quiere decir que la recta representa el 69.99% de los     
+datos que tenemos. La relación es buena, porque el valor de 2e-16 es menor que 5%(coeficiente des ignificancia).
+
+
+
+El siguiente codigo se encarga de extraer el promedio de sismos por mes para un determinado año  
+```{r}
+promS_M= function(X){
+DATOS_SISMOLOGICOS1=filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$AÑO_UTC==X)
+
+sismosPorMes=c()
+meses=c("01","02","03","04","05","06","07","08","09","10","11","12")
+Año_especifico=DATOS_SISMOLOGICOS1
+for(j in meses){
+  cantidad=nrow(filter(Año_especifico,Año_especifico$MES_UTC==j))
+  sismosPorMes=c(sismosPorMes,cantidad)}
+
+PromedioSismosPmes=mean(sismosPorMes)
+return(PromedioSismosPmes)}
+
+PromedioAorPmes=c()
+ListaAños=unique(Intervalo_de_años)
+for(i in ListaAños){
+  PromedioAorPmes=c(PromedioAorPmes,promS_M(i))
+} 
+
+```
+
+```{r}
+
+RectaS=lm(PromedioAorPmes~ListaAños)
+plot(PromedioAorPmes~ListaAños,main="Cantidad promedio de sismos captados por mes vs tiempo en años",ylab="Cantidad promedio de sismos por mes",xlab="Tiempo en años",col="red")
+abline(RectaS,col="blue")
+```
+
+Se puede observar que la cantidad promedio de sismos por mes tiende a aumentar mientras mas transcurren  
+los años desde 1960.
+
+
+
+## **Gráficos adicionales**  
+
+ Otras graficas que no representan alguna tendencia pero resulta interesante analizar son
+```{r,echo=FALSE}
+plot(Muestra$Profundidad~Muestra$Año,main="Profundidad vs tiempo en años",ylab = "Profundidad (Km)",xlab="Tiempo en años")
+```
+```{r,echo=FALSE}
+plot(Muestra$Magnitud~Muestra$Año,main="Magnitud vs tiempo",ylab="Magnitud (Mw)",xlab="Tiempo en años")
+
+```
+
+
+En esta gráfica aunque no parezca puede verse avance tecnológico. por ejemplo,   
+para el año 2020 en adelante, se pudieron captar sismos de pequeña magnitud en     
+comparación con otros años. y de la gráfica anterior no fue hasta 1990 aproximadamente  
+es que se captaron más sismos de una profundidad mayor a 500.  
+
+
+# **ANÁLISIS PROBABILÍSTICO**
+
+
+
+## **Probabilidad condicional**
+
+**Problema 1:**  
+
+
+**Sabiendo que sucedio un sismo a las 6pm, cual es probabilidad de que sea de magnitud mayor igual a 5.5Mw y menor que 6.7Mw; Ademas, que tenga una profundidad menor a 220Km?.**
+
+podemos calcular dicha probabilidad de la siguiente forma:  
+P(magnitud>=5.5 ^ magnitud<6.7 ^ profundidad<220/ocurrió 6pm)=p(magnitud>=5.5 ^ magnitud<6.7 ^ profundidad<220 ^ ocurrio 6pm)/p(ocurrio 6pm).
+
+Para calcular esta probabilidad filtramos todos los sismo de nuestra base de datos con las condiciones  
+que plantteamos previamente.
+
+```{r}
+Pa=nrow(filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$MAGNITUD>=5.5,DATOS_SISMOLOGICOS$MAGNITUD<=6.7,DATOS_SISMOLOGICOS$PROFUNDIDAD<220,DATOS_SISMOLOGICOS$HORA_UTC==18))
+Pb=nrow(filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$HORA_UTC==18))
+Pa/Pb
+```
+Respuesta: La probabilidad de que un sismo sea de magnitud mayor igual a 5.5Mw y menor que 6.7Mw; Ademas, que tenga  
+una profundidad menor a 220Km; Sabiendo que sucedio un sismo a las 6pm es de 0.04927885.  
+
+**Problema 2:**  
+
+**Si ocurrió un sismo y sabiendo que este fue a una profundidad mayor a 50km y menor 150Km cual es la probabilidad**  
+**que el valor de su magnitud sea cercano a 5Mw, valor redondeado.**   
+
+P(magnitud>4.5 ^ magnitud<5.5/profundidad>50KM ^ profundidad<150)=p((magnitud>4.5 ^ magnitud<5.5) ^(profundidad>50KM ^ profundidad<150)/p(profundidad>50KM ^ profundidad<150)
+```{r}
+Magnitudes=round(DATOS_SISMOLOGICOS$MAGNITUD,0)
+summary(Magnitudes)
+table(round((DATOS_SISMOLOGICOS$PROFUNDIDAD)/100,0),Magnitudes)
+sum(table(Magnitudes,DATOS_SISMOLOGICOS$PROFUNDIDAD))
+```
+Las filas indican profundidad redondeada en valor de 10^5Metros y las columnas son las magnitudes. La
+tabla nos muestra la cantidad de sismos de una determinada magnitud a una determinada profundidad.
+ 
+sismos con profundidad>50KM y profundidad<150  
+ 4 + 2774 + 5381 + 413  + 23  + 4=8599  
+P(profundidad>50KM y profundidad<150)=8599/22712=0.3786104  
+ 
+Sismos con (magnitud>4.5 y magnitud<5.5) y (profundidad>50KM y profundidad<150)=5381  
+ 
+P((magnitud>4.5 y magnitud<5.5) y (profundidad>50KM y profundidad<150))= 5381/22712=0.2369232  
+
+P(magnitud>4.5 ^ magnitud<5.5/profundidad>50KM ^ profundidad<150)=0.2369232/0.3786104  
+
+```{r}
+nrow(filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$MAGNITUD>4.5 &DATOS_SISMOLOGICOS$MAGNITUD<5.5,DATOS_SISMOLOGICOS$PROFUNDIDAD>50 & DATOS_SISMOLOGICOS$PROFUNDIDAD<150))/nrow(filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$PROFUNDIDAD>50 & DATOS_SISMOLOGICOS$PROFUNDIDAD<150))
+
+```
+**Respuesta: la probabilidad que el valor de la magnitud  de un sismo sea cercana a 5Mw,valor redondeado,**  
+**sabiendo su profundidad es mayor a 50km y menor 150Km es de 0.6257704.**  
+
+## **Distribución Binomial**
+
+
+**Problema 1:**   
+Es posible calcular la probabilidad de que al ocurrir un sismo este sea de magnitud mayor o igual a 5.5.
+
+```{r,echo=FALSE}
+fre=data.frame(table(DATOS_SISMOLOGICOS$MAGNITUD)/22712)
+
+hi<-barplot(fre$Freq~fre$Var1,col="blue",main="Probabilidad de Magnitud de sismos",ylab = "Probabilidad",xlab = "Magnitud (Mw)",border= "red" )
+
+
+
+```
+
+Las Probabilidades de los valores redondeados nos dan la probabilidad de un intervalo.
+
+```{r}
+P_A_S_M_N=data.frame((table(round((DATOS_SISMOLOGICOS$MAGNITUD),0))/nrow(DATOS_SISMOLOGICOS)))
+(table(round((DATOS_SISMOLOGICOS$MAGNITUD),0))/nrow(DATOS_SISMOLOGICOS))
+```
+
+La probabilidad de éxito es igual que al ocurrir un sismo este sea al menos de magnitud 5.5Mw.
+Y solo tiene 2 posibles resultados. Falso o verdadero.
+0.049004931 + 0.002641775 + 0.000748503=
+```{r}
+
+p=nrow(filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$MAGNITUD>=5.5))/nrow(DATOS_SISMOLOGICOS)
+p
+```
+
+**¿Segun los datos recolectados cual es la probabilidad de que en los próximos 7 sismos 3 sean de magnitud mayor a 5.5Mw?**  
+
+Nuestra variable es X= cantidad de sismos mayor a 5.5Mw   
+
+```{r}
+dbinom(3,7,p)
+```
+
+**¿Cual es la probabilidad de que en los próximos 15 sismos al menos 9 sean de magnitud mayor a 5.5Mw?**
+```{r}
+pbinom(8,15,p,lower.tail = F)
+```
+
+Estas probabilidades funcionan para pronosticar las características de los sismos futuros, siempre y cuando
+Estos valores se encuentren dentro de los rangos de nuestra base de datos.  
+
+  
+```{r}
+plot(pbinom(0:23,50,p),col="blue",ylab = "Probabilidad", xlab = "Cantidad de sismos hasta x")
+```
+  
+En la gráfica de distribución binomial acumulada, Podemos observar como los valores van acercándose a 1.
+Esto debido a que se van sumando las probabilidades de cada valor para nuestra variable X.
+
+**Problema 2:**  
+
+Filtrado para hallar la probabilidad éxito:
+```{r}
+M3<-filter(Muestra,Muestra$Magnitud>6)
+M3
+```
+Si desde que se registraron los sismos ha ocurrido 22,712 movimientos telúricos(en 61 años); y si en ese transcurso han ocurrido 227 sismo de magnitud mayor a 6MW (considerado de máximo peligro), la probabilidad que al ocurrir un sismo , este sea de dicha magnitud es de 227/22712(p=227/22712)...
+
+Asumiendo que en el año 2022 ocurran 20 sismos, cuál es la probabilidad de que al menos 5 de estos sea considerado de máximo peligro
+
+```{r}
+pbinom(4,20,227/22712,lower.tail=F)
+plot(dbinom(0:100,20,227/22712), type = "l",col="red")
+lines(dbinom(0:5,20,227/22712),type="l",col="black")
+abline(v= 5, col = "green",lwd=2, lty=2)
+abline(v= 100, col = "green",lwd=2, lty=2)
+```
+
+**Problema 3:**  
+
+Asumiendo que en el año 2022 ocurran 20 sismos, cuál es la probabilidad de que al menos 5 de
+estos sea considerado de máximo peligro  
+
+```{r}
+pbinom(4,20,227/22712,lower.tail=F)
+plot(dbinom(0:100,20,227/22712), type = "l",col="blue")
+lines(dbinom(0:5,20,227/22712),type="l",col="gray")
+abline(v= 5, col = "red",lwd=2, lty=2)
+abline(v= 100, col = "red",lwd=2, lty=2)
+```
+
+
+## **Geométrica**
+
+**Problema 1:**
+
+**¿Cual es la probabilidad que después de suceder 4 sismos se presente uno de magnitud mayor a 6.7Mw.?** 
+
+
+La variable es X=Cantidad de sismos hasta captar el primero de magnitud mayor a 6.7Mw.
+para nuestro caso X=5.
+
+Nuestra probabilidad de éxito es que un sismo sea de MAGNITUD>6.7. 
+
+```{r}
+pm67=nrow(filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$MAGNITUD>6.7))/nrow(DATOS_SISMOLOGICOS)
+```
+Solucion: 
+```{r}
+dgeom(5-1,pm67)
+```
+**Resultado: La probabilidad de acontecer 4 sismos antes de captar uno de magnitud mayor a 6.7Mw es 0.002138892.**
+
+
+```{r}
+plot(dgeom(0:1000,pm67),col="green",ylab = "Probabilidad",xlab = "Cantidad de sismos")
+
+```
+
+La gráfica representa la probabilidad de ocurrir X sismos antes de que se tenga uno de magnitud mayor a 6.7Mw.        
+
+
+## **Binomial Negativa**
+
+**Cual es la probabilidad de que ocurran 20 sismos hasta que se capte el séptimo de Profundidad menor a 90Km?**
+
+
+para calcular dicha probabilidad identificamos nuestros parámetros:   
+
+dnbinom(K-r,r,P)  
+P es la probabilidad de que un sismo sea de profundidad menor a 90km.  
+```{r}
+fre12=data.frame(table(DATOS_SISMOLOGICOS$PROFUNDIDAD)/22712)
+
+hi2<-plot(fre12$Freq~fre12$Var1,col="red",main="Probabilidad de Profundidad de sismos",ylab = "Probabilidad de profundidad",xlab = "Profundidad (Km)",border= "blue" )
+
+```
+
+Nuestra probabilidad de éxito es que un sismo sea de Profundidad menor a 90Km
+```{r}
+Pm5=nrow(filter(DATOS_SISMOLOGICOS,DATOS_SISMOLOGICOS$PROFUNDIDAD<90))/nrow(DATOS_SISMOLOGICOS)
+Pm5
+```
+
+K es el numero de sismos hasta obtener el séptimo que tenga profundidad menor a 90km.  
+En seguida procedemos nuestros con los cálculos.  
+```{r}
+dnbinom(13,7,Pm5)
+```
+**Resultado: La probabilidad de que ocurran 20 sismos hasta captar el séptimo de profundidad**   
+**menor a 90 Km es 0.0003606565**  
+
+
+```{r}
+plot(dnbinom(0:24,7,Pm5),col="red",ylab = "Probabilidad",xlab = "Cantidad de sismos")
+
+```
+
+
+    
+La gráfica muestra la probabilidad de que ocurran X sismos con profundidad mayor igual 90Km antes que se capte  
+el séptimo que sea de profundidad menor a 90Km, X representa a las abscisas.  
+
+
+
+
+## **Hipergeometrica**
+
+
+Vamos a considerar que vamos a tomar una muestra de 2000 magnitudes sin reposición en el intervalo de los años 1960 – 2021 de la poblacion de 22 712 sismos registrados. Considerando un valor adecuado para el análisis. En este caso se plantea como caso de éxito el hecho de encontrar una magnitud mayor a 6. Ya que de acuerdo al IGP (Instituto Geofísico del Perú) este se considera un rango de alerta de roja. 
+
+La cantidad de magnitud mayor a 6 es 227 y las magnitudes restantes equivalen a 22 485 que a su vez representan las magnitudes menores a 6.  
+Entonces, el Modelo Hipergeométrico estaría representado de la siguiente manera:
+
+dhyper(x = x, m = m, n = (N - m), k = k)
+
+N = Cantidad de sismo registrados en el intervalo de los años 1960 – 2021, el cual equivale a 22 712.
+m = Cantidad de sismos que tienen una magnitud mayor a 6, el cual equivale a 227.
+n = Tamaño de la muestra -> 2000
+x = Variable que representa la cantidad máxima de sismos catalogados como alerta roja en nuestra muestra.
+
+dhyper(x = x, m = m, n = (N - m), k = k)
+
+**Ejemplo: Se desea extraer una cantidad de magnitudes para el análisis conveniente y estudio de sismos. Si deseamos obtener la probabilidad de que hasta 5 de las magnitudes sean catalogadas en el rango de alerta roja (Alerta roja > Mw = 6) en 2000 magnitudes se plantea lo siguiente:** 
+```{r}
+
+phyper(5, 227, 22485, 2000)
+```
+#Respuesta: 
+
+phyper(5, 227, 22485, 2000) representa  la probabilidad de obtener hasta 5 éxitos, las cuales deben de ser catalogadas en el rango de alerta roja (Alerta roja > Mw = 6) en una muestra de tamaño 2000 extraida sin reposición.De una población de 22 712 magnitudes registradas en las cuales 22485 no cumplen con ser catalogados como alerta roja. 
+
+```{r}
+x <- 0:50
+plot(dhyper(x, 227, 22485, 2000),
+     main = "Función de probabilidad Hypergeometrica",
+     ylab = "P(X = x)", xlab = "Número de éxitos en la muestra")
+```
+
+
+
+
+
+
+
+## **Poisson**  
+
+**Problema 1:**  
+Para poder hacer cálculos con la distribución de poison necesitamos, por ejemplo, el promedio  
+de sismos por mes en nuestra base de datos. que seria nuestra frecuencia de ocurrencia media,
+y con esto hacer cálculos de la probabilidad de que ocurra un determinado número de sismos durante un período
+de tiempo definido, en meses.
+
+El siguente código se encarga de extraer el promedio de sismos por mes.
+```{r}
+DATOS_SISMOLOGICOS1=DATOS_SISMOLOGICOS
+años=1960:2021
+sismosPorMes=c()
+meses=c("01","02","03","04","05","06","07","08","09","10","11","12")
+for(i in años){
+Año_especifico=filter(DATOS_SISMOLOGICOS1,DATOS_SISMOLOGICOS1$AÑO_UTC==i)
+  for(j in meses){
+  cantidad=nrow(filter(Año_especifico,Año_especifico$MES_UTC==j))
+  sismosPorMes=c(sismosPorMes,cantidad)}
+}
+PromedioSismosPmes=mean(sismosPorMes)
+
+```
+
+```{r}
+summary(sismosPorMes)
+```
+
+El promedio de sisimos por es es de 30.52688.
+
+Podemos calcular con la distribución de poison por ejemplo el siguiente enunciado.
+
+**Cual es la probabilidad que en 10 meses ocurran 303 sismos en la zona de Perú si se sabe que el promedio de sismos ocurridos en un mes es de 30.52688?**  
+
+K es el numero ocurrencias de sismos.  
+lambda es el numero de veces que se espera que ocurra.  
+lambda=(promedio de sismos por mes)*(cantidad de tiempo(meses))  
+
+dpois(k,lambda)  
+
+
+```{r}
+dpois(303,30.52688*10)
+```
+
+**Respuesta: la probabilidad que en 10 meses ocurran 303 sismos en la zona de Perú si se sabe que el promedio de sismos ocurridos en un** 
+**mes es de 30.52688 es de 0.02271949**    
+
+```{r}
+plot(dpois(0:600,10*PromedioSismosPmes),xlim=c(200,400),col="yellow",ylab = "Probabilidad",xlab="X")
+```
+
+La gráfica muestra la probabilidad que en 10 meses ocurran X sismos en la zona de Perú si se sabe que el promedio de sismos  
+ocurridos en un mes es de 30.52688. Siguiendo una distribuirnos de poison.  
+
+**problema 2:**  
+
+Seleccionamos todos los sucesos del año 2021
+```{r}
+M<-filter(Muestra,Muestra$Año==2021)
+M
+```
+A partir de los sismos ocurridos en 2021, hallamos la cantidad que hubo en ese año:
+```{r}
+dim(M)
+```
+Vemos que ocurrieron un total de 834 sismos en el año pasado; pero...¿y si ahora queremos saber cuántos sismos ocurrirán en los próximos años bajo el mismo comportamiento?
+¿Cuál es la probabilidad de que en los próximos dos años ocurra el doble de número de sismos por año?
+```{r}
+#Para saber esto, realizamos una distribución de Poisson, teniendo en cuenta que mi lambda será λ = 834*2*2 = 3336
+dpois(3336,1668)
+```
+La probabilidad de que dicho suceso ocurra es demasiado pequeña, dado que proyectar un número absurdo de sismos es algo que no ocurrirá. Ahora apliquemoslo a un caso real,¿cuál es la probabilidad de tener un número similar al obtenido en 2022? Si contamos con la siguiente información:
+
+Según un registro del IGP (Instituto Geofísico del Perú), en lo que va del año 2022 (11/11/2022), han ocurrido 711 sismos.
+```{r}
+# Si en el año pasado, se han reportado 834 sismos(365 días); y este año van 711 sismos(315 días),¿cuál es la probabilidad de que en 50 días ocurra 123 sismos?
+dpois(123,112.8571429)
+plot(dpois(1:200,112.8571429),main="Número posible de sismos en lo que queda del 2022",xlab="Número de sismos máximos a pasar",ylab="P(x)" ,type = "h")
+abline(v= 123, col = "red",lwd=2, lty=2)
+abline(h =0.02308845, col = "red",lwd=2, lty=2)
+grid()
+#En esta relación, tomamos que en promedio ocurren 2.2571 sismos por día, por lo que en mi caso hipotético, ocurrirían 112.8571 en lo que va del año (λ =112.8571429)
+```
+Por conclusión, la probabilidad de que este año ocurra el mismo número de sismos que el año pasado es de 0.023 o 2.3088%, lo cuál tiene sentido; teniendo en cuenta que la actividad sísmica fue menor este año, comparada con el del año pasado.
+
+
+
+***Este es el final, Gracias por todo:]*** 
+
+
+

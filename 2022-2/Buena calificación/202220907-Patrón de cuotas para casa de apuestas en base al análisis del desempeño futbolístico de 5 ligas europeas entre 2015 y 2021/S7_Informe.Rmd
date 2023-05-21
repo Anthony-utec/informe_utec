@@ -1,0 +1,1410 @@
+---
+title: 'Patrón de cuotas para casa de apuestas en base al análisis del desempeño futbolístico de 5 ligas europeas entre 2015 y 2021'
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+---
+
+
+# 1. Importancia
+<div style="text-align: justify">
+
+El fútbol es, dentro de la industria del deporte, posiblemente la más importante y más popular entre el público a nivel mundial. La información concerniente o relacionada a este ámbito es de suma importancia y valiosa, no solo para los equipos dentro de las ligas competitivas, sino también para agentes externos como lo son las casas de apuestas. Estos negocios, particularmente, basan su modelo financiero en análisis estadísticos para cada encuentro, de esta forma determinan la cuota que deben cobrar a sus jugadores y así no tener pérdidas. Para esta industria, el valor de la información analítica de los equipos de fútbol es bastante alta porque de eso depende el éxito de su negocio, deben conocer los factores, patrones y características que determinan el desempeño de un equipo y sus jugadores. El presente estudio analiza 5 ligas europeas para determinar el modelo de negocio que debe adaptar una casa de apuestas para lograr tener éxito. Para llegar a dicho análisis se tomarán los años dentro del rango 2015 a 2021 bajo las variables de goles, asistencias, disparos al arco, victorias de local y victorias de visitantes.
+
+
+## 1.1. Objetivos
+
+### 1.1.1. Objetivo principal:
++ Determinar el modelo de negocio para el éxito de una casa de apuestas en base al análisis del desempeño individual y colectivo de los equipos pertenecientes a cinco ligas europeas de fútbol entre el 2016 y 2020.
+
+
+### 1.1.2. Objetivos específicos:
+
++ Evaluar la evolución entorno a los goles anotados de cada liga
++ Comparar la frecuencia de disparos al arco y goles anotados de uno de los jugadores más determinantes de las 5 ligas entre el 2015 y 2021
++ Clasificar las ligas y su nivel de competitividad
++ Clasificar a los jugadores de todas las ligas según goles anotados
++ Clasificar los equipos de las 5 ligas en base a nivel ofensivo--------
++ Determinar los equipos con más victorias de locales y visitantes----------
++ Determinar la liga más ofensiva en la temporada 2015-------
++ Determinar la temporada con más goles generados---------
++ Determinar el equipo más representativos de cada liga respecto a los goles que anota--------
++ Determinar los equipos escaleras de cada división
++ Determinar la cuota a cobrar en encuentros aleatorios
+
+# 2. Planificación
+<div style="text-align: justify">
+
+A lo largo del curso se tienen programados diversos entregables y presentaciones, para lo cual contamos con herramientas como asesorías, libros, sesiones de clase y material adicional. De forma complementaria desarrollamos el siguiente Diagrama de Gantt con las fechas asignadas para las entregas y así cumplir con los objetivos del trabajo.
+
+```{r}
+if(!require(ggplot2))
+library(ggplot2)
+data <- data.frame(Presentaciones = c('Seleccion de temas', 'Presentacion de temas', 'Eleccion del mejor tema', 'Retroalimentacion del docente', 'Limpieza de datos', 'Analisis descriptivo', 'Aplicacion de axiomas', 'Distribuciones de Variables Aleatorias','Entrega Final'), 
+Dias = c(1, 20, 21, 35, 25, 30, 45,55,75),
+dias_fin = c(20, 21, 22, 35, 30, 40, 55,75,80)
+)
+
+ggplot(data, aes(x=Dias, xend=dias_fin, y=Presentaciones, yend=Presentaciones)) +
+  geom_segment()+labs(title="Diagrama de gant")
+```
+
+
+# 3. Datos
+<div style="text-align: justify">
+
+Para este proyecto se utilizará una base de datos pública y confiable, obtenida de  <https://www.kaggle.com/datasets/technika148/football-database?resource=download&select=games.csv>, una web dedicada al rubro de la ciencia de datos la cual registra la información requerida para este estudio. Esta base de datos se encuentra en formato csv y es de descarga libre. 
+
+
+# 4. Clasificación de variables
+
+
+## 4.1. Variables Categóricas 
+
+### 4.1.1. Variables nominales
+
+|<span style="color: #0CB7F2">Variable</span> |<span style="color: #0CB7F2">Definicion</span> |
+|:--------|:---------|
+|
+|playerID|Código del jugador|
+|gameID|Código del juego|
+|playerID|Código del jugador|
+|substituteIn|Código del jugador entrante al hacer un cambio|
+|substituteOut|Código del jugador saliente al hacer un cambio|
+|leagueID|Código de la liga|
+|teamID|Código del equipo|
+|shooterID|Código del jugador que realiza el disparo|
+|assisterID|Código del jugador que realiza la asistencia|
+|player|Nombre del jugador|
+|team|Nombre del equipo|
+|league|Nombre de la liga|
+|understatNotation|Sigla del nombre de la liga|
+|position|Posición del jugador|
+|situation|Situación en la que se da el disparo (corner o juego libre)|
+|lastAction|Acción anterior al disparo|
+|shotType|Parte del cuerpo con la que el jugador realiza el disparo|
+|shotResult|Resultado del disparo|
+
+### 4.1.2. Variables ordinales
+
+|<span style="color: #0CB7F2">Variable</span> |<span style="color: #0CB7F2">Definicion</span> |
+|:--------|:---------|
+|
+|season|Temporada en la que se jugó el partido|
+
+
+## 4.2. Variables Numéricas 
+
+### 4.2.1. Variables continuas
+
+|<span style="color: #0CB7F2">Variable</span> |<span style="color: #0CB7F2">Definicion</span> |
+|:--------|:---------|
+|
+|date|Fecha del partido|
+|ppda|Número de pases enemigos completados a través de la línea de defensa|
+|xAssists|Probabilidad de un pase en conventirse en gol|
+|xGoals|Probabilidad de convertir un disparo en gol|
+|xGoalsChain|Probabilidad de convertir un disparo en gol en función a la posición del jugador|
+|xGoalsBuildup|Probabilidad de convertir un disparo o pase clave en gol|
+|xGoal|Probabilidad de convertir en gol un disparo de un jugador|
+
+
+### 4.2.2. Variables discretas
+
+|<span style="color: #0CB7F2">Variable</span> |<span style="color: #0CB7F2">Definicion</span> |
+|:--------|:---------|
+|
+|time|tiempo de participación de un jugador en el partido|
+|deep|indica la distancia entre un jugador y la línea de meta|
+|player goals|número de goles de un jugador en un juego|
+|player ownGoals|número de autogoles de un jugador en un juego|
+|player shots|número de disparos de un jugador en un juego|
+|player assists|número de asistencias de un jugador en un juego|
+|keyPasses|número de pases clave de un jugador en un juego|
+|player yellowCard|número de tarjetas amarillas de un jugador en un juego|
+|player redCard|número de tarjetas rojas de un jugador en un juego|
+|minute|minuto en el que un jugador realiza un disparo|
+|team goals|número de goles del equipo en el encuentro|
+|team shots|número de disparos del equipo en el encuentro|
+|shotsOnTarget|número de disparos al arco del equipo en el encuentro|
+|fouls|número de faltas cometidas por el equipo en el encuentro|
+|corners|número de saques de esquina del equipo en el encuentro|
+|yellowCards|número de tarjetas amarillas del equipo en el encuentro|
+|redCards|número de tarjetas rojas del equipo en el encuentro|
+
+
+# 5. Limpieza de datos
+
+Para la realización de este proyecto contamos con una base de datos estructurada en distintos archivos los cuales se relacionan entre ellos, siendo que algunos trabajan bajo los argumentos "ID" y otros los decodifican.
+
+Primero realizamos la lectura de los archivos con los que trabajaremos a lo largo del proyecto:
+
+
+```{r message=FALSE}
+
+library(scales)
+library(readr)
+library(tidyverse)
+library(dplyr)
+library(repmis)
+library(rriskDistributions)
+library(boxplotdbl)
+library(ggplot2)
+
+```
+
+```{r}
+juegos <- read.csv("games.csv")
+apariciones <- read.csv("appearances.csv")
+ligas <- read.csv("leagues.csv")
+jugadores <- read.csv("players.csv")
+disparos <- read.csv("shots.csv")
+equipos <- read.csv("teams.csv")
+estadistica_equipos <- read.csv("teamstats.csv")
+```
+
+Utilizando la función **`nrow()`** podremos contar la cantidad de observaciones (filas) correspondientes a los 4 data frames de nuestra base de datos y  utilizando la función **`ncol()`** podremos contar la cantidad de variables (columnas). 
+
+```{r}
+n_observaciones <- nrow(apariciones) + nrow(juegos) + nrow (disparos) + nrow(estadistica_equipos)
+n_variables <- ncol(apariciones) + ncol(juegos) + ncol(disparos) + ncol(estadistica_equipos)
+
+```
+
+De esta forma logramos calcular que existe en nuestra base de datos __719096 observaciones observaciones y 80 variables.__
+
+Como se mencionó al inicio, nuestra base de datos trabaja de forma en la que cada archivo está relacionado con el otro, en el cual los nombres de jugadores y las ligas se mencionan bajo ID's. Para poder trabajar con esta información, es necesario adaptar los archivos de forma en la que se ajusten y faciliten el estudio:
+
++ *Data frame* con los datos correspondientes a las apariciones de cada jugador en todos los partidos.
+
+```{r message = FALSE}
+
+apariciones <- jugadores %>% 
+  right_join(apariciones,by="playerID") %>%
+  left_join(ligas,by="leagueID") %>%
+  left_join(juegos %>% 
+              select(gameID,season),by="gameID")
+
+apariciones %>% rename(ID = playerID, player = name.x, league = name.y, league_notation = understatNotation) -> 
+n_apariciones
+remove(apariciones)
+apariciones <- distinct(n_apariciones)
+rm(n_apariciones)
+
+```
+
++ *Data frame* con los datos correspondientes a los partidos jugados por cada equipo.
+
+```{r}
+estadistica_equipos <- equipos %>% right_join(estadistica_equipos,by= "teamID") %>% 
+  right_join (apariciones %>% 
+                select(league,gameID),by="gameID") %>%
+  rename(team=name) %>% 
+  distinct
+equipos_ord <- equipos[order(equipos$teamID),]
+goles_totales <- by(estadistica_equipos$goals , estadistica_equipos$teamID, sum)
+equipos <- mutate(equipos, goles_totales)
+equipos$goles_totales = as.numeric(equipos$goles_totales)
+estadistica_equipos %>% mutate(result = 
+        ifelse(result == "W", 3,
+        ifelse(result == "D", 1,ifelse(result == "L", 0 ,result)))) -> estadistica_equipos
+
+estadistica_equipos$result = as.numeric(estadistica_equipos$result)
+goles_totales_league <- by(estadistica_equipos$goals , estadistica_equipos$league, sum)
+ligas <- mutate(ligas, goles_totales_league)
+goles_totales_league <- by(estadistica_equipos$goals , estadistica_equipos$teamID, sum)
+ligas$goles_totales_league = as.numeric(ligas$goles_totales_league)
+estadistica_equipos<- estadistica_equipos %>%filter(season>2015) 
+head(estadistica_equipos)
+
+```
+
+
+
++ *Data frame* con los datos correspondientes a los disparos realizados por cada jugador en cada partido.
+
+```{r}
+disparos <- disparos %>% rename(playerID = shooterID) 
+disparos <- jugadores %>% inner_join(disparos,by="playerID") %>% inner_join(juegos %>% select(gameID,season),by="gameID") %>% inner_join (apariciones %>% select(league,gameID),by="gameID") %>% distinct
+disparos <- disparos %>% rename(player=name)
+```
+
+Para complementar, seleccionamos las columnas que contienen las variables que necesitamos de cada *data frame* y descartamos las que no.
+```{r echo=FALSE}
+estadistica_equipos <- estadistica_equipos %>%select(gameID,team,season,location,goals,shots,shotsOnTarget,fouls,yellowCards,redCards,result,league)
+
+apariciones <- apariciones %>% select(gameID,player,goals,ownGoals,shots,xGoals,xGoalsChain,xGoalsBuildup,assists,keyPasses,position,redCard,time,league,season)
+
+disparos <- disparos %>% select(player,gameID,minute,situation,shotType,shotResult,season,league)
+
+rm(juegos)
+
+
+n_observaciones <- nrow(disparos) + nrow(apariciones) + nrow(estadistica_equipos)
+```
+
+Una vez finalizada la limpieza de datos, relacionado los archivos y descartado variables que no usaremos, finalmente tenemos __699112 observaciones y 80 variables.__
+
+Se realizo la siguiente limpieza para obtener el número de goles por liga:
+```{r}
+apariciones %>% filter(league=="Premier League")%>%group_by(player) %>% summarise(goal_avg = mean(goals), goals_median = median (goals), goals_sd = sd(goals), max_goals = max(goals)) %>% arrange(desc(goal_avg)) %>% filter(goal_avg != 1) -> n_goalPremierLeague
+
+apariciones %>% filter(league=="Serie A")%>%group_by(player) %>% summarise(goal_avg = mean(goals), goals_median = median (goals), goals_sd = sd(goals), max_goals = max(goals)) %>% arrange(desc(goal_avg)) %>% filter(goal_avg != 1) -> n_goalSerieA
+
+apariciones %>% filter(league=="La Liga")%>%group_by(player) %>% summarise(goal_avg = mean(goals), goals_median = median (goals), goals_sd = sd(goals), max_goals = max(goals)) %>% arrange(desc(goal_avg)) %>% filter(goal_avg != 1) -> n_goalLaLiga
+
+apariciones %>% filter(league=="Ligue 1")%>%group_by(player) %>% summarise(goal_avg = mean(goals), goals_median = median (goals), goals_sd = sd(goals), max_goals = max(goals)) %>% arrange(desc(goal_avg)) %>% filter(goal_avg != 1) -> n_goalLigue1
+
+apariciones %>% filter(league=="Bundesliga")%>%group_by(player) %>% summarise(goal_avg = mean(goals), goals_median = median (goals), goals_sd = sd(goals), max_goals = max(goals)) %>% arrange(desc(goal_avg)) %>% filter(goal_avg != 1) -> n_goalBundesliga
+
+```
+
+Se realizo el filtrado para la obtencion de las tarjetas amarillas por liga:
+```{r}
+yelow_premierleague <-estadistica_equipos %>% filter(league=="Premier League") %>% group_by(team)%>%summarise(ycards_avg = mean (yellowCards), ycards_median = median(yellowCards), ycards_cv = sd(yellowCards)/mean(yellowCards), max_ycards = max(yellowCards), total_ycards = sum(yellowCards)) %>% arrange(desc(ycards_avg))
+
+yelow_SerieA <-estadistica_equipos %>% filter(league=="Serie A") %>% group_by(team)%>%summarise(ycards_avg = mean (yellowCards), ycards_median = median(yellowCards), ycards_cv = sd(yellowCards)/mean(yellowCards), max_ycards = max(yellowCards), total_ycards = sum(yellowCards)) %>% arrange(desc(ycards_avg))
+
+yelow_LaLiga <-estadistica_equipos %>% filter(league=="La Liga") %>% group_by(team)%>%summarise(ycards_avg = mean (yellowCards), ycards_median = median(yellowCards), ycards_cv = sd(yellowCards)/mean(yellowCards), max_ycards = max(yellowCards), total_ycards = sum(yellowCards)) %>% arrange(desc(ycards_avg))
+
+yelow_Ligue1 <-estadistica_equipos %>% filter(league=="Ligue 1") %>% group_by(team)%>%summarise(ycards_avg = mean (yellowCards), ycards_median = median(yellowCards), ycards_cv = sd(yellowCards)/mean(yellowCards), max_ycards = max(yellowCards), total_ycards = sum(yellowCards)) %>% arrange(desc(ycards_avg))
+
+yelow_Bundesliga <-estadistica_equipos %>% filter(league=="Bundesliga") %>% group_by(team)%>%summarise(ycards_avg = mean (yellowCards), ycards_median = median(yellowCards), ycards_cv = sd(yellowCards)/mean(yellowCards), max_ycards = max(yellowCards), total_ycards = sum(yellowCards)) %>% arrange(desc(ycards_avg))
+
+```
+
+Liga inglaterra.
+```{r}
+
+LigaInglesaPlayer2016<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Premier League")%>%  filter(`season`=="2016")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaInglesaPlayer2017<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Premier League")%>%  filter(`season`=="2017")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaInglesaPlayer2018<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Premier League")%>%  filter(`season`=="2018")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaInglesaPlayer2019<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Premier League")%>%  filter(`season`=="2019")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaInglesaPlayer2020<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Premier League")%>%  filter(`season`=="2020")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+BestJugadores_LigaInglesa <- LigaInglesaPlayer2016 %>%
+  left_join(LigaInglesaPlayer2017, by=c("player"))%>%
+  left_join(LigaInglesaPlayer2018, by=c("player"))%>%
+    left_join(LigaInglesaPlayer2019, by=c("player"))%>%
+    left_join(LigaInglesaPlayer2020, by=c("player"))%>%na.omit(BestJugadores_LigaInglesa)%>%
+     mutate(total_goal = rowSums(across(c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum))))%>%
+  mutate(total_disparos = rowSums(across(c(grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum))))%>%
+  mutate(total_owngoals = rowSums(across(c(growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum))))%>%
+  mutate(total_pasesclave = rowSums(across(c(grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum))))%>%
+  mutate(total_asistencias = rowSums(across(c(grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))))%>%
+  
+  
+  select(-c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum,grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum,growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum,grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum,grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))
+    
+```
+
+
+Liga Espanola
+```{r}
+
+LigaEspanolaPlayer2016<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="La Liga")%>%  filter(`season`=="2016")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaEspanolaPlayer2017<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="La Liga")%>%  filter(`season`=="2017")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaEspanolaPlayer2018<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="La Liga")%>%  filter(`season`=="2018")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaEspanolaPlayer2019<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="La Liga")%>%  filter(`season`=="2019")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaEspanolaPlayer2020<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="La Liga")%>%  filter(`season`=="2020")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+```
+
+```{r}
+
+BestJugadores_LigaEspanola <- LigaEspanolaPlayer2016 %>%
+  left_join(LigaEspanolaPlayer2017, by=c("player"))%>%
+  left_join(LigaEspanolaPlayer2018, by=c("player"))%>%
+    left_join(LigaEspanolaPlayer2019, by=c("player"))%>%
+  left_join(LigaEspanolaPlayer2020, by=c("player"))%>%na.omit(BestJugadores_LigaEspanola)%>%
+     mutate(total_goal = rowSums(across(c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum))))%>%
+  mutate(total_disparos = rowSums(across(c(grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum))))%>%
+  mutate(total_owngoals = rowSums(across(c(growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum))))%>%
+  mutate(total_pasesclave = rowSums(across(c(grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum))))%>%
+  mutate(total_asistencias = rowSums(across(c(grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))))%>%
+  
+  
+  select(-c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum,grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum,growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum,grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum,grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))
+    
+```
+
+Seria A
+```{r}
+
+LigaItalianaPlayer2016<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Serie A")%>%  filter(`season`=="2016")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaItalianaPlayer2017<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Serie A")%>%  filter(`season`=="2017")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaItalianaPlayer2018<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Serie A")%>%  filter(`season`=="2018")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaItalianaPlayer2019<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Serie A")%>%  filter(`season`=="2019")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaItalianaPlayer2020<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Serie A")%>%  filter(`season`=="2020")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+```
+
+```{r}
+BestJugadores_LigaItaliana <- LigaItalianaPlayer2016 %>%
+  left_join(LigaItalianaPlayer2017, by=c("player"))%>%
+  left_join(LigaItalianaPlayer2018, by=c("player"))%>%
+    left_join(LigaItalianaPlayer2019, by=c("player"))%>%
+    left_join(LigaItalianaPlayer2020, by=c("player"))%>%na.omit(BestJugadores_LigaItaliana)%>%
+  mutate(total_goal = rowSums(across(c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum))))%>%
+  mutate(total_disparos = rowSums(across(c(grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum))))%>%
+  mutate(total_owngoals = rowSums(across(c(growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum))))%>%
+  mutate(total_pasesclave = rowSums(across(c(grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum))))%>%
+  mutate(total_asistencias = rowSums(across(c(grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))))%>%
+  
+  
+  select(-c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum,grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum,growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum,grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum,grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))
+    
+```
+
+Bundesliga
+```{r}
+
+LigaAlemanaPlayer2016<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Bundesliga")%>%  filter(`season`=="2016")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaAlemanaPlayer2017<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Bundesliga")%>%  filter(`season`=="2017")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaAlemanaPlayer2018<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Bundesliga")%>%  filter(`season`=="2018")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaAlemanaPlayer2019<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Bundesliga")%>%  filter(`season`=="2019")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaAlemanaPlayer2020<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Bundesliga")%>%  filter(`season`=="2020")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+```
+
+```{r}
+BestJugadores_LigaAlemana <- LigaAlemanaPlayer2016 %>%
+  left_join(LigaAlemanaPlayer2017, by=c("player"))%>%
+  left_join(LigaAlemanaPlayer2018, by=c("player"))%>%
+    left_join(LigaAlemanaPlayer2019, by=c("player"))%>%
+    left_join(LigaAlemanaPlayer2020, by=c("player"))%>%na.omit(BestJugadores_LigaAlemana)%>%
+  mutate(total_goal = rowSums(across(c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum))))%>%
+  mutate(total_disparos = rowSums(across(c(grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum))))%>%
+  mutate(total_owngoals = rowSums(across(c(growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum))))%>%
+  mutate(total_pasesclave = rowSums(across(c(grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum))))%>%
+  mutate(total_asistencias = rowSums(across(c(grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))))%>%
+  
+  
+  select(-c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum,grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum,growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum,grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum,grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))
+    
+```
+
+Ligue 1
+
+```{r}
+
+LigaFrancesaPlayer2016<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Ligue 1")%>%  filter(`season`=="2016")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaFrancesaPlayer2017<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Ligue 1")%>%  filter(`season`=="2017")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaFrancesaPlayer2018<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Ligue 1")%>%  filter(`season`=="2018")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaFrancesaPlayer2019<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Ligue 1")%>%  filter(`season`=="2019")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+
+LigaFrancesaPlayer2020<-apariciones%>%select(gameID, player,goals, ownGoals, shots,assists,league, season,keyPasses) %>%filter(`league` =="Ligue 1")%>%  filter(`season`=="2020")%>%filter(`goals`>= 2)%>%group_by(player)%>%
+  dplyr::summarise(gr_sum= sum(goals), grshot_sum=sum(shots), growng_sum=sum(ownGoals),grassists_sum=sum(assists), grkey_sum=sum(keyPasses))%>%
+  arrange(desc(gr_sum))
+```
+
+```{r}
+BestJugadores_LigaFrancesa <- LigaFrancesaPlayer2016 %>%
+  left_join(LigaFrancesaPlayer2017, by=c("player"))%>%
+  left_join(LigaFrancesaPlayer2018, by=c("player"))%>%
+    left_join(LigaFrancesaPlayer2019, by=c("player"))%>%
+    left_join(LigaFrancesaPlayer2020, by=c("player"))%>%na.omit(BestJugadores_LigaFrancesa)%>%
+  mutate(total_goal = rowSums(across(c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum))))%>%
+  mutate(total_disparos = rowSums(across(c(grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum))))%>%
+  mutate(total_owngoals = rowSums(across(c(growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum))))%>%
+  mutate(total_pasesclave = rowSums(across(c(grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum))))%>%
+  mutate(total_asistencias = rowSums(across(c(grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))))%>%
+  
+  
+  select(-c(gr_sum.x, gr_sum.y, gr_sum.x.x, gr_sum.y.y, gr_sum,grshot_sum.x, grshot_sum.y, grshot_sum.x.x, grshot_sum.y.y, grshot_sum,growng_sum.x, growng_sum.y, growng_sum.x.x, growng_sum.y.y, growng_sum,grkey_sum.x, grkey_sum.y, grkey_sum.x.x, grkey_sum.y.y, grkey_sum,grassists_sum.x, grassists_sum.y, grassists_sum.x.x, grassists_sum.y.y, grassists_sum))
+    
+
+```
+
+Se aplico la siguiente limpieza para realizar las graficas:
+
+```{r}
+library(ggplot2)
+LigaAlemana_equipo<-estadistica_equipos%>%filter(`league`=="Bundesliga")%>% group_by(team)%>%
+  dplyr::summarise(gol_tem= sum(goals), gtshot_sum=sum(shots), gtem_target=sum(shotsOnTarget),gt_foul=sum(fouls), gt_yelow=sum(yellowCards),gt_red=sum(redCards))%>%
+  arrange(desc(gol_tem))
+
+LigaInglaterra_equipo<-estadistica_equipos %>% filter(`league` =="Premier League")%>% group_by(team)%>%
+  dplyr::summarise(gol_tem= sum(goals), gtshot_sum=sum(shots), gtem_target=sum(shotsOnTarget),gt_foul=sum(fouls), gt_yelow=sum(yellowCards),gt_red=sum(redCards))%>%
+  arrange(desc(gol_tem))
+
+LigaFrancia_equipo<-estadistica_equipos %>% filter(`league` =="Ligue 1")%>% group_by(team)%>% group_by(team)%>%
+  dplyr::summarise(gol_tem= sum(goals), gtshot_sum=sum(shots), gtem_target=sum(shotsOnTarget),gt_foul=sum(fouls), gt_yelow=sum(yellowCards),gt_red=sum(redCards))%>%
+  arrange(desc(gol_tem))
+
+LigaEspanola_equipo<-estadistica_equipos %>% filter(`league` =="La Liga")%>% group_by(team)%>% group_by(team)%>%
+  dplyr::summarise(gol_tem= sum(goals), gtshot_sum=sum(shots), gtem_target=sum(shotsOnTarget),gt_foul=sum(fouls), gt_yelow=sum(yellowCards),gt_red=sum(redCards))%>%
+  arrange(desc(gol_tem))
+
+LigaItalia_equipos<-estadistica_equipos %>% filter(`league` =="Serie A")%>% group_by(team)%>% group_by(team)%>%
+  dplyr::summarise(gol_tem= sum(goals), gtshot_sum=sum(shots), gtem_target=sum(shotsOnTarget),gt_foul=sum(fouls), gt_yelow=sum(yellowCards),gt_red=sum(redCards))%>%
+  arrange(desc(gol_tem))
+
+```
+
+
+Se realizo la siguiente limpieza para las correlaciones entre variables:
+```{r}
+ComportamientoLigaInglesa<-estadistica_equipos%>%filter(`league` =="Premier League")%>%
+  group_by(team)%>% summarise(grfoul_total=sum(fouls), gryellow_total=sum(yellowCards), grred_total=sum(redCards))
+ComportamientoLigaItaliana<-estadistica_equipos%>%filter(`league` =="Serie A")%>%
+  group_by(team)%>% summarise(grfoul_total=sum(fouls), gryellow_total=sum(yellowCards), grred_total=sum(redCards))
+
+ComportamientoLigaAlemanaa<-estadistica_equipos%>%filter(`league` =="Bundesliga")%>%
+  group_by(team)%>% summarise(grfoul_total=sum(fouls), gryellow_total=sum(yellowCards), grred_total=sum(redCards))
+
+ComportamientoLigaEspanola<-estadistica_equipos%>%filter(`league` =="La Liga")%>%
+  group_by(team)%>% summarise(grfoul_total=sum(fouls), gryellow_total=sum(yellowCards), grred_total=sum(redCards))
+
+ComportamientoLigaFrancesa<-estadistica_equipos%>%filter(`league` =="Ligue 1")%>%
+  group_by(team)%>% summarise(grfoul_total=sum(fouls), gryellow_total=sum(yellowCards), grred_total=sum(redCards))
+
+```
+
+
+Se realizo la siguiente limpieza para la parte 8
+
+```{r}
+apariciones %>% filter(position == c("FW","FWR","FWL")) %>% filter(xGoals < 1 ) %>% filter(assists < 1) %>% filter(xGoalsBuildup < 1) %>% group_by(position) -> Delanteros
+apariciones %>% filter(position == c("MR","ML","AML","AMR","MC")) %>% filter(xGoals < 1 ) %>% filter(assists < 1) %>% filter(xGoalsBuildup < 1) %>% group_by(league) -> MedioCampo
+apariciones %>% filter(position == c("DR","DL","DC","DMR","DML","DMC")) %>% filter(xGoals < 1 ) %>% filter(assists < 1) %>% filter(xGoalsBuildup < 1) %>% group_by(league) -> Defensas
+```
+
+
+
+# 6. Descripción de datos
+
+## 6.1. Descriptores numéricos  
+
++ Tabla de Pases clave realizados por partido de los jugadores de las 5 ligas
+
+```{r echo=FALSE,message=FALSE}
+
+pases_1=apariciones%>%
+  group_by(player)%>%
+  summarise(total_pases = sum(keyPasses), promedio_pases = (mean(keyPasses)), minimo_pases = min(keyPasses), maximo_pases = max(keyPasses)) %>% arrange(desc(total_pases))-> pases_clave
+
+head(pases_clave)
+
+```
+
+<font size = "0.85"> Los pases clave muestran la contribución que tiene un jugador para el aspecto ofensivo en la generacion de jugadas de gol. En la tabla se puede comparar el desempeño en cantidad de pases clave que realizó cada jugador en total, promedio, minimo y máximo en un periodo de 5 años (2016 - 2020).Los pases clave, en general, muestran que tan competitivo es un jugador. </font>
+
++ Tabla de Goles anotados por los jugadores pertenecientes a las 5 ligas
+
+```{r}
+apariciones %>% group_by(player) %>% summarise(goal_avg = mean(goals), goals_median = median (goals), goals_sd = sd(goals), max_goals = max(goals)) %>% arrange(desc(goal_avg)) %>% filter(goal_avg != 1) -> n_goals
+(head(n_goals))
+```
+
+
+<font size = "0.85">Los jugadores más destacados son Cristiano Ronaldo, Lionel Messi,Erling Haaland y Robert Lewandowski ambos con un promedio goleador superior al de 0.90 goles por partido, lo que podemos interpretar que en cada partido a los que asistan al menos anotan 1 gol. 
+
+No obstante, se observa que los 6 jugadores cuentan con un total de goles por partido demasiado alto en comparación con otros jugadores. </font>
+
++ Tabla de Goles y disparos por cada equipo de las 5 ligas
+
+```{r}
+estadistica_equipos%>%group_by(team) %>% summarise (total_goals= sum(goals),total_shots = sum(shots),total_shots_OT = sum(shotsOnTarget)) %>% arrange(desc(total_goals))
+```
+
+<font size = "0.85"> Equipos de todas las ligas en orden respecto al total de goles adicionalmente se proporciona información de disparos y disparos al arco. Podemos observar que el equipo que encabeza la tabla es el Barcelona con 698, Paris Saint Germain  con 642 y Bayer Munich con 628. Sin embargo, se observa que el Barcelona y Bayer Munich cuentan con más disparos al arco que el Bayer Munich.
+</font>
+
++ Tabla de Goles, disparos y faltas de los equipos de las 5 ligas
+
+```{r}
+estadistica_equipos%>%group_by(league) %>% summarise (total_goals= sum(goals),total_shots_OT = sum(shotsOnTarget), total_fouls = sum(fouls), total_red_cards = sum(redCards)) %>% arrange(desc(total_goals))
+```
+
+<font size = "0.85"> La liga que encabeza la tabla es la Serie A, además de tener más disparos al arco y faltas. La liga con menos goles, disparos al arco y faltas es la Bundesliga. De esta información podemos recatar que la Serie A es mucho más ofensiva, a diferencia de la Bundesliga que es la que menos ofensa tiene </font>
+
++ Tabla de Tarjetas amarillas recibidas por equipos pertenecientes a una de la 5 ligas europeas*
+
+```{r}
+yellow_df <- estadistica_equipos %>% group_by(team) %>% summarise(ycards_avg = mean (yellowCards), ycards_median = median(yellowCards), ycards_cv = sd(yellowCards)/mean(yellowCards), max_ycards = max(yellowCards), total_ycards = sum(yellowCards)) %>% arrange(desc(ycards_avg))
+head(yellow_df)
+```
+
+
+
+
+<font size = "0.85">Las tarjetas amarillas indican que tan ofensivo trabaja un equipo en un partido y puede variar en gran magnitud al momento de comparar estos valores para 2 equipos. Se debe tener en cuenta que no todos los equipo estuvieron en primera división las 7 temporadas por lo que es lógico que algunos presenten un número mayor de dichos valores. </font>
+
++ Tabla de Victorias de local
+
+```{r message=FALSE, echo=FALSE, warning=FALSE}
+
+estadistica_equipos %>% filter(result == "3" & location == "h") %>% group_by(team) %>% summarise(league = league, t_wins_h_avg = (table(result))/7 ) %>% arrange(desc(t_wins_h_avg)) %>% distinct
+
+```
+
+<font size = "0.85"> Los 3 equipos con más promedio de victorias en las 7 temporadas son Juventus (Serie A), Barcelona (La Liga) y Paris Saint Germain (Ligue 1). Estos equipos son los más grandes de sus ligas y ganadores en los últimos años.</font>
+ 
++ Tabla de Victorias de visitante
+
+
+```{r message=FALSE, echo=FALSE, warning=FALSE}
+
+estadistica_equipos %>% filter(result == "3" & location == "a") %>% group_by(team) %>% summarise(league = league, t_wins_a_avg = (table(result))/7 ) %>% arrange(desc(t_wins_a_avg)) %>% distinct
+
+```
+<font size = "0.85"> Acá podemos ver algo interesante y es que de los primeros 4 equipos que vimos en los resultados de local solo se mantienen en las primeras posiciones el Barcelona, el Paris Saint Germain y el Manchester City. La Juventus sale de este top bajando del primer lugar al sexto lo cual nos da a entender que este equipo es mucho más eficaz cuando juega en su casa o tiene un mal rendimiento jugando afuera.</font>
+
++ Faltas y tarjetas rojas
+
+## 6.1. Descriptores gráficos 
+<div style="text-align: justify">
+
+6.1.1. Gráfica de desempeño de equipo por liga.
+
+```{r}
+
+#barchart de graficos de cada de ligaalemana
+barchart_lae<-ggplot(data=LigaAlemana_equipo,aes(x=reorder(team,gol_tem), y=gol_tem)) +
+  geom_bar(stat="identity")+ coord_flip()+labs(title = "Liga Alemana", x = "Equipos", y = "Goles")
+barchart_lae
+
+#barchart de graficos de cada de ligainglaterra
+barchart_lie<-ggplot(data=LigaInglaterra_equipo,aes(x=reorder(team,gol_tem), y=gol_tem)) +
+  geom_bar(stat="identity")+ coord_flip()+labs(title = "Liga Ingelsa", x = "Equipos", y = "Goles")
+barchart_lie
+   
+#barchart de graficos de cada de ligafrancia
+barchart_lfe<-ggplot(data=LigaFrancia_equipo,aes(x=reorder(team,gol_tem), y=gol_tem)) +
+  geom_bar(stat="identity")+ coord_flip()+labs(title = "Liga Francesa", x = "Equipos", y = "Goles")
+barchart_lfe
+   
+#barchart de graficos de cada de ligaespanola
+barchart_lee<-ggplot(data=LigaEspanola_equipo,aes(x=reorder(team,gol_tem), y=gol_tem)) +
+  geom_bar(stat="identity")+ coord_flip()+labs(title = "Liga Española", x = "Equipos", y = "Goles")
+barchart_lee
+
+#barchart de graficos de cada de ligaitalia
+barchart_lie<-ggplot(data=LigaItalia_equipos,aes(x=reorder(team,gol_tem), y=gol_tem)) +
+  geom_bar(stat="identity")+ coord_flip()+labs(title = "Liga Italiana", x = "Equipos", y = "Goles")
+barchart_lie
+
+```
+
+En las cuatro graficas se observa los equipos mas influyentes de cada liga dentro del rango de fechas (2014-2020). Demuestra que la experiencia y posibilidades de ganar de un equipo frente a otros. 
+En la liga alemana, contamos con 4 equipos que sobrepasan los 300 goles en todas sus temporadas que son el Borussia Dortmund, RasenBallsport Leipzig y Hoffenhein. No obstante, solo un equipo sobrepasa los 400 goles que es el Bayer Munich.
+En la liga inglesa, contamos con 6 equipos que sobrepasan los 300 goles en todas sus temporadas. Asimismo, solo 2 equipos sobrepasan los 450 goles en todas sus temporadas que son Manchester City y el Liverpool.
+En la liga francesa, contamos con 2 equipos que sobrepasan los 300 goles que son Monaco y Lyon. Paris Saint Germain, es el único equipo  que sobrepasa los 400 goles.
+En la liga española, contamos con 2 equipos que sobrepasan los 300 goles que son Barcelona y el Real Madrid.
+En la liga italiana, contamos con 7 equipos que sobrepasan los 300 goles; sin embargo, ninguno de los equipos en mención supera los 400 goles por temporada.
+
+
+
+# Redimiento de los jugadores claves del 2016- 2020 de cada liga.
+Para ello se van a selecionar tres equipos de cada liga y identificar los jugadores mas influyentes.
+
+Tablas de mejores jugadores por liga
+```{r}
+head(BestJugadores_LigaAlemana)
+head(BestJugadores_LigaFrancesa)
+head(BestJugadores_LigaEspanola)
+head(BestJugadores_LigaInglesa)
+head(BestJugadores_LigaItaliana)
+```
+
+Se analiza los tiros de los 3 jugadores con mayor probabilidad de gol (son los jugadores que tienen mas goles en sus respectivas ligas y con varios goles)- para la liga inglesa tenemos como resultado.
+
+En liga Alemana tenemso a Robert Lewandowski, Andrej Kramaric y Serge Gnabry.
+En la liga Francesa tenemos a Kylian Mbappe-Lottin, Memphis Depay Y Angel Di María.
+En la liga Espanola tenemos a Lionel Messi, Luis Suárez, Antoine Griezmann,Iago Aspas y Rafaél Garcéda.
+En la liga Inglesa tenemos a Harry Kane, Sergio Agüero, Son Heung-Min, Jaime Vardy, Roberto Firmino y Gabriel Jesus.
+En la liga Italiana tenemos a Dries Mertens, Andrea Belotti, Edin Dzeko, Ciro Immobile y Alejandro Gomez.
+
+
+
++ Evaluar al jugador- Histograma de mejor rendimiento en un partido de 90 minuto
+
+En la liga Alemana, el jugador que más destaco fue Robert Lewandowski	en todas las temporadas y su rendimiento en el campo se puede observar en el siguiente histograma.
+
+```{r}
+
+disparos%>% filter(player == "Robert Lewandowski" & season == 2020)-> timegame
+disparos%>% filter(player == "Robert Lewandowski" & season == 2018)-> timegame1
+disparos%>% filter(player == "Robert Lewandowski" & season == 2016)-> timegame2
+
+hist(timegame$minute, col = "darkmagenta", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Robert Lewandowski en 2020")
+hist(timegame1$minute, col = "darkmagenta", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Robert Lewandowski en 2018")
+hist(timegame2$minute, col = "darkmagenta", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Robert Lewandowski en 2016")
+
+```
+Se puede identificar que dentro del intervalo de tiempo (20min a 60 min), el desempeño del jugador Robert Lewandowski tiene una mayor frecuencia de disparos e intereacción con su equipo.
+
+
+
+En la liga Francesa, el jugador que más destaco fue "Kylian Mbappe-Lottin"	en todas las temporadas -- y su rendimiento en el campo se puede observar en el siguiente histograma.
+```{r}
+disparos%>% filter(player == "Kylian Mbappe-Lottin" & season == 2020)-> timegame
+disparos%>% filter(player == "Kylian Mbappe-Lottin" & season == 2018)-> timegame1
+disparos%>% filter(player == "Kylian Mbappe-Lottin" & season == 2016)-> timegame2
+hist(timegame$minute, col = "blue", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Kylian Mbappe-Lottin en 2020")
+hist(timegame1$minute, col = "blue", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Kylian Mbappe-Lottin  en 2018")
+hist(timegame2$minute, col = "blue", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Kylian Mbappe-Lottin  en 2016")
+
+
+```
+Se observa que en la temporada 2020 y 2018, el jugador Kylian Mbappe-Lottin cuenta con una frecuencia de disparos durante el segundo tiempo del partido, mayor a los 45 minutos. A diferencia de la temporada del 2016 que su participación fue bastante irregular y evidenciando diferentes frecuencias de tiros en distintos tiempos durante el partido.
+
+
+
+En la liga Española, los jugadores que más destacaron fueron Luis Suaréz, Lionel Messi, Antoine Griezmann y Iago Aspas y su rendimiento en el campo se puede observar en el siguiente histograma.
+
+```{r}
+
+disparos%>% filter(player == "Luis Su\xe1rez" & season == 2020)-> timegame
+disparos%>% filter(player == "Luis Su\xe1rez" & season == 2018)-> timegame1
+disparos%>% filter(player == "Luis Su\xe1rez" & season == 2016)-> timegame2
+hist(timegame$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Luis Suaréz en 2020")
+hist(timegame1$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Luis Suaréz  en 2018")
+hist(timegame2$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Luis Suaréz  en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Lionel Messi" & season == 2020)-> timegame
+disparos%>% filter(player == "Lionel Messi" & season == 2018)-> timegame1
+disparos%>% filter(player == "Lionel Messi" & season == 2016)-> timegame2
+hist(timegame$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Lionel Messi en 2020")
+hist(timegame1$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Lionel Messi  en 2018")
+hist(timegame2$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Lionel Messi  en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Antoine Griezmann" & season == 2020)-> timegame
+disparos%>% filter(player == "Antoine Griezmann" & season == 2018)-> timegame1
+disparos%>% filter(player == "Antoine Griezmann" & season == 2016)-> timegame2
+hist(timegame$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Antoine Griezmann en 2020")
+hist(timegame1$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Antoine Griezmann  en 2018")
+hist(timegame2$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Antoine Griezmann  en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Iago Aspas" & season == 2020)-> timegame
+disparos%>% filter(player == "Iago Aspas" & season == 2018)-> timegame1
+disparos%>% filter(player == "Iago Aspas" & season == 2016)-> timegame2
+hist(timegame$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Iago Aspas en 2020")
+hist(timegame1$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Iago Aspas  en 2018")
+hist(timegame2$minute, col = "red", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Iago Aspas  en 2016")
+
+```
+Se observa en los 4 jugadores más influyentes en las temporadas 2020, 2018 y 2016 en su gran mayoría cuenta con un mayor desempeño a partir del minuto 45 minutos. Asimismo, los 4 mantienen una frecuencia de tiros alta debido a la posición de ofensiva en la que juegan. No obstante, el unico jugador que tiene una mayor frecuencia de tiros es Antoine Griezmann.
+
+
+En la liga Inglesa, el jugador que más destaco fue Harry Kane, Sergio Agüero, Son Heung-Min y	Jaime Vardy	 todas las temporadas -- y su rendimiento en el campo se puede observar en el siguiente histograma.
+
+```{r}
+disparos%>% filter(player == "Harry Kane" & season == 2020)-> timegame
+disparos%>% filter(player == "Harry Kane" & season == 2018)-> timegame1
+disparos%>% filter(player == "Harry Kane" & season == 2016)-> timegame2
+hist(timegame$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Harry Kane en 2020")
+hist(timegame1$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Harry Kane  en 2018")
+hist(timegame2$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Harry Kane  en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Sergio Ag\xfcero" & season == 2020)-> timegame
+disparos%>% filter(player == "Sergio Ag\xfcero" & season == 2018)-> timegame1
+disparos%>% filter(player == "Sergio Ag\xfcero" & season == 2016)-> timegame2
+hist(timegame$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Sergio Agüero en 2020")
+hist(timegame1$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Sergio Agüero  en 2018")
+hist(timegame2$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Sergio Agüero  en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Son Heung-Min" & season == 2020)-> timegame
+disparos%>% filter(player == "Son Heung-Min" & season == 2018)-> timegame1
+disparos%>% filter(player == "Son Heung-Min" & season == 2016)-> timegame2
+hist(timegame$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Son Heung-Min en 2020")
+hist(timegame1$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Son Heung-Min  en 2018")
+hist(timegame2$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Son Heung-Min en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Jamie Vardy" & season == 2020)-> timegame
+disparos%>% filter(player == "Jamie Vardy" & season == 2018)-> timegame1
+disparos%>% filter(player == "Jamie Vardy" & season == 2016)-> timegame2
+hist(timegame$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Jamie Vardy en 2020")
+hist(timegame1$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Jamie Vardy  en 2018")
+hist(timegame2$minute, col = "brown", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Jamie Vardy  en 2016")
+```
+
+Podemos  analizar que mientras Harry kane tiene uno valores mayores a los del Kun, este ultimo mantiene una uniformidad que si lo tomamos como un factor en cuenta se vuelve un judor confiable y atractivo para fichar.
+
+
+En la liga Italiana, el jugador que más destaco fue Andrea Belotti, Ciro Immobile, Dries Mertens y	Edin Dzeko	 todas las temporadas -- y su rendimiento en el campo se puede observar en el siguiente histograma.
+```{r}
+disparos%>% filter(player == "Andrea Belotti" & season == 2020)-> timegame
+disparos%>% filter(player == "Andrea Belotti" & season == 2018)-> timegame1
+disparos%>% filter(player == "Andrea Belotti" & season == 2016)-> timegame2
+hist(timegame$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Andrea Belotti en 2020")
+hist(timegame1$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Andrea Belotti  en 2018")
+hist(timegame2$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Andrea Belotti  en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Ciro Immobile" & season == 2020)-> timegame
+disparos%>% filter(player == "Ciro Immobile" & season == 2018)-> timegame1
+disparos%>% filter(player == "Ciro Immobile" & season == 2016)-> timegame2
+hist(timegame$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Ciro Immobile en 2020")
+hist(timegame1$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Ciro Immobile  en 2018")
+hist(timegame2$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Ciro Immobile  en 2016")
+
+```
+
+```{r}
+disparos%>% filter(player == "Dries Mertens" & season == 2020)-> timegame
+disparos%>% filter(player == "Dries Mertens" & season == 2018)-> timegame1
+disparos%>% filter(player == "Dries Mertens" & season == 2016)-> timegame2
+hist(timegame$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Dries Mertens en 2020")
+hist(timegame1$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Dries Mertens  en 2018")
+hist(timegame2$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Dries Mertens  en 2016")
+```
+
+```{r}
+disparos%>% filter(player == "Edin Dzeko" & season == 2020)-> timegame
+disparos%>% filter(player == "Edin Dzeko" & season == 2018)-> timegame1
+disparos%>% filter(player == "Edin Dzeko" & season == 2016)-> timegame2
+hist(timegame$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Edin Dzeko en 2020")
+hist(timegame1$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Edin Dzeko  en 2018")
+hist(timegame2$minute, col = "green", xlab = "Minuto del partido",xlim = c(0,90), main = "Frecuencia de disparos de Edin Dzeko  en 2016")
+```
+Nos encontramos con unos valores altos en comparacion de otras ligas, lo que reflejaria un mejor juego individual en la liga italiana frente a las otras ligas.
+
+
+
+
++Analisis de los partidos-
++ Histograma de los minutos en los que se realizan disparos en un partido
+```{r}
+hist(disparos$minute, main = "Minutos en los que se realizan disparos", col = "lightblue",xlab = "Minuto del partido")
+abline(v=mean(disparos$minute), col = "red")
+abline(v=which.max(table(disparos$minute)), col = "blue")
+abline(v=median(disparos$minute), col = "yellow")
+legend("topright", c("Media","Moda","Mediana"), col = c("red","blue","yellow"), lwd=3, lty=1)
+```
+LIGA ALEMANA
+```{r}
+
+disparos%>% filter(league == "Bundesliga")-> disp_bundesliga
+hist(disp_bundesliga$minute,main = "Minutos de más disparos de la Bundeskiga", col = "darkmagenta",xlab = "Minuto del partido")
+abline(v=mean(disp_bundesliga$minute), col = "red")
+abline(v=which.max(table(disp_bundesliga$minute)), col = "blue")
+abline(v=median(disp_bundesliga$minute), col = "yellow")
+legend("topright", c("Media","Moda","Mediana"), col = c("red","blue","yellow"), lwd=3, lty=1)
+```
+LIGA FRANCESA
+```{r}
+
+disparos%>% filter(league == "Ligue 1")-> disp_Ligue1
+hist(disp_Ligue1$minute,main = "Minutos de más disparos de la  Ligue 1", col = "blue",xlab = "Minuto del partido")
+abline(v=mean(disp_Ligue1$minute), col = "red")
+abline(v=which.max(table(disp_Ligue1$minute)), col = "skyblue")
+abline(v=median(disp_Ligue1$minute), col = "yellow")
+legend("topright", c("Media","Moda","Mediana"), col = c("red","skyblue","yellow"), lwd=3, lty=1)
+```
+LIGA ESPANOLA
+```{r}
+disparos%>% filter(league == "La Liga")-> disp_LaLiga
+hist(disp_LaLiga$minute,main = "Minutos de más disparos de la  La Liga", col = "red",xlab = "Minuto del partido")
+abline(v=mean(disp_LaLiga$minute), col = "orange")
+abline(v=which.max(table(disp_LaLiga$minute)), col = "blue")
+abline(v=median(disp_LaLiga$minute), col = "yellow")
+legend("topright", c("Media","Moda","Mediana"), col = c("orange","blue","yellow"), lwd=3, lty=1)
+```
+LIGA INGLESA
+```{r}
+disparos%>% filter(league == "Premier League")-> disp_premierleague
+hist(disp_premierleague$minute,main = "Minutos de más disparos de la Premier League", col = "brown",xlab = "Minuto del partido")
+abline(v=mean(disp_premierleague$minute), col = "red")
+abline(v=which.max(table(disp_premierleague$minute)), col = "blue")
+abline(v=median(disp_premierleague$minute), col = "yellow")
+legend("topright", c("Media","Moda","Mediana"), col = c("red","blue","yellow"), cex=0.8, pt.cex =0.8, lwd=1, lty=1 )
+```
+LIGA ITALIANA
+```{r}
+disparos%>% filter(league == "Serie A")-> disp_SerieA
+hist(disp_SerieA$minute,main = "Minutos de más disparos de la Serie A", col = "green",xlab = "Minuto del partido")
+abline(v=mean(disp_SerieA$minute), col = "orange")
+abline(v=which.max(table(disp_SerieA$minute)), col = "blue")
+abline(v=median(disp_SerieA$minute), col = "yellow")
+legend("topright", c("Media","Moda","Mediana"), col = c("orange","blue","yellow"), lwd=3, lty=1)
+```
+
+
+<font size = "0.85">Este histograma de los minutos en los que se realizan disparos nos muestra una distribución simétrica de la variable en cuestión, lo cual se puede apreciar tanto visualmente como a través de la media, la moda y la mediana, las cuales se encuentran en valores aproximados entre sí.</font>
+
++ Boxplot de las tarjetas amarillas recibidas por cada equipo del 2015 al 2020
+
+# Ivan Gonzales y Rodrigo
+
+```{r echo=FALSE,message=FALSE}
+boxplot(yellow_df$total_ycards,horizontal = TRUE, col = "yellow", main = "Tarjetas amarillas por equipo en las 6 temporadas de todas las ligas", xlab= "Total de tarjetas amarillas")
+abline(v=mean(yellow_df$total_ycards,na.rm = TRUE), col = "green", lwd = 3, lty = 2)
+legend("topright",c("Media del total de tarjetas amarillas"),col = "green", lwd = 3,lty =2)
+
+boxplot(yelow_Bundesliga$total_ycards,horizontal = TRUE, col = "yellow", main = "Tarjetas amarillas por equipo en las 6 temporadas de la Bundesliga", xlab= "Total de tarjetas amarillas")
+abline(v=mean(yellow_df$total_ycards,na.rm = TRUE), col = "green", lwd = 3, lty = 2)
+legend("topright",c("Media del total de tarjetas amarillas"),col = "green", lwd = 3,lty =2)
+
+boxplot(yelow_LaLiga$total_ycards,horizontal = TRUE, col = "yellow", main = "Tarjetas amarillas por equipo en las 6 temporadas de La Liga", xlab= "Total de tarjetas amarillas")
+abline(v=mean(yellow_df$total_ycards,na.rm = TRUE), col = "green", lwd = 3, lty = 2)
+legend("topright",c("Media del total de tarjetas amarillas"),col = "green", lwd = 3,lty =2)
+
+boxplot(yelow_Ligue1$total_ycards,horizontal = TRUE, col = "yellow", main = "Tarjetas amarillas por equipo en las 6 temporadas de la Ligue 1", xlab= "Total de tarjetas amarillas")
+abline(v=mean(yellow_df$total_ycards,na.rm = TRUE), col = "green", lwd = 3, lty = 2)
+legend("topright",c("Media del total de tarjetas amarillas"),col = "green", lwd = 3,lty =2)
+
+boxplot(yelow_premierleague$total_ycards,horizontal = TRUE, col = "yellow", main = "Tarjetas amarillas por equipo en las 6 temporadas de la Premier League", xlab= "Total de tarjetas amarillas")
+abline(v=mean(yellow_df$total_ycards,na.rm = TRUE), col = "green", lwd = 3, lty = 2)
+legend("topright",c("Media del total de tarjetas amarillas"),col = "green", lwd = 3,lty =2)
+
+boxplot(yelow_SerieA$total_ycards,horizontal = TRUE, col = "yellow", main = "Tarjetas amarillas por equipo en las 6 temporadas de la Serie A", xlab= "Total de tarjetas amarillas")
+abline(v=mean(yellow_df$total_ycards,na.rm = TRUE), col = "green", lwd = 3, lty = 2)
+legend("topright",c("Media del total de tarjetas amarillas"),col = "green", lwd = 3,lty =2)
+
+
+```
+
+
+<font size = "0.85">Según el gráfico boxplot del total de tarjetas amarillas por equipo a lo largo de las 3 temporadas, ningún equipo presenta valores atípicos. La mediana de tarjetas amarillas por equipo adquiere un valor inferior a las 400 tarjetas amarillas por equipo. 
+
+%%%Además, la media de penalizaciones es 375 (un número cercano a la mediana), por lo que la consideramos como un valor representativo.</font>
+
+ANALISIS
+
++ Boxplot de los promedio de goles de cada jugador de la temporada 2016 al 2020
+
+```{r }
+boxplot(n_goals$goal_avg, col = "orange",horizontal = TRUE, main = "Goles promedio de jugadores", xlab= "Promedio de goles")
+abline(v=mean(n_goals$goal_avg), col = "blue",lwd=3, lty=2)
+legend("bottomright", c("Media de los promedios de goles"), col = "blue", lwd=3 , lty=2 )
+```
+
+<font size = "0.85">La mayoria de jugadores en un partido anotan 1 o ni un gol, mientras que hay casos muy particulares en la que pocos jugadores tienen un promedio cercano a un gol por partido, cuyos promedios correspsonden a los jugadores mas reconocidos del mundo como lo son Messi o Cristiano Ronaldo. Los puntos que representan datos atípicos, son en su mayoria delanteros, jugadores que estan en constante interacción con el arco del equipo contrario.</font>
+
+```{r}
+#Identificar y ordenar por color de pertenecientes a cada liga
+boxplot(n_goalPremierLeague$goal_avg, col = "orange",horizontal = TRUE, main = "Goles promedio de jugadores de la Premier League", xlab= "Promedio de goles")
+abline(v=mean(n_goalPremierLeague$goal_avg), col = "blue",lwd=3, lty=2)
+legend("bottomright", c("Media de los promedios de goles"), col = "blue", lwd=3 , lty=2 )
+
+boxplot(n_goalBundesliga$goal_avg, col = "orange",horizontal = TRUE, main = "Goles promedio de jugadores de la BundesLiga", xlab= "Promedio de goles")
+abline(v=mean(n_goalBundesliga$goal_avg), col = "blue",lwd=3, lty=2)
+legend("bottomright", c("Media de los promedios de goles"), col = "blue", lwd=3 , lty=2 )
+
+boxplot(n_goalLaLiga$goal_avg, col = "orange",horizontal = TRUE, main = "Goles promedio de jugadores de La Liga", xlab= "Promedio de goles")
+abline(v=mean(n_goalLaLiga$goal_avg), col = "blue",lwd=3, lty=2)
+legend("bottomright", c("Media de los promedios de goles"), col = "blue", lwd=3 , lty=2 )
+
+boxplot(n_goalLigue1$goal_avg, col = "orange",horizontal = TRUE, main = "Goles promedio de jugadores de La Ligue 1", xlab= "Promedio de goles")
+abline(v=mean(n_goalLigue1$goal_avg), col = "blue",lwd=3, lty=2)
+legend("bottomright", c("Media de los promedios de goles"), col = "blue", lwd=3 , lty=2 )
+
+boxplot(n_goalSerieA$goal_avg, col = "orange",horizontal = TRUE, main = "Goles promedio de jugadores de la Serie A", xlab= "Promedio de goles")
+abline(v=mean(n_goalSerieA$goal_avg), col = "blue",lwd=3, lty=2)
+legend("bottomright", c("Media de los promedios de goles"), col = "blue", lwd=3 , lty=2 )
+
+
+```
+
+
+```{r}
+estadistica_equipos %>% group_by(season,league) %>% summarise(goles_totales = sum(goals)) %>% filter(league == "Bundesliga") -> alemania
+estadistica_equipos %>% group_by(season,league) %>% summarise(goles_totales = sum(goals)) %>% filter(league == "Premier League") -> inglesa
+estadistica_equipos %>% group_by(season,league) %>% summarise(goles_totales = sum(goals)) %>% filter(league == "Ligue 1") -> francesa
+estadistica_equipos %>% group_by(season,league) %>% summarise(goles_totales = sum(goals)) %>% filter(league == "La Liga") -> española
+estadistica_equipos %>% group_by(season,league) %>% summarise(goles_totales = sum(goals)) %>% filter(league == "Serie A") -> italiana
+
+ggplot(alemania,aes(x=season,y=goles_totales)) + geom_bar(stat = "identity",fill = "purple") + ggtitle("Bundesliga ")
+ggplot(inglesa,aes(x=season,y=goles_totales)) + geom_bar(stat = "identity",fill = "blue") + ggtitle("Premier League")
+ggplot(francesa,aes(x=season,y=goles_totales)) + geom_bar(stat = "identity",fill = "red") + ggtitle("Ligue 1 ")
+ggplot(española,aes(x=season,y=goles_totales)) + geom_bar(stat = "identity",fill = "brown") + ggtitle("La Liga ")
+ggplot(italiana,aes(x=season,y=goles_totales)) + geom_bar(stat = "identity",fill = "green") + ggtitle("Serie A")
+```
+Como se puede apreciar en la gráfica vemos que la mayoría de ligas mantienen un numero igual de goles por temporada exceptuando algunos casos especiales que son la temporada 2019 de La Ligue y las temporadas 2016 y 2017 de la Bundesliga. 
+
+
+# 7.Relaciones entre variable
+
+Se va evaluar al equipo y a la principales estrellas de cada equipo en las temporadas en mencion debido a su  comportamiento.
+
+Liga Alemana
+Liga Espanola
+Liga Francesa
+Liga Inglesa
+Liga Italiana
+
+```{r}
+cor(LigaAlemana_equipo$gol_tem, LigaAlemana_equipo$gtshot_sum)
+regresion_lineal3<-lm(LigaAlemana_equipo$gtshot_sum~ LigaAlemana_equipo$gol_tem)
+plot(LigaAlemana_equipo$gol_tem, LigaAlemana_equipo$gtshot_sum,  main="Desemepeño futbolístico de Liga Alemana en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+abline(regresion_lineal3, col='red')
+smoothScatter(LigaAlemana_equipo$gol_tem, LigaAlemana_equipo$gtshot_sum,  main="Desemepeño futbolístico de Liga Alemana en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+abline(regresion_lineal3, col='red')
+summary(regresion_lineal3)
+coefficients(regresion_lineal3)
+
+```
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)=331.15902 + 6.716181x 
+\end{equation}
+
+```{r}
+cor(LigaEspanola_equipo$gol_tem, LigaEspanola_equipo$gtshot_sum)
+regresion_lineal3<-lm(LigaEspanola_equipo$gtshot_sum~ LigaEspanola_equipo$gol_tem)
+plot(LigaEspanola_equipo$gol_tem, LigaEspanola_equipo$gtshot_sum,  main="Desemepeño futbolístico de Liga Espanola en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+abline(regresion_lineal3, col='red')
+smoothScatter(LigaEspanola_equipo$gol_tem, LigaEspanola_equipo$gtshot_sum,  main="Desemepeño futbolístico de Liga Espanola en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+abline(regresion_lineal3, col='red')
+summary(regresion_lineal3)
+coefficients(regresion_lineal3)
+```
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 359.863375 + 6.728678x 
+\end{equation}
+
+```{r}
+cor(LigaFrancia_equipo$gol_tem, LigaFrancia_equipo$gtshot_sum)
+regresion_lineal3<-lm(LigaFrancia_equipo$gtshot_sum~ LigaFrancia_equipo$gol_tem)
+plot(LigaFrancia_equipo$gol_tem, LigaFrancia_equipo$gtshot_sum,  main="Desemepeño futbolístico de Liga Francesa en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+abline(regresion_lineal3, col='red')
+smoothScatter(LigaFrancia_equipo$gol_tem, LigaFrancia_equipo$gtshot_sum,  main="Desemepeño futbolístico de Liga Francesa en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+abline(regresion_lineal3, col='red')
+summary(regresion_lineal3)
+coefficients(regresion_lineal3)
+```
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 447.640250 + 6.644918x 
+\end{equation}
+
+```{r}
+cor(LigaInglaterra_equipo$gol_tem, LigaInglaterra_equipo$gtshot_sum)
+regresion_lineal3<-lm(LigaInglaterra_equipo$gtshot_sum~ LigaInglaterra_equipo$gol_tem)
+plot(LigaInglaterra_equipo$gol_tem, LigaInglaterra_equipo$gtshot_sum, main="Desemepeño futbolístico de Liga Inglesa en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+abline(regresion_lineal3, col='red')
+smoothScatter(LigaInglaterra_equipo$gol_tem, LigaInglaterra_equipo$gtshot_sum, main="Desemepeño futbolístico de Liga Inglesa en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+abline(regresion_lineal3, col='red')
+summary(regresion_lineal3)
+coefficients(regresion_lineal3)
+```
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 325.241282 + 7.184528x 
+\end{equation}
+
+```{r}
+cor(LigaItalia_equipos$gol_tem, LigaItalia_equipos$gtshot_sum)
+regresion_lineal3<-lm(LigaItalia_equipos$gtshot_sum~ LigaItalia_equipos$gol_tem)
+plot(LigaItalia_equipos$gol_tem, LigaItalia_equipos$gtshot_sum, main="Desemepeño futbolístico de Liga Italiana en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+
+abline(regresion_lineal3, col='red')
+smoothScatter(LigaItalia_equipos$gol_tem, LigaItalia_equipos$gtshot_sum,  main="Desemepeño futbolístico de Liga Italiana en las temporada 2016-2020.",
+        xlab="Total de Goles  ",
+        ylab="Disparos al arco ",)
+
+abline(regresion_lineal3, col='red')
+summary(regresion_lineal3)
+coefficients(regresion_lineal3)
+```
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 247.198259 + 8.014516x 
+\end{equation}
+
+|<span style="color: #0CB7F2">Ligas</span>  |<span style="color: #0CB7F2">Correlación</span>   |
+|:--------|:---------:|
+| Alemana|0.970891
+| Españolo|0.9561872
+| Francesa|0.9301711
+| Inglesa|0.9793769
+| Italiana|0.9843356
+
+Se observa que la correlación de la selección Alemana, Española, Francesa, Inglesa e Italiana, con una correlación de 0.970891, 0.9561872, 0.9301711, 0.9793769 y 0.9843356, respectivamente. El valor se debe a la alta destreza  de cada uno de los jugadores en realizar disparos al arco contrario y la probabilidad de gol es demasiada alta. Además, los jugadores que se encuentran involucrados son los delanteros y volantes extremos, tienen una probabilidad alta de gol. No obstante, los jugadores con el rol de medio campista, normalmente se enfocan en generar asistencias pero a la vez pueden realizar disparos al arco que pueden terminar convirtiéndose en goles. Por ello, las ligas con más disparos al arco son las que contienen a los jugadores con más experiencia ofensiva.
+
+
+
+
+#Para identificar el comportamiento de cada equipo
+## Cantidad de amarillas y fauls que comete el equipo
+### Aquí aplica lo mismo si es por liga o por season.
+
+Liga Alemana
+Liga Espanola
+Liga Francesa
+Liga Inglesa
+Liga Italiana
+
+
+
+```{r}
+cor(ComportamientoLigaAlemanaa$gryellow_total, ComportamientoLigaAlemanaa$grfoul_total)
+regresion_lineal2<- lm(ComportamientoLigaAlemanaa$grfoul_total~ ComportamientoLigaAlemanaa$gryellow_total)
+plot(ComportamientoLigaAlemanaa$gryellow_total, ComportamientoLigaAlemanaa$grfoul_total,  main="Desemepeño futbolístico de Liga Alemana en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+
+smoothScatter(ComportamientoLigaAlemanaa$gryellow_total, ComportamientoLigaAlemanaa$grfoul_total,  main="Desemepeño futbolístico de Liga Alemana en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+summary(regresion_lineal2)
+coefficients(regresion_lineal2)
+
+```
+
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 22.019008  + 6.811046x 
+\end{equation}
+
+```{r}
+cor(ComportamientoLigaEspanola$gryellow_total, ComportamientoLigaEspanola$grfoul_total)
+regresion_lineal2<- lm(ComportamientoLigaEspanola$grfoul_total~ ComportamientoLigaEspanola$gryellow_total)
+plot(ComportamientoLigaEspanola$gryellow_total, ComportamientoLigaEspanola$grfoul_total,  main="Desemepeño futbolístico de Liga Espanola en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+
+smoothScatter(ComportamientoLigaEspanola$gryellow_total, ComportamientoLigaEspanola$grfoul_total,  main="Desemepeño futbolístico de Liga Espanola en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+summary(regresion_lineal2)
+coefficients(regresion_lineal2)
+
+```
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 50.770564 + 5.357622 x
+\end{equation}
+
+
+```{r}
+cor(ComportamientoLigaFrancesa$gryellow_total, ComportamientoLigaFrancesa$grfoul_total)
+regresion_lineal2<- lm(ComportamientoLigaFrancesa$grfoul_total~ ComportamientoLigaFrancesa$gryellow_total)
+plot(ComportamientoLigaFrancesa$gryellow_total, ComportamientoLigaFrancesa$grfoul_total,  main="Desemepeño futbolístico de Liga Francesa en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+
+smoothScatter(ComportamientoLigaFrancesa$gryellow_total, ComportamientoLigaFrancesa$grfoul_total,  main="Desemepeño futbolístico de Liga Francesa en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+summary(regresion_lineal2)
+coefficients(regresion_lineal2)
+```
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 63.640191 + 6.732527 x
+\end{equation}
+
+```{r}
+cor(ComportamientoLigaInglesa$gryellow_total, ComportamientoLigaInglesa$grfoul_total)
+regresion_lineal2<- lm(ComportamientoLigaInglesa$grfoul_total~ ComportamientoLigaInglesa$gryellow_total)
+plot(ComportamientoLigaInglesa$gryellow_total, ComportamientoLigaInglesa$grfoul_total,  main="Desemepeño futbolístico de Liga Inglesa en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+
+smoothScatter(ComportamientoLigaInglesa$gryellow_total, ComportamientoLigaInglesa$grfoul_total,  main="Desemepeño futbolístico de Liga Inglesa en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+summary(regresion_lineal2)
+coefficients(regresion_lineal2)
+
+
+```
+
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= 23.528300  +  6.533837x 
+\end{equation}
+
+
+```{r}
+cor(ComportamientoLigaItaliana$gryellow_total, ComportamientoLigaItaliana$grfoul_total)
+regresion_lineal2<- lm(ComportamientoLigaItaliana$grfoul_total~ ComportamientoLigaItaliana$gryellow_total)
+plot(ComportamientoLigaItaliana$gryellow_total, ComportamientoLigaItaliana$grfoul_total,  main="Desemepeño futbolístico de Liga Italiana en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+
+smoothScatter(ComportamientoLigaItaliana$gryellow_total, ComportamientoLigaItaliana$grfoul_total,  main="Desemepeño futbolístico de Liga Italiana en las temporada 2016-2020.",
+        xlab="Amonestaciones del arbitro ",
+        ylab="Total de faltas")
+abline(regresion_lineal2, col='blue')
+summary(regresion_lineal2)
+coefficients(regresion_lineal2)
+
+
+```
+
+Entonces tenemos la siguiente formula:
+\begin{equation}
+f(x)= -21.144657 + 6.024921 
+\end{equation}
+
+|<span style="color: #0CB7F2">Ligas</span>  |<span style="color: #0CB7F2">Correlación</span>   |
+|:--------|:---------:|
+| Alemana|0.9871623
+| Españolo|0.9872816
+| Francesa|0.9765433
+| Inglesa|0.9788313
+| Italiana|0.9765301
+
+
+Se observa que las correlaciones entre todas las ligas cuentan con una ligera variedad, como lo observamos en la tabla de arriba. El valor obtenido es debido al comportamiento de cada jugador provocando jugadas de mucho contacto provocando la amonestación de tarjetas amarillas o rojas durante el desarrollo de cada partido. Esto demuestra el comportamiento y el profesionalismo de cada uno de los jugadores. Asimismo, mantiene una relación directamente proporcional, si la cantidad de faltas respecto a la cantidad de amonestaciones por parte del arbitro. 
+
+# 8. Analisis Probabilistico
+
+### Modelos Probabilisticos
+
+
+```{r}
+estadistica_equipos%>%group_by(team) %>% summarise (total_goals= sum(goals),total_shots_OT = sum(shotsOnTarget), Proba_goles = round((total_goals/total_shots_OT), digits = 2), Proba_Atajadas = round(1-(total_goals/total_shots_OT), digits = 2)) %>% arrange(desc(total_goals)) ->IND_Efectividad
+IND_Efectividad
+```
+
+En esta tabla, podemos observar la probabilidad que tiene los equipos al anotar gol y de atajarlo. Es decir, de todos los intentos al arco rival(total_shots_OT) cuántos de estos fueron goles(total_goals) para el casos de la variable Proba_goles y la para el caso Proba_Atajadas sería el complemente de la variable anterior. 
+
+```{r}
+hist(IND_Efectividad$Proba_goles, main = "Efectividad de los equipos de futbol", xlab = "Probabilidad de gol")
+```
+```{r}
+shapiro.test(IND_Efectividad$Proba_goles)
+```
+Debido a que el p-value nos sale mayor que 0.05 el cual es nuestro intervalo de confianza podemos asumir que la distribución para la efectividad de goles por equipo se asemeja a una distribución normal.
+
+
+
+
+## Aplicación de axioma 3 para la probabilidad de agresividad
+
+
+Para calcular la probabilidad de agresividad , primero calculamos la probabilidad de obtener tarjeta amarilla y roja, por simplicidad y obtener un analisis en el proyecto hemos tomado esto 2 eventos como mutuamente excluyentes para poder aplicar el axioma 3 y obtener la probabilidad de agresividad mediante la suma.
+
+Tabla por equipos
+```{r echo = FALSE}
+estadistica_equipos%>%group_by(team) %>% summarise (total_fouls = sum(fouls,na.rm = TRUE), total_red_cards = sum(redCards, na.rm = TRUE), total_yellow_cards = sum(yellowCards,na.rm = TRUE), Prob_Agresividad_team = round(total_red_cards/total_fouls+total_yellow_cards/total_fouls, digits=2)) %>% arrange(desc(Prob_Agresividad_team))->IND_Agresividad_team
+IND_Agresividad_team
+```
+
+
+Tabla por ligas
+```{r echo = FALSE}
+estadistica_equipos%>%group_by(league) %>% summarise (total_fouls = sum(fouls,na.rm = TRUE), total_red_cards = sum(redCards, na.rm = TRUE), total_yellow_cards = sum(yellowCards,na.rm = TRUE), Prob_Agresividad_liga = round(total_red_cards/total_fouls+total_yellow_cards/total_fouls, digits=2)) %>% arrange(desc(Prob_Agresividad_liga))->IND_Agresividad_liga
+IND_Agresividad_liga
+
+```
+
+En esta tabla, podemos observar la agresividad de la liga, en el cual podría ser un indicador de que liga es más competitiva. Tenemos a La Liga como la más agresiva respecto a las tarjetas. Es decir, que es más probable tener más tarjetas tanta amarillas como rojas en La Ligas que en otras competiciones.
+
+Vemos en la tabla que los equipos con mayor probabilidad de convertir un gol son los que en su plantilla a lo largo de los años contaron con los mejores jugadores, tales como el Barcelona con Lionel Messi y Luis Suares; Real Madrid con Cristiano Ronaldo y Bayern Munich con Robert Lewandowszki.
+
+
+
+
+
+
+### Grafico de las probabilidades de gol de los delanteros por liga
+
+Debido a que la base de dato cuneta con las variables de probabilidades de concretar un gol y que una asistencia se convierta en gol para los jugadores de las 5 ligas, los agrupamos por las posiciones en las que juegan, Delanteros, medio campo, defensas.
+
+
+# Probabilidad de gol
+
+### Delanteros
+```{r}
+hist(Delanteros$xGoals,xlab = "Delanteros probabilidad de gol")
+```
+```{r}
+mean(Delanteros$xGoals)
+sqrt(var(Delanteros$xGoals))
+sd(Delanteros$xGoals)
+```
+
+Al realizar el experimento por teoría de una distribución exponencial, obtenemos que los valores de la media y desviación estándar son cercanos, casi similares lo que nos indica que es correcto afirmar que se asemeja a una distribución exponencial. 
+
+### Medio Campistas
+```{r}
+hist(MedioCampo$xGoals,xlab = "Mediocampistas probabilidad de gol")
+```
+```{r}
+mean(MedioCampo$xGoals)
+sqrt(var(MedioCampo$xGoals))
+```
+
+### Defensas
+```{r}
+hist(Defensas$xGoals,xlab = "Defensas probabilidad de gol")
+```
+```{r}
+mean(Defensas$xGoals)
+sqrt(var(Defensas$xGoals))
+```
+Podemos apreciar en la gráfica que del valor de 0.2 a 1 la distribución puede considerarse uniforme, entonces procedemos a realizar los siguientes experimentos para corroborarlo:
+```{r}
+DefensasU <- filter(Defensas, xGoals >=0.2)
+```
+```{r}
+mean(DefensasU$xGoals)
+(min(DefensasU$xGoals)+max(DefensasU$xGoals))/2
+```
+```{r}
+((max(DefensasU$xGoals)-min(DefensasU$xGoals))^2)/12
+var(DefensasU$xGoals)
+```
+Después de realizar la prueba, se puede corroborar que los valores de la varianza y la media son distintos a los teoricos, por lo tanto no se puede considerar una distribucion uniforme.
+
+# Probabilidad de un pase en convertirse en gol
+
+### Delanteros
+```{r}
+hist(Delanteros$xGoalsBuildup,main = "Delanteros",xlab = "Delanterps probabilidad de asistencia de gol")
+```
+```{r}
+mean(Delanteros$xGoalsBuildup)
+sqrt(var(Delanteros$xGoalsBuildup))
+```
+
+
+### Medio Campistas
+```{r}
+hist(MedioCampo$xGoalsBuildup,main = "Medio Campo", xlab = "Mediocampistas probabilidad de asistencia de gol")
+```
+```{r}
+mean(MedioCampo$xGoalsBuildup)
+sqrt(var(MedioCampo$xGoalsBuildup))
+```
+
+### Defensas
+```{r}
+hist(Defensas$xGoalsBuildup,main = "Defensas",xlab = "Defensas probabilidad de asistencia de gol")
+```
+```{r}
+mean(Defensas$xGoalsBuildup)
+sqrt(var(Defensas$xGoalsBuildup))
+```
+
+Despues de realizar las pruebas para distintas posiciones. La unica que se corroboro que se puede aproximar a un modelo de los estudiados en clases es la posicion de delantero, la cual cumple con la teoria de una distribucion exponencial, en el que la media y la desviacion estandar son iguales.
+
+
+## Fouls Equipos
+
+```{r}
+res2<-fit.cont(estadistica_equipos$fouls)
+```
+
+Segun la libreria por el valor de AIC la variable fouls por equipo presenta una distribucion Normal cuando comparamos su valor AIC con respecto a los otros modelos es el menor lo que indica que esa distribucion es la mejor aproximacion.
+
+
+## Tiros equipos
+
+```{r}
+res3<-fit.cont(estadistica_equipos$shots)
+```
+Mediante la prueba se obtuvo que la variable disparos de equipos por el valor del ks se obtiene que la distribucion de la variable tiros por equipos corresponde a una distribucion student. 
+
+# Bibliografia
+
+ - Technika. (2021). Football Database [Data set]. En Football and Betting Statistics of the European Top5 Leagues. https://www.kaggle.com/datasets/technika148/football-database

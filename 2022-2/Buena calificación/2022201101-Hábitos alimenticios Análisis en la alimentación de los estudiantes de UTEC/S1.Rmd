@@ -1,0 +1,524 @@
+---
+title: "S1 Presentación"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+---
+
+
+
+![](utec.png)
+
+# **Análisis en la alimentación de los estudiantes de UTEC**
+
+# Introducción
+
+La alimentación de los estudiantes universitarios afecta directamente con el rendimiento académico. Una dieta balanceada y ejercicio permitirá que el estudiante pueda desempeñarse de la mejor manera en sus estudios.
+
+## Relevancia
+
+Este tema llega a ser muy importante debido a que la alimentación es parte fundamental para un buen desempeño académico ya que el desgaste que se realiza para comprender las clases o desarrollar los proyectos grupales son altamente exigentes.Por ende buscamos recoger datos sobre los hábitos alimenticios de los alumnos de UTEC y así poder llegar a la conclusión si la alimentación de los estudiantes es la correcta para jóvenes que se encuentran en etapa universitaria.
+
+## Planificación
+
+- Instalamos las librerías para garantizar una correcta ejecución del proyecto:
+```{r warning=FALSE,message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(corrplot)
+library(fitdistrplus)
+library(lessR)
+library(plotrix)
+```
+
+-  Elaboramos un diagrama de gantt que indica el estado actual en el que se encuentra nuestro proyecto "Hábitos alimenticios en el retorno de las clases presenciales en UTEC"
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+tasks <- c("Plantear propuestas de proyecto","P0", "Reconocer variables", "Recolectar datos", "Describir las variables usando descriptores gráficos","P1","Describir variables aleatorias","Identificar relaciones entre las variables","Modelar problemas probabilísticos","P2")
+dfr <- data.frame(
+  name        = factor(tasks, levels = tasks),
+  start.date  = as.Date(c("2022-08-25","2022-08-29","2022-09-02","2022-09-20", "2022-09-27", "2022-10-06","2022-10-20","2022-11-01","2022-11-08","2022-11-16")),
+  end.date    = as.Date(c("2022-08-29","2022-09-02","2022-09-20", "2022-09-27", "2022-10-06","2022-10-20","2022-11-01","2022-11-08","2022-11-16","2022-11-18")),
+  Leyenda = c("Completado", "Completado", "Completado", "Completado","Completado","Completado","Falta","Falta","Falta","Falta")
+)
+
+ggplot(dfr, aes(x =start.date, xend= end.date, y=name, yend = name, color=Leyenda)) +
+  geom_segment(size = 6) +
+  xlab(NULL) + ylab(NULL)
+
+```
+# Datos
+
+## Recolección de datos
+
+**Proceso de recolección de datos:** Para la recolección de datos hemos entrevistado a los estudiantes de UTEC que se encontraban caminando fuera del horario de clases en los pasillos de la universidad, ademas de enviar las encuestas de manera virtual vía correo electrónico.
+
+**RStudio:** En primer lugar, cargamos los datos de nuestro estudio en un data frame inicial llamado DF:
+
+```{r echo=T, message=FALSE, warning=FALSE}
+DF <- read_csv("alimentacion_utec.csv")
+```
+
+Renombramos algunas variables a nombres mas cortos para facilitar la lectura y su manejo en R:
+
+```{r}
+DF <- dplyr::rename(DF,Edad = `1. ¿ Cuál es tu edad?`,
+       Ciclo = `2. ¿Qué ciclo te encuentras cursando?`,
+       Peso = `3.¿Cuál es tu peso actual?(kg)`,
+       Genero = `4. ¿Cuál es tu género?`,
+       Estatura = `5. ¿Cuál es tu estatura (cm)?`,
+       Gasto_virtual = `6. Cuando tenías clases semipresenciales, aproximadamente, ¿Cuál es el monto que gastabas en comida a la semana?`,
+       Gasto_presencial = `7. Cuando tenías clases presenciales, aproximadamente, ¿Cuál es el monto que gastabas en comida a la semana?`,
+       Cantidad_alimentos_virtual = `8.Cuando tenías clases virtuales o semipresenciales, aproximadamente, ¿Cuál era la cantidad de alimentos que consumía a la semana?`,
+       Cantidad_alimentos_presencial = `9.Actualmente en las clases presenciales, aproximadamente, ¿Cuál era la cantidad de alimentos que consumía a la semana?`,
+       Comida_rapída = `10. ¿Qué tan seguido consumes comida rápida?`,
+       Saciedad_hambre = `11. ¿La saciedad de tus alimentos a lo largo del día es suficiente para rendir correctamente en tus estudios académicos?`,
+       Tiempo_comer = `12. ¿Cuántos minutos demoras en terminar una comida principal?`,
+       Desayuno_Almuerzo = `13. Tiempo aproximado entre el consumo de tu desayuno y almuerzo en horas.`,
+       Almuerzo_Cena = `14. Tiempo aproximado entre el consumo de tu almuerzo y cena en horas.`,
+       Mayor_consumo = `15.¿ Cuál es el alimento con el mayor  consumo semanal ?`,
+       Tipo_comida = `16. ¿Qué tipo de comida consumes a diario?`)
+```
+
+
+
+## Población, muestra y muestreo
+
+-     Población :   Estudiantes de UTEC
+-     Muestra :   216 Estudiantes de UTEC que respondieron la encuesta   
+-     Muestreo :    Muestreo por conveniencia
+-     Unidad muestral :   Estudiante de UTEC
+
+
+## Variables
+
++------------------------+----------------------+-----------------------------------------------------------------+
+| Variables              | Tipo                 | Restricción                                                     |
++========================+======================+=================================================================+
+| Edad                   | Numérica → Discreta  | Numero entero positivo                                          |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Ciclo                  | Categórica → Ordinal | Número entero positivo menor o igual a 10                       |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Peso                   | Numérica → Continua  | Número real positivo mayor a 0 y menor a 120                    |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Genero                 | Categórica → Nominal | No numérico y sea ternario (Mujer, Hombre, Prefiero no decirlo) |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Estatura               | Numérica → Continua  | Número real positivo mayor a 0 menor a 200                      |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Gasto_virtual          | Numérica → Continua  | Número real positivo                                            |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Gasto_presencial       | Numérica → Continua  | Numero real positivo                                            |
++------------------------+----------------------+-----------------------------------------------------------------+
+|Cantidad_alimentos_     | Numérica → Discreta  | Número entero positivo                                          |
+|virtual                 |                      |                                                                 |
++------------------------+----------------------+-----------------------------------------------------------------+
+|Cantidad_alimentos_     | Numérica → Discreta  | Número entero positivo                                          |
+|presencial              |                      |                                                                 |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Comida_rápida          | Categórica → Nominal | No numérico                                                     |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Saciedad_hambre        | Categórica → Nominal | No numérico y sea binario (Sí y No)                             |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Desayuno_almuerzo      | Numérica → Continua  | Numero entero positivo                                          |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Almuerzo_cena          | Numérica → Continua  | Numero entero positivo                                          |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Tiempo_comer           | Categórica → Ordinal | Intervalos de tiempo                                            |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Mayor_consumo          | Categórica → Nominal | Valor Data                                                      |
++------------------------+----------------------+-----------------------------------------------------------------+
+| Tipo_comida            | Categórica → Nominal | Valor Data                                                      |
++------------------------+----------------------+-----------------------------------------------------------------+
+
+## Limpieza de base de datos
+
+En nuestros datos recolectados no existe los datos faltantes (NA); por tal motivo, no se realizará una limpieza de NA, ya que se colocaron como obligatorias todas las preguntas del Google Forms.
+
+```{r echo=T, message=T, warning=FALSE}
+sum(is.na(DF))
+```
+
+Se realizo una revisión en especifico a las respuestas en las que se debía agregar un valor desde el teclado, ya que encontramos que cuando la respuesta debe ser numérica había algunas respuestas en las cuales ingresaron letras de manera inadecuada.
+
+En la limpieza de nuestro Data Frame se eliminarán los datos que no vamos a emplear, es decir, aquellos datos predeterminados de la herramienta Google Forms. Este es **"Marca temporal"**, de esta manera, obtenemos el Data Frame final.
+
+# Análisis exploratorio
+
+Para el análisis exploratorio nos haremos algunas preguntas que tenemos que nacen a partir de asunciones previas. La primera pregunta exploratoria es ¿De dónde proviene la comida con la que se alimentan?
+
+Para responder esta pregunta veremos la distribución de la cantidad de los alumnos que respondieron de donde proviene su comida.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mode <- function(x) {
+   return(as.numeric(names(which.max(table(x)))))}
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(DF) +
+  aes(x = Tipo_comida) +
+  geom_bar(fill = "#4682B4") +
+  labs(
+    x = "Comidas en la Universidad",
+    y = "Encuestados",
+    title = "Comidas en la Universidad"
+  ) +
+  ggthemes::theme_base()
+```
+
+Los alumnos mayormente consumen comida de su casa, ya sea llevada a la universidad o no, nosotros definimos una comida como el hecho de comerlo en la hora del almuerzo
+Usaremos una tabla para saber exactamente cuanto es la cantidad exacta de cada comida
+```{r echo=FALSE, message=TRUE, warning=FALSE}
+table(DF$Tipo_comida)
+```
+Como podemos observar alrededor del 70.4% (152 personas) aproximadamente
+
+La siguiente pregunta es ¿Qué cantidad de alimentos consumían los estudiantes durante la virtualidad y presencialidad?¿Hubo un aumento o disminución entre los distintas modalidades?
+
+En primer lugar veremos la cantidad de alimentos que consumían los estudiantes en las clases presenciales, para ello haremos un gráfico de barras.
+
+```{r message=FALSE, warning=FALSE}
+x<-table(DF$Cantidad_alimentos_presencial)
+color=c("white","blue","orange","green","red","yellow","purple","black")
+barplot(x,xlab="cantidad de alimentos diarios",ylab="Frecuencia",main="Cantidad diaria de alimentos consumidos(clases presenciales)",col=color)
+```
+
+Podemos observar como, generalmente, los alumnos consumen generalmente entre 3 a 4 comidas diarias, con estas nos referimos comúnmente entre el desayuno,almuerzo,cena Y meriendas.
+
+
+Después de ver la cantidad de alimentos que consumían los estudiantes en las clases presenciales, ahora veremos durante las clases virtuales.
+```{r message=FALSE, warning=FALSE}
+z<-table(DF$Cantidad_alimentos_virtual)
+color=c("white","blue","orange","green")
+barplot(z,xlab="cantidad de alimentos diarios",ylab="Frecuencia",main="Cantidad diaria de alimentos consumidos(clases virtuales)",col=color)
+```
+
+Al igual como en las clases presenciales, la gran parte de la población durante las clases virtuales comían entre 3 a 4 comidas diarias para poder rendir correctamente durante un ciclo académico.
+
+Para responder la pregunta completa crearemos una variable donde podremos ver claramente la diferencia de alimentos consumidos en las distintas modalidades.
+
+```{r message=FALSE, warning=FALSE}
+k<-(DF$Cantidad_alimentos_presencial)-(DF$Cantidad_alimentos_virtual)
+DF$Diferencia_comidas<-k
+k<-table(k)
+color=c("white","blue","orange","green","red","yellow","purple","black")
+barplot(k,xlab="cantidad de alimentos",ylab="Frecuencia",main="Variación entre las comidas consumidas(presencial y virtual)",col=color)
+```
+
+Podemos notar que hay una gran cantidad de alumnos que no les afecto los diferentes tipos de modalidades de enseñanza con respecto a su alimentación; sin embargo también podemos notar que hay alumnos que ahora comen más en la presencialidad que en la virtualidad.
+
+
+Ya que tenemos las variables necesarias para hallar el MCI de los encuestados, queremos saber¿Aproximadamente los estudiantes tienen un buen MCI?
+
+Para responder la pregunta necesitaremos saber mas sobre la estatura y el peso de los encuestados.
+
+Para ver cuanto miden los estudiantes de la UTEC:
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print("Media o Promedio")
+round(mean(DF$Estatura),2)
+print("Mediana")
+round(median(DF$Estatura),2)
+print("Sd")
+round(sd(DF$Estatura),2)
+```
+Podemos notar que la estatura promedio de los estudiantes es de aproximadamente 165.3 cm, sin embargo hay que tener cuidado ya que la desviación estándar es de 9.6.
+
+Ahora, para saber sobre su peso:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print("Media o Promedio")
+round(mean(DF$`Peso`),2)
+print("Mediana")
+round(median(DF$`Peso`),2)
+print("Sd")
+round(sd(DF$`Peso`),2)
+```
+Podemos notar que el peso de los estudiantes de UTEC encuestados es de 64.49 kg, sin embargo hay que tener cuidado de este dato ya que la desviación estándar es de 11.85.
+
+Para responder a nuestra pregunta utilizaremos la siguiente ecuación $$IMC=Peso/(Estatura*Estatura)$$
+Y para saber si es saludable o no utilizaremos la siguiente tabla 
+
+![](descarga.png)
+
+Crearemos otra variable para saber el promedio general de IMC de los encuestados,recordando las unidades para hallar el IMC:
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+DF$IMC<-round((DF$`Peso`)/(DF$Estatura * 10^-2)^2,2)
+
+boxplot(DF$IMC,ylab="IMC")
+```
+Podemos observar como la media del IMC de los alumnos es aproximadamente 23 según el gráfico, sin embargo podemos hallarlo para saber con exactitud cuanto es.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print("Media o Promedio")
+round(mean(DF$IMC),2)
+print("Mediana")
+round(median(DF$IMC),2)
+print("Sd")
+round(sd(DF$IMC),2)
+```
+Podemos darnos cuenta entonces que los estudiantes de UTEC están en una clasificación buena frente a la tabla de IMC.
+
+## Descriptores Gráficos
+
+- Se realizará un histograma para representar el peso y la estatura de los
+estudiantes. Los histogramas nos permitirán observar la diferencia que hay entre aplicaciones con respecto a la media y mediana, tomando en cuenta el número de observaciones realizadas. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+hist(DF$Estatura,
+     col = "yellow",
+     border = "black", 
+     prob = FALSE,
+     xlab = "estatura(cm)",
+     main = "Histograma de la estatura de estudiantes"
+     )
+
+abline(v = mean(DF$Estatura)  , col ="royalblue", lwd = 2)
+abline(v = median(DF$Estatura), col = "red"     , lwd = 2)
+legend(x = "topright", c( "Promedio", "Mediana"), col = c( "royalblue", "red"), lwd = c(2, 2))
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+  hist(DF$`Peso`,
+     col = "orange",
+     border = "black", 
+     prob = FALSE,
+     xlab = "Kilogramos(kg)",
+     main = "Histograma del peso de los alumnos"
+     )
+
+abline(v = mean(DF$`Peso`)  , col ="royalblue", lwd = 2)
+abline(v = median(DF$`Peso`), col = "red"     , lwd = 2)
+legend(x = "topright", c( "Promedio", "Mediana"), col = c( "royalblue", "red"), lwd = c(2, 2))
+
+```
+- Se realizara un diagrama circular para saber el consumo de comida rápida en los alumnos de UTEC, el cual debería de haber un bajo consumo mayoritario por como salio el IMC, también se utilizara para poder saber la preferencia de los alimentos que consumen
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+T_comida_r <- table(DF$Comida_rapída)
+PieChart(T_comida_r, hole = 0 ,values= "%", data = DF$Comida_rapída, main="Consumo de cómida rápida",
+         fill = c("brown","blue","red","pink","green") )
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+T_comida_r <- table(DF$Mayor_consumo)
+PieChart(T_comida_r, hole = 0 ,values= "%", data = DF$Comida_rapída, main="Alimento que más se consume",
+         fill = c("brown","blue","red","pink","green","skyblue") )
+```
+
+
+- En respuesta a los ajustes de acuerdo al nuevo horario de disponibilidad
+para el consumo de alimentos de los alumnos, la cual influye de
+manera directa al rendimiento académico y bienestar en general de los
+estudiantes, nos guiaremos a partir del siguiente gráfico:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+color = c("red", "green")
+barplot(table(DF$Saciedad_hambre), xlab = "Saciedad", ylab = "Frecuencias",main = "Saciedad de los estudiantes con su rutina alimentaria", col = color)
+
+```
+
+Como podemos observar en el gráfico un total de 167, representando esto
+un 78.4% de los estudiantes se encuentran lo suficientemente saciados a
+lo largo del día para rendir sus labores académicas de forma eficaz, sin
+embargo, dato importante, un 21,6% no se hallan en esa misma situación.
+
+## Patrones o posibles relaciones entre variables numéricas y categóricas
+
+### Variables numéricas
+
+El siguiente gráfico de dispersión pretende mostrar una relación entre la cantidad de dinero que se gasto con la cantidad de alimentos(los dos en modalidad de presencial)
+
+```{r echo=FALSE, message=TRUE, warning=FALSE}
+
+plot(DF$Gasto_presencial~DF$Cantidad_alimentos_presencial,main="Relación entre el gasto y la cantidad de alimentos(presencial)",xlab="Cantidad de alimentos",ylab="Presupuesto diario")
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print("Covarianza")
+cov(DF$Cantidad_alimentos_presencial,DF$Gasto_presencial)
+print("Correlación")
+cor(DF$Cantidad_alimentos_presencial,DF$Gasto_presencial)
+```
+
+- Podemos observar que la gente que tiene un mayor presupuesto no compran una gran cantidad de alimentos,y que aproximadamente un 50% de alumnos tienen un presupuesto no mayor de 100 soles
+
+- Al sacar la covarianza y esta salir positiva, podemos ver que estas dos variables crecen en un mismo sentido, pero no están estrechamente relacionadas por tener una correlación no tan cercana a uno.
+
+### Variable categórica y numérica
+
+En el siguiente gráfico se planea mostrar si existe alguna relación entre la saciedad del hambre con el tiempo con el que se demora en almorzar después de desayunar
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mosaicplot(DF$Desayuno_Almuerzo~DF$Saciedad_hambre,main = "Saciedad del hambre con el tiempo entre el desayuno y almuerzo",col = c("red","green"), xlab = "Tiempo entre el desayuno y almuerzo", ylab = "Saciedad de hambre") 
+```
+
+
+-Podemos observar como los alumnos que almuerzan luego de 5 horas después desayunar logran obtener una mayor saciedad con los alimentos ya que este es el periodo de tiempo adecuado en el cual el cuerpo ya debió haber digerido el alimento consumido en la mañana y por ende la saciedad es máxima, sin embargo hay alumnos que tambien no estan saciados, y puede ser debido a que tengan un desorden en sus horarios de comida.
+
+## Regresión lineal 
+
+Para esto agarraremos 2 variables numéricas 
+
+```{r echo=FALSE, message=TRUE, warning=FALSE}
+X_gasto <-DF$Gasto_presencial
+Y_gasto <-DF$Cantidad_alimentos_presencial
+pairs(X_gasto~Y_gasto)
+datosregr <-data.frame("x"=X_gasto,"y"=Y_gasto)
+resultados<-lm(datosregr$y~datosregr$x,data=datosregr)
+resultados
+```
+
+- Interpretación:
+  -  Intercepto: Beta-0=3.5441804
+  -  Pendiente=Beta-1=0.0009754
+  -  modelo lineal:
+  -  ==> Y=3.5441804+0.0009754*X....."ecuación de regresion simple"
+  -  Ejemplo de la ecuación:
+     Si los gastos que realizados en clases presenciales es de 100 soles,la cantidad de alimentos que      lograra consumir ese día seria: 
+     - Y=3.5441804+0.0009754*(100)=3.6417204
+
+TABLA DE ERRORES
+```{r echo=FALSE, message=TRUE, warning=FALSE}
+tablita<-data.frame("x"=X_gasto,"y"=Y_gasto,"y-estimado"=3.5441804+0.0009754*X_gasto)
+plot(tablita$x~tablita$y.estimado)
+```
+
+
+# Análisis probabilístico
+
+## Modelo probabilistico Binomial
+
+Los nutriologos de UTEC recomiendan que para que los estudiantes universitarios rindan de manera satisfactoria en sus clases presenciales deben consumir al menos 5 comidas al día para mantenerse activos durante todo el día.¿Cual es la probabilidad de que de 40 estudiantes elegidos al azar, por lo menos 10 sigan esta recomendación?
+
+```{r }
+t<-DF$Cantidad_alimentos_presencial
+var<-nrow(DF)
+var
+data1<-table(t)/var
+barplot(data1)
+data1
+```
+
+ **P(éxito)** : 0.19248826  
+ **P(fracaso)** : 0.807511737  
+ **X** : Número de personas que cumplen la recomendación en una muestra de 40 personas.  
+ **n** : Número de personas elegidas al azar   
+
+```{r }
+print("Probabilidad hallada")
+dbinom(10,40,0.192488263,F)
+
+```
+
+- Podemos decir que, al ser una probabilidad baja, de menos del 1% del total, entonces podemos inferir de que en su gran mayoría los estudiantes no cumplen las recomendaciones del nutricionista y por lo cual no podrán rendir de manera adecuada en dias de alta exigencia durante sus clases presenciales en UTEC.  
+
+## Modelo probabilistico geométrico
+
+Según los gastroenterologos, el intervalo de tiempo que se debe tener entre cada comida principal del día debe ser de 6 horas ya que, al superar este tiempo los jugos gástricos desciende al estomago que al encontrarse vació termina quemando sus paredes y en un futuro genera una gran cantidad de enfermedades.¿Cual es la probabilidad de que de 60 alumnos elegidos al azar, el quinto estudiante elegido sea el primero en cumplir esta recomendación para el intervalo entre su desayuno y almuerzo?
+
+
+```{r }
+print("Probabilidad hallada")
+dgeom(4,0.225352113)
+
+```
+ **P(éxito)** : 0.225352113  
+ **P(fracaso)** : 0.774647887  
+ **Y** : Número de fracasos hasta que el quinto estudiantes sea el primero en cumplir la recomendación  
+ 
+- Podemos decir que, al ser una probabilidad baja, de 8.12% del total, entonces podemos inferir de que en su gran mayoría los estudiantes de UTEC tienden a comer antes o después del intervalo recomendado por los gastroenterólogos.Estos estudiantes pueden en un futuro contar con enfermedades al estomago por sus malos hábitos alimenticios que terminaran perjudicando su propia salud.
+
+## Modelo probabilistico Uniforme
+
+Como podemos observar gracias a las encuestas realizadas, las estaturas recolectadas de los alumnos de la Universidad de Ingeniería y Tecnología tienen una distribución uniforme, es decir, U(140, 190).
+
+Supongamos que llega un alumno de intercambio a)¿Qué probabilidad tiene de obtener una estura entre 160 y 190? b)¿Cuál es la estatura que espera el estudiante?
+
+**Variable** ==> **X**:Estatura U[160:190]  
+
+- **_SOLUCIÓN AL PROBLEMA a_:**
+
+Se desea P(160<=X<=190)  
+
+**Nota** : P(c<=X<=d)=P(X<=d)-P(X<=c)
+```{r warning=FALSE, echo=FALSE}
+
+print("Probabilidad hallada")
+punif(190,140,190)-punif(160,140,190) 
+
+```
+- **_SOLUCIÓN AL PROBLEMA b_:**
+
+Se desea hallar E(X) = (a+b)/2
+
+```{r warning=FALSE, echo=FALSE}
+
+print("Valor esperado")
+(140+190)/2
+
+```
+  
+## Propiedad de teorema de límite central
+
+Según las encuestas realizas en la Universidad de Ingeniería y Tecnología el peso promedio de los 216 estudiantes es de 64.49 kg y la mayoría de ellos presentan una saciedad conforme para rendir en sus estudios. Por cálculos realizados anteriormente se conoce que la desviación estándar es de 11.85. Si seleccionamos a 100 estudiantes. a)¿Cuál es la probabilidad de que el peso medio de esa muestra esté entre 61 y 63 kg?, b)¿Cuál es el valor máximo de la media muestral para tener una probabilidad de ocurrencia de 20%?
+
+ **Notas**: P(A<x<B)=P(X<B)-P(x<A)
+
+- **_SOLUCIÓN AL PROBLEMA a_:**
+
+  - **Datos**  
+  
+    - u=64.49kg  
+    - σ=11.85(Desviación estándar)  
+    - n=100  
+    - σx=11.85/sqrt(100)=1.185  
+
+```{r warning=FALSE}
+round(pnorm(63,64.49,1.185),3)
+```
+
+```{r warning=FALSE}
+round(pnorm(61,64.49,1.185),3)
+```
+Por lo tanto 0.104-0.002=0.102
+
+Deducimos que 0.102 es la probabilidad de que el peso medio de esa muestra este entre 61 y 63 kilos
+
+
+- **_SOLUCIÓN AL PROBLEMA b_:**
+
+```{r }
+qnorm(0.2,64.49,1.185)
+```
+
+Está función muestra el valor máximo de la media muestral para tener una probabilidad de ocurrencia de 20%
+
+
+# Conclusiones
+
+-  El primer análisis que podemos realizar es que mientras mayor es el intervalo de tiempo entre cada comida, ya sea desayuno, almuerzo o cena, aumentará también la cantidad de alumnos que sacian su hambre y por ende tendrán un rendimiento académico eficiente. Esto lo podemos saber gracias al mosaico entre la saciedad de hambre y el tiempo que tardan entre cada comida.
+
+- Podemos observar que casi en su totalidad de los encuestado tienen una buena salud o no están con sobrepeso, esto se puede saber gracias al IMC y apreciarlo mejor en un boxplot
+
+- Con el presente proyecto se identificaron los modelos estadísticos que seguían cada una de variables y también  los modelos estadísticos de las variables con una relación entre sí, se desarrollaron problemas para el calculo de las probabilidades en diferentes situaciones en los cuales se tuvo que identificar las funciones determinadas para cada caso, y por último, se justificó con las gráficas que tiene tanto datos probabilísticos como los datos de la muestra.
+
+- Sabemos que las probabilidades no son precisas por lo que se puede notar en las gráficas alguna diferencias mínimas por lo que podemos decir que si nos dan valores muy cercanos a lo buscamos.
+
+
+
+
+
+
+
+

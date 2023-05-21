@@ -1,0 +1,726 @@
+---
+title: "**Estudio estadistico del registro Nacional de plantaciones forestales 2015 - 2018**"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: no
+    theme: readable
+---
+
+```{r echo =FALSE}
+library(tidyverse)
+library(modeest)
+library(readr)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(modeest)
+library(stringr)
+library(ggthemes)
+library(fitdistrplus)
+```
+
+# <span style="color:black">  **INTRODUCCIÓN** </span> 
+
+**Relevancia**
+
++  El tema en la cual hemos investigado es muy importante para la sociedad debido a que la deforestación daña a 
+los ecosistemas indiscriminadamente, es también un factor considerable del cambio climático, nos priva de todos
+los servicios que nos brindan los bosques, así como también, a las especies que en ellos habitan, debido a ello 
+es que las  plantaciones  forestales son necesarias para preservar los ecosistemas, así como para evitar la 
+reducción y posible desaparición de especies en peligro y batallar la desertificación, promover actividades que 
+fijan dióxido de carbono, disminuir la erosión en suelos con pendientes, mejorar el aspecto paisajista, ya que 
+son estos los que identifican al país, así como también, aportan al medio ambiente.
++ Las plantaciones forestales también suelen restaurar tierras previamente degradadas y  también pueden restaurar muchos servicios ecosistémicos.
+
+**Objetivos**
+
+ + Determinar relaciones o patrones entre las variables de la base de datos.
+ + Analizar las variables con descriptores estadísticos.
+ + Analizar las variables de con  modelos  probabilisticos.
+
+# <span style="color:black"> **DATOS**</span>  
+
+
+**RECOLECCIÓN DE DATOS**
+  
++ Para obtención de los datos recopilados necesarios para el presente proyecto, decidimos ubicar una base de datos en una fuente reconocida, denominada Plataforma Nacional de Datos Abiertos, ello lo hicimos con la finalidad de no llegar a realizar una encuesta sobre el tema ya que llevaría un gasto inmenso, tanto económico como de tiempo lo cual es inviable respecto al tiempo que se tiene para presentar el trabajo.
+
++ La base de datos obtenida tiene por nombre: Registro Nacional de Plantaciones Forestales por Especies. Fue elegida debido  a la base de datos completos que contiene y que ha sido extraída desde una fuente confiable como lo es la base de datos del gobierno del Perú. 
+
+
+  
+**Población**
+
++ Nuestra población es determinada por las regiones del Perú, en las cuales encontraremos, 20 departamentos, estos son escogidos por el tiempo de plantaciones que han hecho, siendo nuestra unidad de muestra el tipo de planta.
+
+
+**Muestra**
+
++ Para nuestra Muestra llegamos a usar una base de datos, la cual presenta 14587 datos.
++ La base de datos tiene como principal unidad muestral a cada plantación en la cual lo representa con un ID.
+
+**Muestreo**
+
++ Para nuestro muestreo, se usa primero los departamentos, pero recordemos que se tiene que limitar así que se llega a ver en la base datos hasta las provincias, por otro lado averiguamos los grupos o personas que llegaron a plantar, llegando a obtener resultados que al final se podrán juntar y así sacar conclusiones de quienes contribuyeron más y también de qué tipo de planta se colocó en mayor cantidad  por lo que se hará un muestreo estratificado debido a que se seleccionan los datos que se necesite de acuerdo a la investigación planteados.
+
+
+**Variables propuestas**
+ 
+| Variables            |Descripción de variables                                     |Tipo                  | Restricciones
+|----------------------|-------------------------------------------------------------|----------------------|---------------------------------|
+|ID_PLANTACION         |Código identificador en el Registro Nacional de Plantaciones |Categórica → Nominal  |Número categórico                |
+|PERIODO               |Periodo es el año en que se otorgó el certificado de         |Categórica  → Ordinal |Entero no negativo               |
+|                      |inscripción en el Registro Nacional de Plantaciones.         |                      |                                 |
+|DEPARTAMENTO          |Departamento donde se realizo  la plantación.                |Categórica → Nominal  |Departarmentos del Perú          |
+|PROVINCIA             |Provincia donde se realizo  la plantación.                   |Categórica → Nominal  |Provincias del Perú              | 
+|DISTRITO              |Distrito donde se realizo  la plantación.                    |Categórica → Nominal  |Distritos del Perú               |
+|ARFFS                 |Autoridades Regionales Forestales y de Fauna Silvestre       |Categórica → Nominal  |ATFFS Y GORE                     |
+|UBIGEO                |Código de ubicación geográfica en el Perú.                   |Categórica → Nominal  |Número categórico                |
+|FINALIDAD             |Puede tomar los siguientes valores: Producción, Restauración |Categórica → Nominal  |Producción                       |
+|                      | y Protección.                                               |                      |                                 |
+|NUMERO_CERTIFICADO    |Número de certificado es igual a una inscripción             |Categórica  → Nominal |Entero no negativo               |
+|                      |de plantación.                                               |                      |                                 |
+|TITULAR               |Es una persona natural o jurídica que realiza la inscripción |Categórica → Nominal  |Persona natural o jurídica       |
+|                      |de la Plantación en el Registro Nacional de Plantaciones.    |                      |                                 |
+|TIPO_PERSONA          |Tipo de Personas es persona natural o jurídica               |Categórica → Nominal  |Persona natural o jurídica       |
+|TIPO_DOCUMENTO        |Tipo de Documento puede tomar diferentes valores:            |Categórica → Nominal  |DNI, RUC o Carnet de Extranjería |
+|                      |DNI, RUC o Carnet de Extranjería.                            |                      |                                 |
+|NUMERO_DOCUMENTO      |Número de Documento puede tomar diferentes valores:          |Categórica → Nominal |Entero no negativo               |
+|                      |DNI, RUC o Carnet de Extranjería.                            |                      |                                 |
+|REGIMEN_TENENCIA      |Es el ámbito geográfico donde se inscribe la plantación.     |Categórica → Nominal  |PREDIO PRIVADO, COMUNIDAD NATIVA |
+|TIPO_PLANTACION       |Tipo de Plantación inscrita en el Registro                   |Categórica → Nominal  |ARBOLES,CEPAS,MATAS              |
+|                      |Nacional de Plantaciones.                                    |                      |                                 |
+|ESPECIE               |Nombres de las especies registradas para la plantación.      |Categórica → Nominal  |Eucalyptus grandis,Pinus         |
+|                      |                                                             |                      |tecunumanii,Phyllostachys        |
+|                      |                                                             |                      |aurea,Guazuma crinita,etc        |
+|SUPERFICIE_PLANTACION |La Superficie en hectáreas corresponde al tamaño de la       |Numérica   → Continua |Un real positivo, hectáreas                  |
+|                      |plantación total,la cual puede tener una o varias especies.  |                      |                                 |
+|FECHA_CORTE           |Es la fecha en que se publica la información en el           |Categórica → Discreta |Entero no negativo               |
+|                      |Portal de Datos Abiertos.                                    |                      |                                 |
+|                      |                                                             |                      |                                 |
+
+
+
+  
+**Limpieza de base de datos**
+
+```{r echo =FALSE}
+DF<-read_csv("DataSetPlantaciones.csv",show_col_types = FALSE)
+```  
+***Datos: ***
+
+```{r echo =FALSE}
+sum(is.na(DF)) #Suma la cantidad de datos incompletos
+sum(!is.na(DF)) #indica los datos completos. 
+```
+
+
++ En la limpieza de la base de datos solo tenemos un dato faltante porque nuestra data es adecuada para el estudio y que la información brindada de esta es representativa y completa. Así mismo, los datos contenidos en la base de datos cumple con los objetivos propuestos del proyecto, puesto que contiene con referencia del registro Nacional de plantaciones forestales 2015 – 2018.
+
+
+***Casos: ***
+
+```{r echo =FALSE}
+sum(complete.cases(DF)) # casos completos
+sum(!complete.cases(DF)) # casos incompletos
+```
++ En la base de datos solo se encontro un caso incompleto, por el dato faltante.
+
++ En conclusión nuestra base de datos es adecuada para el estudio por que solo tenemos un datos faltante la cual no perjudica nuestro estudio.
+
+# <span style="color:black"> **ANÁLISIS DESCRIPTIVO**</span> 
+
+***Departamentos***
+
+```{r echo =FALSE}
+table(DF$TX_DEPARTAMENTO) 
+
+```
+
+```{r echo =FALSE}
+mlv(DF$TX_DEPARTAMENTO, method = "mfv")
+```
+ 
+
++ De acuerdo a los datos recopilados en la variable departamento, se ha identificado que, hay un total de 4796 plantaciones, el departamento con mayor cantidad de plantaciones es San Martín, así como el menor es SAN MARTIN, por los datos analizados se encuentra que donde hay mayor cantidad de plantaciones es en los departamentos productores. En su mayoría estos son departamentos son de la región denominada como la selva.
+
+
+
+```{r echo =FALSE, fig.cap="Gráfico 1: Densidad de plantaciones por departamento"}
+dep = sort(unique(DF$TX_DEPARTAMENTO))
+f1 = length(filter(DF, TX_DEPARTAMENTO == "AMAZONAS")$TX_DEPARTAMENTO)
+f2 = length(filter(DF, TX_DEPARTAMENTO == "ANCASH")$TX_DEPARTAMENTO)
+f3 = length(filter(DF, TX_DEPARTAMENTO == "APURIMAC")$TX_DEPARTAMENTO)
+f4 = length(filter(DF, TX_DEPARTAMENTO == "AREQUIPA")$TX_DEPARTAMENTO)
+f5 = length(filter(DF, TX_DEPARTAMENTO == "AYACUCHO")$TX_DEPARTAMENTO)
+f6 = length(filter(DF, TX_DEPARTAMENTO == "CAJAMARCA")$TX_DEPARTAMENTO)
+f7 = length(filter(DF, TX_DEPARTAMENTO == "CUSCO")$TX_DEPARTAMENTO)
+f8 = length(filter(DF, TX_DEPARTAMENTO == "HUANCAVELICA")$TX_DEPARTAMENTO)
+f9 = length(filter(DF, TX_DEPARTAMENTO == "HUANUCO")$TX_DEPARTAMENTO)
+f10 = length(filter(DF, TX_DEPARTAMENTO == "ICA")$TX_DEPARTAMENTO)
+f11 = length(filter(DF, TX_DEPARTAMENTO == "JUNIN")$TX_DEPARTAMENTO)
+f12 = length(filter(DF, TX_DEPARTAMENTO == "LA LIBERTAD")$TX_DEPARTAMENTO)
+f13 = length(filter(DF, TX_DEPARTAMENTO == "LIMA")$TX_DEPARTAMENTO)
+f14 = length(filter(DF, TX_DEPARTAMENTO == "LORETO")$TX_DEPARTAMENTO)
+f15 = length(filter(DF, TX_DEPARTAMENTO == "MADRE DE DIOS")$TX_DEPARTAMENTO)
+f16 = length(filter(DF, TX_DEPARTAMENTO == "MOQUEGUA")$TX_DEPARTAMENTO)
+f17 = length(filter(DF, TX_DEPARTAMENTO == "PASCO")$TX_DEPARTAMENTO)
+f18 = length(filter(DF, TX_DEPARTAMENTO == "SAN MARTIN")$TX_DEPARTAMENTO)
+f19 = length(filter(DF, TX_DEPARTAMENTO == "UCAYALI")$TX_DEPARTAMENTO)
+basetabla <- data.frame(departamento = dep, Densidad = c(f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19))
+ggplot(data =basetabla,aes(y =reorder(departamento,Densidad), x =Densidad),horizontal = TRUE)+ geom_bar(fill="GREEN", stat = "identity", position= "dodge" ) + labs (x = "Cantidad de plantaciones" , prob= TRUE, y ="DEPARTAMENTOS", main = "Gráfico 1: Densidad de plantaciones por departamento") 
+```
+  + Del gráfico 1 se puede identificar que la mayoría de plantaciones se realizaron en las zonas de la selva, siendo los principales departamentos San Martin, Huánuco y Junin.
+
+***Periodo***
+
+```{r}
+table(DF$NU_PERIODO)
+```
++ Periodo es el año en que se otorgó el certificado de inscripción en el Registro Nacional de Plantaciones. 
+
+```{r}
+mlv(DF$NU_PERIODO, method = "mfv")
+```
+
++ El año que se otorgó el certificado de inscripción en el Registro Nacional de Plantaciones fue en el 2018.
+
+
+***Provincia***
+
+```{r}
+mlv(DF$TX_PROVINCIA, method = "mfv")
+```
+
++ De acuerdo a los datos recopilados en la variable Provincias,se ha identificado que, las provincias que muestran un mayor índice de plantaciones en su mayoría son productores de insumos agrícolas.
+
+***Distrito***
+
+```{r echo =FALSE}
+mlv(DF$TX_DISTRITO, method = "mfv") 
+```
+  
+
++ En base a los datos analizados se puede identificar que las plantaciones se encuentran repartidos de forma casi equitativa, siendo en intervalos entre 1-40 e intervalos entre 200-300. El distrito con mayor plantación es Pachiza, distrito que se encuentra en el departamento de San Martín. 
+DISTRITO
+
+
+
+***ARFFFS***
+
+```{r echo =FALSE}
+table(DF$TX_ARFFS )
+```
+
++ Mediante los datos analizados en esta variable, se llega a entender que la ATFFS(Administraciones Técnicas forestales y de Faunas silvestres) Selva Central tiene mayor cantidad de plantaciones en el Perú. 
+ARFFS 
+
+
+
+***Finalidad***
+
+
++-----------------------------------+
+|PRODUCCIÓN|PROTECCIÓN|RESTAURACIÓN | 
+|----------|----------|-------------|
+|‎ 14459   |‎ ‎ 95    |     31      |
++-----------------------------------+
+
+
++ Analizando los datos se puede indicar que la mayor parte de las plantaciones son para la "producción", ello podría indicar que en el país se está priorizando en luego utilizar para madera, por otro lado tenemos que la finalidad de restaurar es menor cantidad, mas no indica que se haya dejado de lado los otros factores, hace falta un análisis de más datos alrededor de este tema.
+
+
+***Tipo de persona***
+
+
+```{r echo =FALSE}
+table(DF$TX_TIPO_PERSONA)
+```
+Con los datos mostrados se puede indicar que, en su mayoría, quienes realizan las plantaciones en el Perú son personas independientes, con los datos anteriormente obtenidos se puede concluir que gran parte de estos son agricultores, mientras que en las personas jurídicas, se puede indicar que parte de estas son gremios agricultores o pueblos que actúan como uno solo respecto a este escenario. 
+
+
+```{r}
+Tipo_Persona <- table(DF$TX_TIPO_PERSONA)
+p <- barplot(Tipo_Persona,
+        col = 1:dim(Tipo_Persona),       # para establecer el número de diferentes colores                                       (=diferentes valores)
+        space = 0,                    # no espacio entre las barras
+        horiz = F,                    # orientación de las barras
+        density = 1000 ,                # trama de las barras (se puede modificar el ángulo con                                     el argumento angle)
+        ylim = c(0,15100)
+        )
+
+title("Grafico de tipos de persona", xlab= "Tipos de Persona")
+text(p[,1],Tipo_Persona,labels=Tipo_Persona, pos=3,cex=0.75)
+```
+
+  + Del gráfico, se puede identificar que la mayoría de tipo de persona que pidio la adquisición para la plantación es la persona natural, con lo que se puede dar una conclución que en su gran parte de estos son agricultores, mientras que en las personas jurídicas, se puede indicar que parte de estas son gremios agricultores o entidades empresariales que hay una minoria que actúan como uno solo respecto a este escenario.
+
+***Tipo de régimen de tenencia***
+
+```{r echo =FALSE}
+table(DF$TX_REGIMEN_TENENCIA)
+```
++ Al igual que los datos de la variable anterior, se puede identificar con mayor claridad que, quienes realizan mayor cantidad de plantaciones son las personas independientes, seguidos de comunidades nativas y/o campesinas, ello nos ayuda a entender cómo se reparten estas plantaciones a través del Perú.
+TX_REGIMEN_TENENCIA
+
+
+```{r}
+
+pie(table(DF$TX_REGIMEN_TENENCIA), labels=table(DF$TX_REGIMEN_TENENCIA), col= c("red", "yellow", "blue", "green"))
+legend("topleft", legend = c("Comunidad Campesina", "Comunidad Nativa", "Predio Privado", "Dominio Publico"),
+       fill =  c("red", "yellow", "blue", "green"))
+title("Gráfico circular del Régimen de Tenencia")
+
+```
++ En el grafico, se identifica con mayor claridad que quienes realizan mayor cantidad de plantaciones son las personas predio privado, seguidos de comunidades nativas,lo cual da a entender cómo se reparten estas plantaciones a través del Perú. TX_REGIMEN_TENENCIA
+
+***Tipo de plantación***
+
+```{r echo =FALSE}
+
+table(DF$TX_TIPO_PLANTACION)
+
+```
+
++ se identifica que 13981 son plantaciones tipo Arboles, los cuales tienen la de mayor presencia
+31 son de tipo cepas
+564 tipo matas
+Con ello se puede determinar que en el Perú, se toma en mayor importancia lo que son árboles.
+
+
+```{r}
+
+TIPO_PLANTACION <- table(DF$TX_TIPO_PLANTACION)
+p <- barplot(TIPO_PLANTACION,
+        col = 1:dim(TIPO_PLANTACION),       # para establecer el número de diferentes colores                                       (=diferentes valores)
+        space = 0,                    # no espacio entre las barras
+        horiz = F,                    # orientación de las barras
+        density = 10 ,                # trama de las barras (se puede modificar el ángulo con                                     el argumento angle)
+        ylim = c(0,14850)
+        )
+
+title(" GRAFICO DE TIPO DE PLANTACIÓN", xlab= "Tipo de Arboles")
+text(p[,1],TIPO_PLANTACION,labels=TIPO_PLANTACION, pos=3,cex=0.75)
+```
+
++ En el grafico, se identifica que el tipo de árboles com mayor plantación es el los árboles, los cuales tienen la de mayor presencia. Asi mismo se observa que  la arborescentes son las menos plantadas. Por lo que con esa información se puede determinar que en el Perú, se toma en mayor importancia lo que son árboles.
+
+***Tipo de especie***
+
+```{r echo =FALSE}
+mlv(DF$TX_ESPECIE, method = "mfv") 
+```
+
+
++ De acuerdo a los datos registrados, la planta con mayor índice de plantación es "Guazuma crinita", una especie de árbol que se encuentra en el amazonas, ello nos da a entender que buena parte de las plantaciones se encuentra en esta zona del Perú, hecho que concuerda con los datos anteriormente analizados.
+TX_ESPECIE
+
+***Número de superficie de plantación***
+
+```{r echo =FALSE}
+"Número de superficie de plantación"
+summary(DF$NU_SUPERFICIE_PLANTACION)
+```
+  
+
+
++ Las superficies de plantación se encuentran entre los rangos de 0.010 ha(hectáreas), como mínimo y 1006.190 ha como máximo. La superficie promedio utilizada es de 7.248 ha, el primer cuartil encierra un valor de 0.930 ha, mientras que el tecer cuartil indica 5.020 ha. La mediana en la base es de 2 ha.
+
+
+```{r echo =FALSE}
+stripchart(DF$NU_SUPERFICIE_PLANTACION, method = "jitter", pch =19,col = "green")
+
+```
+     
+
+ + A partir de este gráfico, se puede ver que el tamaño de superficie que corresponde a las especies muestra que la mediana es de 2.00 hectáreas. La mayoría de la superficie usada por especie esta entre 0.930 Ha y 5.020, con los puntos verdes podemos observar que algunas especies usan menor superficie como 0.010 y otros que usan mayor superficie como 1000. 
+
+**Análisis de patrones y tendencias**  
+
+ + Mediante lo analizado entre las variables y los gráficos de estos se ha encontrado un patrón de tendencia en las zonas de plantación, siendo mayormente las regiones de la selva donde más se ha encontrado las plantaciones, a su vez se ha encontrado que la gran mayoría de plantaciones son de producción, siendo todo esto indicador de que en la selva es donde se realizan más plantaciones y a su vez la gran mayoría son por parte de productores.
+
+
+
+
+# <span style="color:black"> **ANÁLISIS PROBABILÍSTICO**</span> 
+
+
+
+
+
+
+**Variables: **
+
+***Superficie de plantacion***
+
+```{r echo=FALSE}
+DF1<-filter(DF,NU_SUPERFICIE_PLANTACION<=50)
+hist(DF1$NU_SUPERFICIE_PLANTACION,breaks=10, freq=FALSE, main="Histograma de superficie de plantaciones", xlab="Hectareas",ylab = "Frecuencia", col="green")
+lines(density(DF1$NU_SUPERFICIE_PLANTACION, na.rm=TRUE),col="red",lwd=3)
+curve(dexp(x, 0.2), lwd = 2, col = "blue", add = T)
+
+
+legend("topright", c("curva observada", "curva teórica(exponencial)"),
+       lty = 1, lwd = 2, col = c("red", "blue"), bty = "n",
+       cex = 0.8)
+
+
+```
+
+```{r echo=F}
+pm<-mean(DF1$NU_SUPERFICIE_PLANTACION)
+round(pm,2)
+```
+Hemos filtrado nuestra variable **superficie de plantación** entre 0 y 50 hectareas en la cual nos damos cuenta que el modelo probabilistico de dicha variable continua se asemeja a una exponencial.
+
+Pregunta: 
+
+Si las plantaciones promedio es  4.39 hectáreas 
+
+¿Cuál es la probabilidad de que una plantación sea a lo mucho 7 hectáreas 
+
+P(X<=7)
+
+beta=4.39
+
+```{r echo =FALSE}
+round(pexp(7,1/pm),2)
+```
+
+
++ La probabilidad de que una plantación sea a lo mucho 7 hectáreas, que es 0.8 que es aproximadamente 80%.
+
+
+
+
+
+***Departamento***
+
+```{r echo =FALSE}
+DP<-filter(DF,TX_DEPARTAMENTO=="SAN MARTIN",TX_ESPECIE== "Guazuma crinita")
+BP<-filter(DF,TX_DEPARTAMENTO=="SAN MARTIN")
+AP<-filter(DF,TX_ESPECIE== "Guazuma crinita")
+table(DP$TX_ESPECIE)
+
+
+'En la region San Martin se ha realizado 870 plantaciones del tipo de especie Guazuma crinita'
+table(BP$TX_DEPARTAMENTO)
+'El total de plantaciones en la region San Martin es 4796'
+table(AP$TX_ESPECIE)
+'El total de platanciones de  Guazuma crinita es 2769'
+nrow(DF)
+'El total de casos completos es el total de plantaciones y es 14587'
+```
+**Modelo binomial**
+
+pregunta: 
+
+Cual es la probabilidad segun la base de datos analizado que en 150 inscripciones en el registro nacional de plantaciones 50 sean de región San Martín
+
+
+P(X="en 100 inscripciones en el registro nacional de plantaciones 50 sean de región San Martín")
+
+Esta probabilidad se plantea como un modelo binomial: 
+
+
+$$X∼Bin(n,p)$$
+n = 150 -> Total de plantaciones
+p = 4796/14587 -> Probabilidad que la plantación sea en la región San Martín
+
+$$X∼Bin(150,4796/14586)$$
+```{r echo =FALSE}
+
+round(dbinom(50,150,4796/nrow(DF)),3)
+```
+
++ La probabilidad de que en 150 inscripciones en el registro nacional de plantaciones 50 sean de región San Martín es 0.068
+que es aproximadamente 6.8%.
+
+
+pregunta: 
+
+Cual sería la probabilidad de que al elegir una plantación repetidamente 10 veces no salga una plantación hecha en la región San Martín 
+
+X= "al elegir una plantación repetidamente 10 veces no salga una plantación hecha en la región San Martín"
+
+  
+$$X∼Bin(n,p)$$
+$$X∼Bin(10,4796/14586)$$
+
+
+```{r echo =FALSE}
+round(dbinom(0,10,4796/14586),3)
+
+```
+
++ La probabilidad de elegir 10 veces de manera aleatoria una plantación registrada no salga la región san Martin es 0.019 es que aproximadamente 1.9%
+
+***Especie***
+
+**Probabilidad condicional**
+
+P(A|B)=P(A∩B)/P(B)
+
+pregunta: 
+
+Halle la probabilidad de que una plantación sea de  "Guazuma crinita" si es en la region San Martín
+<div>
+<p style = 'text-align:center;'>
+<img src="https://i.ytimg.com/vi/APpuI6BzI74/hqdefault.jpg" width="300px">
+</p>
+</div>
+
+En este caso Analizaremos 
+
+
+P(A)=probabilidad de que  una plantación sea de  "Guazuma crinita"
+
+P(B)= Probabilidad de que sea en el región San martin
+
+P(A∩B)=Probabilidad de que sea una plantación sea de  "Guazuma crinita" y sea en la region San Martin
+
+
+$$P(A|B)=\frac{P(A∩B)}{P(B)}$$
+
+
+P(A)= total de plantaciones de  "Guazuma crinita"/total de casos
+
+P(B)=total de casos de la región San martín /total de casos
+
+P(A∩B)=total de casos en la región San Martín de "Guazuma crinita"/total de casos
+
+```{r echo =FALSE}
+PA<-2769/14586
+PB<-4796/14586
+P_AB<-870/14586
+round(P_AB/PB ,4)
+
+```
+
+
++ La probabilidad de de que un caso sea elegida al azar y que el tipo de especie plantada sea "Guazuma crinita" y con la condición de que sea en la región San Martín es 0.18 que es aproximadamente 18.4%
+
+
+
+
+***Finalidad***
+
+**Distribución hypergeométrica**
+
+Pregunta:
+
+
+La probabilidad de que en una muestra de aleatoria de 500 elementos del total de plantaciones que es 14586, no haya plantaciones con la finalidad de protección.
+
+
+```{r}
+
+ N=14586 #Plantaciones Registradas  
+ M=95   #Con la finalidad de Protección 
+ n=500  #500 plantaciones aleatorias
+ x=0
+round(dhyper(x, M, N - M,n),4)
+```
+
++ La probabilidad de que en una muestra aleatoria de 500 plantaciones no sea con la finalidad de protección es 0.036 que seria aproximadamente 3.6%
+
+
+
+
+**Variables aleatorias y modelos**
+
+Como se a podido ver anteriormente que  algunas probabilidades rescpecto a las zonas de plantación, y ahora lo que queremos saber es si algunas probabilidades  de que en una muestra de plantación por departamento al azar encontremos un determinado número de departamentos que vienen de zona en especifico.Ya que nos interesa realizar con las probabilidades de esa sección de Planes de manejo forestal. Por lo tanto podemos plantear lo siguiente:
+
++ Se sabe que se han tomado una muestras de 1500 N° de Planes de manejo forestal de los cuales  843 son de GORE Madre de Dios, 18 de GORE La Libertad, 62 de GORE Ayacucho y 183 de GORE Madre de Dios. Supongamos que queremos tomar a 15 planes de manejo forestal sin reemplazo, es decir que una vez se le pregunte a uno su zona de procedencia, no se le vuelve a preguntar. También debemos saber que cada persona tiene la misma probabilidad de ser elegido. En este caso nos interesa saber las probabilidades respecto al grupo de GORE Madre de Dios.
+
+X: Número de Planes de manejo forestal en la zona de GORE Madre de Dios
+
+X tiene H(N=1500,M=843,n=15)
+
+Por lo tanto podemos plantear las siguientes preguntas:
+
+  a.¿Cuantos Planes de manejo forestal en la zona de GORE Madre de Dios se espera seleccionar?
+  
+Para este caso nos piden encontrar la esperanza de la variable. Como sabemos la esperanza de una variable hipergeométrica es E(X)=nM/N, por lo tanto, el valor esperado sería el seguiente:
+
+
+```{r}
+round((15*843)/1500)
+```
+Se espera que en una muestra de 15 Planes de manejo forestal, hayan 8 plane de manejo forestal para la GORE Madre de Dios.
+
+¿Cuál es la probabilidad de que la cantidad de plane de manejo forestal sea entre 4 y 8?
+Para este caso sabemos que la probabilidad de esto será lo siguiente:
+
+P(4<=X<=8)−>P(X<=8)−P(X<=2)
+
+```{r}
+phyper(8,843,657,15)-phyper(2,843,657,15)
+```
+La probabilidad entonces de que la cantidad de plane de manejo forestal sea la GORE Madre de Dios  es de 0.51 o de 51% aproximando. Podemos ver que si es probable de encontrar una cantidad considerable de planes de manejo forestal sea la GORE Madre de Dios o en este caso que sean entre 4 a 8 estudiantes.
+
+Si se sabe que va a haber más de 1 de plan de manejo forestal sea la GORE Madre de Dios, ¿Cuál es la probabilidad de que hayan como máximo 20 de plane de manejo forestal de la GORE Madre de Dios?
+En este caso la pregunta se nos presenta como una condicional:
+
+P(X<=20)/P(X>1)−>P(1<X<=20)/P(X>1)
+
+```{r}
+(phyper(13,843,657,15)-phyper(1,843,657,15))/(1-phyper(1,843,657,15))
+```
+Vemos en este caso que la probabilidad es casi 1, lo cual tiene sentido porque estamos proponiendo que sea como máximo 13, pero con tal de que sean 2 ya cumple como para estar dentro de la probabilidad. Sabíamos del ítem a que la esperanza es 8 por lo que tener 1 menos es muy probable.
+
+La siguiente variable que nos importa es analizar la situación de los Regimenes de tenencia, ya que nos permite evaluar a los que adquieren la plantaciones o realizan las solicitudes Queremos saber cual es la probabilidad de que en una muestra de 1500 Regimenes de tenencia se reportan estos caso, ya que en muchas ocasiones estos provocan que hay poco interes de un sector que no toma interes en este problema, así que realizaremos la siguiente tabla: Tipos de Regimenes.
+
+```{r}
+table(DF$TX_REGIMEN_TENENCIA)
+```
+Vemos que sumando los valores, la probabilidad de tenencia de un regiemen en algunos de esos 2 fastidios es de 2248/3000=0.749 Por lo tanto podemos plantear lo siguiente:
+
+Se toma una muestra de 3000 sobre algunas tenencias de regímenes que  realizan el la forestación la plantación. Entre estos se reportaron regínes de tenencia  como el dominio publico, comunidad campesina y las nativas. Por estudios previos, también se sabe que la probabilidad de que las tenecias reporten alguna de estas situaciones es de 0.749. Por no interesamos  en saber algunas probabilidades de suma importancia y por eso seleccionamos a tencincias al azar con reemplazo. Además, se busca saber las probabilidades hasta encontrar el 50avo Regímen con los siguientes  problemas.
+
+X: Número de regímens que reportan  de dominio publico, comunidad campesina y las nativas 
+
+X tiene BN(k=50,p=0.749)
+
+Por por lo que planteamos las siguientes preguntas:
+
+a)¿Cuál es la probabilidad de escoger a más de 60 regímenes para encontrar las tenencias necesarias?
+
+En este caso lo que nos piden es lo siguiente: P(X>60), por lo que plantemos:
+```{r}
+
+1-pnbinom(10,50,0.749)
+
+```
+El resultado es aproximadamente 0.92 %,  tiene sentido ya que si en algún momento si nos pasamos de 60 llegaremos a esos 50 resultados deseados, por otro lado, no es el 100% porque aún existe la posibilidad de conseguir esa cantidad de éxitos en menos de 60 intentos.
+
+¿Cuál es la posibilidad de conseguir la cantidad deseada en como máximo 50 tenencias?
+En este caso la probabilidad que nos piden es la siguiente: P(X<=50)
+
+```{r}
+pnbinom(25,25,0.749)
+```
+En este situación se observa que la probabilidad es tan alta que llega casi al 100% debido a que el número de intentos es lejano al de éxitos necesarios, esto sumado a la baja probabilidad de éxito provoca que esa sea la probabilidad.
+
++ Planteamos otar pregunta ¿Cuál es el numero de regímenes de tencia que se espera preguntar para conseguir los 50 éxitos?
+Si bien  nos piden el promedio o esperanza tendremos que aplicar la fórmula de la esperanza en una variable binomial negativa la cual es la siguiente: k/p donde k=50(número de éxitos) p=0.749
+
+
+
+```{r}
+50/0.749
+```
+En esta situación en un aproximando debemos escoger 66.75 tenencias pero como son decimales y deberian ser enteros, entonces diremos que se espera  escoger a 66 regímes de tencia para obtener el resultado deseado.
+
+
+**Variables aleatorias y modelos**
+
+Como se a podido ver anteriormente que  algunas probabilidades rescpecto a las zonas de plantación, y ahora lo que queremos saber es si algunas probabilidades  de que en una muestra de plantación por departamento al azar encontremos un determinado número de departamentos que vienen de zona en especifico.Ya que nos interesa realizar con las probabilidades de esa sección de Planes de manejo forestal. Por lo tanto podemos plantear lo siguiente:
+
++ Se sabe que se han tomado una muestras de 1500 N° de Planes de manejo forestal de los cuales  843 son de GORE Madre de Dios, 18 de GORE La Libertad, 62 de GORE Ayacucho y 183 de GORE Madre de Dios. Supongamos que queremos tomar a 15 planes de manejo forestal sin reemplazo, es decir que una vez se le pregunte a uno su zona de procedencia, no se le vuelve a preguntar. También debemos saber que cada persona tiene la misma probabilidad de ser elegido. En este caso nos interesa saber las probabilidades respecto al grupo de GORE Madre de Dios.
+
+X: Número de Planes de manejo forestal en la zona de GORE Madre de Dios
+
+X tiene H(N=1500,M=843,n=15)
+
+Por lo tanto podemos plantear las siguientes preguntas:
+
+  a.¿Cuantos Planes de manejo forestal en la zona de GORE Madre de Dios se espera seleccionar?
+  
+Para este caso nos piden encontrar la esperanza de la variable. Como sabemos la esperanza de una variable hipergeométrica es E(X)=nM/N, por lo tanto, el valor esperado sería el seguiente:
+
+
+```{r}
+round((15*843)/1500)
+```
+Se espera que en una muestra de 15 Planes de manejo forestal, hayan 8 plane de manejo forestal para la GORE Madre de Dios.
+
+¿Cuál es la probabilidad de que la cantidad de plane de manejo forestal sea entre 4 y 8?
+Para este caso sabemos que la probabilidad de esto será lo siguiente:
+
+P(4<=X<=8)−>P(X<=8)−P(X<=2)
+
+```{r}
+phyper(8,843,657,15)-phyper(2,843,657,15)
+```
+La probabilidad entonces de que la cantidad de plane de manejo forestal sea la GORE Madre de Dios  es de 0.51 o de 51% aproximando. Podemos ver que si es probable de encontrar una cantidad considerable de planes de manejo forestal sea la GORE Madre de Dios o en este caso que sean entre 4 a 8 estudiantes.
+
+Si se sabe que va a haber más de 1 de plan de manejo forestal sea la GORE Madre de Dios, ¿Cuál es la probabilidad de que hayan como máximo 20 de plane de manejo forestal de la GORE Madre de Dios?
+En este caso la pregunta se nos presenta como una condicional:
+
+P(X<=20)/P(X>1)−>P(1<X<=20)/P(X>1)
+
+```{r}
+(phyper(13,843,657,15)-phyper(1,843,657,15))/(1-phyper(1,843,657,15))
+```
+Vemos en este caso que la probabilidad es casi 1, lo cual tiene sentido porque estamos proponiendo que sea como máximo 13, pero con tal de que sean 2 ya cumple como para estar dentro de la probabilidad. Sabíamos del ítem a que la esperanza es 8 por lo que tener 1 menos es muy probable.
+
+La siguiente variable que nos importa es analizar la situación de los Regimenes de tenencia, ya que nos permite evaluar a los que adquieren la plantaciones o realizan las solicitudes Queremos saber cual es la probabilidad de que en una muestra de 1500 Regimenes de tenencia se reportan estos caso, ya que en muchas ocasiones estos provocan que hay poco interes de un sector que no toma interes en este problema, así que realizaremos la siguiente tabla: Tipos de Regimenes.
+
+```{r}
+table(DF$TX_REGIMEN_TENENCIA)
+```
+Vemos que sumando los valores, la probabilidad de tenencia de un regiemen en algunos de esos 2 fastidios es de 2248/3000=0.749 Por lo tanto podemos plantear lo siguiente:
+
+Se toma una muestra de 3000 sobre algunas tenencias de regímenes que  realizan el la forestación la plantación. Entre estos se reportaron regínes de tenencia  como el dominio publico, comunidad campesina y las nativas. Por estudios previos, también se sabe que la probabilidad de que las tenecias reporten alguna de estas situaciones es de 0.749. Por no interesamos  en saber algunas probabilidades de suma importancia y por eso seleccionamos a tencincias al azar con reemplazo. Además, se busca saber las probabilidades hasta encontrar el 50avo Regímen con los siguientes  problemas.
+
+X: Número de regímens que reportan  de dominio publico, comunidad campesina y las nativas 
+
+X tiene BN(k=50,p=0.749)
+
+Por por lo que planteamos las siguientes preguntas:
+
+a)¿Cuál es la probabilidad de escoger a más de 60 regímenes para encontrar las tenencias necesarias?
+
+En este caso lo que nos piden es lo siguiente: P(X>60), por lo que plantemos:
+```{r}
+
+1-pnbinom(10,50,0.749)
+
+```
+El resultado es aproximadamente 0.92 %,  tiene sentido ya que si en algún momento si nos pasamos de 60 llegaremos a esos 50 resultados deseados, por otro lado, no es el 100% porque aún existe la posibilidad de conseguir esa cantidad de éxitos en menos de 60 intentos.
+
+¿Cuál es la posibilidad de conseguir la cantidad deseada en como máximo 50 tenencias?
+En este caso la probabilidad que nos piden es la siguiente: P(X<=50)
+
+```{r}
+pnbinom(25,25,0.749)
+```
+En este situación se observa que la probabilidad es tan alta que llega casi al 100% debido a que el número de intentos es lejano al de éxitos necesarios, esto sumado a la baja probabilidad de éxito provoca que esa sea la probabilidad.
+
++ Planteamos otar pregunta ¿Cuál es el numero de regímenes de tencia que se espera preguntar para conseguir los 50 éxitos?
+Si bien  nos piden el promedio o esperanza tendremos que aplicar la fórmula de la esperanza en una variable binomial negativa la cual es la siguiente: k/p donde k=50(número de éxitos) p=0.749
+
+
+
+```{r}
+50/0.749
+```
+En esta situación en un aproximando debemos escoger 66.75 tenencias pero como son decimales y deberian ser enteros, entonces diremos que se espera  escoger a 66 regímes de tencia para obtener el resultado deseado.
+
+
+
+
+
+
+
+
+# <span style="color:black">**BIBLIOGRAFÍA**</span> 
+
+Chapter 12 Gantt charts | Community contributions for EDAV Fall 2019. (2019, December 13). Github.io. <https://jtr13.github.io/cc19/gantt-charts.html>
+
+Registro Nacional de Plantaciones Forestales por Especies | Plataforma Nacional de Datos Abiertos. (2015). Datosabiertos.gob.pe. <https://www.datosabiertos.gob.pe/dataset/registro-nacional-de-plantaciones-forestales-por-especies>
+
+
+
+# [¡Muchas gracias por su atención!]{style="color:lightseagreen"}
+
