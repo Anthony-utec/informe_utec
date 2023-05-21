@@ -1,0 +1,1006 @@
+---
+title: "PG1 Primera entrega 9"
+output:
+  html_document:
+    df_print: paged
+    theme: darkly
+---
+
+# Introdución
+
+Se posee una base de datos sacada de una pagina web que muestra el flujo de compra y venta de autos durante los años 2018 y 2021 en los Estados Unidos de América. El objetivo principal es analizar el crecimiento y/o decrecimiento por marca y hacer una comparación entre años y determinar la tendencia y preferencia por estados de autos según características.
+
+Para ello, se requiere los siguientes objetivos específicos: 
+
+# Objetivos específicos:
+
+- Determinar cuál marca de auto es la que cada estado prefiere más.
+
+- Entender la relación entre ventas de autos y tendencia de compra de las personas durante la época de reactivación económica.
+
+```{r}
+library(ggthemes)
+library(ggplot2)
+library(tidyr)
+library(modeest)
+```
+
+
+# Datos:
+
++ Se trabajó con información de una base de datos: [Registro de ventas de autos entre el 2018 y 2021](https://github.com/cvandergeugten/Cars.com-Data-Project). En dicha base de datos se encuentra las siguientes variables descriptivas:
+
+# Variables:
+
++-----------------------+-------------+--------------+-----------------+
+| **Variable**          | **Clase**   | **Tipo**     |**Restricción**  |      
++-----------------------+-------------+--------------+-----------------+
+| Año                   | Numérica    | discreta     |Natural positivo |      
++-----------------------+-------------+--------------+-----------------+
+| Marca                 | Categórica  | nominal      |Tipo caracter    |      
++-----------------------+-------------+--------------+-----------------+
+| Modelo                | Categórica  | nominal      |Tipo caracter    |      
++-----------------------+-------------+--------------+-----------------+
+| Usado o Nuevo         | Categórica  | nominal      |Tipo caracter    |     
++-----------------------+-------------+--------------+-----------------+
+| Precio                | Numérica    | continua     |Entero positivo  |
++-----------------------+-------------+--------------+-----------------+
+| Consumer Rating       | Numérica    | continua     |Racional         |              
++-----------------------+-------------+--------------+-----------------+
+| Consumer Reviews      | Numérica    | discreta     |Entero positivo  |           
++-----------------------+-------------+--------------+-----------------+
+| Seller Type           | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Seller Name           | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Seller rating         | Numérica    | continua     |Racional         | 
++----------------------------------------------------------------------+
+| Seller reviews        | Numérica    | discreta     |Entero positivo  |              
++-----------------------+-------------+--------------+-----------------+
+| Street Name           | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| State                 | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Zip code              | Numérica    | discreta     |Entero positivo  |              
++-----------------------+-------------+--------------+-----------------+
+| Deal Type             | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Comfort Rating        | Numérica    | continua     |Racional         |           
++-----------------------+-------------+--------------+-----------------+
+| Interior Design       | Numérica    | continua     |Racional         |
+| rating                |             |              |                 |
++-----------------------+-------------+--------------+-----------------+
+| Performance rating    | Numérica    | continua     |Racional         |      
++-----------------------+-------------+--------------+-----------------+
+| Value for money       | Numérica    | continua     |Racional         |
+| rating                |             |              |                 |
++-----------------------+-------------+--------------+-----------------+
+| Exterior styling      | Numérica    | continua     |Racional         |
+| rating                |             |              |                 |
++-----------------------+-------------+--------------+-----------------+
+| Reliability rating    | Numérica    | continua     |Racional         |              
++-----------------------+-------------+--------------+-----------------+
+| Exterior color        | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Interior color        | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Drive train           | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Min MPG               | Numérica    | discreta     |Entero positivo  |              
++-----------------------+-------------+--------------+-----------------+
+| Max MPG               | Numérica    | discreta     |Entero positivo  |          
++-----------------------+-------------+--------------+-----------------+
+| Fuel type             | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Transmission          | Categórica  | nominal      |Tipo caracter    |              
++-----------------------+-------------+--------------+-----------------+
+| Engine                | Categórica  | nominal      |Tipo caracter    |         
++-----------------------+-------------+--------------+-----------------+
+| VIN                   | Categórica  | nominal      |Tipo caracter    |       
++-----------------------+-------------+--------------+-----------------+
+| Stock                 | Categórica  | nominal      |Tipo caracter    |           
++-----------------------+-------------+--------------+-----------------+
+| Mileage               | Numérica    | discreta     |Entero positivo  |        
++-----------------------+-------------+--------------+-----------------+
+
+# Población:
+
+- Todos los registros de compra y venta de las marcas de autos  usados y nuevos en Estados Unidos entre los años 2018 y 2021 respectivamente.
+
+# Muestra:
+
+- Registros de compra y venta de las diez marcas preferidas de autos usados y nuevos en Estados Unidos, entre el periodo 2018-2019 y el periodo 2020-2021.
+
+# Muestreo:
+
+- Base de datos recolectada de una página conocida de compra-venta de autos usados y nuevos a partir de una toma de muestreo aleatorio.
+
+
+# Limpieza de datos:
+
+* Primero se comienza cargando las librerías que se usaran para el informe:
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(modeest)
+```
+* Se carga la base de datos a un dataframe llamado `df`
+```{r}
+df<-read_csv("cars_raw.csv")
+df
+```
+* Con `glimpse(df)` se muestra las variables que se tiene a disposición:
+```{r}
+glimpse(df)
+```
+
+* Nos damos cuenta que hay valores que no corresponden con su tipo de variable.
+Procedemos a corregirlo y a guardar .
+```{r}
+BDC<-read_csv("cars_raw.csv",col_types = "ncccnnnccnnccncnnnnnncccnncccccn")
+```
+* Observamos nuevamente para verificar los cambios:
+```{r}
+glimpse(BDC)
+```
+
+
+# Datos completos /Datos incompletos:
+
+* Determinamos la cantidad de datos faltantes para futuras referencias:
+
+```{r}
+sum(is.na(BDC)) # Cantidad de datos faltantes (NA)
+sum(!is.na(BDC)) # Cantidad de datos completos (no NA)
+```
+* De la misma forma determinamos la cantidad de casos incompletos.
+# Casos completos / incompletos
+```{r}
+sum(complete.cases(BDC)) #complete.cases -> casos completos
+sum(!complete.cases(BDC))#!complete.cases -> casos incompletos
+```
+* Leemos los nombres de las variables:
+```{r}
+names(BDC)
+```
+
+* Por último, se realizará un cambio en el nombre de las variables de la base de datos, BDC. Para ello, se realizó lo siguiente:
+```{r}
+BDC1 <- dplyr::rename(BDC, Año= Year, Marca=Make,Modelo= Model, Condicion=`Used/New`,Precio = Price, Rating = ConsumerRating, Reseñas = ConsumerReviews, TipoVendedor = SellerType, NombreVendedor = SellerName, RatingVendedor = SellerRating, ReseñasVendedor = SellerReviews, NombreCalle = StreetName, Estado = State, Zip = Zipcode, Trato = DealType, Comodidad = ComfortRating, DiseñoInterior = InteriorDesignRating, Performance = PerformanceRating, Valor = ValueForMoneyRating, Exterior = ExteriorStylingRating, Fiabilidad = ReliabilityRating, ColorExt = ExteriorColor,ColorInt = InteriorColor, Conduccion = Drivetrain, Combustible = FuelType, Transmision = Transmission, Motor = Engine, Stock=`Stock#`,Millas = Mileage)
+```
+
+* Veamos como quedaron los nuevos nombres de las variables de BDC1:
+```{r}
+names(BDC1)
+```
+
+
+# Limpiando data por variable
+
+## Condicion
+
+* Para trabajar con las variable `Condicion`, se hará un renombre a los datos que contiene dicha columna.
+
+  + Los datos presentes de la variable `Condicion` son:
+```{r}
+unique(BDC1$Condicion)
+```
+
+  + Agrupamos bajo una sola categoría a los autor certificados: Para ello se agrupa todas las respuestas que lleven la palabra `certified`.
+```{r}
+val_repl <- c('Acura Certified','Alfa Romeo Certified','Bentley Certified','BMW Certified','Buick Certified','Cadillac Certified','Chevrolet Certified','Dodge Certified','Ferrari Certified','Ford Certified','GMC Certified','Honda Certified','INFINITI Certified','Jeep Certified','Kia Certified','Maserati Certified','Mercedes-Benz Certified','MINI Certified','Nissan Certified','Porsche Certified','RAM Certified','Subaru Certified','Toyota Certified','Volkswagen Certified','Volvo Certified') # Valores a ser reemplazados
+val_repl
+```
+  + Reemplazamos y nos quedamos con dos tipos de respuestas para la columna `Condicion`: Usado y Certificado.
+```{r}
+BDC2<-BDC1
+BDC2['Condicion'] <- sapply(BDC1['Condicion'], function(x) replace(x, x %in% val_repl, 'Certified'))
+BDC2
+```
+
+## Precio
+
+* Se puede observar que hay 5 valores NA, eso significa que se perdió el registro de cinco autos.
+
+```{r}
+BDC2 %>% filter(Precio %>% as.numeric() %>% is.na()) %>% count(Precio)
+```
+
+
+* Filtrando y removiendo filas que digan "not priced":
+
+```{r}
+BDC2<-BDC2[!(BDC2$Precio=="Not Priced"),]
+BDC2<-BDC2[rowSums(is.na(BDC2)) != ncol(BDC2), ]
+BDC2
+```
+
+## Combustible
+
+* Para trabajar con la variable `Combustible`, se hará un renombre a los datos que contiene dicha columna.
+
+
+  + Los datos presentes de la variable `Combustible` son:
+```{r}
+unique(BDC2$Combustible)
+```
+ + Se procede a renombrar y agrupar las observaciones bajo una sola categoría: "Gasoline","Electric", "Flexible" y "Hybrid"
+
+```{r}
+BDC2$Combustible[BDC2$Combustible=="Gasoline Fuel"]<- "Gasoline"
+BDC2$Combustible[BDC2$Combustible=="Electric Fuel System"]<- "Electric"
+BDC2$Combustible[BDC2$Combustible=="E85 Flex Fuel"]<- "Flexible"
+BDC2$Combustible[BDC2$Combustible=="Plug-In Electric/Gas"]<- "Hybrid"
+BDC2$Combustible[BDC2$Combustible=="Flex Fuel Capability"]<- "Flexible"
+BDC2$Combustible[BDC2$Combustible=="Diesel Fuel"]<- "Diesel"
+BDC2$Combustible[BDC2$Combustible=="Gasoline/Mild Electric Hybrid"]<- "Hybrid"
+BDC2$Combustible[BDC2$Combustible=="Flexible Fuel"]<- "Flexible"
+
+BDC2<-subset(BDC2,Combustible=="Gasoline"|Combustible=="Electric"|Combustible=="Flexible"|Combustible=="Hybrid"|Combustible=="Diesel")
+
+BDC2
+
+```
+
+Con estos cambios, se empezará a trabajar con la base de datos.
+
+# Filtrado de datos
+
+* Filtro de datos obtenidos durante los años 2018 y 2019
+
+```{r}
+Filtrado1819<-filter(BDC2,Marca=="BMW"|Marca=="Ford"|Marca=="Chevrolet"|Marca=="Mercedes-Benz"|Marca=="Toyota"|Marca=="Lexus"|Marca=="Jeep"|Marca=="Subaru"|Marca=="Honda"|Marca=="Audi",Año>=2018, Año<=2019)
+Filtrado1819
+```
+
+
+* Filtro de datos obtenidos durante los años 2020 y 2021
+
+```{r}
+Filtrado2021<-filter(BDC2,Marca=="BMW"|Marca=="Ford"|Marca=="Chevrolet"|Marca=="Mercedes-Benz"|Marca=="Toyota"|Marca=="Lexus"|Marca=="Jeep"|Marca=="Subaru"|Marca=="Honda"|Marca=="Audi",Año>=2020, Año<=2021)
+Filtrado2021
+```
+* *Estos son codigos para el almacenado de los datos filtrados*
+```{}
+write_csv(Filtrado1819,"C:\\Users\\user\\Desktop\\S9_Fuente\\Filtrado1819.csv")
+```
+```{}
+write_csv(Filtrado2021,"C:\\Users\\user\\Desktop\\S9_Fuente\\Filtrado2021.csv")
+```
+
+# Analisis descriptivo general
+
+**Nota: para este análisis se consideró usar todos los datos y compararlo entre ambos periodos, para observar la diferencia con respecto al consumo de autos que usan distintos tipos de combustible**
+
+- Tabla resumen de cantidad de autos vendidos por tipo de combustible en los años 2018-2019
+
+```{r}
+table(Filtrado1819$Combustible)
+```
+
+
+- Tabla resumen de cantidad de autos vendidos por tipo de combustible en los años 2020-2021
+
+```{r}
+table(Filtrado2021$Combustible)
+```
+
+- Gráfico de barras de venta de autos por tipo de combustible en el periodo 2018-2019
+
+```{r}
+tabgasolina1819<-table(Filtrado1819$Combustible) 
+barp<-barplot(tabgasolina1819, col = c("deeppink3","darkturquoise","darkslategray1","darkorchid4","darkorange3"),ylim = c(0, 3200), xlab = "Nivel educativo", ylab = "Proporción", main="Venta de autos por tipo de combustible en el periodo 2018-2019")
+
+text(barp, tabgasolina1819 + 200,labels = tabgasolina1819,cex=1)
+```
+* Gráfico de barras de venta de autos por tipo de combustible en el periodo 2020-2021
+```{r}
+tabgasolina2021<-table(Filtrado2021$Combustible) 
+barp<-barplot(tabgasolina2021, col = c("deeppink3","darkturquoise","darkslategray1","darkorchid4","darkorange3"),ylim = c(0, 2100), xlab = "Tipo de combustible", ylab = "Proporción",main="Venta de autos por tipo de combustible en el periodo 2020-2021")
+
+text(barp, tabgasolina2021 + 200,labels = tabgasolina2021,cex=1)
+```
+
+
+  + Se puede observar que el consumo de autos que usan gasolina sufrió un decremento significativo entre los periodos 2018-2019 y 2020-2021, esto puede haberse debido al costo de la gasolina en el periodo 2020-2021. 
+  + Es probable que el precio haya influido en el consumo de autos, en especial en el consumo de autos que usan gasolina.
+
+
+
+* Precio promedio de autos que usan gasolina 18-19
+```{r}
+gasolina_1819<-filter(Filtrado1819, Combustible=="Gasoline")
+mean(gasolina_1819$Precio)
+```
+
+* Precio promedio de autos que usan gasolina 20-21
+```{r}
+gasolina_2021<-filter(Filtrado2021, Combustible=="Gasoline")
+mean(gasolina_2021$Precio)
+```
+
+  + Mediante el análisis realizado en donde se comparó el promedio de los precios de autos vendidos en el 2018-2019 y 2020-2021, se puede observar que hubo un alza de precios en los autos que usan gasolina, lo cual fue un factor decisivo para el decremento de ventas de dichos autos.
+
+* Mediante la variable FiltradoTotal estamos juntando los dos dataframes de cada periodo para efectos de análisis en su conjunto.
+
+```{r}
+FiltradoTotal<-rbind(Filtrado1819,Filtrado2021)
+FiltradoTotal
+```
+
+* En esta tabla se puede apreciar el histórico de ventas realizadas por tipo de combustible, desde el año 2018 al 2021.
+
+```{r}
+FiltradoTotal%>%
+  filter(Año>=2018 & Año<=2021)%>%
+  select(Año,Combustible)%>%
+  table
+```
+
+* Esto es un diagrama de lineas mostrando la evolución de precios a través de los años por tipo de combustible.
+
+```{r}
+FiltradoTotal %>%
+group_by(Combustible, Año) %>%
+summarise(Venta_Promedio = mean(Precio)) %>%
+ggplot(aes(Año,
+Venta_Promedio,
+group=factor(Combustible),
+colour=factor(Combustible))) +
+geom_line() +
+geom_point() +
+labs(
+x = "Año",
+y = "Precio Promedio"
+) +
+ggtitle("Precio promedio anual por tipo de combustible") +
+scale_colour_discrete(name = "Combustible" )+
+scale_y_continuous(labels = scales::dollar ) +
+theme_minimal()+
+theme(plot.title = element_text(hjust = 0.5))
+```
+  - A partir de aquí se puede observar un alza de precios general en los autos vendidos entre los años 2018 y 2021.
+
+  - El precio promedio de los autos eléctricos creció de manera constante en los años 2019-2021.
+
+  - El precio promedio de los autos que usan gasolina experimentaron un leve crecimiento a traves del periodo 2018-2021.
+
+  - Por su lado, los autos híbridos presentaron cambios notables en sus precios,  cada año durante el periodo 2018-2021.
+
+  - Finalmente, los autos que usan Diesel experimentaron un alza de precios regular con respectos a sus contrapartes en el periodo 2018-2021.
+
+
+* Esto es un diagrama de lineas mostrando la evolución de las proporciones de ventas a través de los años por tipo de combustible.
+
+```{r}
+filtro1<-select(FiltradoTotal,Año,Combustible)
+filtro1<-table(filtro1$Año,filtro1$Combustible)
+f<-as.data.frame.matrix(filtro1)
+f
+max_y<-max(f)
+
+par(mfrow=c(1, 2))
+#plot1
+
+plot(f$Diesel,type="o",col="blue",main="Lineas",ylim = c(0,40), axes=FALSE, ann=FALSE)
+axis(1, at=1:4, lab=c("2018", "2019", "2020","2021"))
+axis(2,las=1,at=0:40)
+
+box()
+
+lines(f$Electric,type="o",pch=22,lty=2,col="red")
+lines(f$Flexible,type="o",pch=23,lty=3,col="green")
+lines(f$Hybrid,type="o",pch=24,lty=4,col="orange")
+
+title(main="Venta de autos por tipo de combustible", col.main="black", font.main=4,cex.main=1)
+title(xlab= "Años", col.lab="black",font.lab=2)
+title(ylab= "Total", col.lab="black",font.lab=2)
+
+
+legend(2.8, 40, c("Diesel","Electric","Flexible","Hybrid"), cex=0.8, col=c("blue","red","green","orange"), pch=21:24, lty=1:4)
+
+#plot2
+
+plot(f$Gasoline,type="o",col="purple",main="Lineas",ylim = c(600,max_y), axes=FALSE, ann=FALSE)
+axis(1, at=1:4, lab=c("2018", "2019", "2020","2021"))
+axis(2,las=1,at=100*0:max_y)
+
+box()
+
+title(main="Venta de autos por tipo de combustible", col.main="black", font.main=4,cex.main=1)
+title(xlab= "Años", col.lab="black",font.lab=2)
+title(ylab= "Total", col.lab="black",font.lab=2)
+
+legend(2.7, max_y, c("Gasoline"), cex=0.8, col=c("purple"), pch=21, lty=1)
+
+```
+
+  - Se puede observar por ambas tablas que las ventas de autos experimentaron un decremento notorio en sus ventas al llegar al año 2020. Los autos que usan gasolina fueron los más afectados. Se infiere que hubo un evento significativo en aquel año (posiblemente los efectos del cese de operaciones y actividades económicas debido a la pandemia) que fue un factor importante en la compra de autos.
+
+
+# Muestreo
+
+* Ante la gran cantidad de datos obtenida, procedimos a aleatorizar los datos para obtener una muestra:
+
+  + Muestra del periodo 2018-2019
+```{r}
+muestra1819<-sample_n(Filtrado1819,200)
+muestra1819
+```
+* *Linea de codigo que ayudo a la generacion de un csv que almacene la muestra aleatoria del primer periodo 2018-2019*
+```{}
+write_csv(muestra1819,"F:\\UTEC 2022-2\\CC1105\\pg2\\S9_Fuente\\muestra1819.csv")
+```
+
+
+  + Muestra del periodo 2020-2021
+```{r}
+muestra2021<-sample_n(Filtrado2021,200)
+muestra2021
+```
+
+* *Linea de codigo que ayudo a la generacion de un csv que almacene la muestra aleatoria del primer periodo 2020-2021*
+
+```{}
+write_csv(muestra2021,"F:\\UTEC 2022-2\\CC1105\\pg2\\S9_Fuente\\muestra2021.csv")
+```
+
+* Leyendo la data almacenada en los csv generados lineas atrás. Nota: El código solo es leiíble una vez por lo que se tuvo que comentar para que no se corra de nuevo en futuras consultas.
+
+```{r}
+muestra1819<-read_csv("muestra1819.csv")
+muestra2021<-read_csv("muestra2021.csv")
+```
+
+* Uniendo las dos dataframes y almacenándolas en una variable muestreoTotal para efectos de análisis en su totalidad.
+
+```{r}
+muestreoTotal<-rbind(muestra1819,muestra2021)
+muestreoTotal
+```
+
+
+# Análisis Descriptivo
+
+## Precio:
+
+* Aplicamos la regla de sturges para 200 datos por muestreo.
+```{r}
+n_int <- round(1 + log(x=200,base=2))
+n_int
+```
+* Esto es un resumen de la variable precio para el primer periodo:
+
+```{r}
+summary(muestra1819$Precio)
+mfv(muestra1819$Precio)
+```
+  + Variable Discreta.  
+  + El precio mínimo encontrado en el primer periodo es de $1699 y el máximo de $79998  
+  + El promedio de precios es de 32708 y al menos la mitad de los autos se vendieron en como máximo $34499  
+  + Al menos un cuarto de los autos en ese periodo se vendieron en $29992 y tres cuartos como máximo, $42289.  
+  + La moda del precio de los autos en el periodo 2018-2019 es 31500$
+
+
+* Esto es un resumen de la variable precio para el segundo periodo:
+
+```{r}
+summary(muestra2021$Precio)
+mfv(muestra2021$Precio)
+```
+
+  + Variable Discreta.  
+  + El precio mínimo encontrado en el primer periodo es de $8995 y el máximo de $127991  
+  + El promedio de precios es de 45091 y al menos la mitad de los autos se vendieron en como máximo $42888  
+  + Al menos un cuarto de los autos en ese periodo se vendieron en $34869 y tres cuartos como máximo, $53913  
+  + La moda es multimodal y son $31998, $40990, $41491, $ 42888, $ 43000, $ 52990, $ 56999, $ 59995, $ 65988
+
+
+* Esto es un histograma de la variable Precio en los años 2018-2019.
+
+```{r}
+hist(muestreoTotal$Precio, breaks = n_int, main = "Histograma de Precios en los años 2018-2019", ylab = "Frecuencia", xlab = "Precios", col="lightgreen")
+summary(muestra1819$Precio)
+mfv(muestra1819$Precio)
+```
+
+* Esto es un histograma de la variable Precio en los años 2020-2021
+
+```{r}
+hist(muestreoTotal$Precio, breaks = n_int, main = "Histograma de Precios en los años 2020-2021", ylab = "Frecuencia", xlab = "Precios", col="lightgreen")
+summary(muestra2021$Precio)
+mfv(muestra2021$Precio)
+```
+
+
+## Rating
+
+* Esto es una tabla que nos da el detalle de las marcas y sus respectivas calificaciones para el primer periodo.
+
+```{r}
+tabratingmarca<-table(muestra1819$Marca,muestra1819$Rating)
+tabratingmarca
+```
+
+*  Como se puede apreciar, la calificación mínima en esos años fue de `4` para estas marcas que son las más preferidas acorde a nuestro muestreo.
+
+```{r}
+summary(muestra1819$Rating)
+```
+
+
+
+* Mosaico que muestra la Marca preferida y su respectiva calificación en términos de estrellas o puntuación en la escala del 1 al 5.
+
+```{r}
+tabratingmarca<-table(muestra1819$Marca,muestra1819$Rating)
+mosaicplot(tabratingmarca,main="Marca vs Rating" ,col=c("green","blue","orange","red", "white", "pink"),las=2) # cambiar orden
+```
+  + En el periodo 2018-2019:
+    - El auto que obtuvo mas modelos puntuados con 4.8 fue la marca Ford
+    - El auto mejor puntuado con 5.0 en la escala del 1  al 5 fue Mercedes-Benz, y uno de los menos puntuados fue BMV
+
+* Esto es una tabla que nos da el detalle de las marcas y sus respectivas calificaciones para el segundo periodo.
+
+```{r}
+tabratingmarca2<-table(muestra2021$Marca,muestra2021$Rating)
+tabratingmarca2
+```
+
+*  Como se puede apreciar, la calificación mínima en esos años fue de `4.3` para estas marcas que son las más preferidas acorde a nuestro muestreo.
+
+```{r}
+summary(muestra2021$Rating)
+```
+
+```{r}
+mosaicplot(tabratingmarca2,main="Marca vs Rating" ,col=c("green","blue","orange","red", "white", "pink"),las=2) # cambiar orden
+```
+  + En el periodo 2020-2021:
+    - El auto que obtuvo mas modelos puntuados con 4.8 fue la marca Toyota
+    - Las marcas de auto mejores puntuadas con 5.0 en la escala del 1  al 5 fueron AUdi, bmv,Ford, Lexus y Mercedes-Benz, y uno de los menos puntuados fue Honda
+
+
+# Análisis gráficos
+
+* En esta sección, se realizará el análisis de cada variable y luego se buscará una correlación entre estas. Para esto, se usarán los descriptores numéricos y gráficos aprendidos en clase.
+
+
+  + Diagrama de caja del periodo 2018-2019 Rating vs Marca.
+```{r}
+boxplot(muestra1819$Rating ~ muestra1819$Marca,cex.names=0.4,las=2,xlab="",sub ="Marca",ylab="Rating",col="yellow",cex.axis=0.7)
+```
+
+    - Ánálisis de la gráfica: Se puede observar que Mercedez Benz tiene la mayor desviación estándar de las marcas.La gran mayoría de marcas presentan valores atípicos.Por otro lado, las marcas con un rating promedio alto son Honda, Jeep, Lexus y Toyota. Sin embargo, puede que la cantidad de muestras por categoría influya en el análisis, ya que puede que la muestra no sea significativa con respecto a la población total .
+
+  + Diagrama de caja 2020-2021.
+```{r}
+boxplot(muestra2021$Rating ~ muestra2021$Marca,cex.names=0.5, las=2,xlab="",sub ="Marca",ylab="Rating",col="green",cex.axis=0.7)
+```
+    
+    - Análisis de la gráfica: Se puede observar que la mayoría de ratings de Toyota se encuentran en el rating promedio, es decir la desviación estándar es pequeña. Por otro lado, la marca Audi no tiene outliers y sus cuartiles tienen una distribución casi normal.
+
+## Descripción de variables
+
+* Marca:
+  - Para la variable de `Marca`, haremos uso de gráficos de barras para su análisis correspondiente, para ello se usará barplot.
+
+```{r}
+barplot(prop.table(table(Filtrado1819$Marca)), main = "Frecuencia relativa de ventas de vehículos por marca 2018-2019", xlab="",sub = "Marca de auto", ylab = "Frecuencia relativa", ylim = c(0.00,0.40),col= c("blue","red","green","orange",'purple','yellow','brown','gray','magenta','black'),cex.names=0.7, las=2)
+```
+
+
+```{r}
+barplot(prop.table(table(Filtrado2021$Marca)), main = "Frecuencia relativa de ventas de vehículos por marca 2020-2021", xlab="",sub = "Marca de auto", ylab = "Frecuencia relativa", ylim = c(0.00,0.40),col= c("blue","red","green","orange",'purple','yellow','brown','gray','magenta','black'),cex.names=0.7, las=2)
+```
+
+* Diagrama de cajas de Precio vs Marca 2018-2019
+
+```{r}
+boxplot(muestra1819$Precio ~ muestra1819$Marca,cex.names=0.5, las=2,xlab="",sub ="Marca",ylab="Precio",col="skyblue",cex.axis=0.7,main="Precio vs Marca 2018-2019")
+```
+
+  + Análisis de la gráfica: La gráfica nos da a entender que las marcas BMWV, Mercedes Benz y regularmente  Audi,tienen mayor dispersión en sus precios respecto a las demás que se encuentran relativamente concentradas por lo que tienen menor rango y menor rango intercuartil,ademas podemos apreciar que la marca que posee el mayor y menor precio es Mercedes Benz y Ford respectivamente, además se puede ver que existen 4 valores atípicos.
+
+
+* Diagrama de cajas de Precio vs Marca 2020-2021
+
+```{r}
+boxplot(muestra2021$Precio ~ muestra2021$Marca,cex.names=0.5, las=2,xlab="",sub ="Marca",ylab="Precio",col="purple",cex.axis=0.7,main="Precio vs Marca 2020-2021")
+```
+
+  + Análisis de gráfica:
+    - En esta gráfica se puede notar una gran diferencia respecto a la anterior, podemos diferenciar en primer lugar que la mayoría de las marcas subieron sus precios, además ahora las marcas que muestran una mayor dispersión son Chevrolet y Ford, en cambio las demás están relativamente concentradas como también vemos que existen 8 datos atípicos, que es mayor al valor de gráfica  anterior.
+    
+  
+* Tabla que compara las preferencias de Marca por Estado. 
+
+```{r}
+tabestadoymarca<-table(muestreoTotal$Marca ,muestreoTotal$Estado)
+tabestadoymarca
+```
+
+* Para efectos de análisis se decidió dividir por zonas Oeste, Noroeste, Medio-Oeste y Sur. El análisis se realizó a nivel global entre los años 2018-2021.
+
+  + Oeste
+    - Tabla que compara las preferencias de Marca por Estado en la zona Oeste. 
+```{r}
+USwest<-filter(FiltradoTotal,Estado=="WA"|Estado=="MT"|Estado=="OR"|Estado=="ID"|Estado=="WY"|Estado=="CA"|Estado=="NV"|Estado=="UT"|Estado=="CO"|Estado=="AZ"|Estado=="NM")
+tabwestymarca<-table(USwest$Estado ,USwest$Marca)
+tabwestymarca
+```
+
+    - Mosaico que muestra las preferencias de marca por estado en la zona Oeste de Estados Unidos.
+
+```{r}
+mosaicplot(tabwestymarca,main="Estado vs. Marca en estados del Oeste de Estados Unidos" ,col=c("green","blue","orange","red", "white", "pink"),las=2)
+```
+    - En el Oeste:
+        * El estado con mayor demanda de autos fue CA, el modelo de auto más vendido fue BMW y los autos menos vendidos fueron Honda, Jeep y Lexus.
+        * El estado con menor demanda de autos fue OR, el modelo de auto vendido fue Ford y en las demás marcas no hubo venta. 
+        * En conclusión en este conjunto de estados el auto que mayor preferencia tiene es el BMW y el auto que menos preferencia tiene es el Honda.
+
+  + Medio Oeste
+    - Tabla que compara las preferencias de Marca por Estado en la zona Medio-Oeste. 
+```{r}
+USmidwest<-filter(FiltradoTotal,Estado=="ND"|Estado=="MN"|Estado=="WI"|Estado=="MI"|Estado=="SD"|Estado=="IA"|Estado=="NE"|Estado=="KS"|Estado=="MO"|Estado=="IL"|Estado=="IN"|Estado=="OH")
+tabmidwestymarca<-table(USmidwest$Estado ,USmidwest$Marca)
+tabmidwestymarca
+```
+
+    - Mosaico que muestra las preferencias de marca por estado en la zona Medio Oeste de Estados Unidos.
+
+```{r}
+mosaicplot(tabmidwestymarca,main="Estado vs Marca en la zona Medio Oeste de Estados Unidos" ,col=c("green","blue","orange","red", "white", "pink"),las=2)
+```
+
+    - En el Medio-oeste:
+      - El estado con mayor demanda de autos fue IL, el modelo de auto más vendido fue Lexus y los autos que no se vendieron fueron Mercedes Benz y BMW.
+      - El estado con menor demanda de autos fue IA, el modelo de auto que se vendió fue Ford y en las demás marcas no hubo venta.
+      - En conclusión en este conjunto de estados el auto con menos demanda fue Mercedes Benz y el auto que más se prefiere fue BMW.
+
+
+  + Noroeste 
+    - Tabla que compara las preferencias de Marca por Estado en la zona Noroeste. 
+    
+```{r}
+USnorthwest<-filter(FiltradoTotal,Estado=="NY"|Estado=="PA"|Estado=="VT"|Estado=="ME"|Estado=="NH"|Estado=="MA"|Estado=="CT"|Estado=="NJ"|Estado=="RI")
+tabnorthwestymarca<-table(USmidwest$Estado ,USmidwest$Marca)
+tabmidwestymarca
+```
+
+   - Mosaico que muestra las preferencias de marca por estado en la zona Noroeste de Estados Unidos.
+
+```{r}
+mosaicplot(tabnorthwestymarca,main="Estado vs Marca en la zona Noroeste de Estados Unidos" ,col=c("green","blue","orange","red", "white", "pink"),las=2)
+```
+    - En el Nor-oeste:
+      - El Estado con mayor demanda de autos fue IL, el modelo de auto más vendido fue Lexus y los autos que no se vendieron fueron Audi y Mercedes Benz.
+      - El Estado con menor demanda de autos fue IA, el modelo de auto que se vendió fue Ford y en las demás marcas no hubo venta.
+      - En conclusión en este conjunto de estados el auto con menos demanda fue Mercedes Benz, Audi y el auto que más se prefiere fue BMW, Chevrolet.
+
+  + Sur
+    - Tabla que compara las preferencias de Marca por Estado en la zona Sur
+    
+```{r}
+USsouth<-filter(FiltradoTotal,Estado=="TX"|Estado=="OK"|Estado=="AR"|Estado=="LA"|Estado=="MS"|Estado=="AL"|Estado=="GA"|Estado=="TN"|Estado=="KY"|Estado=="FL"|Estado=="SC"|Estado=="NC"|Estado=="VA"|Estado=="DC"|Estado=="WV"|Estado=="DE"|Estado=="MD")
+tabsouthymarca<-table(USsouth$Estado ,USsouth$Marca)
+tabsouthymarca
+```
+
+   - Mosaico que muestra las preferencias de marca por estado en la zona Sur de Estados Unidos.
+
+```{r}
+mosaicplot(tabsouthymarca,main="Estado vs Marca en la zona Sur de Estados Unidos" ,col=c("green","blue","orange","red", "white", "pink","black","yellow","skyblue","purple"),las=2)
+```
+    - En el Sur:
+        - Del ánalisis obtenido se puede observar que el estado que más utiliza la marca Toyota es la que esta denotada como Tennessee (TN), en cambio existen dos estados que no usan dicha marca, y son Virginia (VA) y Virginia Occidental (WV).
+        - Con respecto a la marca Audi, se puede observar que en el estado de Luisiana (LA) tiene más usuarios que usan dicha marca.
+        - El caso de la marca Jeep se puede observar que la cantidad de usuarios en algunos estados van casi igual, teniendo asi que en el estado Tennessee (TN) y Virginia (VA), tengo casi la misma proporción de usuarios.
+        - Y por ultimo, la marca Lexus tiene tambien gran cantidad de usuarios, el estado en el que tiene gran acogimiento por parte de estos, es el estado de Virginia Occidental (WV).
+
+
+* Histograma de frecuencias de ventas por precio entre los años 2018-2021
+
+```{r}
+hist(FiltradoTotal$Precio, main="Histograma de frecuencias de ventas por precio entre los años 2018-2021")
+```
+- De dicho histograma se puede llegar a concluir que los precios mas solicitado de autos van en su mayoría entre el rango de 3000 a 4000
+
+* Histograma de frecuencias de Millas entre los años 2018-2021
+```{r}
+hist(FiltradoTotal$Millas,main= "Histograma de frecuencias de Millas entre los años 2018-2021")
+```
+  + De este histograma se puede llegar a concluir que la milla que es más frecuente en un auto esta en el rango de 1e+04 a 2e+04.
+  
+ 
+* Diagrama de dispersión entre las variables de Millas vs Precios 
+
+```{r}
+pairs(muestreoTotal$Precio~muestreoTotal$Millas, col=c("violet"), main="Diagrama de dispersión entre las variables de Millas vs Precios")
+```
+
+  + Si la correlación pasa de +/- 0.75 es bueno. Para saber si el modelo es bueno se procederá a observar la covarianza y al coeficiente de correlación.
+
+    -  covarianza
+```{r}
+cov(muestreoTotal$Precio,muestreoTotal$Millas)
+```
+
+
+  + Como la covarianza salió negativa esto significa que la relación entre Precio y Millas es aparentemente indirecta.
+
+    - coeficiente de correlación
+```{r}
+cor(muestreoTotal$Precio,muestreoTotal$Millas)
+```
+
+  + Sin embargo, al revisar la correlación, se concluye que no existe una buena relación entre las variables millas y precio en ambos periodos debido a que el valor resultante sale fuera del rango estándar mínimo para ser considerada una buena correlación (+/-0.75).
+
+
+# Análisis probabilístico:
+
+# Variables Aleatorias
+
+## Variables Aleatorias Discretas
+
+### Modelo de distribución Binomial
+
++ 1er caso:
+En este caso nos enfocaremos en la condición en el que se encuentran los autos durante el periodo del 2018 y 2019, por lo que se va determinar la probabilidad de las condiciones de los autos. Asi que lo expresaremos mediante un gráfico de barras que este expresado respecto a la probabilidad.
+```{r}
+
+barplot(prop.table(table(muestra1819$Condicion)), main = "Condicion de autos entre los años 2018 y 2019", ylab = "Probabilidad",xlab = "Tipo de condición",cex.names = 0.9, las=1, col ="red")
+```
+```{r}
+table(muestra1819$Condicion)
+```
+```{r}
+mod_rak <- prop.table(table(muestra1819$Condicion))
+mod_rak <- data.frame(mod_rak)
+names(mod_rak)[names(mod_rak)=='Freq'] <- 'Probabilidad'
+mod_rak
+```
+
+### Ejercicio de aplicacion:
+
+Se desea conocer acerca de las condiciones de autos vendidos entre los años 2018 y 2019.Se tiene en total 200 resultados acerca de la condición, certificado igual a 46 y usados igual a 154, si la probabilidad de que el auto este certificado es de 0.23.
+Calcular la probabilidad de que en 30 autos de 46 estén certificados: 
+éxito-> autos se encuentren en estado certificado: 0.23
+fracaso-> autos se encuentren en estado usado: 1- 0.23= 0.77 
+variable aleatoria–> Numero de autos que se encuentren en estado certificado
+P(X=30)-> dbinom(numero de éxitos, tamaño, probabilidad de éxito)
+```{r}
+dbinom(30,46,0.23)
+```
+-Conclusión: se concluye que para el periodo 2018-2019 existe una probabilidad poco significativa/muy baja de tener 30 de 46 autos certificados.
+
+
+```{r}
+plot(dbinom(c(0:30),46,0.23), main = "Modelo de Distribución binomial",xlab="Número de intento",ylab = "Probabilidad", lwd=2)
+legend("topright", legend = c("30  0.23"),
+       title = "n     p", title.adj = 0.6,
+       lty = 1, col = c(rgb(0.7,0,0.1,0.4)), lwd = 2, box.lty = 1)
+```
+
++  2do caso:
+En este caso, queremos saber acerca de la cantidad de autos vendidos entre los años 2018-2019 en el estdo de Texas (TX) de los Estados Unidos. Para eso realizaremos un filtro, con la finalidad de obtener la cantidad de todos los autos vendidos en dicho periodo.
+```{r}
+sum(table(BDC1$Año))
+f<-filter(BDC1,Año==2018|Año==2019)
+v<-table(f$Año)
+```
+```{r}
+#probabilidad del año 2018
+total<-sum(table(BDC1$Estado))
+TX=1225
+c<-total-TX
+exito<-TX/total
+fracaso<-c/total
+exito+fracaso
+exito
+table(BDC1$Estado)
+```
+### Ejercicio de aplicación
+
+Se vendieron 100 autos en el último mes, en todo el territorio de Estados Unidos, se quiere saber la probabilidad de que se hayan vendido hasta 8 autos en el estado de TX,si se sabe que la probabilidad de que un auto se haya vendido en ese estado es de 0.13.
+```{r}
+pbinom(8,100,0.13)
+```
+
+
+```{r}
+plot(dbinom(c(0:8),100,0.13), main = "Modelo de Distribución binomial",xlab="Número de intento",ylab = "Probabilidad", lwd=2)
+legend("topright", legend = c("8  0.13"),
+       title = "n     p", title.adj = 0.6,
+       lty = 1, col = c(rgb(0.7,0,0.1,0.4)), lwd = 2, box.lty = 1)
+```
+
+```{r}
+fil<-filter(BDC1,Estado=="TX")
+fil
+table(fil$Marca)
+```
+
+```{r}
+toyota<-149/sum(table(fil$Marca))
+
+toyota
+```
+
+```{r}
+d<-table(muestra1819$Marca)
+d
+probabilidad<-d/200
+probabilidad
+sum(probabilidad)
+
+#data.frame("Marca"==muestra1819$Marca,"Probabilidad"==d)
+```
+
+### Ejercicio de aplicación 
+
+Se ha registrado 200 autos vendidos entre 2018 y 2019,se sabe que se vendió 24 autos de la marca Mercedes-Benz y los otros fueron de otras marcas.Cual es la probabilidad de a ver vendido 20 autos mercedez-benz de  100 ,si se sabe que la probabilidad de a ver vendido un auto de esa marca es de 0.12 . 
+
+
+exito=que el auto que se vendio sea de la marca Mercedez-Benz=0.12
+fracaso=que se haya vendido otra marca=0.88
+variable aleatoria=Número de autos vendidos 
+```{r}
+dbinom(20,100,0.12)
+plot(dbinom(0:20,100,0.12))
+```
+
+### Modelo de distribución binomial negativa
+
+### Ejercicio  de aplicación:
+- Un cliente preferiria un carro con color exterior "Shadow Black". Sin embargo, no tiene mucho tiempo y solo lograria revisar 7 autos, qué probabilidad hay que de esos 7 autos al menos 1 tenag el color que desea?
+
+- Extraer la cantidad de autos con el color qe el cliente quiere.
+```{r}
+ks <- df %>% drop_na() %>% filter(ExteriorColor == "Shadow Black") %>% count()
+ks
+```
+
+- Hallar el tamaño de la población total
+```{r}
+total <- df %>% drop_na() %>% count()
+p <- ks/total
+p <- p$n
+r <- 1
+n <- 7 - r
+dnbinom(x = n, size = r, prob = p)
+```
+```{r}
+plot(dnbinom(c(0: n), size = r, prob = p), main = "Modelo de Distribución Binomial Negativa",xlab="Número de intento",ylab = "Probabilidad", lwd=2)
+legend("topright", legend = c("6  0.004"),
+       title = "n     p", title.adj = 0.6,
+       lty = 1, col = c(rgb(0.7,0,0.1,0.4)), lwd = 2, box.lty = 1)
+```
+
+### Modelo de distribución hipergeométrica
+### Ejercicio  de aplicación:
+- Un cliente busca comprar 5 coches nuevos/certificados de la marca BMW. ¿Cúal es la probabilidad de que 3 o mas de los coches los consiga en un trato bueno o excelente? (DealType == Good or Great)
+- Poblacion: El cliente filtra los coches y se centra en los BMW que no son usados
+```{r}
+# Preguntas: Gianella
+poblacion <- df %>% filter(Make == 'BMW', `Used/New` != 'Used') %>% drop_na()
+n_prob <- count(poblacion)
+n_prob <- n_prob$n
+n_prob
+```
+- Los casos exitosos son los que pertenecen a la población y tienen un DealType bueno o buenaso.
+
+```{r}
+exitos <- poblacion %>% filter(DealType %in% c('Good', 'Great')) %>% count()
+exitos <- exitos$n
+exitos
+```
+- Se halla la probabilidad acomulativa para así tener 3 o más buenos-buenasos tratos.
+
+```{r}
+phyper(3, m = exitos, n_prob - exitos, 5, lower.tail = FALSE)
+```
+
+```{r}
+plot(phyper(0:3, m = exitos, n_prob - exitos, 5, lower.tail = FALSE),main = "Modelo de Distribución Hypergeométrica",xlab="Número de intento",ylab = "Probabilidad", lwd=2 )
+
+```
+
+
+### Modelo de distribución de Poisson
+
+```{r}
+table(Filtrado1819$Marca)
+total= sum(table(Filtrado1819$Marca))
+total
+aud<-252/total
+aud
+```
+```{r}
+table(Filtrado2021$Marca)
+total1= sum(table(Filtrado2021$Marca))
+total1
+```
+
+
+La probabilidad que se venda un auto Audi en el periodo 2018-2019 es 0.085.
+la venta de autos Audi en el periodo 2020-2021 fue 104.
+
+Se observa que se venden 252 autos Audi en 2 los periodos 2018-2019, calcule la probabilidad de vender hasta 356 autos en los próximos 4 años.
+lambda = (252*4)/2
+lambda = 504
+
+```{r}
+ppois(356,504)
+```
+Se observa que la probabilidad de venta de esa cantidad de autos es muy poca, debido a que la venta de autos tiene una tendencia a disminuir en sus ventas, yaque en el periodo 2018-2019 se vendió 252 autos y en el periodo 2020-2021 104 autos.
+
+## Variables Aleatorias Continuas
+
+### Modelo de distribución normal
+
+-> Análisis del precio de autos vendido en los años 2018 y 2019
+
+```{r, echo = FALSE}
+hist (muestra1819$Precio, main = 'Precio de autos vendidos 2018-2019', xlab = 'Precio', ylab = 'Frecuencia',col = 'azure3', breaks = 20, freq = F)
+lines(density(muestra1819$Precio,na.rm = T),col ='red',lwd = 3)
+curve(dnorm(x,mean(muestra1819$Precio,na.rm = T),sd(muestra1819$Precio,na.rm = T)),lwd = 2, col = 'blue',add = T)
+legend('topright', c('Curva', 'Curva (Normal teórica)'), lty = 1, lwd = 2, col = c('red','blue'), bty = 'n', cex = 0.8)
+```
+
+. Con ello podemos concluir que la edad de 32 años encierra al 68% de la población de estudio, la edad de 37.37 años encierra al 95% de la población y la edad de 42.71 años al 99%
+
+Para esta variable, la media sería de 38375  mientras que la desviación estándar de la misma sería 14418.17, por lo que tendríamos una normal: $$Nor(\mu = 38375 ,\sigma = 14418.17) $$
+
+**Descripción:**
+Es la primera gráfica en la que podemos observar una distribución normal en la variable. Ello debido a que su gráfica de densidad es muy parecida a la gráfica de una distribución normal. Para formular la pregunta utilizando la normal, necesitaremos la media y la desviación estándar.
+
+Para ello necesitamos la media y la desviación estándar.
+```{r}
+# Media
+  
+m<-mean(muestra1819$Precio)
+m
+```
+```{r}
+# Desviación estándar
+
+d<-sd(muestra1819$Precio)
+d
+
+```
+ Por lo que tendríamos una normal: $$Nor(\mu = 37207.9 ,\sigma = 10750.17) $$
+**Aplicación de la desviación estándar**
+
+El precio medio de autos es de 37207.9, con un desviación estándar de 10750.17; si el precio esta distribuido normalmente, ¿qué porcentaje de autos tendrán de precio entre 3000 a 5000 dolares?.
+
+$P(3000\leq x \leq 5000)$
+```{r}
+p<-pnorm(5000, mean =37207.9 ,sd= 10750.17)-pnorm(3000, mean =37207.9 ,sd= 10750.17)
+p
+```
+```{r}
+Xs<-seq(0,5000, by=0.1)
+plot(0:5000,pnorm(0:5000, mean=37207.9 ,sd= 10750.17), type = "s", main="Grafica de la normal sobre probabilidad del promedio", xlab = "Precio", ylab="Probabilidad")
+lines(Xs, pnorm(Xs, mean=37207.9 , sd=10750.17), col="red",lty = 1, lwd = 3)
+
+```
+En la gráfica podemos observar que desde el intervalo 0 al 5000 la probabilidad empieza crecer hasta llegar al punto limite del estudio.
+
+
+# Conclusión:
+- De acuerdo al primer objetivo planteado, se concluye, mediante las observaciones y el riguroso análisis realizado en los diferentes Estados de EE. UU, podemos afirmar que en el OESTE, estado con menor demanda de autos fue OR, el modelo de auto vendido fue Ford y en las demás marcas no hubo venta. Seguidamente en la zona del MEDIO OESTE, el estado con mayor demanda de autos fue IL, el modelo de auto más vendido fue Lexus y los autos que no se vendieron fueron Mercedes Benz y BMW. Por otro lado en la zona NOROESTE, la mayor demanda de autos fue IL, el modelo de auto más vendido fue Lexus y los autos que no se vendieron fueron Audi y Mercedes Benz. Por último, en la zona SUR, se puede visualizar que el estado que más utiliza la marca Toyota es la que esta denotada como Tennessee (TN), en cambio existen dos estados que no usan dicha marca, y son Virginia (VA) y Virginia Occidental (WV), con ello también podemos concluir que cada Estado tiene sus preferencias respecto al modelo de auto esto puede ser debido al extenso territorio y los precios de gasolina.
+
+- No existe una correlación entre precio y millas pese a que se podría pensar que existe alguna relación entre la cantidad de millas de un auto y su precio debido a su covarianza que resulta negativa (-59304485) la cual estaría indicando una relación indirecta, mas cuando se analiza la correlación (-0.2603309), resulta que no existe una relación fuerte entre ambas variables, en otras palabras, si la correlación no se encuentra en el rango >0.75 o >-0.75 entonces no existe correlación.
+
+- Se concluye que hubo una visible disminución de ventas entre el periodo 2018-2019 y el 2020-2021. Muchas marcas dejaron de vender como el BMV pero otras incrementaron sus ventas como el Honda y Toyota. Se puede observar que mientras BMV opto por incrementar sus precios, Toyota decidió mantenerlos lo que generó que las personas prefirieran esta marca.
+
+- Las valoraciones de Audi y BMW son, en promedio, mayores que la mayoría de las demás marcas. Mientras que Mercedes Benz posee una gran desviación estándar, asimismo tambien se observo que la gran mayoría de marcas presentan valores atípico en la gráfica de (Rating - Marca), por otro lado marcas con un rating promedio alto son Honda, Jeep, Lexus y Toyota.
+
+- Se puede observar que el consumo de autos que usan “Gasolina”  sufrió un decremento significativo entre los periodos 2018-2019 y 2020-2021, esto puede haberse debido al costo de la gasolina en el periodo 2020-2021.
+
+
+
