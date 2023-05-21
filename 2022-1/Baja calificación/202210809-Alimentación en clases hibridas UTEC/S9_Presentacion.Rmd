@@ -1,0 +1,308 @@
+---
+title: "S9 Presentación"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+---
+![UTEC - Universidad de Ingeniería y Tecnología](https://proyectos.utec.edu.pe/themes/custom/utec/logo.png)
+     
+# Introducción
+Ante la disminución de contagios por Covid 19 el gobierno estableció un conjunto de medidas para el 2022 en el sector de educación. Una de estas medidas permite a las universidades poder llevar clases semipresenciales. En UTEC se  adaptó a un modelo híbrido el cual permitía a un grupo de estudiantes llevar sus clases en el campus. Por lo cual los “centro de comida” tomaron un rol fundamental en la alimentación y desempeño de los estudiantes.
+
+## Relevancia
+Este estudio es de gran envergadura, por el hecho de que la alimentación juega un rol indispensable en el desempeño académico de los estudiantes y en su salud física. Asimismo, frente a la aplicación de una nueva modalidad de enseñanza, los estudiantes afrontan cambios en su rutina de alimentación diaria. Los resultados que se obtendrán nos permitirán analizar el estado actual de dicha rutina, y con ello, sus posibles tendencias a futuro.
+
+## Planificacion
+
+Instalamos las librerías para garantizar una correcta ejecución del proyecto:
+```{r}
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(ggthemes)
+```
+
+# Datos
+## Recolección de datos
+
+**Proceso de recolección de datos**
+Para la recolección de datos hemos entrevistado a los estudiantes de UTEC que se encontraban caminando fuera del horario de clases en los pasillos de la universidad. Esto se llevó a cabo debido a que durante el tiempo de recolección de datos se permitió el aforo al 100% del campus y como fase inicial de la investigación.
+
+**RStudio**
+En primer lugar, cargamos los datos de nuestro estudio en un data frame inicial llamado DF:
+```{r}
+DF <- read_csv("HA_EyP_20221.csv", col_types = "ccnccccnnnncccnnncnnn")
+```
+
+Renombramos a las variables a nombres de una sola palabra para facilitar la lectura y su manejo en R:
+```{r}
+DF <- rename(DF, Edad = `Edad actual`, Genero = `Género`, Residencia = `Lugar de residencia`, HorasUtec = `Cantidad de horas diarias promedio en las que ese queda en la UTEC`, Presupuesto = `Presupuesto alimenticio diario (en soles)`, ComidasUtec = `Cantidad de comidas que ingiere en la UTEC`, ComidasOtros = `Cantidad de comidas que ingiere a diario en cualquier lugar`, HoraDesayuno = `Hora a la que desayuna`, HoraAlmuerzo = `Hora a la que almuerza`, HoraCena = `Hora a la que cena`, MinutosDesayuno = `Minutos totales invertidos en desayunar`, MinutosAlmuerzo = `Minutos totales invertidos en almorzar`, MinutosCena = `Minutos totales invertidos en cenar`, LlevaComida = `¿Llevas comida de tu casa a la UTEC?`, MinutosDesplazo = `Minutos diarios totales invertidos en desplazarte (ida y regreso) al lugar en el que comes (desayuno, almuerzo, etc.)`, Maquina = `Cantidad de veces al día que consumes alimentos de la máquina dispensadora`, Cafeteria = `Cantidad de veces al día que consumes alimentos de la cafetería`)
+```
+
+## Población, muestra y muestreo
+ 
+Nuestra población de estudio está establecida por los estudiantes de UTEC que asisten presencialmente al campus. El tamaño muestral con el que se trabaja es de 215 estudiantes. El tipo de muestreo es por conveniencia la cual se encuentra dentro del muestreo no probabilístico. Esto debido a que se ha realizado las encuestas a los estudiantes  que caminaban por los pasillos de la universidad fuera del horario de clases y la cafetería. Finalmente este método, también conocido como un método basado en los sujetos disponibles, no nos permite tener control sobre la representatividad de la muestra.
+
+## Variables
+**Tabla - Tipos de Variables**
+
+| Variables |Tipo |Restricción |
+|---|---|---|
+|Edad | Numérica → Discreta |Número entero positivo mayor a 15|
+|Residencia | Categórica → Nominal |No numérico|
+|Genero | Categórica → Nominal |No numérico y sea ternario (Mujer, Hombre, Prefiero no decirlo)|
+|Ciclo| Categórica → Ordinal  |Número entero positivo menor o igual a 10|
+|Carrera | Categórica → Nominal |No numérico|
+| HorasUtec  |  Numérica → Discreta |Número entero positivo menor a 15|
+| Presupuesto  |  Numérica → Continua |Numéro no negativo|
+| ComidasUtec  |  Numérica → Discreta |Número entero no negativo|
+| ComidasOtros  |  Numérica → Discreta |Número entero positivo|
+|HoraDesayuno| Categórica → Ordinal  |Valor Date|
+|HoraAlmuerzo| Categórica → Ordinal  |Valor Date|
+|HoraCena| Categórica → Ordinal  |Valor Date|
+| MinutosDesayuno  |  Numérica → Discreta |Número entero positivo|
+| MinutosAlmuerzo  |  Numérica → Discreta |Número entero positivo|
+| MinutosCena  |  Numérica → Discreta |Número entero positivo|
+|LlevaComida | Categórica → Nominal |No numérico y sea binario (Sí y No)|
+| MinutosDesplazo  |  Numérica → Discreta |Número entero no negativo|
+| Maquina  |  Numérica → Discreta |Número entero no negativo|
+| Cafeteria  |  Numérica → Discreta |Número entero no negativo|
+
+
+## Limpieza de base de datos
+En nuestros datos recolectados no existe los datos faltantes (NA); por tal motivo, no se realizará una limpieza de NA, ya que se colocaron como obligatorias todas las preguntas del Google Forms.  
+
+En la limpieza de nuestro Data Frame se eliminarán los datos que no vamos a emplear, es decir, aquellos datos predeterminados de la herramienta Google Forms. Estas son **"Marca temporal"** y **"Correo electrónico"**. De esta manera, obtenemos el Data Frame final:   
+
+En el Data Frame final (DF) guardaremos los datos que se van a emplear en el estudio, por tal motivo, seleccionamos desde la Edad hasta Cafeteria  
+
+```{r}
+DF <- select(DF,Edad:Cafeteria)
+```
+
+# Análisis descriptivo
+
+## Descriptores Numéricos de posición
+
+Consideramos analizar los descriptores numéricos clásicos **(media, mediana, max, min y cuantil)** en aquellas variables significativas.
+Se realizará el análisis de las variables MinutosDesayuno, MinutosAlmuerzo, MinutosCena, MinutosDesplazo, HorasUtec, Presupuesto, ComidasUtec y ComidasOtros. Estas variables mencionadas, en un futuro, nos ayudarán a entender los habitos alimenticiosa de los estudiantes de UTEC y a hallar relaciones entre sí.
+
+```{r}
+summary(DF[6:9])
+summary(DF[13:15])
+summary(DF[17])
+```
+
+Realizamos un diagrama de cajas de cada una de estas variables para saber si hay datos atípicos. Según ello escogeremos el descriptor de posición apropiado.
+
+- Los boxplot individuales nos ayudarán a tener una idea sobre la dispersión de nuestras observaciones de la variable minutos.
+  - El boxplot con todas las variables de minutos nos sirve para realizar comparaciones sobre estas, tomando en consideración que el número de observaciones de estas variables son iguales.
+  
+```{r}
+boxplot(DF[6], main="Diagrama de cajas de HorasUtec")
+boxplot(DF[7], main="Diagrama de cajas de Presupuesto")
+boxplot(DF[8:9], main="Diagrama de cajas de ComidasUtec y ComidasOtros")
+boxplot(DF[13:15], main="Diagrama de cajas de MinutosDesayuno, Minutos Almuerzo y MinutosCena")
+boxplot(DF[17], main="Diagrama de cajas de MinutosDesplazo")
+```
+Todas las variables tienen datos atípicos, así que emplearemos la mediana.
+
+De acuerdo con nuestro summary se puede llegar a la conclusión que la mediana del presupuesto alimenticio diario de los estudiantes de UTEC es de 15 soles.
+
+Asimismo, según la mediana en summary, los estudiantes invierten 30 minutos en el almuerzo y cena, a comparación del desayuno, donde invierten 20 minutos.
+
+## Descriptores numéricos de dispersión
+Vamos a emplear el rango intercuartilico (IQR) para poder conocer que tan concentradas o dispersas se encuentran las observaciones sobre la cantidad de minutos que se emplean para comida (desayuno, almuerzo y cena) diariamente. 
+
+```{r}
+IQRMsC<-c(Desayuno = IQR(DF$MinutosDesayuno),
+     Almuerzo = IQR(DF$MinutosAlmuerzo), 
+     Cena = IQR(DF$MinutosCena)
+     )
+IQRMsC
+```
+- Como se puede observar en el vector de IQRMsC, el mayor rango intercuartilico es de Almuerzo esto significa que por lo menos la mitad de los datos se encuentran más dispersos respecto a la mediana.
+- Hay que considerar que todas las variables de Tiempo tienen el mismo número de observaciones.
+
+## Descriptores gráficos
+Se realizará un histograma para representar el tiempo que utilizan los estudiantes para el desayuno almuerzo y cena.  
+- Los histogramas nos ayudará a visualizar como el tiempo va variando acorde a la aplicación que se esté representado, mostrándonos cuánto tiempo son utilizadas por los estudiantes de la UTEC.  
+- Los histogramas nos permitirán observar la diferencia que hay entre aplicaciones con respecto a la media y mediana, tomando en cuenta el número de observaciones realizadas.  
+- Los colores empleados fueron el amarillo, naranja y rojo oscuro, pues van oscureciéndose de acuerdo al tiempo del día de la comida.
+
+```{r}
+hist(DF$MinutosDesayuno,
+     col = "yellow",
+     border = "black", 
+     prob = FALSE,
+     xlab = "Minutos (min)",
+     main = "Histograma del tiempo empleado en desayunar"
+     )
+
+abline(v = mean(DF$MinutosDesayuno)  , col ="royalblue", lwd = 2)
+abline(v = median(DF$MinutosDesayuno), col = "red"     , lwd = 2)
+legend(x = "topright", c( "Promedio", "Mediana"), col = c( "royalblue", "red"), lwd = c(2, 2))
+
+```
+```{r}
+
+  hist(DF$MinutosAlmuerzo,
+     col = "orange",
+     border = "black", 
+     prob = FALSE,
+     xlab = "Minutos (min)",
+     main = "Histograma del tiempo empleado en almorzar"
+     )
+
+abline(v = mean(DF$MinutosAlmuerzo)  , col ="royalblue", lwd = 2)
+abline(v = median(DF$MinutosAlmuerzo), col = "red"     , lwd = 2)
+legend(x = "topright", c( "Promedio", "Mediana"), col = c( "royalblue", "red"), lwd = c(2, 2))
+
+```
+
+```{r}
+
+hist(DF$MinutosCena,
+     col = "darkred",
+     border = "black", 
+     prob = FALSE,
+     xlab = "Minutos (min)",
+     main = "Histograma del tiempo empleado en cenar"
+     )
+
+abline(v = mean(DF$MinutosCena)  , col ="royalblue", lwd = 2)
+abline(v = median(DF$MinutosCena), col = "red"     , lwd = 2)
+legend(x = "topright", c( "Promedio", "Mediana"), col = c( "royalblue", "red"), lwd = c(2, 2))
+
+```
+
+Para los consumos diarios en la cafetería y las máquinas dispesadoras (Cafetería y Máquina) haremos uso del barplot, puesto que el rango de dichas variables es pequeño.
+```{r}
+max(DF$Cafeteria) - min(DF$Cafeteria)
+max(DF$Maquina) - min(DF$Maquina)
+```
+
+```{r}
+barplot(table(DF$Cafeteria),
+        col = "brown",
+     border = "black",
+     xlab = "Consumos diarios",
+     main = "Gráfica de barras de la variable Cafetería"
+     )
+barplot(table(DF$Maquina),
+     border = "black",
+     xlab = "Consumos diarios",
+     main = "Gráfica de barras de la variable Máquina"
+     )
+```
+- Logramos identificar como en ambos casos, Cafetería y Máquina, la mayoría de alumnos no consume ningún producto diariamente. Comparando las dos variables, logramos ver que los estudiantes consumen más productos diariamente de la máquina dispensadora que de la cafetería. 
+
+```{r}
+cov(DF$Cafeteria,DF$Maquina)
+```
+
+## Patrones o posibles relaciones entre variables numéricas y categóricas
+
+### Variables numéricas
+
+El siguiente gráfico es un mosaico que pretende mostrar la relación entre el presupuesto diario alimenticio y la cantidad de consumos en la cafetería al día
+
+```{r}
+tabla1 <- table(DF$Presupuesto, DF$Cafeteria)
+mosaicplot(tabla1,main = "Relación entre el presupuesto diario y el nº de consumos en la cafet. diario",
+           xlab = "Presupuesto diario alimenticio",
+           ylab = "Cantidad de consumos en la cafetería al día",
+           las = 1,
+           border = "Black",
+           off = 50,
+           shade = FALSE
+           )
+```
+- Podemos interpretar que las personas cuyo presupuesto es superior a 15 a 35 soles tienden a comprar al menos un alimento de la cafetería. Además, en ese intervalo se encuentran los estudiantes que más consumen en la cafetería.
+
+```{r}
+cov(DF$Presupuesto,DF$Cafeteria)
+```
+- Al sacar la covarianza y esta salir positiva, podemos ver que estas dos variables crecen en un mismo sentido.  
+
+El siguiente gráfico es un mosaico que pretende mostrar la relación entre la cantidad de comidas consumidas en la UTEC al día y la cantidad de horas que pasa un estudiante en la UTEC al día
+
+```{r}
+tabla1 <- table(DF$ComidasUtec, DF$HorasUtec)
+mosaicplot(tabla1,main = "Relación entre el ComidasUtec y HorasUtec",
+           xlab = "Nº de comidas consumidas en la UTEC al día",
+           ylab = "Nº de horas que pasa un estudiante en la UTEC al día",
+           las = 1,
+           border = "Black",
+           off = 50,
+           shade = FALSE
+           )
+```
+- Podemos interpretar que las personas que consumen de 5 a más comidas en la UTEC se quedan al menos 4 horas en la universidad. Asimismo, los estudiantes que se quedan entre 11 a 12 horas son en su mayoría los que consumen 2 a 3 comidas en la UTEC.  
+
+```{r}
+cov(DF$ComidasUtec,DF$HorasUtec)
+```
+
+Al sacar la covarianza y esta salir positiva, podemos ver que las dos variables crecen en un mismo sentido.  
+
+
+Veremos la correlación entres tres variables: MinutosDesayuno, MinutosAlmuerzo y MinutosCena
+ 
+```{r}
+CorrelacionS<-(cor(DF[13:15]))
+round(CorrelacionS,2)
+help(corrplot)
+corrplot.mixed(CorrelacionS)
+```
+- En la figura se muestra la matriz con los coeficientes de correlación. En la diagonal de la figura están las variables empleadas, por encima están los círculos de colores, entre más intenso el color, ya sea azul o rojo, mayor es la correlación, si los colores son tenues significa que la correlación es  baja. El tamaño de los círculos está asociado al valor absoluto de correlación. Por último, debajo de la diagonal se observan los valores exactos de correlación en colores.
+- Las correlaciones positivas están representadas de azul, las cuales crecen en el mismo sentido, se puede observar en el caso entre MinutosCena y MinutosAlmuerzo, donde hay una correlación intensa. Es decir, mientras más tiempo emplea un estudiante en almorzar, más tiempo empleará también en cenar. Del mismo modo, en Minutos Desayuno y Minutos Cena, y Minutos Almuerzo y MinutosDesayuno.
+
+
+Veremos la correlación entres cuatro variables: Cafetería, Maquina, ComidasUtec y ComidasOtros
+ 
+```{r}
+CorrelacionS2<-(cor(DF[18:19]))
+CorrelacionS3<-(cor(DF[8:9]))
+round(CorrelacionS2,2)
+round(CorrelacionS3,2)
+corrplot.mixed(CorrelacionS2)
+corrplot.mixed(CorrelacionS3)
+```
+- Las correlaciones positivas están representadas de azul, las cuales crecen en el mismo sentido. Se puede observar en el caso entre Maquina y Cafeteria, donde hay una correlación intermedia Es decir, podríamos decir que si un estudiante compra más alimentos de la cafetería, entonces también comprará más alimentos de la máquina. Por otro lado, la correlación entre ComidasUtec y ComidasOtros no es tan fuerte, pues el color de los círculos es celeste.  
+
+
+### Variable categórica y numérica
+
+El siguiente gráfico es un mosaico que pretende mostrar la relación entre entre llevar comida de casa a la UTEC y la cantidad de horas que se queda en la UTEC
+```{r}
+  relacion1 <- table(DF$LlevaComida,DF$HorasUtec)
+mosaicplot(relacion1,main = "Relación entre LlevaComida y HorasUtec",
+           xlab = "Llevar comida de casa a la UTEC",
+           ylab = "Nº de horas que se queda en la UTEC",
+           las = 1,
+           border = "Black",
+           off = 50,
+           shade = FALSE,
+           )
+```
+- Podemos interpretar del gráfico que los estudiante que se quedan de 3 horas a menos suelen no llevar comida de su casa a la UTEC. De igual manera, vemos que los alumnos que se quedan de 9 horas diarias a más están son en su mayoría quienes sí llevan comida de su casa a la UTEC.  
+
+# Conclusiones
+- El primer análisis que podemos realizar es que mientras mayor es el tiempo que emplea el estudiante en cierta comida, ya sea desayuno, almuerzo o cena, aumentará también el tiempo que emplea en las otras comidas. Esta relación encontrada se puede observar en el Corrplot 1. Esta gráfica nos muestra un círculo de color azul que significa que hay una correlación directa entre la variable MinutosDesayuno con las variables MinutosCena y MinutosAlmuerzo
+
+- También podemos mencionar la relación que se puede observar en el Mosaico, con respecto a HorasUtec y ComidasUtec, donde hay una tendencia a que los estudiantes que pasan más horas en la UTEC son los que más comidas consumen dentro de la universidad.
+
+- En un futuro, nos gustaría saber si la variable de HoraUtec tiene relación con los MinutosDesplazo.
+
+- Finalmente, podemos decir que nuestro estudio va por buen camino. Lo que esperamos es poder obtener un mayor número de observaciones que ayuden a hacer más fuerte la relaciones y correlaciones que hemos podido determinar hasta el momento. Además, esperamos que nos ayude a poder afirmar o no las hipótesis que hemos planteado.

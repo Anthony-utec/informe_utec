@@ -1,0 +1,588 @@
+---
+title: "Entrega P1 - Análisis para la determinación de factores principales para la efectividad mercantil de empresas gacela durante el 2016 AL 2021"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+    number_sections: true
+    theme: yeti
+---
+<style type="text/css">
+#TOC {
+  color: gray; 
+}
+
+</style>
+
+![](https://cita.utec.edu.pe/assets/uploads/2019/05/logo_utec.png){width='250px'}
+
+> # **Introducción**
+
+> ## Relevancia y Justificación:
+
+A lo largo del tiempo las empresas pequeñas y medianas (**PYMES**), y más aún las empresas de alto crecimiento y **gacelas**, se han convertido en un factor importante para el empleo. Las PYMES favorecen al desarrollo económico dentro del país, pues gracias a la gran cantidad de establecimientos, son las mayores generadoras de empleo. En vista de ello, gracias a este estudio analizaremos las razones que conllevan para que una PYME logre ser más competitiva en el marco de acuerdos comerciales, o dicho de otra manera, logre convertirse en empresa gacela. 
+
+
+> # **Objetivos:**
+
+> ## Objetivo Principal
+
+Nuestra principal propuesta para el proyecto es determinar la razón de por qué algunas empresas pueden desenvolverse de manera más eficiente en el mercado, gracias a la información obtenida analizaremos si de alguna manera existen factores en común entre estas compañías, y de esta manera determinar si es que es cuestión de suerte o hay una estrategia detrás.
+
+> ## Objetivos Secundarios
+
+ + Determinar si hay una relación entre el crecimiento de una empresa y el área a la que se dedica dicha empresa en el mercado.
+ 
+ + Determinar la efectividad de algunas empresas.
+ 
+ + Analizar la correlación de algunas variables.
+ 
+ + Plantearnos hipótesis en cuestión a los datos recolectados.
+
+
+> # **Instalación de librerías y carga de las mismas**
+
+```{r}
+# Lista de paquetes a usar
+paquetesUsar <- c("tidyverse", "readr", "knitr","funModeling","ggplot2","dplyr","descr","ggrepel","car", "haven", "foreign", "reshape2", "summarytools")
+
+# Instalar paquetes no instalados
+paquetesInstalar <- paquetesUsar %in% rownames(installed.packages())
+if (any(paquetesInstalar == FALSE)) {
+  install.packages(paquetesUsar[!paquetesInstalar],repos = "http://cran.us.r-project.org")
+}
+
+# Cargar paquetes
+invisible(lapply(paquetesUsar, library, character.only = TRUE))
+```
+
+```{r}
+# Cargamos las librerías
+library(tidyverse)
+library(readr)
+library(knitr)
+library(funModeling)
+library(ggplot2)
+library(dplyr)
+library(descr)
+library(haven)
+library(foreign)
+library(summarytools)
+library(reshape2)
+options(knitr.kable.NA = '')
+```
+
+
+> # **Marco Teórico**
+
+El proyecto que estamos realizando se usó una base de datos española, donde  se analiza su crecimiento de más de 41000 empresas hispanas, mediante datos recolectados durante 5 años consecutivos por medios oficiales. En el análisis de los datos nos centraremos en la correlación de algunas variables para confirmar si hay un factor constante en el crecimiento de las empresas.
+
+> # **Población**
+
+La población estudiada está conformada por las más de 40000 empresas españolas.  
+
+Emprendedores y ciudadanos que busquen un informe estadístico sobre el análisis de empresas de alto #crecimiento.
+
+> # **Unidad Muestral**
+
+Empresas españolas.
+
+> # **Tipo de Muestreo**
+
+En la base de datos y su documentación no se encuentra información sobre el tipo de muestreo que se realizó. Por lo que diremos que nuestro muestreo es por conveniencia.
+
+
+> # **Datos**
+
+> ## Recolección de datos
+
+Para este proyecto usamos una base de datos, la cual se encuentra en el repositorio de bases de datos de una universidad española. 
+
+Empezaremos cargando dicha base de datos.
+
+```{r}
+DF <- read_csv("Fuente_Datos.csv")
+ncol(DF)
+```
+Notamos que tenemos 41 variables, pero luego de analizarlas decidimos seleccionar solo 24 de ellas. Las cuales se descrbirán en el siguiente apartado.
+
+> # **Variables de estudio y definición**
+
+> ## Variables Numéricas
+
+ **Variable** |  **Definición** |
+--------------|-----------------|
+Accionistas| Número de Accionistas (en caso de no haber información asume que hay 0)
+AccionistasExt| Número de Accionistas extranjeros (en caso de no haber información asume que hay 0)
+Anio_const| Año de constitución 
+EmpleadosN5| Número de empleados al final
+EmpleadosN1| Número de empleados al inicio
+ROAN2| Rentabilidad de los Activos 
+ROAN1| Rentabilidad de los Activos 
+RliquN2| Ratio de Liquidez
+RliquN1| Ratio de Liquidez 
+VN5| Ingresos/Ventas
+VN4|Ingresos/Ventas
+VN3|Ingresos/Ventas
+VN2|Ingresos/Ventas
+VN1|Ingresos/Ventas
+RESN2| Resultado Ejercicio 
+RESN1|Resultado Ejercicio 
+RendN2| Ratio de Endeudamiento
+RendN1|Ratio de Endeudamiento
+ATN1| Activos Totales
+ATN2|Activos Totales
+
+> ## Variables Categóricas
+
+ **Variable** |  **Definición** |
+--------------|-----------------|
+Cod_provincia| Código de dos dígitos de la Provincia donde reside la sede
+Añoconst| Año A y Año B
+cnae| Código de actividad CNAE 2009
+Export/Import| Indicador si la empresa importa, exporta, ambas o ninguna
+HabMunRango|  Rango del número de Habitantes de la Localidad donde reside la sede
+
+
+> ## Limpieza de base de datos
+
+> ### Tomar columnas importantes
+
+Empezaremos eliminando las columnas que no nos interesan usando la función `select` del paquete `dplyr`:
+
+```{r}
+DF <- select(DF, cod_provincia, Accionistas, AccionistasExt, AnioConst, IDSector, "Export/Import", HabMunRango, EmpleadosN1, EmpleadosN5, ROAN1, ROAN2, RliquN1, RliquN2, VN1, VN2, VN3, VN4, VN5, RESN1, RESN2, RendN1, RendN2, ATN1, ATN2)
+```
+
+Ahora veremos cómo quedó la base de datos:
+
+```{r}
+DF
+```
+
+```{r}
+ncol(DF)
+```
+Vemos que ya solo nos quedaron las 24 variables que seleccionamos.
+
+> ### Se clasifican las empresas por sector de trabajo:
+
+Nos damos cuenta de que el código del sector al que se dedican las empresas no es el valor final que necesitamos para el análisis, sino el nombre de dicho sector. Para esto crearemos una nueva columna en la base de datos con el nombre de `Sector`. Esto se puede hacer anidando funciones `ifelse`. 
+
+Verificamos si el código dado es "A", sería parte del sector "agrícola"; si es "B", sería de actividades "extractivas", y así sucesivamente:
+
+```{r}
+DF$Sector <- ifelse(DF$IDSector == "A", "agricola",
+                  ifelse(DF$IDSector == "B", "extractivas",
+                    ifelse(DF$IDSector == "C", "manufacturera",
+                      ifelse(DF$IDSector == "D","suministro energia",
+                        ifelse(DF$IDSector == "E","suministro agua",
+                          ifelse(DF$IDSector == "F","construccion",
+                            ifelse(DF$IDSector == "G","comercio vehiculos",
+                              ifelse(DF$IDSector == "H","transporte y almacenamiento",
+                                ifelse(DF$IDSector == "I","hostelería",
+                                  ifelse(DF$IDSector == "J","información y comunicaciones",
+                                    ifelse(DF$IDSector == "K", "financieras y seguros",
+                                      ifelse(DF$IDSector == "L", "inmobiliarias",
+                                        ifelse(DF$IDSector == "M", "cientificas y tecnicas",
+                                          ifelse(DF$IDSector == "N", "administrativos",
+                                            ifelse(DF$IDSector == "O", "seguridad y administracion publica",
+                                              ifelse(DF$IDSector == "P", "educacion",
+                                                ifelse(DF$IDSector == "Q", "saneamiento y servicio social",
+                                                  ifelse(DF$IDSector == "R", "arte, recreacion, entretenimiento",
+                                                    ifelse(DF$IDSector == "s", "otros",
+                                                      ifelse(DF$IDSector == "T", "empleo domestico",
+                                                        ifelse(DF$IDSector == "U", "organizaciones extraterritoriales",
+                                                          "otros")))))))))))))))))))))
+```
+
+Ahora haremos el mismo procedimiento para saber la provincia en la que se encuentran. Sin embargo, solo clasificaremos las provincias en `Madrid`, `Barcelona`, `Valencia` y `otros`. Esto se debe a que estas son las provincias con mayor PBI según el INE en 2018. Información que se puede encontrar en el siguiente [link](https://es.wikipedia.org/wiki/Anexo:Provincias_de_Espa%C3%B1a_por_PIB).
+
+```{r}
+DF$Provincia <- ifelse(DF$cod_provincia == 28, "Madrid",
+                       ifelse(DF$cod_provincia == 8, "Barcelona",
+                                ifelse(DF$cod_provincia == 46, "Valencia", "otros")))
+```
+
+Ahora procedemos a eliminar la columna `IDSector` y `cod_provincia` usando `select` nuevamente:
+
+```{r}
+DF <- select(DF, Provincia, Accionistas, AccionistasExt, AnioConst, Sector, "Export/Import", HabMunRango, EmpleadosN1, EmpleadosN5, ROAN1, ROAN2, RliquN1, RliquN2, VN1, VN2, VN3, VN4, VN5, RESN1, RESN2, RendN1, RendN2, ATN1, ATN2)
+```
+
+Luego, también queremos analizar la variación de las ventas del primer al segundo año, del segundo al tercero y así hasta el quinto.
+
+Para no cambiar mucho nuestra base de datos actual, crearemos una nueva base de datos que contendrá otras variaciones que nos parecen importantes, como lo puede ser la variación del número de empleados, la rentabilidad de los activos, etc.
+
+
+```{r}
+variaciones <- data.frame(
+  "var_N_emp_5anios" = round(((DF$EmpleadosN5 - DF$EmpleadosN1)/DF$EmpleadosN1)*100 , 3),
+  "V1a2" = round(((DF$VN2 - DF$VN1)/DF$VN1)*100, 3),
+  "V2a3" = round(((DF$VN3 - DF$VN2)/DF$VN2)*100, 3),
+  "V3a4" = round(((DF$VN4 - DF$VN3)/DF$VN3)*100, 3),
+  "V4a5" = round(((DF$VN5 - DF$VN4)/DF$VN4)*100, 3),
+  "V1a5" = round(((DF$VN5 - DF$VN1)/DF$VN1)*100, 3),
+  "var_ROAN_5anios" = round(((DF$ROAN2 - DF$ROAN1)/DF$ROAN1)*100 , 3),
+  "var_RLIQ_5anios" = round(((DF$RliquN2 - DF$RliquN1)/DF$RliquN1)*100 , 3),
+  "var_res_5_anios" = round(((DF$RESN2 - DF$RESN1)/DF$RESN1)*100 , 3),
+  "r_end_5_anios" = round(((DF$RendN2 - DF$RendN1)/DF$RendN1)*100 , 3),
+  "var_act_5_anios" = round(((DF$ATN2 - DF$ATN1)/DF$ATN1)*100 , 3)
+)
+```
+
+Ahora clasificaremos todas las empresasa en 3 tipos:
+
+  • `Alto crecimiento`: Empresas que hayan crecido un 60% en 5 años.
+
+  • `Gacela`: Empresas de alto crecimiento con 20% de crecimiento constante. O sea, que crezcan más del 20% en ventas en, por lo menos, 3 años consecutivos.
+
+  • `Normales`: Cualquier empresa en la data que no clasifique como Gacela o de alto crecimiento.
+
+Haremos la clasificacion de la siguiente manera:
+
+Primero todas las empresas serán clasificadas como `normales`.
+
+```{r}
+DF$Tipo <- "Normal"
+```
+
+Luego clasificaremos a algunas empresas como `alto crecimiento` usando la variación en las ventas desde el primer año, hasta el quinto.
+
+```{r}
+DF$Tipo[variaciones$V1a5 >= 60] <- "alto crecimiento"
+```
+
+Finalmente asignaremos como empresas `gacela` a aquellas que cumplan con los 3 años seguidos de crecimiento continuo del más del 20%.
+Esto puede ser que se han mantenido creciendo en más del 20% en ventas desde al año 1 al 2, del 2 al 3 y del 3 al 4; o del 2 al 3, del 3 al 4 y del 4 al 5.
+
+El código en R para hacer este procedimiento sería:
+
+```{r}
+DF$Tipo[
+  (variaciones$V1a2 >= 20 & variaciones$V2a3 >= 20 & variaciones$V3a4 >= 20) 
+  | (variaciones$V2a3 >= 20 & variaciones$V3a4 >= 20 & variaciones$V4a5 >= 20)
+  ] <- "gacela"
+```
+
+Con este trabajo hecho. Consideramos que la base de datos está lista para ser analizada.
+
+> # **Análisis descriptivo**
+
+Para empezar el análisis descriptivo podemos empezar viendo qué tipo de empresa es la más común y cuántas empresas de cada categoría hay.
+
+Primero haremos una gráfica de barras:
+
+```{r}
+colores <- c(5,6,4)
+barplot(table(DF$Tipo), col = colores, las = 1, cex.names = 0.65)
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Podemos notar que el tipo más común es `normal`, y el más raro es `gacela`. Pero podremos ver mejor la proporción en un gráfico de torta.
+
+```{r}
+porcts <- paste0(round((table(DF$Tipo)/nrow(DF))*100, 2), "%")
+pie(table(DF$Tipo), labels = porcts, col = colores)
+legend(x = "bottomright", legend = c(unique(DF$Tipo)), title = "Leyenda", fill = c(5,4,6))
+```
+
+Se puede ver que del total de empresas, solo el $9.38$% ha sido indentificada como empresa `gacela`, mientras que el $60.9$% de las empresas son simplemente `normales`, lo que significa que sus ventas a lo largo de 5 años no han logrado aumentar en, por lo menos, un $60$%`.
+
+Ahora continuaremos dándole un vistazo a las 24 variables que seleccionamos. Para no facilitar el proceso usaremos el comando `summary`.
+
+```{r}
+summary(DF)
+```
+
+De este resumen podemos plantear preguntas interesantes. Por ejemplo, podemos ver que, del total de empresas, 20 101 no tienen accionistas, esto ya que según la documentación de la base de datos los NA's se consideran como 0 accionistas. Esto da inicio a la parte del análisis respecto a los accionistas.
+
+> ## Accionistas por tipo de empresa
+
+Luego, si vemos el primer cuartil, la mediana y el tercer cuartil, veremos que todas son 1. Lo que podría darnos a pensar que, al menos, el 75% de las empresas tienen 1 accionista o menos. Sin embargo, esta cifra no es tan cierta del todo, ya que, como se mencionó antes, 20 101 son NA's, y estos deberían ser considerados en el cálculo como 0.
+
+Ahora procederemos a cambiar eso con un código en R.
+
+```{r}
+DF$Accionistas[is.na(DF$Accionistas)] <- 0
+```
+
+Ahora veremos el nuevo resumen de esa variable.
+
+```{r}
+summary(DF$Accionistas)
+```
+
+Vemos que ya no nos muestra NA's. Además, la media bajó considerablemente de 1.335 a 0.6958.
+
+Por otro lado, vemos que el primer cuartil ahora es 0, por lo que al menos el 25% no tienen ni un solo accionista. En segundo lugar, la mediana ha permanecido en 1, lo que nos indica que el al menos 50% de las empresas tienen 1 o 0 accionistas. Sin embargo, cuando vemos el tercer cuartil nos damos cuenta de que **al menos el 75% de las empresas tienen un accionista o ninguno**. Además, vemos que la empresa más grande tiene **68** accionistas. Es un número demasiado alto a comparación con el promedio. Veámoslo en un boxplot.
+
+```{r}
+boxplot(DF$Accionistas, horizontal = TRUE, main = "Box-plot Accionistas Nacionales")
+```
+
+Veamos qué porcentaje de datos es considerado atípico. O sea, qué porcentaje es mayor a 1.5 veces el rango intercuartílico.
+
+```{r}
+(NROW(DF$Accionistas[DF$Accionistas>1.5*IQR(DF$Accionistas)])/nrow(DF))*100
+```
+
+Vemos que aproximadamente el 10% de datos están fuera de este rango.
+
+Ahora, veamos cuántas empresas solo tienen 0, 1 o 2, 3 a 10, o más de 10 accionistas.
+
+```{r}
+accionistas_clasificado <- DF$Accionistas
+accionistas_clasificado[DF$Accionistas == 0] <- "0"
+accionistas_clasificado[DF$Accionistas == 1] <- "1"
+accionistas_clasificado[DF$Accionistas >= 3] <- "3 a 10"
+accionistas_clasificado[DF$Accionistas > 10] <- "más de 10"
+
+barplot(table(accionistas_clasificado), col = c(645, 460, 254,111), main = "Accionistas nacionales en las empresas", ylab = "Numero de empresas", xlab = "Número de accionistas nacionales")
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Haciendo exáctamente el mismo procedimiento para los accionistas extranjeros.
+
+```{r}
+DF$AccionistasExt[is.na(DF$AccionistasExt)] <- 0
+summary(DF$AccionistasExt)
+```
+
+Si vemos el tercer cuartil notamos que al menos el 75% no tiene un solo accionista extranjero.
+
+Veamos esto en un boxplot.
+
+```{r}
+boxplot(DF$AccionistasExt, horizontal = TRUE, main = "Box-plot Accionistas Extranjeros")
+```
+
+Vemos que a penas se logran ver 5 puntos.
+
+Veamos un gráfico de barras para esta variable.
+
+```{r}
+accionistas_ext_clasificado <- DF$AccionistasExt
+accionistas_ext_clasificado[DF$AccionistasExt == 0] <- "0"
+accionistas_ext_clasificado[DF$AccionistasExt == 1] <- "1"
+accionistas_ext_clasificado[DF$AccionistasExt >= 3] <- "3 a 10"
+accionistas_ext_clasificado[DF$AccionistasExt > 10] <- "más de 10"
+
+barplot(table(accionistas_ext_clasificado), col = c("bisque", "antiquewhite", "azure", "blue"), main = "Número de accionistas extranjeros", ylab = "Número de empresas")
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Vemos que prácticamente ninguna empresa tiene accionistas extranjeros.
+
+Ahora podría resultar interesante preguntarnos cuanto de empresas sin accionistas son gacela, o cuántas de las empresas con más de 10 accionistas son gacela. Para saber esto podemos hacer unos gráficos de barras:
+
+```{r}
+layout(matrix(c(1, 3, 2, 4), ncol = 2, byrow = FALSE))
+barplot(table(DF$Tipo[accionistas_clasificado == "0"]), main = "Empresas sin accionistas",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+barplot(table(DF$Tipo[accionistas_clasificado == "1"]), main = "Empresas con 1 accionista",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+barplot(table(DF$Tipo[accionistas_clasificado == "2"]), main = "Empresas con 2 accionistas",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+barplot(table(DF$Tipo[accionistas_clasificado == "3 a 10"]), main = "Empresas con de 3 a 10 accionistas",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+layout(matrix(c(1), ncol = 1, byrow = FALSE))
+barplot(table(DF$Tipo[accionistas_clasificado == "más de 10"]), main = "Empresas con mas de 10 accionistas", ylab = "frecuencia",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Al ver la gráfica de las empresas que tienen más de 10 accionistas vemos que 6 de las 29 empresas son gacela. Resultado que nos parece un poco sorprendente al principio, puesto que si estas empresas crecen tan rápido, ¿por qué otras personas no invertirian en ella?
+
+Tras pensarlo un rato, nos dimos cuenta que estas empresas tan solo tienen 5 años, y en este "corto" periodo de tiempo no pueden conseguir cantidades exhorbitantes de accionistas, puesto que recién están intrando al mundo económico.
+
+Pero qué pasa si hacemos el mismo análisis para accionistas extranjeros?
+
+```{r}
+layout(matrix(c(1, 3, 2, 4), ncol = 2, byrow = FALSE))
+barplot(table(DF$Tipo[accionistas_ext_clasificado == "0"]), main = "Empresas sin accionistas extranjeros",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+barplot(table(DF$Tipo[accionistas_ext_clasificado == "1"]), main = "Empresas con 1 accionista extranjero",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+barplot(table(DF$Tipo[accionistas_ext_clasificado == "2"]), main = "Empresas con 2 accionistas extranjeros",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+barplot(table(DF$Tipo[accionistas_ext_clasificado == "3 a 10"]), main = "Empresas con de 3 a 10 accionistas extranjeros",col=c(5,6,4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Podemos ver en las gráficas que las empresas con 0, 1 o 2 accionistas extranjeros, son mayormente normales y de alto crecimiento. Sin embargo, para las empresas con más de 3 accionistas extranjeros vemos que 4 de 8 empresas son gacela, y 3 de 8 son de alto crecimiento. 
+
+Esto podría significar que a los accionistas españoles no les gusta tanto arriesgar en una empresa que **pudo** haber tenido un golpe de suerte, a diferencia de los accionistas extranjeros que pueden ser un poco más arriesgados en ese sentido.
+
+
+> ## ¿Qué sector cuenta con más empresas gacela?
+
+Para responder a esta pregunta primero daremos un vistazo a los sectores a los que se dedican las empresas encuestadas.
+
+```{r}
+
+barplot(table(DF$Sector), ylab = "Frecuencia", lwd = 3, las = 3, cex.names = 0.45, col = c(2))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Notamos que la mayor parte de las empresas se dedican al comercio y reparación de vehículos.
+
+Ahora, veamos cómo es la gráfica para las empresas `Normales`, de `alto crecimiento` y `gacela`.
+
+```{r}
+barplot(sort(table(DF$Sector[DF$Tipo == "Normal"]), decreasing = TRUE), ylab = "Frecuencia", lwd = 3, las = 3, cex.names = 0.45, main = "Empresas normales", col = c(4))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+```{r}
+barplot(sort(table(DF$Sector[DF$Tipo == "alto crecimiento"]), decreasing = TRUE), ylab = "Frecuencia", lwd = 3, las = 3, cex.names = 0.45, main = "Empresas de alto crecimiento", col =c(5))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+```{r}
+barplot(sort(table(DF$Sector[DF$Tipo == "gacela"]), decreasing = TRUE), ylab = "Frecuencia", lwd = 3, las = 3, cex.names = 0.45, main = "Empresas gacela", col = c(6))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Notamos que en todos los tipos de empresa el sector predominante es el de comercio y reparación de vehículos. Y para las empresas gacela y de alto crecimiento le siguen las de construcción. Pero en las empresas normales el segundo sector predominante es el de profesinales, cientificas y técnicas.
+
+> ## ¿Exporta, importa?
+
+Puede resultar interesante ver qué cantidad de empresas gacela está involucrada en actividades de importación y exportación. Para visualizar estos datos usaremos los siguientes códigos:
+
+```{r}
+barplot(table(DF$`Export/Import`), main = "Todas las empresas", col = c(7))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+```
+
+Vemos que la mayoría de las empresas no importa ni exporta. Ahora veamoslo por categorías.
+
+```{r}
+porcts <- paste0(round(table(DF$`Export/Import`[DF$Tipo == "Normal"])*100/NROW(DF$`Export/Import`[DF$Tipo == "Normal"]), 2), "%")
+pie(table(DF$`Export/Import`[DF$Tipo == "Normal"]), labels = porcts, main = "Empresas normales", col = c("royalblue","slateblue","skyblue","slategray2"))
+
+legend(x = "bottomright", legend = c(unique(DF$`Export/Import`[DF$Tipo == "Normal"])), title = "Leyenda", fill =c("slategray2","skyblue","slateblue","royalblue"))
+```
+
+
+```{r}
+porcts <- paste0(round(table(DF$`Export/Import`[DF$Tipo == "alto crecimiento"])*100/NROW(DF$`Export/Import`[DF$Tipo == "alto crecimiento"]), 2), "%")
+
+pie(table(DF$`Export/Import`[DF$Tipo == "alto crecimiento"]), labels = porcts, main = "Empresas de alto crecimiento", col = c("royalblue","slateblue","skyblue","slategray2"))
+
+legend(x = "bottomright", legend = c(unique(DF$`Export/Import`[DF$Tipo == "alto crecimiento"])), title = "Leyenda", fill = c("skyblue","slategray2","slateblue","royalblue"))
+```
+
+
+```{r}
+porcts <- paste0(round(table(DF$`Export/Import`[DF$Tipo == "gacela"])*100/NROW(DF$`Export/Import`[DF$Tipo == "gacela"]), 2), "%")
+pie(table(DF$`Export/Import`[DF$Tipo == "gacela"]), labels = porcts, main = "gacela", col = c("royalblue","slateblue","skyblue","slategray2"))
+legend(x = "bottomright", legend = c(unique(DF$`Export/Import`[DF$Tipo == "gacela"])), title = "Leyenda", fill = c("skyblue","slategray2","slateblue","royalblue"))
+```
+
+Podemos notar que casi ninguna empresa de todas las categorías exporta o importa.
+
+Veremos esto en una tabla cruzada.
+
+```{r}
+table(DF$Tipo, DF$`Export/Import`)
+```
+
+A partir de esta tabla haremos una gráfica de mosaico.
+
+```{r}
+mosaicplot(table(DF$Tipo, DF$`Export/Import`), color = c("#104E8B","deepskyblue3","#00BFFF","#87CEFA" ), las = 1, main = "Tipo de empresa y si exporta o importa")
+```
+
+Como se puede ver en la gráfica de mosaico, el porcentaje de empresas gacela que no exporta ni importa es ligeramente menor al de los demás. Esto significa, claramente, que una mayor parte de empresas gacela exporta o importa.
+
+> ## Empleados y ventas. ¿Se relacionan?
+
+Para saber esto podemos hacer una gráfica de puntos. Pero antes veamos el resumen de ambas variables, en busca de datos atípicos.
+
+```{r}
+summary(DF$EmpleadosN1)
+```
+
+Notamos que el mínimo es de -1, y este valor es claramente imposible. Ahora procederemos a limpiarlo, asumiendo que significa que no tienen empleados.
+
+```{r}
+DF$EmpleadosN1[DF$EmpleadosN1 < 0] <- 0
+```
+
+Además, asumiremos que los NA's significa que no tienen ningún empleado.
+
+```{r}
+DF$EmpleadosN1[is.na(DF$EmpleadosN1)] <- 0
+```
+
+Ahora veamos el nuevo resumen de la variable.
+
+```{r}
+summary(DF$EmpleadosN1)
+```
+
+Si vemos el tercer cuartil notamos que por lo menos el 75% tienen 2 empleados o menos.
+
+Ahora veamos si existe alguna relación entre el número de empleados y las ventas.
+
+```{r}
+plot(DF$EmpleadosN1, DF$VN1, las = 1, xlab = "Cantidad de empleados", ylab = "Ventas en su primer año", main = "Todas las empresas", cex.axis = 0.6, col=c("maroon"))
+```
+
+Notamos algo demasiado curioso de este gráfico. Existe una empresa que tiene muy pocos empleados, pero sus ventas son muchísimo mayores que todas las otras empresas.
+
+Ahora veamos esta gráfica para cada tipo de empresa.
+
+```{r}
+plot(DF$EmpleadosN1[DF$Tipo == "Normal"], DF$VN1[DF$Tipo == "Normal"], las = 1, xlab = "Cantidad de empleados", ylab = "Ventas en su primer año", main = "Todas las empresas", cex.axis = 0.6, col=c("#668B8B"))
+```
+
+```{r}
+plot(DF$EmpleadosN1[DF$Tipo == "alto crecimiento"], DF$VN1[DF$Tipo == "alto crecimiento"], las = 1, xlab = "Cantidad de empleados", ylab = "Ventas en su primer año", main = "Empresas de alto crecimiento", cex.axis = 0.6, col=c(5))
+```
+
+```{r}
+plot(DF$EmpleadosN1[DF$Tipo == "gacela"], DF$VN1[DF$Tipo == "gacela"], las = 1, xlab = "Cantidad de empleados", ylab = "Ventas en su primer año", main = "Empresas gacela", cex.axis = 0.6, col=c(6))
+```
+
+Podemos ver que todas las gráficas están bastante dispersas, lo que significa que no existe una relación entre el número de empleados y las ventas.
+
+Pero qué pasa si analizamos las **variaciones** de estas en los 5 años?
+
+```{r}
+plot(variaciones$var_N_emp_5anios[DF$Tipo == "Normal"], variaciones$V1a5[DF$Tipo == "Normal"], las = 1, xlab = "Aumento de empleados en 5 años", ylab = "Aumento porcentual de ventas en 5 años", main = "Empresas normales", cex.axis = 0.6, xlim = c(-100, 3000 ), col=c(4))
+```
+```{r}
+plot(variaciones$var_N_emp_5anios[DF$Tipo == "alto crecimiento"], variaciones$V1a5[DF$Tipo == "alto crecimiento"], las = 1, xlab = "Aumento de empleados en 5 años", ylab = "Aumento de ventas en 5 años", main = "Empresas de alto crecimiento", cex.axis = 0.6, ylim = c(0, 75000), col=c(5))
+```
+
+Veamos que aparentemente tampoco existe una relación.
+
+Finalmente veremos la misma gráfica para las empresas gacela.
+
+```{r}
+plot(variaciones$var_N_emp_5anios[DF$Tipo == "gacela"], variaciones$V1a5[DF$Tipo == "gacela"], las = 1, xlab = "Aumento de empleados en 5 años", ylab = "Aumento de ventas en 5 años", main = "Empresas gacela", cex.axis = 0.6, ylim = c(0, 7000000), col=c(6))
+```
+
+En busca de una posible relación ignoraremos **temporalmente** a aquella empresa que casi no a aumentado sus empleados y aún así ha aumentado muchísimo sus ventas a comparación de las demás empresas.
+
+```{r}
+plot(variaciones$var_N_emp_5anios[DF$Tipo == "gacela"], variaciones$V1a5[DF$Tipo == "gacela"], las = 1, xlab = "Aumento de empleados en 5 años", ylab = "Aumento de ventas en 5 años", main = "Empresas gacela", cex.axis = 0.6, ylim = c(0, 75000), col=c(6))
+```
+
+Según las gráficas que hemos visto, podemos decir, con mucha seguridad, que el aumento de empleados no significa el aumento de las ventas.
+
+> # **Conclusiones previas en base al análisis descriptivo**
+
+• Se determinó que las empresas más comunes en este estudio son las empresas normales, que representa un 60.9% del total, además las menos comunes son las empresas gacela, pues tan solo representa el 9.38% del total.
+
+• En su gran mayoría las empresas cuentan con accionistas nacionales; sin embargo pudimos observar que hay empresas que presentan más de 3 accionistas extranjeros, de las cuales 4 de 8 empresas son gacela y 3 de 8 son de alto crecimiento. Esto podría significar que a los accionistas españoles no prefieren arriesgar en una empresa que pudo haber tenido un golpe de suerte, a comparación de los accionistas extranjeros que suelen ser más arriesgados en ese sentido.
+
+• La mayor parte de las empresas se dedican a la actividad del “Comercio al por mayor y al por menor; reparación de vehículos de motor y motocicletas”, siendo su IDSector la letra (G). Pues analizando las distintas gráficas, vemos que en los 3 tipos de empresas estudiadas(normales, gacelas y alto crecimiento), predomina esta actividad. Y para las empresas gacela y de alto crecimiento le siguen las de “Construcción”. Sin embargo, en las empresas normales el segundo sector predominante es el de “Actividades profesionales, científicas y técnicas”.
+
+• Hay gran cantidad de empresas que no importa o exporta.
+
+• Además a partir de este estudio se pudo determinar que el crecimiento de las ventas de una empresa no depende necesariamente del número de empleados que esta tenga.

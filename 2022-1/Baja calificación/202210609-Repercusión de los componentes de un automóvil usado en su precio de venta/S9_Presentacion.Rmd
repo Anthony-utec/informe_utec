@@ -1,0 +1,444 @@
+---
+title: "S9_Informe"
+output:
+  html_document:
+    df_print: paged
+---
+
+# INTRODUCCIÓN
+
+## RELEVANCIA
+Sabemos que hoy en día las personas están muy interesadas en adquirir un automóvil debido al creciente aumento de la población y la necesidad de poderse movilizar, dado esto las personas se ven interesados en adquirir autos usados ya que estos son mas económicos y de un mayor alcance para la población. Por este motivado en el estudio a realizar se brindara la información relevante sobre la repercusión de los precios asignados a los autos a causa los componentes y características que estos posean.
+
+# DATOS
+
+## PROCESO DE RECOLECCION DE DATOS:
+Los datos se obtuvieron de una pagina de internet denominada con el nombre de Kaggle, la cual es una comunidad en línea de científicos de datos y profesionales del aprendizaje automático . Kaggle permite a los usuarios encontrar y publicar conjuntos de datos, explorar y crear modelos en un entorno de ciencia de datos basado en la web, preferimos hacerlo de esta manera debido a que esto nos permite tener menor sesgo en la obtención de los datos, además de que Kaggle es una pagina muy segura y de buen prestigio.
+
+## POBLACION,MUESTRA Y MUESTREO:
+
+### POBLACION 
+La población de estudio con la cual se trabaja son automóviles usados los cuales son transportados y vendidos en los países de   Latinoamerica
+
+### UNIDAD MUESTRAL
+La unidad muestral que se tomo son automóviles usados de marcas reconocidas y comerciales tales como: Toyota, Nissan, Audi, BMW, Honda, Esquivar, Isuzu, Jaguar, Mazda, etc. El tamaño de la muestra es de 22 tipos de autos, los cuales poseen 12 variables entre características y partes del auto, y 164 filas.
+
+### TIPO DE MUESTREO:
+El tipo de muestreo que se uso es el de muestreo aleatorio simple.
+
+## VARIABLES
+
+### PRESENTACION DE VARIABLES DE ESTUDIO
+Para el proyecto que se esta realizando no se utilizaran las variables en un 100%, solo se usaran aquellas que sean de relevancia para el estudio. A continuación se muestra una tabla con las variables a trabajar y sus respectivas definiciones correspondientes.
+
+| Nombre de Variable |	Descripción |	Tipo de Variable | Restricciones |
+|--------------------|--------------|------------------|---------------|
+| soat_promedio |	soat promedio |	numérica discreta | número entero no negativo |
+| fabricante |	fabricante |	categórica nominal | no presenta restricción |
+| tipo_carroceria |	tipo de carrocería |	categórica nominal | no presenta restricción |
+| largo |	largo del auto |	numérica continua | número no negativo |
+| ancho |	ancho del auto |	numérica continua | número no negativo |
+| alto |	alto del auto |	numérica continua | número no negativo |
+| tipo_de_motor |	tipo de motor |	categórica nominal | no presenta restricción |
+| tamanho_motor |	tamaño de motor |	numérica continua | número no negativo |
+| caballo_de_fuerza |	caballos de fuerza-potencia |	numérica discreta |
+| precio_carro |	precio del carro |	numérica continua | número no negativo |
+| L_ciudad/100km | litros consumidos en ciudad cada 100 km |	numérica continua | número no negativo |
+| L_campo/100km |	litros consumidos en campo cada 100 km |	numérica continua | número no negativo |
+ 
+## LIMPIEZA DE BASE DE DATOS
+
+Cargamos las librerías para leer los datos.
+```{r}
+library(ggplot2)
+library(magrittr)
+library(readr)
+library(dplyr)
+library(vctrs)
+```
+ 
+la base de datos autosUsados: 
+```{r}
+autosUsados <- read_csv("usedcars_dataset.CSV")
+```
+```{r}
+head(autosUsados)
+```
+
+#LIMPIEZA DE DATOS
+
+Primero normalizamos el nombre de las variables.
+```{r}
+#cambiar nombre de variables
+autosUsados <-autosUsados %>% 
+   rename(soat_promedio=`normalized-losses`, fabricante=make,tipo_carroceria=`body-style`,largo=length, ancho=width, alto=height, tipo_de_motor= `engine-type`, caballo_de_fuerza=`horsepower`, tamanho_motor=`engine-size`, precio_carro=price, `L_ciudad/100km`=`city-L/100km`,`L_campo/100km`=`highway-L/100km`)
+```
+
+Creamos un nuevo data frame el cual se deriva de autosUsados,al cual nombraremos autosUsados_cNA el cual abarcara todas las observaciones,aun cuando tenga NAs.Haciendo uso del comando select() de dplyr:
+```{r}
+autosUsados %>% select(soat_promedio,fabricante,tipo_carroceria,largo, ancho, alto, tipo_de_motor,caballo_de_fuerza,tamanho_motor,precio_carro,`L_ciudad/100km`,`L_campo/100km`)->autosUsados_cNA
+```            
+
+El data frame autosUsados_cNA
+```{r}
+head(autosUsados_cNA)
+View(autosUsados_cNA)
+```
+En el base de datos autosUsados_cNA :
+
+Podemos observar la cantidad de datos faltantes en la base de datos:
+```{r}
+NAs<-sum(is.na(autosUsados_cNA))
+NAs
+```
+Podemos observar la cantidad de observaciones incompletas en la base de datos:
+```{r}
+sum(!complete.cases(autosUsados_cNA))
+```
+Calculamos el porcentaje de observaciones incompletas presentes en la base de datos:
+```{r}
+round((NAs/(nrow(autosUsados_cNA)*ncol(autosUsados_cNA)))*100,2)
+```
+Calculamos los datos faltantes por cada variable para poder observar como esta afectando los NA afectan a cada una de ellas.
+```{r}
+colSums(is.na(autosUsados_cNA))
+```
+Observamos que la variable soat_promedio es la que contiene NAs,calculamos el porcentaje de la cantidad de NAs que posee
+Como el porcentaje de perdida es menor al 70% no afecta a la representatividad de la muestra,por lo tanto se elimiran los NAs.
+```{r}
+
+autosUsados_sNA<-(na.omit(autosUsados_cNA))
+
+head(autosUsados_sNA)
+
+```
+# ANALISIS DESCRIPTIVOS
+
+## Primera Variable (Soat_Promedio):
+
+### Descriptores numéricos:
+```{r}
+summary(autosUsados_sNA$soat_promedio)
+```
+Media->podemos observar que los datos estan alrededor de 122.
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 115.
+3re Quantil-> 75% de los datos es menor que o igual a 150.
+Min->el minimo valor es 65.
+Max->el máximo valor es 256.
+
+#### Hallamos los quartiles:
+
+```{r}
+quantile(autosUsados_sNA$soat_promedio)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+#### Valores Atípicos:
+```{r}
+boxplot.stats(autosUsados_sNA$soat_promedio)
+```
+
+### Descriptores Gráficos:
+
+####Diagrama de caja:
+
+```{r}
+boxplot(autosUsados_sNA$soat_promedio, ylab="Soat Promedio", xlab="Caracteristica de los Autos", main="Boxplot Soat Promedio", col = "red" )
+```
+## Cuarta Variable (Largo):
+
+### Descriptores numéricos:
+```{r}
+summary(autosUsados_sNA$largo)
+```
+Media->podemos observar que los datos estan alrededor de 172.2.
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 172.
+3re Quantil-> 75% de los datos es menor que o igual a 177,8.
+Min->el minimo valor es 141.1.
+Max->el máximo valor es 202.6.
+
+#### Hallamos los quartiles:
+```{r}
+quantile(autosUsados_sNA$largo)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+#### Valores Atípicos:
+
+```{r}
+boxplot.stats(autosUsados_sNA$largo)
+```
+
+### Descriptores Gráficos:
+
+####Diagrama de caja:
+
+```{r}
+boxplot(autosUsados_sNA$largo, ylab="Largo del auto", xlab="Caracteristica de los Autos", main="Boxplot Largo del auto", col = "red" )
+```
+## Quinta Variable (Ancho):
+### Descriptores numéricos:
+
+```{r}
+summary(autosUsados_sNA$ancho)
+```
+Media->podemos observar que los datos estan alrededor de 65.4
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 65.4.
+3re Quantil-> 75% de los datos es menor que o igual a 66.5.
+Min->el minimo valor es 60.3.
+Max->el máximo valor es 71.7.
+
+#### Hallamos los quartiles:
+
+```{r}
+quantile(autosUsados_sNA$ancho)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+####Valores Atípicos:
+
+```{r}
+boxplot.stats(autosUsados_sNA$ancho)
+```
+### Descriptores Gráficos:
+
+#### Diagrama de caja:
+
+
+```{r}
+boxplot(autosUsados_sNA$ancho, ylab="Ancho del auto", xlab="Caracteristica de los Autos", main="Boxplot Ancho del auto", col = "red" )
+
+```
+
+## Sexta Variable (Alto):
+
+### Descriptores numéricos:
+
+```{r}
+summary(autosUsados_sNA$alto)
+```
+Media->podemos observar que los datos estan alrededor de 53.77
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 54.10.
+3re Quantil-> 75% de los datos es menor que o igual a 55.50.
+Min->el minimo valor es 49.40.
+Max->el máximo valor es 59.8.
+
+#### Hallamos los quartiles:
+
+```{r}
+quantile(autosUsados_sNA$alto)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+
+#### Valores Atípicos:
+
+```{r}
+boxplot.stats(autosUsados_sNA$alto)
+```
+### Descriptores Gráficos:
+
+#### Diagrama de caja:
+
+```{r}
+boxplot(autosUsados_sNA$alto, ylab="Alto del auto", xlab="Caracteristica de los Autos", main="Boxplot Alto del auto", col = "red")
+
+```
+## Octava variable (nro_cilindros):
+
+### Descriptores numéricos:
+
+```{r}
+summary(autosUsados_sNA$caballo_de_fuerza)
+```
+Media->podemos observar que los datos estan alrededor de 96.21
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 91.
+3re Quantil-> 75% de los datos es menor que o igual a 114.
+Min->el minimo valor es 48.
+Max->el máximo valor es 200.
+
+#### Hallamos los quartiles:
+ 
+```{r}
+quantile(autosUsados_sNA$caballo_de_fuerza)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+#### Valores Atipicos:
+```{r}
+boxplot.stats(autosUsados_sNA$caballo_de_fuerza)
+```
+
+### Descriptores Gráficos:
+
+#### Diagrama de caja:
+
+```{r}
+boxplot(autosUsados_sNA$caballo_de_fuerza, ylab="Fuerza del motor", xlab="Caracteristica de los Autos", main="Boxplot Fuerza del Motor", col = "red" )
+
+```
+## Novena Variable (Tamanho_motor):
+
+### Descriptores numéricos:
+
+```{r}
+summary(autosUsados_sNA$tamanho_motor)
+```
+Media->podemos observar que los datos estan alrededor de 118
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 109.0.
+3re Quantil-> 75% de los datos es menor que o igual a 131.8.
+Min->el minimo valor es 61.0.
+Max->el máximo valor es 258.
+#### Hallamos los quartiles:
+
+```{r}
+quantile(autosUsados_sNA$tamanho_motor)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+#### Valores Atipicos:
+
+```{r}
+boxplot.stats(autosUsados_sNA$tamanho_motor)
+```
+### Descriptores Gráficos:
+
+#### Diagrama de caja:
+
+```{r}
+boxplot(autosUsados_sNA$tamanho_motor, ylab="Tamaño del motor", xlab="Componente de los Autos", main="Boxplot Tamaño del motor", col = "red" )
+```
+
+## Décima Variable (Precio_carro):
+
+### Descriptores numéricos:
+```{r}
+summary(autosUsados_sNA$precio_carro)
+```
+Media->podemos observar que los datos estan alrededor de 11467
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 9268.
+3re Quantil-> 75% de los datos es menor que o igual a 14559.
+Min->el minimo valor es 5118.
+Max->el máximo valor es 35056.
+#Hallamos los quartiles:
+
+```{r}
+quantile(autosUsados_sNA$precio_carro)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+
+#Valores Atipicos:
+```{r}
+boxplot.stats(autosUsados_sNA$precio_carro)
+```
+
+#Descriptores Gráficos:
+
+#Diagrama de caja:
+
+```{r}
+boxplot(autosUsados_sNA$precio_carro, ylab="Precio del automóvil", xlab="Caracteristica de los Autos", main="Boxplot Precio del automóvil", col = "red" )
+```
+## Variable once (L_ciudad/100km):
+
+### Descriptores numéricos:
+```{r}
+summary(autosUsados_sNA$`L_ciudad/100km`)
+```
+Media->podemos observar que los datos estan alrededor de 9.442
+Mediana->podemos observar que al menos la mitad de los datos son mayores o iguales 9.03.
+3re Quantil-> 75% de los datos es menor que o igual a 10.68.
+Min->el minimo valor es 4.796.
+Max->el máximo valor es 15.667.
+
+#### Hallamos los quartiles:
+```{r}
+quantile(autosUsados_sNA$`L_ciudad/100km`)
+```
+Podemos observar que la mediana siempre será igual al cuartil del 50% o al segundo cuartil.
+#### Valores Atipicos:
+
+```{r}
+boxplot.stats(autosUsados_sNA$`L_ciudad/100km`)
+```
+
+### Descriptores Gráficos:
+
+#### Diagrama de caja:
+```{r}
+boxplot(autosUsados_sNA$`L_ciudad/100km`, ylab="Consumo de compustible en 100 Km en la ciudad", xlab="Característica de los Autos", main="Boxplot Consumo de compustible en 100 Km en la ciudad", col = "red" )
+```
+## Segunda Variable (tipo_carroceria):
+### Moda
+```{r}
+ModaCreada <- function(x) {
+  DatosSinNulos <- na.omit(unique(x))
+  tabulado <- tabulate(match(x, DatosSinNulos))
+  DatosSinNulos[tabulado == max(tabulado) ]
+}
+
+ModaCreada(autosUsados_sNA$tipo_carroceria)
+
+```
+
+## Descriptores Gráficos:
+### Tabla de Frecuencia:
+```{r}
+tabla_carr <- as.data.frame(table(autosUsados_sNA$tipo_carroceria))
+transform(tabla_carr,
+          FreqAC=cumsum(tabla_carr$Freq),
+          Rel=round(prop.table(tabla_carr$Freq),3),
+          RelAC=round(cumsum(prop.table(tabla_carr$Freq)),3))
+#hist(x = tabla_carr$Freq, xlab = "Carroceria", ylab = "Frecuencias", main = "Tipo de Carroceria", col="orange")
+```
+
+## Tercera Variable (fabricante):
+### Moda
+```{r}
+ModaCreada <- function(x) {
+  DatosSinNulos <- na.omit(unique(x))
+  tabulado <- tabulate(match(x, DatosSinNulos))
+  DatosSinNulos[tabulado == max(tabulado) ]
+}
+
+ModaCreada(autosUsados_sNA$fabricante)
+
+```
+## Descriptores Gráficos:
+### Tabla de Frecuencia:
+```{r}
+tabla_fa <- as.data.frame(table(autosUsados_sNA$fabricante))
+transform(tabla_fa,
+          FreqAC=cumsum(tabla_fa$Freq),
+          Rel=round(prop.table(tabla_fa$Freq),3),
+          RelAC=round(cumsum(prop.table(tabla_fa$Freq)),3))
+#hist(x = tabla_fa$Freq, xlab = "fabricante", ylab = "Frecuencias", main = "Marcas de Automóviles", col="purple")
+```
+## Septimo variable (Tipo_de_motor):
+### Moda:
+```{r}
+ModaCreada <- function(x) {
+  DatosSinNulos <- na.omit(unique(x))
+  tabulado <- tabulate(match(x, DatosSinNulos))
+  DatosSinNulos[tabulado == max(tabulado) ]
+}
+
+ModaCreada(autosUsados_sNA$tipo_de_motor)
+```
+## Descriptores Gráficos:
+### Tabla de Frecuencia:
+```{r}
+tabla_moto <- as.data.frame(table(autosUsados_sNA$tipo_de_motor))
+transform(tabla_fa,
+          FreqAC=cumsum(tabla_moto$Freq),
+          Rel=round(prop.table(tabla_moto$Freq),3),
+          RelAC=round(cumsum(prop.table(tabla_moto$Freq)),3))
+#hist(x = tabla_moto$Freq, xlab = "Motor del Automovil", ylab = "Frecuencias", main = "Tipo de Motor", col="green")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+

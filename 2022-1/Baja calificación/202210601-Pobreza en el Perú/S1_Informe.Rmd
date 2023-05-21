@@ -1,0 +1,374 @@
+---
+title: "Pobreza en el Perú"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+  pdf_document:
+    toc: yes
+---
+
+> # **1. Introducción**
+
+> ## 1.1. Relevancia
+
+La relevancia del tema radica en que la pobreza es una problemática de índole mundial, pues, en resumen, es cuando una persona o un grupo de ellas se encuentran incapaces de satisfacer sus necesidades básicas. Tan solo en Perú se alcanzó un índice de pobreza monetaria del 30.1% con respecto a la población en el año 2020. Por ello, es necesario contar con indicadores que nos faciliten el entendimiento del desarrollo de pobreza y calidad de vida en los hogares del país. Asimismo, estos datos serían de utilidad para diversas instituciones que tengan el objetivo de investigar y, si lo desean, desarrollar planes para tratar de reducir los índices de pobreza.
+
+```{r, include=FALSE}
+# Aplicamos una lógica para instalar paquetes en caso de no estar instalado
+lista.paquetes <- c("readr", "dplyr", "funModeling", "ggplot2", "knitr") # En este vector se escriben los paquetes que deseamos cargar
+nuevos.paquetes <- lista.paquetes[!(lista.paquetes %in% installed.packages()[,"Package"])] # almacena paquetes no instalados
+if(length(nuevos.paquetes)) install.packages(nuevos.paquetes) # instala si no está instalado
+```
+
+
+```{r, include=FALSE}
+library(dplyr)
+library(readr)
+library(funModeling)
+library(ggplot2)
+library(knitr)
+```
+
+> # **2. Datos**
+
+> ## 2.1 Recolección de datos
+El primer paso para la obtención de datos fue buscar en bases de datos del Estado peruano porque nuestra problemática se centra en el país. Al buscar base de datos en el INEI, hallamos la encuesta nacional de hogares, ENAHO. Esta encuesta cuenta con base de datos actualizadas y ampliadas con las variables necesarias para nuestro estudio. En la página web nos muestra bases de datos de varios años, elegimos ENAHO01-2020-100.SAV : CARACTERÍSTICAS DE LA VIVIENDA Y DEL HOGAR (MÓDULO 100). Paso seguido tuvimos que pasar el archivo SAV. a CSV. en excel. Nuestro criterio para elegir esta base de muchas otras fue que esta se centra en la vivienda y hogar. Con estos datos podemos indicar que características tienen los hogares que se encuentran en pobreza. Además de saber los puntos en común que indican que un hogar está en pobreza y generar indicadores y posibles soluciones a la pobreza.
+
+> ## 2.2 Población, muestra y muestreo
+* `Población` : Los residentes en los hogares del país de Perú, tomando sus 24 departamentos y la provincia del Callao.
+* `Muestra`: Para dicho estudio se tomaron 37,103 viviendas dividiéndose en área rural y urbana. Se usó una muestra de tipo probabilística, de áreas, multietápica e independiente por cada departamento analizado, dando una confianza de sus resultados del 95%. 
+La muestra de conglomerados en el ámbito nacional es de 5 359, corresponde 3 706 conglomerados al área
+urbana y 1 653 conglomerados al área rural. Con respecto al tamaño de la muestra panel es de
+1 833 conglomerados mientras que el tamaño de la muestra no panel es de 3 526 conglomerados.
+* `Muestreo`: Probabilístico, por conglomerados. El tipo de selección del conglomerado fue: Selección automática por computadora, selección de la muestra panel, selección por computadora en el Área Rural y selección por conteo en el Área Rural.
+
+> ## 2.3 Variables
+* **Categóricas**:
+  1. `Ubicación` : Tendremos una referencia de la ubicación de cada hogar según su región (COSTA-SIERRA-SELVA), es de tipo nominal y su restriccón es que no podamos asignarle una categoría de orden.
+  2. `Vivienda` : Define el tipo de vivienda, es de tipo nominal y su restricción es que no se puede ejecutar operaciones matemáticas con esta variable (Suma, resta,etc).
+  3. `Agua potable` : responde a la pregunta si el hogar tiene acceso a este servicio, es de tipo nominal y su restricción es que solo puede ser respondida por sí o no.
+  4. `Hogar_SS.HH` : Responde a si la vivienda tiene o no servicios higénicos, es de tipo nominal  y su restricción es que solo puede ser respondida por sí o no, ni tampoco posee un orden de jerarquía.
+  5. `Altitud` : Es de tipo ordinal, ya que consideramos que el clima de las regiones cambiaran con respecto a su altura m.s.n.m., y su restricción sería que no podemos hacer operaciones sobre esta.
+* **Numéricas**:
+  1. `Hab_dormir` : Cuántas habitaciones exclusivamente para dormir posee el hogar, es de tipo discreta y su restricción sería que sea un entero no negativo.
+  2. `Gasto_agua` : Depende del consumo de agua del hogar, es de tipo numérica continua y su  restricción sería que es un entero no negativo.
+  3. `Gasto_electricidad` : Depende del consumo de electricidad del hogar, es de tipo numérica continua y su  restricción sería que es un entero no negativo.
+  4. `Gasto_gas` : Depende del consumo de gas del hogar, es de tipo numérica discreta y su restricción sería que es un entero no negativo.
+  5. `Gasto_leña` : Depende del consumo de leña del hogar, es de tipo numérica discreta y su  restricción sería que es un entero no negativo.
+  6. `Gasto_internet` :Depende del consumo  del servicio, es de tipo numérica continua y su  restricción sería que es un entero no negativo.
+
+> ## 2.4 Limpieza de base de datos
+
+Al principio nuestra base de datos contaba con 331 variables, donde muchas de ellas fueron descartadas por la gran cantidad de NAs que contenían o debido a que no las consideramos importantes en nuestro análisis.
+
+En este primer filtro, seleccionamos las variables pertinentes de la base de datos. Para las categóricas, creemos que estos datos deben ser información básica que se debería saber para tener una idea del contexto de los encuestados. Respecto a las numéricas, debe ser información que nos indica cuánto es el gasto que realizan, esto es útil para tener una referencia respecto al poder adquisitivo.
+
+Una vez seleccionadas las variables, procedemos a renombrarlas con la ayuda de un diccionario proporcionado por ENAHO. Ya que todas nuestras variables vienen identificadas con códigos.
+
+```{r, include=FALSE}
+DF <- read_csv2("Enaho_2.csv")
+```
+
+```{r}
+#seleccionamos nuestra muestra
+DT <- DF %>% select(DOMINIO,P101,P110A1,NBI3,ALTITUD, P104A,`P1172$01`,`P1172$02`,`P1172$04`,`P1172$08`,`P1172$14`)
+
+#Re-nombramos nuestras variables
+colnames(DT) <- c("Ubicación", "vivienda","Agua_potable","Hogar_SS.HH.", "Altitud" ,"Hab_dormir","Gasto_agua", "Gasto_elec", "Gasto_gas","Gasto_leña","Gasto_inter")
+```
+
+
+```{r}
+#Ya tenemos nuestra base de datos seleccionada
+df_status(DT)
+```
+Además, muchos de los datos son números que representan una determinada respuesta. Un claro ejemplo puede ser en la variable “Agua potable” donde 1 representa “Sí” y 2 representa “No”. Por ello, también renombramos los datos con el nombre que realmente representan. Finalmente, para los datos sin información, se han tomado algunas consideraciones que se detallan a continuación.
+
+* Para las variables categóricas
+
+```{r}
+#Para UBICACIÓN sabemos lo siguiente: [1-3] es costa, [4-6] Sierra, 7 es selva, 8 es Lima metropolitana
+
+DT$Ubicación[DT$Ubicación %in% c(1)] <- "costa"
+DT$Ubicación[DT$Ubicación %in% c(2)] <- "costa"
+DT$Ubicación[DT$Ubicación %in% c(3)] <- "costa"
+DT$Ubicación[DT$Ubicación %in% c(4)] <- "sierra"
+DT$Ubicación[DT$Ubicación %in% c(5)] <- "sierra"
+DT$Ubicación[DT$Ubicación %in% c(6)] <- "sierra"
+DT$Ubicación[DT$Ubicación %in% c(7)] <- "selva"
+DT$Ubicación[DT$Ubicación %in% c(8)] <- "Lima"
+
+
+#Para saber qué tipo de vivienda es su hogar
+
+# Tenemos esta referencia Tipo de vivienda:
+
+#1 Casa independiente
+#2 Departamento en edificio
+#3 Vivienda en quinta
+#4 Vivienda en casa de vecindad (Callejón, solar o corralón)
+#5 Choza o cabaña
+#6 Vivienda improvisada
+#7 Local no destinado para habitación humana
+#8 Otro
+#Rango : 1 - 8
+
+#Por lo que por los rangos podemos decir que: [1-4] vivienda acomodada, [5-7] vivienda precaria
+
+
+DT$vivienda[DT$vivienda %in% c(1)] <- "Casa independiente"
+DT$vivienda[DT$vivienda %in% c(2)] <- "Departamento"
+DT$vivienda[DT$vivienda %in% c(3)] <- "quinta"
+DT$vivienda[DT$vivienda %in% c(4)] <- " casa de vecindad"
+DT$vivienda[DT$vivienda %in% c(5)] <- "Choza o cabaña"
+DT$vivienda[DT$vivienda %in% c(6)] <- "improvisada"
+DT$vivienda[DT$vivienda %in% c(7)] <- "Inhabitable"
+DT$vivienda[DT$vivienda %in% c(8)] <- "otro"
+
+#AGUA POTABLE
+
+
+#¿El agua es potable?
+#1 Si
+#2 No
+#Para este caso si existen NA significa que el hogar no cuenta con el servicio de agua, por lo #tanto lo incluiremos como si no contara con agua potable
+
+
+DT$Agua_potable[DT$Agua_potable %in% c(1)] <- "si"
+DT$Agua_potable[DT$Agua_potable %in% c(2)] <- "no"
+DT$Agua_potable[DT$Agua_potable %in% c(NA)] <- "no"
+
+
+#Servicios higénicos en la vivienda
+DT$Hogar_SS.HH.[DT$Hogar_SS.HH. %in% c(0)] <- "si"
+DT$Hogar_SS.HH.[DT$Hogar_SS.HH. %in% c(1)] <- "no"
+
+#ALTITUD -ORDINAL
+
+
+#Explicación Rangos según altitud:
+#costa [0-500]
+#yunga [501-2500]
+#quechua [2501- 3500 ]
+#suni [3500-4000]
+
+DT$Altitud[DT$Altitud %in% c(0:500)] <- "costa"
+DT$Altitud[DT$Altitud %in% c(501:2500)] <- "yunga"
+DT$Altitud[DT$Altitud %in% c(2501:3500)] <- "quechua"
+DT$Altitud[DT$Altitud %in% c(3501:4000)] <- "suni"
+```
+
+
+* Para las variables numéricas
+
+```{r}
+#Para cuando encontremos "NA" en nuestras observaciones, asumiremos que esos hogares no cuentan con el servicio. Por lo tanto, será equivalente a poner cero
+
+#NUMERO DE HABITACIONES EXCLUSIVAMENTE USADAS PARA DORMIR
+DT$Hab_dormir[DT$Hab_dormir %in% c(NA)] <- 0
+
+#GASTO DE AGUA
+
+DT$Gasto_agua[DT$Gasto_agua %in% c(NA)] <- 0
+
+#GASTO DE ELECTRICIDAD
+
+DT$Gasto_elec[DT$Gasto_elec %in% c(NA)] <- 0
+
+#GASTO DE GAS
+
+DT$Gasto_gas[DT$Gasto_gas %in% c(NA)] <-0
+
+
+#GASTO DE LEÑA
+DT$Gasto_leña[DT$Gasto_leña %in% c(NA)] <- 0
+
+
+#GASTO DE INTERNET
+DT$Gasto_inter[DT$Gasto_inter %in% c(NA)] <- 0
+
+
+```
+
+Por último, consideramos que nuestra base de datos final, con 200 observaciones y 11 variables, está limpia por tres razones. En primer lugar, las variables seleccionadas serán pertinentes para nuestro análisis y estudio, con un total de 5 categóricas y 6 numéricas. Segundo, para aquellos datos incompletos, NA, se asumió que aquellos hogares no contaban con ese servicio y se reemplazó con 0. En tercer lugar, los nombres de las variables que anteriormente eran códigos no comprensibles a primera vista, ahora tienen nombres adecuados para cada una. De la misma forma, se modificó los valores de cada variable y se les dio nombres más apropiados. 
+
+> # **3. Análisis Descriptivo**
+
+> ## 3.1 Descriptores numéricos
+
+* `Descriptores de posición`
+
+Se muestra el promedio y mediana de los gastos de agua,electricidad,gas,leña e Internet por región (costa, selva, sierra).
+
+Se puede observar que en la costa, el promedio del gasto de agua, electricidad, gas e internet es mayor. Por otro lado, el promedio de leña es mayor en la sierra. Con respecto a la mediana, se ve una misma tendencia de mayoría en la costa. Aunque en los casos de leña e internet, la mediana es 0 para las tres regiones. 
+```{r, echo=FALSE, error=F,warning=F}
+dd <- DT %>% group_by(Ubicación) %>% summarise_each(list(Media=mean, Mediana= median), contains('Gasto'))
+kable(head(dd), format = "markdown")
+```
+
+
+* `Descriptores de dispersión`
+
+Rango de una variable
+Muestra el mínimo y el máximo.
+
+Rango de habitaciones-dormir
+
+El mínimo es cero y el máximo, seis.
+```{r, echo=FALSE, error=F,warning=F}
+dd <- range(DT$Hab_dormir)
+kable(head(dd), format = "markdown")
+```
+Rango de gasto de internet
+
+El mínimo gasto es 0 y el máximo, 249.
+```{r, echo=FALSE, error=F,warning=F}
+dd <- range(DT$Gasto_inter)
+kable(head(dd), format = "markdown")
+```
+
+> ## 3.2 Descriptores tabulares
+
+* `Tabla de frecuencias absolutas`
+Representa el número de observaciones por categoría, en este caso, por región.
+
+Observamos que la mayor cantidad de observaciones son de la sierra y la menor, de la selva.
+```{r, echo=FALSE, error=F,warning=F}
+dn <- table(DT$Ubicación)
+kable(head(dn), format = "markdown")
+```
+* `Tabla de frecuencias relativas`
+El resultado de dividir la frecuencia absoluta de un determinado valor entre el número total de datos. Sale en decimales, lo multiplicamos por 100 para ver el porcentaje.
+
+Tabla para la variable Ubicación
+```{r, echo=FALSE, error=F,warning=F}
+dd <- round(prop.table(table(DT$Ubicación))*100)
+kable(head(dd), format = "markdown")
+# prop.table: devuelve las frecuencias relativas de un objeto
+```
+Tabla para la variable vivienda
+```{r, echo=FALSE, error=F,warning=F}
+dd <- round(prop.table(table(DT$vivienda))*100)
+kable(head(dd), format = "markdown")
+```
+Tabla para la variable habitaciones-dormir
+```{r, echo=FALSE, error=F,warning=F}
+dd <- round(prop.table(table(DT$Hab_dormir))*100)
+kable(head(dd), format = "markdown")
+```
+Tabla para la variable gasto-agua
+```{r, echo=FALSE, error=F,warning=F}
+dd <- round(prop.table(table(DT$Gasto_agua))*100)
+kable(head(dd), format = "markdown")
+```
+
+> ## 3.3 Descriptores gráficos
+
+
+* `Histograma` 
+El siguiente histograma nos sirve para representar la variable numérica , "Gasto en agua"; Aquí, en la gráfica, podemos observar la frecuencia absoluta y la "densidad" (concentración); que existe entre el número de observaciones y el gasto.
+```{r, echo=FALSE}
+hist(table(DT$Gasto_agua), breaks=10, xlab="Gasto en soles", ylab="Densidad", main="Gasto en agua", col=7 )
+```
+
+* `Barplot`
+El bartplot, nos sirve en este caso para tener una mejor visión sobre la variable categórica "Ubicación". Aquí se muestra el conteo de hogares por región del Perú. Como podemos observar, nuestra muestra tuvo la mayor recolección de datos en la región sierra.
+```{r, echo=FALSE}
+barplot(table(DT$Ubicación), col=5, xlab = "REGIÓN", ylab = "Cantidad",main = "Distribución de hogares según región")
+```
+
+
+De igual manera, el gráfico de barras nos ayuda a reflejar la información mucho más clara de una tabla o base de datos, como vemos a continuación: 
+
+Se observa que hay una mayor cantidad de hogares con 2 habitaciones y pocos hogares con 6 habitaciones para dormir.
+```{r, echo=FALSE}
+barplot(table(DT$Hab_dormir), col=2, xlab = "Número de habitaciones", ylab = "HOGARES",main = "Número de habitaciones según numero de hogares")
+```
+
+
+> ## 3.4 Descriptores de interacción
+
+El siguiente gráfico, nos ayuda a relacionar dos variables de tipo categórica con una variable numérica, esto nos ayuda a tener una mejor interacción de las variables de nuestro data frame.
+Como vemos en este gráfico, a partir de sus variables seleccionadas nos ofrece mucha mayor información que otros descriptores gráficos, por ejemplo, podríamos decir:
+
+El número de hogares que tienen mayor cantidad de  habitaciones exclusivamente para dormir se ubica en la región sierra,y estas son casas independientes en su mayoría; por lo que podemos concluir, que en la sierra existen  familias más extensas que en la costa o la selva.
+
+* `Categórica, Numérica y Categórica`
+```{r, echo=FALSE}
+ggplot(DT, aes(x=vivienda, y= Hab_dormir, fill=Ubicación)) + geom_col(position = "dodge", col=1)
+```
+* `Categórica y Categórica`
+
+VIVIENDA- SERVICIOS HIGÉNICOS
+
+Con esto notaremos si el hogar cuenta con baño, sino arroja sus desperdicios en otro lugar o baño compartido
+```{r, echo=FALSE, error=F,warning=F}
+dd <- table(DT$vivienda,DT$Hogar_SS.HH.)
+kable(head(dd), format = "markdown")
+```
+
+El mosaicplot nos ayuda a graficar dos variables de tipo categórica. Como vemos en este ejemplo relacionamos agua potable con altitud, de aquí podemos decir lo siguiente:
+
+En la costa la mayor cantidad de la población tienen acceso al servicio de agua potable. Sin embargo, en la sierra ,"yunga", la mayor parte de la población no tienen este servicio.
+
+```{r, echo=FALSE}
+mosaicplot(Agua_potable~Altitud,data=DT, col=c("coral","cornsilk2","darkseagreen1","cadetblue3"),
+           main="Acceso a agua potable según la altitud")
+```
+
+
+* `Categórica y Numérica`
+El diagrama de cajas nos sirve para representar gráficamente dos variables: una categórica y otra numérica. Como vemos a continuación: 
+
+Gasto de agua según el tipo de vivienda
+```{r, echo=FALSE}
+ggplot(DT, aes(x = vivienda, y = Gasto_agua, color = vivienda)) +
+    geom_boxplot() +
+    theme_classic()
+```
+
+Los valores atípicos están representados por los círculos o puntos, por ejemplo, el valor 208 para Casa independiente.
+
+Las dimensiones de la caja están determinadas por la distancia del rango intercuartílico, que es la diferencia entre el primer y tercer cuartil.
+
+Para la caja de Casa de vecindad y la de caja de Casa independiente vemos que no tienen una distribución simétrica, a diferencia de la caja de Quinta. 
+
+A continuación, con los datos de Gasto_agua, mostramos el mínimo, máximo, cuartiles, media y mediana. Los cuales son datos relevantes para nuestro diagrama de cajas y bigotes mostrado arriba.
+
+```{r, echo=FALSE}
+summary(DT$Gasto_agua)
+```
+
+
+
+Cantidad de habitaciones para dormir dependiendo de la región
+
+Podemos relacionar estas variables para inferir que en ciertas regiones hay mayor cantidad de habitaciones, por lo tato hay mayor cantidad de integrantes por familia.
+```{r, echo=FALSE, error=F,warning=F}
+#HABITACIONES_DORMIR - UBICACIÓN REGIÓN
+dd <- table(DT$Hab_dormir, DT$Ubicación)
+kable(head(dd), format = "markdown")
+```
+* `Numérica y Numérica`
+
+Un stripchart (diagrama de puntos) sirve principalmente para relacionar dos variables de tipo numérica , ya que el rango de los valores existentes para cada variable se muestran en un solo gráfico, de ahí podemos hacer una comparativa mucho más efectiva de dos variables numéricas, por ejemplo como vemos a continuación:
+
+Observamos que hay un mayor gasto de gas que de leña. Lo que se puede entender como que hay un mayor consumo de gas a comparación de la leña. Además, los valores mayores de 60 son los valores atípicos para gasto de gas.
+```{r, echo=FALSE}
+x <- list('Gasto de Gas' = DT$Gasto_gas, 'Gasto de Leña' = DT$Gasto_leña)
+stripchart(x, main="Gasto de Gas y de Leña", method= "jitter",col=c('steelblue', 'coral2'), pch= 19,
+       vertical=TRUE)
+```
+
+De igual manera esta representación nos permite ver aquellos valores atípicos y el rango donde existe la mayor concentración de las observaciones. 
+
+Podemos observar que para el gasto de Internet, el valor 250 sería un valor atípico. Debido a que los otros se encuentran por debajo de 150. De igual forma, para el gasto de electricidad, sus valores atípicos estarían por encima de 150.
+```{r, echo=FALSE}
+x <- list('Gasto de Internet' = DT$Gasto_inter, 'Gasto de electricidad' = DT$Gasto_elec)
+stripchart(x, main="Gasto de Internet y de Electricidad", method= "jitter",col=c('steelblue', 'coral2'), pch= 16, vertical=TRUE)
+```

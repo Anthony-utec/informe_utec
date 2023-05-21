@@ -1,0 +1,552 @@
+---
+title: "Análisis del número de egresados universitarios en el Perú"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    number_sections: yes
+    theme: journal
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+# Introducción
+
+## Relevancia
+
+Nos enfocaremos en cuáles fueron las posibles causas de las deserciones universitarias en nuestro país, ya que al abandonar los estudios tienen consecuencias de orden económico, laboral, emocional y social que afectan tanto al estudiante y padres, como a la Institución y al Estado
+
+## Objetivos
+
+En este informe nos dedicaremos a relacionar las diversos variables con los números de egresados en las carreras que consideramos en nuestra muestra.
+Además, mediante nuestros análisis podremos observar la naturaleza de las deserciones universitarias.
+
+## Planificación
+
+```{r include=FALSE}
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("readr")) install.packages("readr")
+if (!require("dplyr")) install.packages("dplyr")
+library(tidyverse)
+library(ggplot2)
+library(readr)
+```
+
+```{r }
+gantt <- read_csv("excel_diag_gantt.csv")
+acts <- c("Relevancia del tema",
+"Graficar el diagrama de Gantt",
+"Proceso de recolección de datos", 
+"Definir la población, muestra y muestreo", 
+"Definir las variables", 
+"Limpieza de base de datos",
+"Análisis descriptivo de dispersión",
+"Análisis descriptivo de medidas de tendencia central", 
+"Descriptores gráficos",
+"Corrección del P1",
+"Elegir variables de interacción",
+"Elegir los modelos de distribución de probabilidad",
+"Análisis probabilístico de las variables escogidas")
+els <- c("2 días", "3 días", "4 días", "1 semana",  "2 semanas")
+     
+g.gant <- gather(gantt, "state", "date", 4:5) %>% mutate(date = as.Date(date, "%Y.%m.%d"),Actividad=factor(Actividad,acts[length(acts):1]),Tiempo= factor(Tiempo,els))
+ggplot(g.gant, aes(date, Actividad, color = Tiempo, group = Item)) +
+  geom_line(size = 10) +
+  labs(x = "Fechas", y= NULL, title = "Planificación del grupo")
+         
+```
+
+# Datos
+
+## Recolección de datos
+
+La operación del estudio se realizó el 20 de octubre al 15 de diciembre de 2014 en los 25 departamentos del Perú con cuestionarios a egresados a quienes se les aplicó una entrevista utilizando un tablet, además se hizo un recojo de datos de las condiciones de los servicios de 131 universidades mediante vía Web en el cual se obtuvo información general sobre las condiciones de la infraestructura y servicios que ofrece la universidad, es decir información relevante en la generación de conocimiento/producción.
+Por último la recolección de datos se realizó con un auto empadronamiento para las universidades mediante formulario por internet y como ya se mencionó se realizó una entrevista directa con equipos de tablet para capturar los datos.
+## Población, muestra y muestreo
+
+La población de estudio fue entrevistada en el lugar donde fue ubicada.
+La unidad de análisis fueron todas las universidades públicas y privadas del Perú que están en funcionamiento al 30 de junio de 2014 y para la encuesta de egresados, se realizó una muestra de egresados por cada universidad que haya tenido al menos 40 alumnos egresados entre las carreras ofrecidas.
+La unidad informante que se logró es el egresado y el representante que la universidad designe con acceso a los registros académicos necesarios, de infraestructura y recursos humanos.
+Para la estimación de la muestra de los egresados se utilizó como marco muestral el II CENAUN acotado de acuerdo con los siguientes criterios:
+
+-   Egresados con al menos un año de egreso al momento de la encuesta.
+-   Egresados con menos de 3 años de atraso de estudios en el curso de su carrera.
+-   Egresados que en su último año de estudios no tengan más de 25, 26 y 27 años según la extensión de su carrera (5, 6 y 7 años respectivamente).
+
+Todo esto buscando evitar sesgos relacionados a estudios superiores previos o experiencia laboral previa.
+Así, el marco muestral para la encuesta de egresados está compuesto por 213,370 alumnos de 92 universidades censados por el CENAUN 2010.
+Para el caso del formulario de universidades, se requerirá la información de todas las 131 universidades públicas y privadas en funcionamiento al 30 de junio de 2014.
+Finalmente la muestra es probabilística, estratificada, de lista, de una etapa (unietápico) e independiente en cada carrera universitaria y universidad investigada.
+Tamaño de la muestra Se entrevistaron a 10560 egresados y 131 universidades.
+
+## Variables
+
+| Nombre de la variable | Descripción                                 | Categoría             | Restricciones                                          |
+|---------------|-------------------|---------------|------------------------|
+| C9P901                | Nombre de la carrera                        | Cualitativa nominal   | Cadena de caracteres no vació                          |
+| C9P902                | Ciclos de carrera                           | Cualitativa ordinal   | Número entero positivo                                 |
+| C9P903                | Duración de ciclo en meses                  | Cuantitativa discreta | Número entero entre 0 y 6                              |
+| C9P904                | Cursos en total                             | Cuantitativa discreta | Número entero positivo                                 |
+| C9P908                | Estudiantes matriculados                    | Cuantitativa discreta | Número entero no negativo                              |
+| C9P914                | Alumnos egresados                           | Cuantitativa discreta | Número entero no negativo                              |
+| C9P917                | Carrera certificada                         | Cualitativa nominal   | "No" "Si"                                              |
+| C9P918                | Tiene escalas de pago                       | Cualitativa nominal   | "No" "Si"                                              |
+| C9P920                | Costo de la matrícula en la escala más baja | Cuantitativa continua | Número real no negativo                                |
+| C9P921                | Costo de la matrícula en la escala más alta | Cuantitativa continua | Número real no negativo                                |
+| C9P922                | Costo de la pensión en la escala más baja   | Cuantitativa continua | Número real no negativo                                |
+| C9P923                | Costo de la pensión en la escala más alta   | Cuantitativa continua | Número real no negativo                                |
+| C9P924                | Costo de la matrícula anual                 | Cuantitativa continua | Número real no negativo                                |
+| C9P925                | Costo de la pensión anual                   | Cuantitativa continua | Número real no negativo                                |
+| C9P926                | Frecuencia de pago                          | Cualitativa ordinal   | "Mensual" "Trimestral" "Semestral" "Anual" "No aplica" |
+
+## Limpieza de datos
+
+```{r echo=TRUE}
+library(readr)
+library(dplyr)
+```
+
+Leemos el archivo que se extrajo de <a>http://iinei.inei.gob.pe/microdatos/</a>.
+Convertido a csv mediante Excel.
+
+```{r echo=TRUE}
+DF <- read_csv("14_UNIVERSIDADES_C9P900.csv")
+```
+
+Seleccionando solo las columnas de nuestro interés.
+
+```{r}
+DF %>% select(C9P901,C9P902,C9P903,C9P904,C9P908,C9P914,C9P917,C9P918,C9P920,C9P921,C9P922,C9P923,C9P924,C9P925,C9P926) -> DFN
+```
+
+Convirtiendo la representación numérica por su valor.
+Para la variable C9P917:
+
+```{r}
+DFN$C9P917[DFN$C9P917==1] <- "Sí" 
+DFN$C9P917[DFN$C9P917==2] <- "No"
+```
+
+Para la variable C9P918:
+
+```{r}
+DFN$C9P918[DFN$C9P918==1] <- "Sí" 
+DFN$C9P918[DFN$C9P918==2] <- "No"
+```
+
+Para la variable C9P926:
+
+```{r}
+DFN$C9P926[DFN$C9P926==1] <- "Mensual" 
+DFN$C9P926[DFN$C9P926==2] <- "Trimestral"
+DFN$C9P926[DFN$C9P926==3] <- "Semestral" 
+DFN$C9P926[DFN$C9P926==4] <- "Anual"
+DFN$C9P926[DFN$C9P926==5] <- "No aplica"
+```
+
+La base de datos está limpia gracias a la fuente de donde proviene, el INEI provee de estos recursos después del tratamiento y limpieza que ellos hacen para su estudio.
+Además, el INEI nos provee de su documentación correspondiente, haciendo más fácil y accesible al momento de tratar estos datos.
+Por otro lado, los datos fueron guardados con tal de ser lo más eficiente en almacenamiento, pero esto no nos ayuda para entender alguna variables.
+Por lo tanto, hemos convertido algunas variables que se almacenan como numéricas, a una que señala su diccionario, para conseguir respuestas de manera directa.
+
+Guardando el nuevo *data frame*.
+
+```{r}
+write_csv(DFN, file="DatosUniversitarios.csv")
+```
+
+# Análisis descriptivo
+
+```{r}
+Datos<-read_csv("DatosUniversitarios.csv")
+redondeo <- function(x){
+  return(round(x, digits = 2));
+}
+cv <- function(x){
+  return(sd(x, na.rm= TRUE) / mean(x, na.rm=TRUE));
+}
+mode <- function(x) {
+   return(as.numeric(names(which.max(table(x)))))
+}
+```
+
+## Datos generales
+
+1)  Número de variables:
+
+```{r}
+ncol(Datos)
+```
+
+2)  Número de observaciones
+
+```{r}
+nrow(Datos)
+```
+
+3)  Resumen
+
+```{r}
+str(Datos)
+```
+
+## Descripción de cada variable
+
+### Ciclo de carrera
+
+```{r}
+# Mediana 
+median(Datos$C9P902) 
+# Moda = ciclo 10
+mode(Datos$C9P902)
+# Mínimo
+min(Datos$C9P902)
+# Máximo
+max(Datos$C9P902)
+```
+
+```{r}
+barplot(table(Datos$C9P902),main="Ciclos de carrera",xlab="Ciclo",ylab="Alumnos",col="lightgreen")
+abline( v = median(table(Datos$C9P902), na.rm = TRUE) + 0.5, col = "red", pch = 7, cex = 2, lwd = 2, lty = 2)
+#abline(v = mean(Datos$C9P902), col = 1, pch = 7, cex = 2, lwd = 2, lty = 2)
+#abline(v = quantile(Datos$C9P902)[2], col = "blue", pch = 7, cex = 2, lwd = 2, lty = 2)
+legend(0, 1200, legend=c("Mediana"),
+       col=c("red"), lty=2, cex=1)
+```
+
+- El número de ciclos que componen una carrera es de 10 en promedio.
+- La moda de la cantidad de ciclos que consta una carrera es de 10 ciclos
+- La mediana de la cantidad de ciclos que tiene una carrera es de 10
+
+### Estudiantes matriculados
+
+```{r}
+# Media
+mean(Datos$C9P908, na.rm = TRUE) 
+# Mediana
+median(Datos$C9P908, na.rm = TRUE)  
+# Moda = 800  (17)
+#table(Datos$C9P908) 
+# Rango
+range(Datos$C9P908, na.rm = TRUE) 
+# Rango Intercuartil
+IQR(Datos$C9P908, na.rm = TRUE) 
+# Coeficiente de variación
+redondeo(sd(Datos$C9P908, na.rm = TRUE))  
+# Desviación estándar
+redondeo(cv(Datos$C9P908)) 
+# Mínimo
+min(Datos$C9P908, na.rm = TRUE)
+# Máximo
+max(Datos$C9P908, na.rm = TRUE)
+```
+
+```{r}
+hist(Datos$C9P908[Datos$C9P908<4000], xlab = "Cantidad de alumnos matriculados", ylab = "Frecuencia", main = "Histograma de alumnos matriculados" , col="lightgreen", breaks = 30)
+abline(v = median(Datos$C9P908), col = "red", pch = 7, cex = 2, lwd = 2, lty = 2)
+abline(v = mean(Datos$C9P908), col = "blue", pch = 7, cex = 2, lwd = 2, lty = 2)
+legend(2500, 600, legend=c("Mediana", "Media"),
+       col=c("red", "blue"), lty=2, cex=1)
+```
+
+-   El número promedio de estudiantes matriculados en las carreras de nuestra muestra es de 352.
+-   La cantidad de alumnos matriculados en las carreras tiene una media de 157.
+-   Por lo tanto, está sesgado considerablemente a la derecha.
+-   Como la desviación estándar es 673, podemos decir que más del 68% de las carreras tiene entre 0 y 1025 alumnos matriculados
+-   Para sacar la medida de tendencia central más representativa, se observa que el coeficiente de variación es de 1.91. Por lo tanto, la media no garantiza una representación clara de los datos.
+
+### Alumnos egresados
+
+```{r}
+# Media
+mean(Datos$C9P914, na.rm = TRUE) 
+# Mediana
+median(Datos$C9P914, na.rm = TRUE) 
+# Moda = 0  (397)
+#table(Datos$C9P914)
+# Rango
+range(Datos$C9P914, na.rm = TRUE)
+# Rango Intercuartil
+IQR(Datos$C9P914, na.rm = TRUE) 
+# Coeficiente de variación  
+redondeo(sd(Datos$C9P914, na.rm = TRUE)) 
+# Desviación estándar
+redondeo(cv(Datos$C9P914)) 
+# Mínimo
+min(Datos$C9P914, na.rm = TRUE)
+# Máximo
+max(Datos$C9P914, na.rm = TRUE)
+```
+
+```{r}
+hist(Datos$C9P914[Datos$C9P914<500], xlab = "Cantidad de alumnos egresados", ylab = "Frecuencia", main = "Histograma de alumnos egresados" , col="lightgreen", breaks = 30)
+abline(v = median(Datos$C9P914), col = "red", pch = 7, cex = 2, lwd = 2, lty = 2)
+abline(v = mean(Datos$C9P914), col = "blue", pch = 7, cex = 2, lwd = 2, lty = 2)
+legend(380, 700, legend=c("Mediana", "Media"),
+       col=c("red", "blue"), lty=2, cex=1)
+```
+
+-   La cantidad de alumnos egresados en promedio son 40
+-   La mediana de la cantidad de alumnos egresados son 18
+-   Igualmente que con la variable anterior, en este caso se tiene un sesgo considerable a la derecha
+-   Como el rango intercuartílico es 46, con respecto al rango total que va desde 0 a 999, podemos considerar que el 50% de la cantidad de egresados están muy concentrados con respecto al total de datos.
+-   Para sacar la medida de tendencia central más representativa, se observa que el coeficiente de variación es de 2.07. Por lo tanto, la media no garantiza una representación clara de los datos.
+
+### Carrera certificada
+
+```{r}
+# Moda NO (1397)
+table(Datos$C9P917)  
+```
+
+```{r}
+barplot(table(Datos$C9P917), col="lightgreen", main = "Carreras certificadas")
+```
+
+-   1397 carreras no son certificados
+-   163 carreras tienen certificados
+-   Casi el 90% de las carreras no son certificados
+
+### Costo de matrícula anual
+
+```{r}
+Valido5 <- Datos$C9P924 # quitamos los datos atípicos
+# Media
+mean(Valido5, na.rm = TRUE) 
+# Mediana 
+median(Valido5, na.rm = TRUE) 
+# Moda  50(91)
+#table(Valido5) 
+# Rango
+range(Valido5, na.rm = TRUE) 
+# Rango Intercuartil
+IQR(Valido5, na.rm = TRUE)
+# Coeficiente de variación  
+redondeo(sd(Valido5, na.rm = TRUE)) 
+# Desviación estándar
+redondeo(cv(Valido5)) 
+# Mínimo
+min(Valido5, na.rm = TRUE)
+# Máximo
+max(Valido5, na.rm = TRUE)
+quantile(Valido5,c(0.25,0.75))
+```
+
+```{r}
+boxplot(Datos$C9P924, horizontal = T)
+plot(density(Datos$C9P924), main = "Función de densidad", xlab = "Costo de matrícula anual", ylab = "Densidad")
+hist(Datos$C9P924, xlab = "Costo de matrícula anual", ylab = "Frecuencia", main = "Histograma de matrícula anual" , col="lightgreen")
+abline(v = median(Datos$C9P924, na.rm = TRUE) , col = "red", pch = 7, cex = 2, lwd = 2, lty = 2)
+abline(v = mean(Datos$C9P924, na.rm = TRUE), col = "blue", pch = 7, cex = 2, lwd = 2, lty = 2)
+legend(1000, 1000, legend=c("Mediana", "Media"),
+       col=c("red", "blue"), lty=2, cex=1)
+```
+
+-   El promedio de los costes de matrícula anual es 86 soles.
+-   La mediana de los costes de matrícula anual es de 1.
+-   Es sesgado a la derecha porque el promedio es mayor que la media.
+-   La mayoría de carreras tienen un costo de matrícula anual entre 0 y 105. Por lo tanto, dentro de nuestra muestra esta involucradas muchas carreras de universidades nacionales.
+-   Existe dos picos considerables, cuando el costo de matrícula anual es 0 y cuando es 200 aproximadamente.
+
+### Costo de pensión anual
+
+```{r}
+Valido6 <- Datos$C9P925 # quitamos los datos atípicos
+# Media
+mean(Valido6, na.rm = TRUE) 
+# Mediana 
+median(Valido6, na.rm = TRUE) 
+# Moda  122(1)
+#table(Valido6) 
+# Rango
+range(Valido6, na.rm = TRUE) 
+# Rango Intercuartil
+IQR(Valido6, na.rm = TRUE)
+# Coeficiente de variación  
+redondeo(sd(Valido6))
+# Desviación estándar
+redondeo(cv(Valido6))
+# Mínimo
+min(Valido6, na.rm = TRUE)
+# Máximo
+max(Valido6, na.rm = TRUE)
+quantile(Valido6, c(0.8478))
+```
+
+```{r}
+hist(Datos$C9P925[Datos$C9P925<7000], xlab = "Costo de pensión anual", ylab = "Frecuencia", main = "Histograma de pensión anual" ,col="lightgreen")
+abline(v = median(Datos$C9P925), col = "red", pch = 7, cex = 2, lwd = 2, lty = 2)
+abline(v = mean(Datos$C9P925), col = "blue", pch = 7, cex = 2, lwd = 2, lty = 2)
+legend(5000, 1300, legend=c("Mediana", "Media"),
+       col=c("red", "blue"), lty=2, cex=1)
+```
+
+-   El promedio de los costes de matrícula anual es 337 soles.
+-   La mediana de los costes de matrícula anual es de 1 sol.
+-   Es sesgado a la derecha porque el promedio es mayor que la media.
+-   Más del 50% de carreras no tienen un costo de pensión anual, correspondientes a una universidad nacional.
+-   Casi el 15% de las carreras sobrepasan los 100 soles en costo de pensión anual.
+
+### Frecuencia de pago
+
+```{r}
+table(Datos$C9P918,Datos$C9P926) #   Moda 768 (Mensual) unir con la tabla de carreras
+```
+
+```{r}
+barplot(table(Datos$C9P918,Datos$C9P926), ylab = "Cantidad", col = c("salmon", "lightskyblue"), main = "Frecuencias de pagos")
+legend(4.2, 700, c("No", "Sí"), title = 'Tiene escalas de pago',
+       col=c("salmon", "lightskyblue"), lty=1, cex=1)
+```
+-  En la mayoría de carreras los universitarios pagan sus pensiones de forma mensual
+-  Las carreras que tienen una frecuencia de pagos mensual concentran, además, a las que tienen escalas de pago
+-  Menos de la mitad de las carreras (40%) tienen escalas de pago
+
+## Relaciones
+
+### Egresados~Pensión
+
+```{r}
+plot(C9P925~C9P914,data = Datos, xlab = "Cantidad de egresados", ylab = "Pensión anual", pch = 20, col=rgb(0,0,0,0.12), main = "Egresados~Pensión")
+```
+  
+```{r}
+cor(Datos$C9P914,Datos$C9P925)
+```
+
+-   Además, como la pensión de las universidades nacionales es 0, se concentran gran cantidad de alumnos.
+-   Hay más egresados en las carreras que su pensión anual es baja, y menor en las que su pensión es alta.
+-   Existe poca relación entre las variables ya que su coeficiente de correlación es muy cercano a cero, -0.00313691.
+-   Vemos que gran parte se concentra en 0 ya que deducimos que todavía no culminaban la carrera.
+
+### Matriculados~Egresados
+
+```{r}
+plot(Datos$C9P908/Datos$C9P902, Datos$C9P914, xlab = "Cantidad de matriculados", ylab = "Cantidad de egresados", col=rgb(0,0,0,0.12), main = "Matriculados~Egresados")
+regresion <- lm(Datos$C9P908/Datos$C9P902~Datos$C9P914)
+legend(650, 900, legend = ("Modelo lineal"),col ="red", lty=1, cex=1)
+abline(regresion, col="red")
+```
+
+```{r}
+cor(Datos$C9P908/Datos$C9P902, Datos$C9P914)
+```
+
+-   Mejor relación entre variables, teniendo un coeficiente de correlación de 0.5227.
+-   A más cantidad de matriculados por ciclo en una carrera, se tiene más egresados.
+
+# Análisis Probabilístico
+
+## Cantidad de egresados
+
+Sea una variable aleatoria X que cuente la cantidad de egresados que tiene una carrera.
+Considerando como éxito que la carrera tiene al menos un egresado y como fracaso que una carrera no tenga egresados.
+
+```{r}
+sum(Datos$C9P914==0)
+sum(Datos$C9P914>=1)
+```
+Sabiendo que en una muestra de 1560 hay 397 carreras que no tienen egresados, calculamos la probabilidad de fracaso:
+```{r}
+fracaso <- 397/1560
+exito <- 1163/1560
+```
+
+Con esto queremos saber cuál es la probabilidad de que egresen alumnos en una carrera.
+
+Si escogemos 500 carreras, calcularemos cuál es la probabilidad de obtener más del 75% de carreras con egresados.
+X ∼ Binom(500, 0.7455)
+
+Calculando la esperanza:
+E(X) = 372.76
+```{r}
+500*exito
+```
+Se espera que dentro de las 500 carreras elegidas, haya 372 carreras con egresados.
+
+
+Calculando la desviación estándar:
+```{r}
+sqrt(500*exito*fracaso)
+```
+Resulta muy pequeña la desviación estándar, comparándola con la esperanza. Por lo tanto, no está muy dispersa esta variable aleatoria.
+
+P(X>=375) = 1 - P(X<375)
+P(X>=375) = 1 - P(X<=374)
+```{r}
+plot(density(rbinom(10000, 500, exito)), main = "Binomial de carreras exitosas", xlab = "Cantidad de carreras", ylab = "Densidad")
+abline(v = 375, col = "red")
+legend(390, 0.03, legend = ("P(X=375)"),col ="red", lty=1, cex=1)
+pbinom(374, 500, exito, lower.tail = F)
+```
+Por lo tanto, la probabilidad de que el 75% de un grupo de 500 carreras tengan egresados es de 0.432 .
+
+## Cantidad de egresados~matriculados
+Sea una variable aleatoria X que mida la cantidad de egresados con respecto a 100 matriculados.
+Considerando que la relación egresados-matriculados puede ser representado por su modelo lineal.
+
+```{r}
+lm(Datos$C9P908/Datos$C9P902~Datos$C9P914)
+```
+
+```{r}
+egresados <- function(matriculados){
+  return(18.3927 + 0.3999*(matriculados))
+}
+```
+```{r}
+lambda <- egresados(100)
+```
+X ∼ Pois(58.3827)
+
+Calculando la esperanza:
+E(X) = 58.3827
+
+Calculando la varianza:
+V(X) = 58.3827
+
+Con esto queremos encontrar cuáles son las carreras que tengan una mejor relación entre egresados y matriculados.
+Calcularemos la probabilidad de que cada 100 matriculados haya 100 egresados.
+```{r}
+dpois(100, lambda)
+```
+Por lo tanto, resulta muy poco probable encontrar una carrera que tenga 100 egresados por cada 100 matriculados (100% de eficacia), ya que la probabilidad hallada tienda a 0.
+
+## Cantidad de Carreras certificadas
+Definimos a la variable aleatoria Y que cuenta el número de carreras certificadas obtenidas de una muestra.
+
+Teniendo una muestra de 452 carreras donde por lo menos tienen un egresado donde 30 son certificadas y 422 no los son.
+```{r}
+table(Datos$C9P917[Datos$C9P925>0])
+```
+
+Definimos a la variable Y con modelo hipergeométrica en donde se extraerá al azar un grupo de 100 carreras de la muestral.
+
+Y ~ Hyper(30,422,100)
+
+E(Y) = 28.009
+```{r}
+30*422/452
+```
+La esperanza está cerca de la cantidad de carreras certificadas inicial, por lo tanto, con este grupo extraído al azar esperamos obtener gran parte de lo deseado.
+
+σ = 1.363
+```{r}
+sqrt((30*422/452)*(1-(422/452)))
+```
+En concordancia con lo dicho con respecto a la esperanza, esta tiene un margen pequeño en la que se dispersa regularmente.
+
+Calculamos la probabilidad de obtener menos 10 carreras certificados, para verificar la abundancia en la población de este tipo de carreras. 
+P(Y<10) = P(Y<=9)
+```{r}
+phyper(9,30,422,100)
+```
+Resulta muy probable encontrar una baja proporción de carreras certificados en un grupo de 100 carreras con al menos un egresado, por lo tanto en nuestra muestra abarcaría gran parte las carreras no certificados.

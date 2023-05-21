@@ -1,0 +1,755 @@
+---
+title: "Entrega P2"
+date: "24 de junio del 2022"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: journal
+---
+#<div style="text-align: justify">
+![](Logo_UTEC.png){align="right" width=25%}
+
+<b style = 'color : darkblue; font-size : 25px'>**"Universidad de Ingeniería y Tecnología"**</b>
+
+<b style = 'color : black; font-size : 25px ; font-family : Amasis MT Pro Black'>**Factores influyentes en las enfermedades respiratorias en Lima metropolitana**</b>
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggthemes)
+require(tidyverse)
+library(ggplot2)
+library(car)
+library(gmodels)
+library(stringr)
+```
+
+## Introducción
+
+### Relevancia
+
+El tema de investigación es determinar si la calidad de aire influye en la aparición de problemas respiratorios por distrito en Lima Metropolitana en el año 2022. La importancia de esta investigación radica sobre si el cambio en el nivel de calidad de aire que hubo por la pandemia hizo que, aumenten o disminuyan los problemas respiratorios.
+
+#### Objetivos
+
+Como puntos para poder lograr el tema de investigación, se plantea:
+
+-   Hallar una relación entre la cantidad de actividad física y la disminución que produce en problemas respiratorios.
+
+-   Hallar una relación entre el nivel de exposición a la contaminación que uno puede tener con los problemas respiratorios.
+
+-   Hallar una relación entre el distrito de residencia y los problemas respiratorios que logra ocasionar.
+
+-   Hallar una relación entre a cantidad de actividad física y la edad con la finalidad de encontrar alguna tendencia.
+
+
+Nuestros objetivos se centran únicamente en Lima metropolitana y hemos ampliado el rango de edad de 15 a 50 años.
+
+### Planificación 
+
+La planificación que se llevara a cabo para poder cumplir con lo dicho en el tema de investigación es este:
+
+```{r}
+data <- data.frame(Presentaciones = c('Seleccion de temas', 'Presentacion de temas', 'Reelección de tema', 'Retroalimentacion del docente', 'Elaboracion del cuestionario', 'Recoleccion de datos', 'Limpieza de datos', 'Analisis descriptivo univariado', 'Analisis descriptivo bivariado','Análisis probabilístico', 'Variables aleatorias y modelos'), 
+Dias = c(1, 13, 16, 15, 23, 31, 38, 40, 44, 47, 50), dias_fin = c(13, 14, 19, 17, 30, 39, 40, 42, 45, 49, 52))
+ggplot(data, aes(x=Dias, xend=dias_fin, y=Presentaciones, yend=Presentaciones)) +
+  geom_segment()
+
+```
+
+
+## Datos
+
+### Recolección de datos
+      
+  La recolección de datos se hizo mediante el método de la encuesta. [Link](https://forms.gle/58DC3zMdGT8aiL3J9/ "Enlace de la encuesta").
+ Primero, se elaboró un borrador de las posibles preguntas para hallar la información necesaria para cada variable. Luego, se refinaron las preguntas y se creó la encuesta oficial en un Google forms. Es así como se empezó a difundir la encuesta mediante correos electrónicos y redes sociales. Se hizo de esta manera, virtualmente, porque así la encuesta tendría mayor amplitud y sería más rápida la recolección de los datos. La estrategia usada para llegar a la población (personas entre los 15 y 50 años que viven en Lima Metropolitana) fue la divulgación de una encuesta virtual por medio de las redes sociales. 
+
+### Población, muestra y muestreo 
+    
+  La población objetivo son todas las personas entre los 15 y 50 años. El motivo por el cual la población se encuentra en este rango de edad es para analizar los problemas respiratorios causados por el ambiente de Lima sin incluir otros factores, como enfermedades asociadas a la tercera edad o similares. Es así como la unidad muestral es la persona residente en Lima Metropolitana. Por otro lado, el tipo de muestreo identificado es el muestreo aleatorio simple (MAS), ya que la información de los elementos fue recogida al azar y sin ningún tipo de estratificación o manipulación por conveniencia. Asimismo, el tamaño de la muestra es de 200 individuos, con una representatividad parcial, dependiente del azar, puesto que el muestreo pertenece al tipo probabilístico MAS, y con un tamaño de muestra considerable con respecto a la población.
+
+### Variables
+
+|Variables | Tipo | Restricciones|
+|----------|------|--------------|
+|Edad  | cuantitativa continua | puede tomar valores de 15 a 50 |
+|Sexo  | cualitativa nominal | puede ser Femenino,Masculino o no binario |
+|Distrito donde reside | cualitativa nominal | puede ser una de 34 opciones |
+|Ocupación | Cualitativa ordinal | Estudiante universitario, empleado o estudiante de secundaria |
+|Distrito donde labora | Cualitativa nominal | puede ser una de 34 opciones |
+|Horas en centro de estudio o trabajo | cuantitativa discreta | valores hasta 24|
+|¿Usted Fuma? | Cualitativa nominal ( booleana ) | si o no |
+|¿has sufrido de un problema respiratorio? | cualitativa nominal (booleana) | si o no |
+|¿Que problema respiratorio ? | cualitativa nominal | Se puede seleccionar 9 enfermedades o NA |
+|¿cuantas áreas verdes hay por tu casa | cuantitativa discreta | valores del 1 al 10 |
+|¿Has sufrido de covid? | cualitativa nominal(booleana) | si o no |
+|¿Hace cuantas semanas has sido diagnosticado? | cuantitativa discreta | solo toma valores enteros a pesar que el tiempo es continuo |
+|¿Vive cerca de alguna avenida concurrida? | cualitativa nominal (booleana) | si o no | 
+|Horas al día expuesto al trafico vesicular |  cuantitativa discreta | valores hasta 24 |
+|Horas al día expuesto a productos químicos | cuantitativa discreta | valores hasta 24 |
+
+### Limpieza de base de datos
+
+*Lectura del archivo csv*
+
+```{r}
+Factores <- read_csv("Respuestas.csv")
+```
+
+Renombrar las variables largas 
+
+```{r}
+Factores1 <- Factores %>% rename( Marca = `Marca temporal`, Residencia = `Distrito donde reside`, Ocupacion = Ocupación , Trabajo = `Distrito donde estudio o labora`, Fumar = `¿Usted fuma?`, Problema_respiratorio = `¿Sufres o has sufrido de algún problema respiratorio?`, Actividad_fisica = `¿Cuántos días a la semana haces actividad física?`, COVID_19 = `¿Ha sido diagnosticado con COVID-19?`, Avenida = `¿Vive cerca de alguna avenida concurrida?`, Problema = `Que problema respiratorio?`, Trafico_vehicular = `¿Cuántas horas al día estás expuesto al tráfico vehicular? Aproximadamente`, Productos_quimicos = `¿Cuántas horas al día estás expuesto a productos químicos?`, Horas_labora = `¿Cuántas horas aproximadamente pasas en la universidad, colegio o centro de trabajo?`, Areas_Verdes = `Del 1 al 10, ¿Cuántas áreas verdes hay por tu casa?`, Semanas_COVID = `¿Hace cuántas semanas ha sido diagnosticado?` ) 
+```
+
+Eliminar la sección Marca porque no sirve como Data dentro del estudio
+
+```{r}
+Factores2 <- Factores1 %>% select (-'Marca')
+```
+
+Re-codificar las respuestas de Los problemas respiratorio
+
+```{r}
+Factores2$Problema [Factores2$Problema_respiratorio=='No'] <- "No sufre"
+```
+
+- Esto se da debido a que personas que marcaron la opción de No tener algún problema respiratorio pusieron Otro en la siguiente pregunta, la cual nos da información del problema que presenta y esto no es lógico a lo respondido anteriormente. 
+
+Re-codificar las semanas de Covid por Na a las personas que no presentaron Covid
+
+```{r}
+Factores2$Semanas_COVID [Factores2$COVID_19 == 'No'] <- NA
+```
+
+- Algunos encuestados colocaron 0 a las pregunta de hace cuantas semanas presentó dicho virus. Sin embargo marcaron que no tuvieron Covid por lo cuál se les colocó Na ya que 0 significa que están con Covid-19.
+
+Ser hace un Resumen a La Data
+
+```{r}
+summary(Factores2)
+```
+## Análisis descriptivo univariado
+
+### Descriptores numéricos de las variables más relevantes
+
+  + **Edad**
+  
+  Descriptores de posición:
+  
+```{r}
+summary(Factores2$Edad)
+```
+Observamos que la media es de 22 años, el cual nos representa el centro de los datos y podemos inferir que es el valor del cual nuestros datos rondan, asimismo, se ve que la media es mayor que la mediana, lo que nos dice que la variable no es simétrica, y está sesgada a la derecha. Esto se puede observar mejor en un boxplot o historiagrama.
+
+Descriptores de dispersión: 
+
+```{r}
+range(Factores2$Edad)
+sd(Factores2$Edad)
+var(Factores2$Edad)
+
+```
+El rango de la variable edad es 35, pues restamos el máximo que es 50 años con el mínimo que es 15 años. Aquí vemos que en nuestro estudio la edad involucra a adolescentes, jóvenes y adultos. 
+La varianza y la desviación estándar indican que tan dispersos están los datos alrededor de la media. En la mayoría de los casos, una desviación estándar más grande significa en un mayor error estándar de la media y una estimación menos precisa de la media de la población. En nuestro caso, nuestra desviación estándar es 9.19, lo que significa que la edad de los encuestados se desvía de la media por  9 años aproximadamente, así como la varianza es la desviación al cuadrado, de la cual se pueden sacar las mismas conclusiones. Esto significa que  nuestros datos están bastante dispersos.
+
+```{r}
+hist(Factores2$Edad,breaks = 15, col= "skyblue" , main = "Histograma de Edades",xlab= "Edades", ylab= "Frecuencia" )
+abline(v = mean(Factores2$Edad),col= "red", lwd=2)
+abline(v = median(Factores2$Edad), col = "blue", lwd=2, lty = 2)
+legend("topright",bty= "n", legend = c("media","mediana"),col = c("red", "blue"),lwd =2, lty= 1:2)
+```
+Podemos observar que la mayoría de personas que respondieron la encuesta están entre los 17 y 18 años, asimismo, el valor de nuestra mediana es 18 y nuestra media es 22, los cuales se pueden visualizar mejor como lineas en el gráfico. Por otro lado, vemos como la mediana y la moda son iguales (18), ya que la edad con más frecuencia es de 18. Sin embargo, la variable edad está sesgada a la derecha, pues todos los datos se concentran en la izquierda en el rango de 15 a 23 años, así como la media y la mediana distan mucho. 
+
+ + **Actividad física**
+ 
+Descriptores de posición:
+  
+```{r}
+summary(Factores2$Actividad_fisica)
+```
+La media es ligeramente menor que la mediana, lo que significa que nuestra variable es sesgada a la izquierda o casi simétrica. Así como nuestros datos se encuentran entre 0 días a 7 días a la semana. 
+
+Descriptores de dispersión: 
+
+```{r}
+range(Factores2$Actividad_fisica)
+sd(Factores2$Actividad_fisica)
+var(Factores2$Actividad_fisica) 
+```
+Como mencionamos, nuestra variable varía entre 0 y 7, por lo que el rango es de 7. Asimismo,la desviación estándar es 1.96, lo que significa que la actividad física de los encuestados se desvía de la media por  2 días aproximadamente, lo que coincide con la raíz cuadrada de la varianza, donde podemos inferir que nuestros datos no están tan dispersos. De esta manera, notamos que las personas encuestadas realizan ejercicio al menos una vez a la semana, lo que puede mejorar significativamente la salud de las personas.
+
+
+```{r}
+boxplot(Factores2$Actividad_fisica, col="blue", main="Diagrama de caja de la variable Actividad Física", horizontal = TRUE)
+```
+En nuestro boxplot, como dijimos antes podemos ver que la variable es casi simétrica, así como la mediana es 3 y no presenta datos atípicos.
+ 
+ + **Áreas verdes**
+ 
+Descriptores de posición:
+  
+```{r}
+summary(Factores2$Areas_Verdes)
+```
+Con los descriptores de posición podemos ver si la variable es simétrica como vimos anteriormente. En este caso, la media es mayor que la mediana, por lo que la distribución está sesgada a la derecha. Por otro lado, podemos notar que la cantidad de áreas verdes cercanas rondan entre 1 y 10, por lo que su rango es de 9.
+
+Descriptores de dispersión: 
+
+```{r}
+range(Factores2$Areas_Verdes)
+sd(Factores2$Areas_Verdes)
+var(Factores2$Areas_Verdes) 
+```
+La desviación estándar es 2.42, lo que significa que el número de áreas verdes de los encuestados se desvía de la media por  2 áreas aproximadamente, lo que coincide con la raíz cuadrada de la varianza, donde podemos inferir que nuestros datos no están tan dispersos como la variable edades. Esto nos ayuda a saber que tan parecidos son los resultados de nuestros encuestados, así como que tan distribuidos están, pues la variable de áreas verdes nos importa, ya que esta ayuda a mejorar la calidad del calidad de aire, lo cual puede influir en disminuir la gravedad de los problemas respiratorios.
+
+```{r}
+hist(Factores2$Areas_Verdes,breaks = 15, col= "lightgreen" , main = "Histograma de Areas verdes",xlab= "Número de áreas cercanas", ylab= "Frecuencia" )
+abline(v = mean(Factores2$Areas_Verdes),col= "red", lwd=2)
+abline(v = median(Factores2$Areas_Verdes), col = "blue", lwd=2, lty = 2)
+legend("topright",bty= "n", legend = c("media","mediana"),col = c("red", "blue"),lwd =2, lty= 1:2)
+```
+ 
+ + **Problema Respiratorio**
+ 
+```{r}
+tabla1<-table(Factores2$Problema_respiratorio)
+mosaicplot(tabla1, main="Presenta algún problema respiratorio", col="pink")
+```
+```{r}
+tabla2<-table(Factores2$Problema)
+barplot(tabla2, col="purple", main="Problemas respiratorios que sufren nuestros encuestados", xlab="Problema respiratorio", ylab="Frecuencias")
+```
+En el primer gráfico se ve que la mayoría de encuestados no cuentan con algún problema respiratorio. Asimismo, en el segundo gráfico se puede observar que aparte de las personas que no sufren un problema respiratorio, la mayoría sufre de Asma, seguido por alergias, lo cual en un ambiente contaminado suelen agravarse. Por lo cual es importante realizar un análisis junto con los distritos más contaminados y la actividad física que realiza la persona.
+
+ 
+ + **Residencia**
+  
+```{r}
+tabla3<-table(Factores2$Residencia)
+tabla3
+```
+```{r}
+frecuencias <- data.frame(table(Factores2$Residencia))
+moda <- frecuencias[which.max(frecuencias$Freq),1]
+moda
+```
+Como observamos,en total los encuestados residen en 34 distritos ubicados en Lima. De estos, observamos que la moda, es decir el distritos que más frecuencia tiene es Pueblo Libre con 26 personas.
+
+## Análisis descriptivo de los datos mediante combinación de variables
+
+### Combinación de variables numérica y numérica
+
+ + **Análisis de las variables *
+
+
+ + **Análisis de Edad vs Actividad física**
+
+```{r}
+plot(formula=Factores2$Actividad_fisica~Factores2$Edad, data=Factores2,col=c(1,2,3,4), col.main= "blue", main ="Diagrama de dispersión Actividad física vs edad", ylab="Actividad fisica", xlab="Edad")
+modelo <- lm(Factores2$Actividad_fisica~Factores2$Edad)
+summary(modelo)
+abline(modelo,col='red')
+```
+```{r}
+mean(Factores2$Actividad_fisica)
+```
+
+```{r}
+mean(Factores2$Edad)
+```
+ - Covarianza y correlación 
+ 
+```{r}
+b<-sd(Factores2$Edad)
+a<-sd(Factores2$Actividad_fisica)
+covarianza<-cov( Factores2$Actividad_fisica, Factores2$Edad)
+covarianza
+cor1 <- covarianza/(a*b)
+cor1
+```
+Vemos que la covarianza y correlación están en negativo, lo que significa que la tendencia es negativa, como vemos en el gráfico también. Asimismo, vemos que la covarianza es 0,4, lo que significa que su grado de correlación no es muy alto. Asimismo, la covarianza nos muestra un mayor grado de asociación lineal, sin embargo, esta es sensible a los valores atípicos, ya que la variable edad tiene varios valores atípicos, esto se puede observar en un diagrama de caja.
+
+```{r}
+boxplot(Factores2$Edad, horizontal = TRUE, col="pink", main="Diagrama de caja de Edad")
+```
+
+Como vemos la variable edad tiene aproximadamente 14 datos atípicos, lo que altera la covarianza, pues esta es muy sensible a la escala y datos atípicos. Por eso mismo, es mejor analizar la covarianza que nos da las mismas conclusiones.
+
+
+Relevancia de la gráfica
+
+   La gráfica nos ayuda a entender la relación que hay entre la edad de las personas con la actividad física    que realizan a diario. Como podemos notar, hay una tendencia negativa, por lo que las personas mayores       practican menos ejercicio a la semana,por lo tanto, pueden tener un mayor riesgo de contraer                enfermedades respiratorias, pues a parte de la contaminación atmosférica en Lima, la falta de ejercicio     también es un factor.
+  
+   En el diagrama de dispersión podemos notar que en las edades de 15 a 20 años está dispersa la cantidad de    días a la semana que practican actividad física, esto quiere decir que en estos años no existe una          relación clara entre ambas variables, a diferencia de los años posteriores donde se puede ver una           tendencia.
+   
+   Mediante la media podemos notar el punto de equilibrio, así como la tendencia central de nuestros datos, en este caso en edad podemos notar que la tendencia central se nuestro estudio esta enfocado en personas de 22 años, así como en actividad física en dos veces por semana.
+   
+   Los ejes en x(edad) van de 15 a 50 años, así como los ejes en y(Actividad física) van de 0 a 7 días a la       semana.
+   
+   
+### Combinación de variables categórica y numérica   
+
+ + **Análisis de la relación entre el distrito donde labora y promedio de las horas que trabaja**
+
+Se hace un nuevo DataFrame agrupando los distritos donde labora y su promedio de horas laborales por distrito
+
+```{r}
+Factores3 <- Factores2 %>% group_by(Trabajo) %>% summarise(Promedio_Horas_Laborales=median(Horas_labora))
+```
+
+Gráfico de barras para apreciar mejor la data
+
+```{r}
+options(repr.plot.width=8, repr.plot.height=3)
+ggplot(Factores3, aes(x = Trabajo , y = Promedio_Horas_Laborales, main="Relación entre distrito donde Labora y Promedio de horas que labora")) +
+         geom_bar(stat = "identity") + coord_flip() + scale_y_continuous(breaks = seq(0,24,by=3),expand = c(0,0)) + labs(x='Promedio de horas que labora',y='Lugar laboral',title='Relación entre distrito donde Labora y Promedio de horas que labora') +
+         theme(axis.text.x = element_text(face="bold", color="purple", size=8, angle=0),axis.text.y = element_text(face="bold", color="#008000", size=8, angle=0))
+
+```
+
+MEDIA
+```{r}
+mean(Factores3$Promedio_Horas_Laborales, na.rm = TRUE)
+```
+*Conclusión:*
+
+Se puede observar que el promedio de horas es de 7 horas entre todos los distritos. Es decir que al día las personas, entre todos los distritos los cuales las personas encuestadas laboran, pasan alrededor de 7 horas en su centro de estudio o trabajo y las demás horas las pasan en sus lugares de Residencia o en otro lugar.
+
+ + **Análisis de la relación entre el distrito donde labora y promedio de las horas que trabaja** 
+ 
+Se hace un nuevo DataFrame agrupando los distritos donde Reside y su promedio de áreas verdes por distrito.
+ 
+```{r}
+Factores4 <- Factores2 %>% group_by(Residencia) %>% summarise(Promedio_Areas_Verdes=median(Areas_Verdes))
+```
+
+Gráfico de barras para apreciar mejor la data
+
+```{r}
+options(repr.plot.width=8, repr.plot.height=3)
+ggplot(Factores4, aes(x = Residencia , y = Promedio_Areas_Verdes)) +
+         geom_bar(stat = "identity") + coord_flip() + scale_y_continuous(breaks = seq(0,24,by=1),expand = c(0,0)) + labs(x='Promedio de horas que labora',y='Lugar laboral',title='Relación entre distrito donde Reside y Promedio de Areas Verdes') +
+         theme(axis.text.x = element_text(face="bold", color="violet", size=8, angle=0),axis.text.y = element_text(face="bold", color="violet", size=8, angle=0))
+
+```
+MEDIA
+```{r}
+mean(Factores4$Promedio_Areas_Verdes, na.rm = TRUE)
+```
+*Conclusión:*
+
+Se puede observar que los distritos con menores cantidades de áreas verdes serían Comas, San Juan de Miraflores, Independencia y Villa del Salvador. Mientras que los distritos con mayor cantidad de pareas verdes son Punta Hermosa y La Molina. Los otros distritos tiene  un promedio de 5 áreas verdes, sin embargo no son los valores máximos ni mínimos. 
+
+
+ + **Análisis de la relación entre problemas respiratorios y horas de actividad física**
+```{r}
+boxplot(formula=Factores2$Actividad_fisica~Factores2$Problema_respiratorio, data=Factores2, col="skyblue",main = "Relación entre Problema Respiratorio y Dias de Actividad Física", xlab ="Problema respiratorio", ylab= "Dias de Actividad Física",col.main = "black")
+
+variable <- paste(c("No: No presenta problemas respiratorios", "Si: Presenta problemas respiratorio"))
+
+legend(x ="topright",legend = variable , cex = 0.9, fill = 1, xpd = TRUE,inset = c(-0.05, 0))
+```
+Media y Mediana para No:
+
+MEDIANA
+
+```{r}
+DataNo <- Factores2 %>% filter(Problema_respiratorio=="No")
+median(DataNo$Actividad_fisica, na.rm = TRUE)
+```
+
+MEDIA
+
+```{r}
+mean(DataNo$Actividad_fisica, na.rm = TRUE)
+```
+Mediana y Media para Si:
+
+MEDIANA
+
+```{r}
+DataSi <- Factores2 %>% filter(Problema_respiratorio=="Si")
+median(DataSi$Actividad_fisica, na.rm = TRUE)
+```
+MEDIA
+
+```{r}
+mean(DataSi$Actividad_fisica, na.rm = TRUE)
+```
+
+*Conclusión:*
+
+De la gráfica inferimos que que no existe una gran diferencia entre las personas que presentan algún problema respiratorio con la cantidad de horas que realizan actividad física. El promedio de las dos variables es el mismo y es 3, lo cuál nos hace inferir que a mayor horas de actividad que realizan las personas no previenen que presente algún problema respiratorio. Sin embargo la tendencia central en este caso no es la misma, si parecida y muy cercana pero no son iguales.
+El promedio de las dos variables es el mismo y es 3, lo cuál nos hace inferir que a mayor horas de actividad que realizan las personas no previenen que presente algún problema respiratorio.
+
+
+
+### Combinación de variables categórica y categórica
+
++ **Análisis de si sufre de algún problema respiratorio por Fumar**
+ 
+```{r}
+tabAvenidayProblema<-table(Factores2$Fumar,Factores2$Problema_respiratorio)
+mosaicplot(tabAvenidayProblema,main="Fumar vs Si sufre de problema respiratorio",col=c("blue","grey"), xlab="Fumar", ylab="Problema Respiratorio", )
+```
+*Conclusión:*
+ 
+Según el mosaico presentado en la parte superior podemos observar que Fumar si es una posible causa de que las personas presenten algún problema respiratorio, en Lima, según una encuesta realizada por la INEI, se estima que casi la cuarta parte de población es fumadora. 
+El humo expulsado de los cigarros no solo afecta a la persona que lo utiliza sino también a las personas que pasan cerca de ese sitio, esto nos da a entender que el humo del cigarro contamina el aire de los transeúntes y también perjudica la salud de ellos. 
+
+
++ **Análisis de tipo de las horas que pasa en tráfico vehicular vs si Reside en una Venida**
+
+```{r}
+x <- table(Factores2$Trafico_vehicular,Factores2$Avenida)
+mosaicplot(x, color="yellow",main = "Trafico vehicular vs Vivir por una Avenida", xlab="Trafico Vehicular", ylab="Si vive por una Avenida")
+```
+*Conclusión:*
+ 
+El siguiente gráfico nos hace una muestra de las horas que pasa una persona en tráfico vehicular y si su residencia esta cerca a una avenida. Se puede observar una clara diferencia en que la mayoría de nuestros encuestados viven por una avenida y pasan varias horas en tráfico vehicular. El valor de 10 horas nos parece un dato atípico ya que solo se podría utilizar este tiempo, siempre y cuando la persona tenga recorrido desde fuera de Lima hacia Lima metropolitana. Sin embargo no quitamos el hecho de que puede suceder este caso. 
+
++ **Análisis de tipo de problema respiratorio según el sexo**
+
+El siguiente gráfico de barras de frecuencias es capaz de describir correctamente la variable Problema y clasificarla según el sexo, ya que estamos analizando dos variables de tipo categóricas.
+En el eje x podemos observar los distintos tipos de problemas respiratorios, mientras que en el eje y se encuentra la frecuencia de respuesta de cada tipo de problema donde la escala esta dada por la cantidad de personas, ademas se clasifica por sexo según la leyenda ubicada a la derecha de la gráfica.
+
+
+```{r}
+ggplot(Factores2,aes(x = Problema))+geom_bar(aes(fill = Sexo), color="black")+labs(x = "Tipo de problema Respiratorio",y= "Cantidad de personas",title = "Tipo de problema respiratorio segun sexo")+scale_fill_manual(values=c("orange", "skyblue", "yellow"))+theme_classic()
+```
+
+ *Conclusión:*
+ 
+ La mayoría de encuestados no sufre de un problema respiratorio, sin embargo podemos observar las personas del sexo masculino son levemente la mayoría en padecer de un problema respiratorio como Asma, Bronquitis u otros.
+Sufre o no de un problema respiratorio según el distrito de residencia
+Uno de los objetivos de este proyecto es dar a conocer los distritos en los que hay una mayor cantidad de personas que sufren de un problema respiratorio, es por ello que con ayuda del gráfico de barras de frecuencias podemos identificar los distritos con mayor cantidad de personas que sufren de un problema respiratorio. En este caso de opto por utilizar un gráfico de barras horizontal para una mejor visualización, en el eje x podemos observar la diversidad de distritos de residencia de los encuestados, mientras que en en eje y se encuentra la frecuencia o la cantidad de personas.
+
+ + **Análisis de problemas respiratorios vs distrito de residencia**
+
+```{r}
+ggplot(Factores2,aes(x = Residencia))+geom_bar(aes(fill = Problema_respiratorio))+coord_flip()+labs(y = "Cantidad",x ="Distrito de residencia",title = "Sufre o no de un problema respiratorio segun el distrito de residencia")+scale_fill_manual(values=c("orange", "skyblue"))+theme_classic()
+```
+
+*Conclusión:*
+
+A partir del gráfico podemos observar que el distrito con mayor cantidad de personas que sufren de un problema respiratorio es Pueblo libre seguido de Magdalena, San Martín de Porres, Cercado y Breña.
+¿Cuáles son las posibles causas de que estos distritos tengan a la mayor cantidad de personas que sufren de un problema respiratorio? Al momento de analizar las variables numéricas podremos identificar algunas causas.
+
+
+ + **Tipo de problema respiratorio según si reside cerca a una avenida concurrida**
+
+El siguiente gráfico nos permitirá analizar una de las posibles causas de la mayor presencia de personas que sufren de alguna enfermedad respiratoria en ciertos distritos. Dentro de las posibles causas encontramos la cercanía a una avenida concurrida en donde el tráfico de los buses podría dañar el sistema respiratorio de las personas.
+
+
+```{r}
+ggplot(Factores2,aes(x = Problema))+geom_bar(aes(fill = Avenida),color = "black")+labs(y = "Cantidad",x ="Tipo de problema respiratorio",title = "Tipo de problema respiratorio segun si reside cerca a una avenida concurrida")+theme_classic()
+```
+
+*Conclusión:*
+En conclusión podemos decir que la mayoría de personas que sufren de alguna enfermedad respiratoria vive cerca de una avenida concurrida.
+
+
+## Probabilidades 
+
+Para poder realizar un mayor análisis al problema es necesario crear nuevas variables tratando de agrupar y categorizar algunas de estas, como primer ejemplo tratamos de colocar a los distritos por sectores, es decir Lima sur, centro y norte. También puede ser muy útil el dividir la cantidad de áreas verdes por intervalos ya que da una mayor facilidad al trabajar con ellos. Para lograr eso realizaremos lo siguiente:
+
+```{r}
+Factores2 %>% mutate(Distrito = 
+      ifelse(Residencia %in% c("Magdalena","Cercado","Pblo. Libre", "Jesús María","La Victoria","Breña","Miraflores","Jesús María","San Miguel","San Luis", "Lince", "San Borja", "San Isidro"), "Lima centro",
+      ifelse(Residencia %in% c("Independencia","Rimac","Ancón","Comas", "Pte. Piedra", "S. M. Porres", "Los Olivos"), "Lima norte",
+      ifelse(Residencia %in% c("Barranco","Chorrillos","Villa el Salvador","S. J. de Miraflores", "V.M. de Triunfo", "Pta. Hermosa", "Surco", "Surquillo"), "Lima sur",
+      ifelse(Residencia %in% c("Lurigancho","El Agustino","S. J. de Lurigancho","Comas", "Ate Vitarte", "Chaclacayo", "La Molina", "Cieneguilla", "Sta. Anita"), "Lima este", Residencia))))) -> Factores2
+Factores2 %>% count(Distrito)
+```
+
+
+```{r}
+Factores2 %>% mutate(Edad1 = 
+      ifelse(Edad %in% c("15","16","17", "18","19","20"), "15-20 años",
+      ifelse(Edad %in% c("21","22","23","24", "25"), "21-25 años",
+      ifelse(Edad %in% c("26","27","28","29", "30"), "26-30 años",
+      ifelse(Edad %in% c("31","32","33","34", "35"), "31-35 años", 
+      ifelse(Edad %in% c("36","37","38","39", "40"), "36-40 años",
+      ifelse(Edad %in% c("41","42","43","44", "45"), "41-45 años",
+      ifelse(Edad %in% c("46","47","48","49", "50"), "46-50 años", Edad)))))))) -> Factores2
+Factores2 %>% count(Edad1)
+```
+
+
+```{r}
+Factores2 %>% mutate(Areas =
+      ifelse(Areas_Verdes %in% c("1", "2"), "1-2 areas",
+      ifelse(Areas_Verdes %in% c("3", "4"), "3-4 areas",
+      ifelse(Areas_Verdes %in% c("5", "6"), "5-6 areas",
+      ifelse(Areas_Verdes %in% c("7", "8"), "7-8 areas",
+      ifelse(Areas_Verdes %in% c("9", "10"), "9-10 areas", Areas_Verdes)))))) -> Factores2
+Factores2 %>% count(Areas)
+```
+
+
+### Análisis probabilístico entre Distrito donde reside la persona y cantidad de áreas verdes
+
+Para este análisis utilizaremos el cambio hecho anterior que pone a la cantidad de áreas verdes por intervalo. Aprovechando los distintos axiomas y probabilidades que tenemos, usaremos una tabla cruzada. En este caso nos interesa saber cual es la cantidad de personas que viven cerca a áreas verdes por cada distrito por lo que haremos lo siguiente:
+
+```{r}
+CrossTable(Factores2$Residencia,Factores2$Areas, prop.r=F, prop.c=F, prop.t=F, prop.chisq=F)
+```
+
+
+Podemos observar que la tabla presenta muchos datos lo que lo hace complicado de analizar, por lo que en este caso también categorizaremos la residencia por cuatro zonas: Lima Centro, Norte, Sur y Este.. Por lo tanto podemos tener esta primera tabla cruzada:
+
+
+```{r}
+CrossTable(Factores2$Distrito,Factores2$Areas, prop.r=F, prop.c=F, prop.t=F, prop.chisq=F, dnn = c("Zona en Lima", "Areas verdes"))
+```
+
+Ahora podemos empezar con lo básico, y comentar acerca de cual es la probabilidad de que sean de una Zona diferente:
+
+Como vemos en la tabla tenemos que coger el total de cada fila y dividirlo entre el total para obtener la probabilidad de cada zona de residencia:
+
+```{r}
+cat('P(Lima centro):',round(107/209,2),'\n') 
+```
+
+```{r}
+cat('P(Lima este):',round(28/209,2),'\n') 
+```
+
+```{r}
+cat('P(Lima norte):',round(26/209,2),'\n') 
+```
+
+```{r}
+cat('P(Lima sur):',round(48/209,2),'\n') 
+```
+
+Podemos ver que es un poco más probable que la persona viva en Lima centro que en Lima norte.
+
+Ahora podemos hacernos otras preguntas igual de interesantes, como por ejemplo las siguientes:
+
+1. Cual es la probabilidad que la persona viva en Lima Centro y presente entre 7 y 10 áreas verdes por su residencia
+2. Cual es la probabilidad que la persona no viva en Lima Centro y presente entre 7 y 10 áreas verdes por su residencia
+
+```{r}
+cat('1:',round(48/107,2),'\n')
+```
+
+```{r}
+cat('1:',round(27/102,2),'\n')
+```
+
+
+Nuestra hipótesis fue que las personas en estos distritos de Lima presentan una mayor cantidad de áreas verdes y prevenir la que se presenten diversos problemas respiratorios. Mientras que las personas que viven en las otras zonas presentan una menor probabilidad de vivir cerca a varias áreas verdes. 
+
+### Análisis probabilístico entre Distrito donde reside la persona y si presenta un problema respiratorio.
+
+Para este análisis utilizaremos el cambio hecho anterior que pone a los distritos por zonas. Aprovechando los distintos axiomas y probabilidades que tenemos, usaremos una tabla cruzada. En este caso nos interesa saber la cantidad de personas que presentan problemas respiratorios por cada zona:
+
+```{r}
+CrossTable(Factores2$Distrito,Factores2$Problema_respiratorio, prop.r=F, prop.c=F, prop.t=F, prop.chisq=F, dnn = c("Zona en Lima", "Problemas respiratorios"))
+```
+
+Con ayuda de la tabla podemos observar que la probabilidad de que las personas tengan algún problema respiratorio es menos que las que no tenga. 
+
+```{r}
+cat('P(S):',round(77/209,2),'\n') 
+```
+
+```{r}
+cat('P(N):',round(132/209,2),'\n') 
+```
+Como vemos el 63% respondió que no presenta ningún problema respiratorio, a diferencia de las personas que si presentaban problemas respiratorios que representan el 37%. Con esta información y las observaciones que obtuvimos anteriormente podemos asumir que al seleccionar una persona que vive en Lima centro, hay menos probabilidad de que presente algún problema respiratorio, a diferencia de que si esa persona que vive en Lima norte.Para esto usamos la probabilidad condicional, la cual se calcula mediante el siguiente axioma:
+
+1.$P(S/LimaCentro)=P(S∩LimaCentro)/P(LimaCentro)$
+2.$P(S/LimaNorte)=P(S∩LimaNorte)/P(LimaNorte$
+
+```{r}
+cat('1:',round(44/107,2),'\n')
+```
+```{r}
+cat('2:',round(13/26,2),'\n')
+```
+Con estos resultados podemos observar que hay más probabilidad de que una persona que haya dicho que presenta problemas respiratorios sea de Lima Norte que de Lima centro. Esto respalda nuestra anterior hipótesis, ya que en Lima norte hay menos áreas verdes que en Lima centro.
+
+También se puede analizar una situación que requiera saber cual es la probabilidad que la persona ni diga que no ni que sea de Lima centro. Esto lo podemos ver de la siguiente manera y trabajarlo según el axioma 7: 
+
+3.$P(N^c∩LimaCentro)=P(N∪LimaCentro)^c=1−P(N∪LimaCentro)=1−P(N)−P(LimaCentro)+P(N∩LimaCentro)$
+
+```{r}
+cat('',round(1-(132/209)-(107/209)+(63/209),2),'\n')
+```
+Esto nos da un porcentaje de 16%. Lo que significa que hay una probabilidad muy pequeña de que el encuestado diga que no sufra y no viva en Lima centro.
+
+
+### Análisis probabilístico entre la Edad y problema respiratorio.
+
+Para este análisis utilizaremos el cambio hecho anterior que dividimos la edad en intervalos. Aprovechando los distintos axiomas y probabilidades que tenemos, usaremos una tabla cruzada. En este caso nos interesa saber que tanto cambia los días de ejercicio por edad de la persona:
+
+```{r}
+CrossTable(Factores2$Actividad_fisica,Factores2$Problema_respiratorio, prop.r=F, prop.c=F, prop.t=F, prop.chisq=F, dnn = c("Actividad fisica", "Problemas respiratorios"))
+```
+Ahora vamos a buscar la probabilidad por cada cantidad de días que realiza la persona actividad física y no sufre algún problema respiratorio
+
+1.$P(S/P0)=P(S∩P0)/P(P0)$
+2.$P(S/P1)=P(S∩P1)/P(P1)$
+3.$P(S/P2)=P(S∩P2)/P(P2)$
+4.$P(S/P3)=P(S∩P3)/P(P3)$
+5.$P(S/P4)=P(S∩P4)/P(P4)$
+6.$P(S/P5)=P(S∩P5)/P(P5)$
+7.$P(S/P7)=P(S∩P6)/P(P7)$
+
+```{r}
+cat('1:',round(12/32,2),'\n')
+cat('2:',round(12/30,2),'\n')
+cat('3:',round(14/31,2),'\n')
+cat('4:',round(10/36,2),'\n')
+cat('5:',round(13/34,2),'\n')
+cat('6:',round(8/27,2),'\n')
+cat('7:',round(1/8,2),'\n')
+```
+
+Con estos resultados no podemos observar una clara probabilidad de que a mas días una persona realiza actividad física no presenta un problema respiratorio. Sin embargo si comparamos dos probabilidades, es decir, 0 días de actividad física con respecto a 3 días, podemos notar que si hay más probabilidad que presente un problema respiratorio la persona que no realiza actividad física.
+
+### Variables aleatorias y modelos
+
+Como se pudo ver anteriormente, la cantidad de personas por lugar de procedencia son variadas, por lo que se pueden modelar algunos modelos probabilistas en base a la muestra de personas al azar. Asimismo, se conoce que la zona de Lima centro es la que tiene mayor cantidad de personas que sufren o han sufrido un problema respiratorio. Por ello, se puede proponer lo siguiente:
+
+Se sabe que se han entrevistado a 209 personas, de los cuales 77 tienen o han tenido alguna enfermedad respiratoria. De esa cantidad, 44 son de Lima centro, 10 de Lima este, 13 de Lima norte y 10 de Lima sur. Supongamos que queremos tomar a 1 personas sin reemplazo, es decir que una vez se le pregunte a uno su zona de procedencia, no se le vuelve a preguntar. También debemos saber que cada persona tiene la misma probabilidad de ser elegido. En este caso nos interesa saber las probabilidades respecto al grupo de Lima centro
+
+X: Número de personas que viven en la zona de Lima centro y tiene alguna enfermedad respiratoria X tiene H(N=209,M=44,n=10)
+
+Por lo tanto podemos plantear las siguientes preguntas:
+
+a. ¿Cuantas personas que sufren o hayan sufrido una enfermedad respiratoria y residan en Lima centro se espera seleccionar?
+Para este caso nos piden encontrar la esperanza de la variable. Como sabemos la esperanza de una variable hipergeométrica es E(X)=nM/N, por lo tanto, el valor esperado sería el siguiente:
+
+```{r}
+(10*44)/209
+```
+
+Se espera que en una muestra de 10 personas, hayan aproximadamente 2 que residan en Lima centro y sufran o hayan sufrido una enfermedad respiratoria.
+
+b. Con esto planteado, ¿Cuál es la probabilidad de que al elegir 10 personas al azar cuatro o menos de ellos sean de Lima centro y tengan o hayan tenido una enfermedad respiratoria?
+
+La probabilidad está dada por: P(X<=4)
+```{r}
+phyper(4,44,209,10)
+```
+Como se puede apreciar, la probabilidad es del 98% aproximadamente, lo que indica que es muy probable que al elegir 10 personas al azar, 4 de ellas o menos residan en Lima centro y tengan una relación con alguna enfermedad respiratoria.
+
+
+c. ¿Cuál es la probabilidad de que la cantidad de personas de Lima centro con alguna enfermedad respiratoria sea entre 3 y 6?
+
+Se busca: P(3<=X<=6) ---> P(X<=6)-P(X<3) ---> P(X<=6)-P(X<=2)
+```{r}
+phyper(6,44,164,10)-phyper(2,44,164,10)
+```
+Entonces, la probabilidad de que hayan entre tres y seis personas de las 10 personas elegidas al azar es del 36% aproximadamente, lo que significa que puede haber una cantidad considerable dentro de las personas elegidas al azar.
+
+
+Por otra parte, las zonas con menos personas con problemas respiratorios son Lima este y Lima sur. Es por esa razón que se espera tener pocas personas procedentes de estas zonas.
+
+```{r}
+table(Factores2$Distrito[Factores2$Problema_respiratorio=="Si"])
+```
+X: Número de personas que tengan algún problema respiratorio y residan en Lima sur (p=10/209).
+
+a. ¿Cuántas personas se espera elegir para que 3 personas de Lima sur y que tengan un problema respiratorio estén entre los elegidos?
+
+El valor esperado en el modelo binomial negativa es: k/p
+```{r}
+3/(10/209)
+```
+Se espera un aproximado de 62 personas deben ser elegidas para que 3 de ellas pertenezcan a Lima sur.
+
+
+b. ¿Cuál es la probabilidad de que al elegir sea necesario preguntar a más de 30 personas su lugar de procedencia para tener 10 personas procedentes de Lima sur y que tengan algún problema respiratorio?
+
+Y: Número de personas que no cumplan con los requisitos en X (q=198/209).
+La probabilidad está dada por: P(X=10,Y>20)
+
+```{r}
+pnbinom(20,10,10/209,lower.tail = FALSE)
+```
+La probabilidad es casi del 100%, lo que indica que es muy poco probable que en una muestra de 30 personas al azar 10 de ellas sean de Lima sur y tengan algún problema respiratorio, y será necesario de forma casi segura más de 30 personas entrevistadas.
+
+
+c. ¿Cuál es la probabilidad de conseguir las 10 personas de Lima sur en como máximo 15 personas?
+
+Probabilidad: P(X=10, Y<=5)
+```{r}
+pnbinom(5,10,10/209)
+```
+La probabilidad es muy baja, por no decir nula. Esto refleja la poca probabilidad de elegir todas las personas de Lima sur y que tengan un problema respiratorio.
+
+
+Ahora elegimos representar la probabilidad de que una persona viva en un distrito de Lima Centro, ya que es donde vive la mayoría de los encuestados. Por lo que nos planteamos lo siguiente:
+
+**Encontrar la probabilidad de encontrar a 6 personas que vivan en un distrito de Lima Centro en 9 personas elegidas al azar.**
+
+
+```{r}
+
+p_lima_centro_1 <- round(sum(Factores2$Distrito=='Lima centro')/209,2)
+p_lima_este_1 <- round(sum(Factores2$Distrito=='Lima este')/209,2)
+p_lima_norte_1 <- round(sum(Factores2$Distrito=='Lima norte')/209,2)
+p_lima_sur_1 <- round(sum(Factores2$Distrito=='Lima sur')/209,2)
+
+
+p_lima_centro <- sum(Factores2$Distrito=='Lima centro')/209
+p_lima_este <- sum(Factores2$Distrito=='Lima este')/209
+p_lima_norte <- sum(Factores2$Distrito=='Lima norte')/209
+p_lima_sur <- sum(Factores2$Distrito=='Lima sur')/209
+
+```
+
+
+```{r}
+centro_1 <-round(dbinom(1,10,p_lima_centro),2)
+centro_2 <-round(dbinom(2,10,p_lima_centro),2)
+centro_3 <-round(dbinom(3,10,p_lima_centro),2)
+centro_4 <-round(dbinom(4,10,p_lima_centro),2)
+centro_5 <-round(dbinom(5,10,p_lima_centro),2)
+centro_6 <-round(dbinom(6,10,p_lima_centro),2)
+centro_7 <-round(dbinom(7,10,p_lima_centro),2)
+centro_8 <-round(dbinom(8,10,p_lima_centro),2)
+centro_9 <-round(dbinom(9,10,p_lima_centro),2)
+
+```
+
+```{r}
+vector_distritos <- c(centro_1,centro_2,centro_3,centro_4,centro_5,centro_6,centro_7,centro_8,centro_9)
+```
+
+
+```{r}
+tabla_distritos_general <- data.frame(Distritos = c('Lima centro','Lima sur','Lima norte','Lima este'),probabilidades =c(p_lima_centro_1,p_lima_sur_1,p_lima_norte_1,p_lima_este_1))
+tabla_distritos_general
+```
+
+```{r}
+tabla_distritos <- data.frame(n = c('1','2','3','4','5','6','7','8','9'),probabilidades = vector_distritos)
+tabla_distritos
+```
+
+
+```{r}
+ggplot(tabla_distritos, aes(x = n,y = probabilidades)) + geom_col(fill='#bdfced', color="black")+
+  geom_text(aes(label = probabilidades), vjust = -1, colour = "black")+
+  labs( title = "¿Cuál es la probabilidad de obtener 6 personas de Lima Centro?",subtitle = "( p = 0.51 )",x = "'n' personas de Lima centro",y = "Probabilidad") +theme_clean()+theme(plot.title = element_text(size = 13),plot.subtitle = element_text(size = 9)) 
+
+```
+
+
+### Análisis:
+
+Se puede representar gráficamente las probabilidades para cada uno de los resultados. Se puede observar que la probabilidad de encontrar **6** personas que vivan en Lima centro de un grupo de 9 personas es **0.21**, el cual representa la probabilidad de éxito de vivir en Lima Centro.

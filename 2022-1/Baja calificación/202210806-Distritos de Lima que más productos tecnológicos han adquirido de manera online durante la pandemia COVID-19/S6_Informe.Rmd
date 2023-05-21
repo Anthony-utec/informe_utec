@@ -1,0 +1,576 @@
+---
+title: "P2 S6 Presentación"
+date: "`r format(Sys.time(), '%d, %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: no
+    theme: yeti
+  pdf_document:
+    toc: yes
+---
+
+
+# **Introducción**
+
+## **Relevancia**
+El 15 de marzo del 2020 a causa del confinamiento hizo que muchas actividades se realizaran de manera virtual, y la compra de productos tecnológicos no se hicieron de esperar. Debido a que muchas personas necesitaban un aparato tecnológico para su uso, muchas de estas decidieron recurrir a sus compras, pero de manera online, evitando de esa manera una manera de contagio.
+
+Este nuevo método de comprar de forma online fue progresivo. Asimismo, la tecnología estuvo de nuestro lado y facilitó a su vez la adaptación; ya que, no solo podíamos visualizar los productos desde casa, sino que también nos permitía comparar precios para luego hacer la elección más favorable, sin necesidad de salir de casa.
+
+En este proyecto, vamos a evaluar el grado de adaptacion, es decir, que tanto se han adaptado las personas de los distritos de la ciudad de Lima - Peru hacia estasc compras de productos tecnologicos de manera online. Estos resultados también nos servirá como indicador de la confiabilidad hacia la modalidad de compra online. 
+
+Para ello analizaremos los datos obtenidos por personas de los distritos de la ciudad de Lima, mediante una encuesta de Google Forms. Luego, realizaremos la respectiva limpieza de datos, un análisis descriptivo y un análisis probabilistico, de tal manera que podamos mencionar que distrito se ha adaptado con la modalidad de compra online de productos tecnologico.
+
+**Variables Cualitativas:** Sexo, Distrito, Empresa, Producto y Marca.
+
+**Variables Cuantitativas:** Precio, Edad, Tiempo de garantía del producto (Meses), Año en el que adquirió el producto y Que tanto calificas del 1 al 10 la llegada del producto a tu domicilio.
+
+```{r, message=FALSE}
+# Instalación y apertura de librerías
+
+if(!require(readr)){install.packages("readr")}
+if(!require(dplyr)){install.packages("dplyr")}
+if(!require(ggplot2)){install.packages("ggplot2")}
+if(!require(ggthemes)){install.packages("ggthemes")}
+
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+```
+
+## **Planificación**
+En base a la planificación, se tiene que cada uno hemos invertido entre 3 y 4 horas al proyecto, de tal manera que podemos observar que han sido 2 personas las que se han encargado de la parte de codificación y el resto se encargó de la parte del estudio de la base de datos. De acuerdo a la disponibilidad de todo el grupo, coordinamos para realizar una reunión general para poder ver el avance total del proyecto
+
+```{r, echo=FALSE}
+data <- data.frame(name = c('a ', 'b ', 'c ', 'd ', 'e ', 'f ', 'g ', 'h ', 'i ', 'j '),
+
+start = c("S02", "S02", "S05", "S05", "S05", "S06", "S06", "S06", "S12", "S13"),
+end = c("S03", "S03", "S06", "S06", "S06", "S07", "S07", "S12", "S14", "S14"),
+Actividades = c('Tema del proyecto', 'P0', 'Recoleccion de Datos', 'Población, muestra y muestreo', 'Variables', 'Limpieza de Datos', ' P1', 'Descriptores', 'Variables Aleatorias', 'P2')
+)
+
+ggplot(data, aes(x=start, xend=end, y=name, yend=name, color=Actividades)) +
+  theme_bw() +
+  geom_segment(size=10) +
+  labs(title='Planificacion de Actividades', x='Semanas', y='Actividades') +
+  scale_colour_manual(values = c('red', 'turquoise', 'gold', 'brown', 'orange', 'violet', 'orange', 'blue', 'lightblue', 'purple'))
+
+```
+
+
+
+
+# **Datos**
+```{r, echo = FALSE, warning=FALSE}
+# Carga de DataFrame
+
+BD <- read_csv("BasedeDatosProductosTecnologicos.csv", col_types = "cccccncccnncn")
+
+# Eliminamos la columna 'Marca temporal' y 'correo', esto lo proporciona el formulario pero para nuestro proyecto no es de utilidad
+BD <- BD[,3:13]
+
+BD %>% rename(Nombre = Nombre, Sexo = `Sexo (M o F)`, Distrito = Distrito, Edad = Edad,  Empresa = `Empresa (de donde pidió el producto)`, Producto = Producto, Marca = Marca, Precio = `Precio (soles)`, Garantia = `Tiempo de garantía del producto (Meses)`, anho = `Año en el que adquirió el producto`, calificacion = `Que tanto calificas del 1 al 10 la llegada del producto a tu domicilio`) -> BDR
+
+#glimpse(BDR)
+```
+
+## **Recolección de datos**
+La técnica que se utilizó con la finalidad de recolectar datos para el estudio fue la encuesta mediante Google Forms, la cual estuvo compuesto por 12 preguntas donde 10 de ellas eran de alta relevancia para lo requerido en nuestro proyecto. Nuestro público dirigido no solo fue a estudiantes de UTEC sino también a individuos en general que hayan realizado una compra durante los 3 años establecidos. El uso de las redes sociales (WhatsApp y otros) fue necesario para alcanzar los 200 datos requeridos y para generar el interés en la unidad muestral fue necesario realizar un sorteo de 50 nuevos soles.
+
+<center>
+![](encuesta.jpg){}
+
+## **Población, muestra y muestreo**
+Población, muestra y muestreo: La población escogida son las personas de Lima - Perú y la unidad muestral es aquella persona que vive en cualquier distrito de la población. El tipo de muestreo utilizado es un muestreo por conveniencia. Finalmente luego de hacer la limpieza de datos nuestro tamaño de la muestra es de 172.
+
+## **Variables**
+En primera instancia tenemos 13 variables de las cuáles 2 son irrelevantes para el estudio Estadístico ya que una de ellas ( Marca Temporal) es generada por Google Forms. Asimismo, la variable Correo sirve básicamente para poder contactar a la persona ganadora del sorteo. Finalmente trabajaremos con 11 variables y son las siguientes:
+
+- Nombre: tipo categórica nominal, la restricción es que sea un nombre registrado en el RENIEC. ✔
+         
+- Sexo: tipo categórica nominal, la restricción es que pertenezca al sexo Masculino o Femenino. ✔ 
+
+- Distrito: tipo categórica nominal, la restricción es que el distrito pertenezca a uno de los distritos en Lima-Perú. ✔
+
+- Edad: tipo numérica discreta, la restricción es que sea un entero positivo. ✔
+
+- Empresa: tipo categórica nominal, no tiene restricción. ✔
+
+- Producto: tipo categórica nominal, la restricción es que el producto sea un aparato tecnológico comprado de manera online. ✔   
+
+- Marca: tipo categórica nomianal, la restricción es que la marca
+esté patentada por INDECOPI. ✔    
+
+- Precio: tipo numérica continua, la restricción es que sea un número racional positivo. ✔      
+
+- Garantia: tipo numérica discreta, la restricción es que sea un entero no negativo. ✔
+
+- Año: tipo categórica ordinal, la restricción es que el año en que se realizó la compra sea de 2020 al 2022, ya que es el periodo de pandemia. ✔
+
+- Calificacion: tipo numérica discreta, la restricción es que sea un entero no negativo entre 1 y 10. ✔
+
+## **Limpieza**
+```{r, echo = FALSE, message=FALSE}
+# Limpieza de la variable Garantía
+
+soloGarantia <- read_csv("BasedeDatosProductosTecnologicos.csv")
+soloGarantia <- soloGarantia[,11]
+
+soloGarantia %>% rename(Garantia = `Tiempo de garantía del producto (Meses)`) -> soloGarantia
+
+soloGarantia$Garantia[soloGarantia$Garantia == "1 mes"] <- "1"
+soloGarantia$Garantia[soloGarantia$Garantia == "-"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "--"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "1 año"] <- "1"
+soloGarantia$Garantia[soloGarantia$Garantia == "12meses"] <- "12"
+soloGarantia$Garantia[soloGarantia$Garantia == "6 meses"] <- "6"
+soloGarantia$Garantia[soloGarantia$Garantia == "Medio año"] <- "6"
+
+soloGarantia$Garantia[soloGarantia$Garantia == "Ninguno"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "No tiene garantía"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "18 meses"] <- "18"
+soloGarantia$Garantia[soloGarantia$Garantia == "24 meses"] <- "24"
+soloGarantia$Garantia[soloGarantia$Garantia == "4 meses"] <- "4"
+soloGarantia$Garantia[soloGarantia$Garantia == "6Meses"] <- "6"
+
+soloGarantia$Garantia[soloGarantia$Garantia == "Meses"] <- NA
+soloGarantia$Garantia[soloGarantia$Garantia == "No"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "Un mes"] <- "1"
+soloGarantia$Garantia[soloGarantia$Garantia == "48 meses"] <- "48"
+soloGarantia$Garantia[soloGarantia$Garantia == "Nada"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "No hay."] <- "0"
+
+soloGarantia$Garantia[soloGarantia$Garantia == "12 meses"] <- "12"
+soloGarantia$Garantia[soloGarantia$Garantia == "2 años"] <- "24"
+soloGarantia$Garantia[soloGarantia$Garantia == "3 meses"] <- "3"
+soloGarantia$Garantia[soloGarantia$Garantia == "Ninguna"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "no tiene"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "1 año"] <- "1"
+
+soloGarantia$Garantia[soloGarantia$Garantia == "2 meses"] <- "2"
+soloGarantia$Garantia[soloGarantia$Garantia == "2 años"] <- "24"
+soloGarantia$Garantia[soloGarantia$Garantia == "3 Meses"] <- "3"
+soloGarantia$Garantia[soloGarantia$Garantia == "Idk"] <- NA
+soloGarantia$Garantia[soloGarantia$Garantia == "ninguno"] <- "0"
+soloGarantia$Garantia[soloGarantia$Garantia == "6meses"] <- "6"
+soloGarantia$Garantia[soloGarantia$Garantia == "No tiene"] <- "0"
+
+BDR$Garantia  = as.numeric(as.character(soloGarantia$Garantia))
+```
+
+```{r, echo = FALSE, message=FALSE}
+# Limpieza de la variable Precio
+
+soloPrecio <- read_csv("BasedeDatosProductosTecnologicos.csv")
+soloPrecio <- soloPrecio[,10]
+
+soloPrecio %>% rename(Precio = `Precio (soles)`) -> soloPrecio
+
+soloPrecio$Precio[soloPrecio$Precio == "25.00"] <- "25"
+soloPrecio$Precio[soloPrecio$Precio == "4 500"] <- "4500"
+soloPrecio$Precio[soloPrecio$Precio == "50soles"] <- "50"
+soloPrecio$Precio[soloPrecio$Precio == "70 soles"] <- "70"
+soloPrecio$Precio[soloPrecio$Precio == "2 soles"] <- "2"
+soloPrecio$Precio[soloPrecio$Precio == "300 dólares"] <- "1137.18"
+soloPrecio$Precio[soloPrecio$Precio == "72.00 soles"] <- "72"
+
+soloPrecio$Precio[soloPrecio$Precio == "2,058"] <- "2058"
+soloPrecio$Precio[soloPrecio$Precio == "2000 aprox"] <- "2000"
+soloPrecio$Precio[soloPrecio$Precio == "S/ 4.50"] <- "4.50"
+soloPrecio$Precio[soloPrecio$Precio == "50 soles caja"] <- "50"
+soloPrecio$Precio[soloPrecio$Precio == "2,499"] <- "2499"
+soloPrecio$Precio[soloPrecio$Precio == "2000 soles"] <- "2000"
+soloPrecio$Precio[soloPrecio$Precio == "890.00 soles"] <- "890"
+
+soloPrecio$Precio[soloPrecio$Precio == "S/799"] <- "799"
+soloPrecio$Precio[soloPrecio$Precio == "1500 soles"] <- "1500"
+soloPrecio$Precio[soloPrecio$Precio == "1900 soles"] <- "1900"
+soloPrecio$Precio[soloPrecio$Precio == "2,600.00"] <- "2600"
+soloPrecio$Precio[soloPrecio$Precio == "35 soles"] <- "35"
+soloPrecio$Precio[soloPrecio$Precio == "2000 soles"] <- "2000"
+soloPrecio$Precio[soloPrecio$Precio == "2.000.000"] <- "2000"
+
+soloPrecio$Precio[soloPrecio$Precio == "3 mil soles"] <- "3000"
+soloPrecio$Precio[soloPrecio$Precio == "60 dólares"] <- "227.44"
+soloPrecio$Precio[soloPrecio$Precio == "399.99 dólares"] <- "1516.24"
+soloPrecio$Precio[soloPrecio$Precio == "500usd"] <- "1895.30"
+soloPrecio$Precio[soloPrecio$Precio == "--"] <- NA
+
+BDR$Precio  = as.numeric(as.character(soloPrecio$Precio))
+```
+
+```{r, echo = FALSE}
+# Limpieza de variable Sexo
+
+BDR %>% mutate(Sexo= 
+          ifelse(Sexo=="Femenina","F",
+          ifelse(Sexo=="femenino","F",
+          ifelse(Sexo=="Femenino","F",
+          ifelse(Sexo=="Fenemino","F",
+          ifelse(Sexo=="Maculino","M",
+          ifelse(Sexo=="masculino","M",
+          ifelse(Sexo=="Masculino","M",
+          Sexo)))))))) -> BDR
+```
+
+```{r, echo = FALSE}
+# Limpieza de la variable Distrito
+
+BDR = BDR[BDR$Distrito != "Amarilis" & BDR$Distrito != "Cusco" & BDR$Distrito != "Maraví Guanilo" & BDR$Distrito != "Provincia" & BDR$Distrito != "Castilla" & BDR$Distrito != "Ayacucho - Huamanga" & BDR$Distrito != "Huaura" & BDR$Distrito != "Piura",] # Solo distritos de Lima
+
+BDR %>% mutate(Distrito= 
+          ifelse(Distrito=="Villa el salvador","V.E.S",
+          ifelse(Distrito=="Villa el Salvador","V.E.S",
+          ifelse(Distrito=="VMT","V.M.T",
+          ifelse(Distrito=="Villa María del Triunfo","V.M.T",
+          ifelse(Distrito=="S. J. L","S.J.L",
+          ifelse(Distrito=="San juan de lurigancho","S.J.L",
+          ifelse(Distrito=="SJL","S.J.L",
+          ifelse(Distrito=="Lurigancho","S.J.L",
+          ifelse(Distrito=="S.j.L","S.J.L",
+          ifelse(Distrito=="San de Lurigancho","S.J.L",
+          ifelse(Distrito=="San Juan de lurigancho","S.J.L",
+          ifelse(Distrito=="S.J.L.","S.J.L",
+          ifelse(Distrito=="San Juan de Lurigancho","S.J.L",
+          ifelse(Distrito=="San Juan de Luriganch","S.J.L",
+          ifelse(Distrito=="Sjl","S.J.L",
+          ifelse(Distrito=="San Juan de Miraflores","S.J.M",
+          ifelse(Distrito=="San martin de porres","S.M.P",
+          ifelse(Distrito=="San Martin de Porres","S.M.P",
+          ifelse(Distrito=="Smp","S.M.P",
+          ifelse(Distrito=="San Martín de Porres","S.M.P",
+          ifelse(Distrito=="SMP","S.M.P",
+          ifelse(Distrito=="Santiago de surco","Surco",
+          ifelse(Distrito=="Santiago de Surco","Surco",
+          ifelse(Distrito=="Santiago","Surco",
+          ifelse(Distrito=="Cercado","Cercado de Lima",
+          ifelse(Distrito=="CERCADO DE LIMA","Cercado de Lima",
+          ifelse(Distrito=="Lima","Cercado de Lima",
+          ifelse(Distrito=="Vitarte","Ate",
+          ifelse(Distrito=="La molina","La Molina",
+          ifelse(Distrito=="Los olivos","Los Olivos",
+          ifelse(Distrito=="La victoria","La Victoria",
+          ifelse(Distrito=="Lima la victoria","La Victoria",
+          ifelse(Distrito=="El agustino","El Agustino",
+          ifelse(Distrito=="San miguel","San Miguel",
+          ifelse(Distrito=="San  Miguel","San Miguel",
+          ifelse(Distrito=="cararabayllo","Carabayllo",
+          ifelse(Distrito=="chorrillos","Chorrillos",
+          ifelse(Distrito=="Puente piedra","Puente Piedra",
+          ifelse(Distrito=="Santa","Santa Anita",
+          Distrito)))))))))))))))))))))))))))))))))))))))) -> BDR
+```
+
+```{r, echo = FALSE}
+# Limpieza de la variable Marca
+
+BDR = BDR[BDR$Marca != "--" & BDR$Marca != "." & BDR$Marca != "Avon" & BDR$Marca != "Adida." & BDR$Marca != "Inka kola" & BDR$Marca != "Tambo" & BDR$Marca != "Ninguna" & BDR$Marca != "Kn95" & BDR$Marca != "Sybilla" & BDR$Marca != "Tigre" & BDR$Marca != "Hoja verde" & BDR$Marca != "Nada" & BDR$Marca != "Puma" & BDR$Marca != "TMR" & BDR$Marca != "Topitop" & BDR$Marca != "Puma" & BDR$Marca != "Carolina Herrera" & BDR$Marca != "Pandemia cov" & BDR$Marca != "Vortex" & BDR$Marca != "Keter" & BDR$Marca != "Pearson",] # Solo productos tecnológicos
+```
+
+```{r, echo = FALSE}
+# Limpieza de la variable Empresa
+
+BDR$Empresa = toupper(BDR$Empresa)
+
+BDR = BDR[BDR$Empresa != "NINGUNA" & BDR$Empresa != "NO PEDÍ NINGÚN PRODUCTO" & BDR$Empresa != "NO PEDÍ NADA" & BDR$Empresa != "--" & BDR$Empresa != "NO COMPRO" & BDR$Empresa != "TIENDAS TAMBO" & BDR$Empresa != "TIENDA" & BDR$Empresa != "SAN CRISTÓBAL" & BDR$Empresa != "LIMA",] # Solo distritos de Lima 
+
+BDR %>% mutate(Empresa= 
+          ifelse(Empresa=="( ME OLVIDE ):(",NA,
+          ifelse(Empresa=="NO ME ACUERDO :(",NA,
+          Empresa))) -> BDR
+
+# TABLET -> Ripley (Escribió el producto en la variable Empresa y viceversa)
+BDR$Empresa[BDR$Empresa == "TABLET"] <- "Ripley"
+```
+
+```{r, echo = FALSE}
+# Limpieza de la variable Producto
+
+BDR$Producto = toupper(BDR$Producto)
+
+BDR = BDR[BDR$Producto != "CEREALES" & BDR$Producto != "PACKS DE LIMPIEZA" & BDR$Producto != "PERFUME" & BDR$Producto != "ZAPATILLA" & BDR$Producto != "CAMISA." & BDR$Producto != "POLERA" & BDR$Producto !="ROPA(JEANS)" & BDR$Producto != "ROPA" & BDR$Producto != "CARTAS TEMÁTICAS" & BDR$Producto != "MASCARILLAS" & BDR$Producto != "ZERO TWO" & BDR$Producto != "MASCARILLAS KN95" & BDR$Producto !="SILLA GARENCIAL ASENTI SAN REMO" & BDR$Producto !="ARMARIO" & BDR$Producto !="ZAPATILLAS",] # No son productos tecnológicos
+
+# Ripley -> TABLET (Escribió el producto en la variable Empresa y viceversa)
+BDR$Producto[BDR$Producto == "Ripley"] <- "TABLET"
+```
+
+* **Sexo:**
+
+  - convertir todos los valores a F, M o NA
+
+* **Distrito:**
+
+  - convertir las diferentes formas de escribir un distrito a solo una (ej: VES, ves, v.e.s a V.E.S)
+  
+  - Solo distritos de Lima, los no pertenecientes se eliminan de la base de datos
+
+* **Empresa, Producto y Marca:**
+
+  - Solo productos tecnológicos, los no pertenecientes se eliminan de la base de datos
+  
+  - Relación coherente entre Empresa - Producto - Marca
+
+* **Precio:**
+
+  - Valores como "40 dólares, 20 soles, etc" convertidos a solo valor en soles
+
+
+
+# **Análisis Descriptivo**
+
+## **Descriptores gráficos**
+
+### **Distritos con mayores compras**
+
+Hemos seleccionado los distritos con compras online mayores o igual a 10. En primer lugar tenemos al distrito de S.J.L con 21 compras, en segundo lugar tenemos al distrito de Los Olivos con 17 compras, y en el tercer lugar tenemos a los distritos S.M.P y Surco con 15 compras.
+```{r, echo = FALSE}
+Distritos <- BDR$Distrito
+
+#table(Distritos)
+#table(Distritos)[table(Distritos) >= 10]
+
+barplot(table(Distritos)[table(Distritos) >= 10], xlab = "Distritos", ylab = "Número de compras", col = rainbow(4), ylim = c(0, 25))
+```
+### **Número de Compras por Año**
+
+También podemos observar que el año en el cual se han realizado la mayor cantidad de compras es en el 2021 (96 compras).
+```{r, echo = FALSE}
+Anho <- BDR$anho
+
+#table(Anho)
+
+barplot(table(Anho) , col = rainbow(3), xlab = "Año", ylab = "Número de compras", ylim = c(0, 100))
+```
+
+### **Garantía**
+
+Esta gráfica nos indica las diferentes garantías ofrecidas para cada producto. Se observa que la Garantía está concentrada entre 6 y 12 meses. Sin embargo, existen 3 datos atípicos, que indican que las personas que compraron de manera online un producto tecnológico optaron por una garantía mucho mayor a la promedio.
+
+```{r, echo = FALSE}
+Garantia<-BDR$Garantia
+
+#table(Garantia)
+
+boxplot(Garantia , horizontal = T, col = "skyblue")
+abline(v=mean(Garantia,na.rm=TRUE),col="firebrick4",lwd=2)
+```
+
+## **Descriptores numéricos**
+
+Los productos mayormente ofrecen una garantía de 12 meses (moda)
+```{r, echo = FALSE}
+table(Garantia)
+```
+
+El precio promedio es de S/ 1724.00 y vemos que el mínimo y máximo precio de un producto son S/ 2.1 y S/ 9999.00 respectivamente.
+También, la calificación promedio otorgada a la Empresa en donde se hizo la compra online es de 8.36 (muestra un alto grado de conformidad con la Empresa). 
+```{r, echo = FALSE}
+DesNum<-function(X){
+  return(list(Min=round(min(X,na.rm=TRUE),2),
+              Max=round(max(X,na.rm=TRUE),2),
+              Mean=round(mean(X,na.rm = TRUE ),2), 
+              Median=round(median(X, na.rm = TRUE),2), 
+              SD=round(sd(X,na.rm=TRUE),2), 
+              CV=round((sd(X,na.rm=TRUE)/mean(X,na.rm=TRUE)),2),
+              IQR=round(IQR(X,na.rm=TRUE),2)))
+}
+
+mapply(DesNum, list(Precio = BDR$Precio, 
+                          Garantía = BDR$Garantia, 
+                          Calificación = BDR$calificacion))
+```
+
+
+
+# **Análisis Probabilistico**
+
+## **Modelos de Variables Discretas**
+
+### **Aplicación del Modelo Binomial Negativo**
+
+Queremos seleccionar a los 2 ganadores del sorteo, los pondremos en una ruleta para elegir a los ganadores. Cuán probable es de que los ganadores del sorteo pertenezcan al distrito con mayor compras online (S.J.L).
+
+* Éxito -> personas que pertenezcan al Distrito con más compras online (SJL)
+* Fracaso -> personas que no pertenezcan al Distrito con más compras online (SJL)
+
+Variable aleatoria: 𝑿=# de sorteos realizados hasta tener k éxitos.
+
+* P(éxito) : 21 (# personas de S.JL) / 172 (# total de personas)
+* k : queremos 2 ganadores del distrito de S.J.L
+
+Definimos variablels en R:
+```{r}
+X = 2
+k = 2
+total = 172
+CO = 21
+Pe = CO/total
+
+choose(X-1, k-1)*(Pe^k)*((1-Pe)^(X-k))
+```
+Con el comando "dnbinom":
+```{r}
+dnbinom(X-k, k, Pe)
+```
+
+
+Y ¿Si quisiéramos la probabilidad de algún otro distrito (ej: Surquillo)?
+```{r}
+X = 2
+k = 2
+total = 172
+CO = 4
+Pe = CO/total
+
+choose(X-1, k-1)*(Pe^k)*((1-Pe)^(X-k))
+```
+
+Con el comando "dnbinom":
+```{r}
+dnbinom(X-k, k, Pe)
+```
+### **Aplicación del Modelo Hipergeométrico**
+
+Elegimos la variable Distrito que representa todos los distritos de Lima en donde se ha realizado una compra de manera online.
+
+Justificación:
+
+- A través de la Variable Distrito podemos extraer el total de personas que ha adquirido un aparato tecnológico en cada distrito. 
+
+```{r}
+# Recordamos los distritos con más compras online 
+table(Distritos)[table(Distritos) >= 10]
+```
+
+Entonces:
+
+SJL = Distrito con más compras online (21)
+
+* Éxito -> personas que compraron aparatos tecnológicos de SJL.
+
+* Fracaso -> personas que no compraron aparatos tecnológicos de SJL.
+
+Definimos entonces *la Variable Aleatoria X* que cuenta el número de personas que compraron un aparato tecnológico de SJL de 172 encuestados.
+
+A nuesta variable aleatoria le asignamos el modelo tal que: 
+          **X ~ Hypergeométrico (N,M,n)}**
+
+*Donde:*
+* M -> total de personas que compraron aparatos tecnológicos de SJL (Éxito)
+* N -> total de personas que compraron aparatos tecnológicos
+* n -> muestreo/una parte del total
+
+*Ejemplo:*
+A modo de aplicación, de preferencia podemos sugerir que el tamaño de una parte de la muestra sea igual a 50. Si tenemos en total 21 personas que adquirieron un aparato del distrito SJL de de un total de 172 personas. ¿Cuál es la probabilidad de que a lo mucho 5 sean las personas que compraron aparatos tecnológicos de ese distrito?
+
+```{r}
+#x<=5
+# P(x<=5)
+N = 172
+M = 21
+n = 50
+
+phyper(5,M,N-M,n)
+```
+
+
+De igual manera si quisieramos que exactamente sean 5 las personas que hayan comprado un aparato tecnológico de ese distrito.
+
+P(X=x) = (C(M,x).C(N-M,n-x))/C(N,n)
+```{r}
+#P(x=5)
+x=5
+(choose(M,x)*choose(N-M,n-x))/(choose(N,n))
+```
+Con el comando "dhyper":
+```{r}
+dhyper(5,M,N-M,n)
+```
+
+## **Modelos de Variables Continuas**
+
+### **Aplicación del Modelo Uniforme**
+
+Haremos uso de la variable Garantía ya que esta nos muestra los meses de garantía ofrecidos con la compra virtual de un aparato tecnológico.
+
+Justificación:
+
+- Mediante un boxplot podemos inferir que la concentración del valor de las garantías ofrecidas en todo Lima oscilan entre 6 y 12 meses. Entonces diremos que la distribución es uniforme en el rango $[6;12]$. 
+
+```{r, echo = FALSE} 
+Garantia<-BDR$Garantia
+#table(Garantia)
+boxplot(Garantia , horizontal = T, col = "skyblue")
+abline(v=mean(Garantia,na.rm=TRUE),col="firebrick4",lwd=2)
+```
+
+*Ejemplo:*
+
+Aplicación:
+Supongamos que una persona compra aparatos tecnológicos en periodo de pandemia, ¿Cuál es la probabilidad de adquirir un aparato con una garantía entre 7 y 11 meses?
+
+Creamos la variable y = aparatos con una garantía entre 6 y 12 meses ~ $U[6;12]$
+
+mínima garantía = 6 ~ a ; máxima garantía = 12 ~ b
+
+Para hallar la probabilidad:
+P(x en un intervalo) = (La medida del intervalo)/(La medida total del rango de y)
+                     = $𝑃(𝒄 ≤ 𝒙 ≤ 𝒅 ) = 𝑃(𝒄 < 𝒙 < 𝒅) = (𝑑−𝑐)/(𝑏−𝑎)$
+                     
+```{r}
+minRangY = 6
+maxRangY = 12
+MedRango = maxRangY - minRangY
+
+MedInterval = 11 - 7
+
+Prob = MedInterval/MedRango
+Prob
+```
+
+Con el comando "punif":
+Inferimos:  $P( c < x <d) = P(x < d) - P(x < c)$
+
+```{r}
+punif(11, 6, 12) - punif(7, 6, 12)
+```
+Entonces:
+¿Cuál sería la garantía a esperar por algún comprador online al adquirir un aparato tecnológico?
+
+Piden: E(x) = (a+b)/2
+
+```{r}
+Ex <- (minRangY + maxRangY) /2
+Ex
+```
+
+La garantía esperada por algún comprador online es de 9 meses.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
