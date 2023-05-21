@@ -1,0 +1,1032 @@
+---
+title: ''
+date: "2 de octubre del 2021"
+fontsize: 12pt
+output:
+  html_document:
+    df_print: paged
+lang: "es-MX"
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+![](utec.png){align="right" width="25%"} <br> <br> <br>
+<b style = 'color : darkred; font-size : 50px ; font-family : Amasis MT Pro Black'>***"Universidad
+UTEC"***</b> <br> <br> <br>
+
+1.Introducción
+
+### 1.1. Relevancia
+
+La música ha sido parte de la cultura humana desde hace más de miles de
+años. Es difícil encontrar alguna cultura antigua que no tenga alguna
+forma de música integrada en alguna actividad. Danzas tribales, los
+cantares de gesta, los conciertos comisionados por hombres opulentos, la
+música popular del ultimo ciclo, todas estas son parte de la cultura de
+su tiempo. Hoy nos vamos a centrar en este último, específicamente en la
+década del 2010. Usando los datos extraídos de Spotify, uno de los
+servicios de streaming de música más grande del mundo, queremos
+encontrar si hay alguna tendencia en los detalles
+técnicos,específicamente los decibeles y los beats por minuto en los
+hits de la década del 2010. Es posible que ahora con el acceso popular a
+la música, el público haya tendido a un cierto bpm indirectamente.
+
+Un claro ejemplo es que la música ha sido parte de la cultura humana desde hace más de miles de años. Es difícil encontrar alguna cultura antigua que no tenga alguna forma de música integrada en alguna actividad. Danzas tribales, los cantares de gesta, los conciertos comisionados por hombres opulentos, la música popular del ultimo ciclo, todas estas son parte de la cultura de su tiempo. Hoy nos vamos a centrar en este último, específicamente en la década del 2010. Usando los datos extraídos de Spotify, uno de los servicios de streaming de música más grande del mundo, queremos encontrar si hay alguna tendencia en cosas como el género, los beats por minuto, o la duración en los hits de la década del 2010.
+
+
+Además, utilizando la función **`nrow()`** contamos la cantidad de observaciones (filas) de nuestra base de datos y  utilizando la función **`ncol()`** podremos contar la cantidad de variables (columnas). 
+
+```{r}
+library(readr)
+library(dplyr)
+DFL<-read.csv( "Base de datos Limpia.csv")
+
+```
+
+```{r}
+n_observaciones <- nrow(DFL)
+n_variables <- ncol(DFL)
+```
+Es así que calculamos la existencia de __`r n_observaciones` observaciones y `r n_variables` variables.__
+
+
+### 1.2. Planificación
+
+```{r}
+ifelse(require(readr)==T, library(readr))
+ifelse(require(ggplot2)==T, library(ggplot2))
+
+```
+
+```{r}
+a <-('1. Plantear temas Iniciales')
+b <- ('2. Escoger tema para P1')
+c <- ('3. Preparar la P1')
+d <- ('4. Implementar comentarios de P1')
+e <- ('5. Preparar la P2')
+plan <- data.frame(Actividad = c(a, b, c, d, e), 
+start = c(2, 6.2, 6.8, 8.8, 10),
+end = c(3.7, 6.8, 7.7, 9, 14)
+)
+
+if(!require(ggplot2)){install.packages('ggplot2')}
+
+ggplot(plan, aes(x=start, xend=end, y=Actividad, yend=Actividad )) +
+  theme_bw()+ #use ggplot theme with black gridlines and white background
+  geom_segment(size=8) + #increase line width of segments in the chart
+  labs(title='Planificacion', x='semana', y='Actividad')
+```
+
+<h2 style="color: #BF0D0D">
+
+2.  Datos
+
+    </h2>
+
+### 2.1. Recolección de datos
+
+<div style="text-align: justify">
+
+La recolección de datos se basa en una "playlist" creada por la propia
+plataforma de Spotify del ranking de top 100 canciones más escuchadas de
+todos los años desde el 2010 hasta el 2019, este ranking se basa en el
+número de reproducciones de las canciones por año, cada reproducción
+cuenta si cualquier usuario escucha como mínimo 30 segundos de la
+canción. Las otras variables se consiguieron usando una página creada
+también por Spotify llamada "Organise your music". Está página se usó en
+cada playlist y se logró obtener los datos de género, estado de ánimo,
+estilo, década, año de aparición, duración, popularidad, etc. Como la
+página pertenece a la propia compañía de "streaming", cuenta con toda la
+información de las canciones y los artistas, de esta manera consigue los
+datos numéricos y categóricos más sencillos como el nombre de la canción
+y del artista, la duración de la canción, el género señalado por el
+artista, los decibelios (intensidad de sonido), los "beats per minute"
+(duración de notas/velocidad), entre otros. Además de estas variables
+fáciles de reconocer, tambien brinda otras como "Estado de ánimo" o
+"Estilo" las cuales Spotify determinada a través de un IA que usa "big
+data" y "machine Learning" para analizar las pistas de audio todavía no
+procesadas para poder clasificarlas en las distintas categorías.
+
+<div/>
+
+<div style="text-align: center">
+
+![](Spotify-logotipo.jpg){width="200px"}
+
+<div/>
+
+### 2.2. Población, muestra y muestreo
+
+Nuestra población son todas las canciones más populares de Spotify. Además, hemos decidido solo trabajar con las Top 100 canciones por año desde 2010 a 2019, esta data frame la hemos obtenido de las playlist de Spotify. Por otro lado, este muestreo es intencional y determinado por las propias estrategias que tiene Spotify para reconocer un Hits de canciones.
+
+
+### 2.3. Variables
+
+| Variable | Tipo de Variable   | Restricciones                          |
+|:---------|:-------------------|:---------------------------------------|
+| Título   | Categórica Nominal | Nombre de la canción                   |
+| Artista  | Categórica Nominal | Nombre del artista                     |
+| Género   | Categórica Nominal | género de la canción                   |
+| Bpm      | Numérica discreta  | Número de beats por minuto             |
+| dB       | Numérica discreta  | Número de decibelios de la música      |
+| Duración | Numérica discreta  | Número de segundos que dura la canción |
+| Top Year | Categórica Nominal | Años [2010 ; 2019]                     |
+
+### 2.4. Limpieza de base de datos
+
+En este apartado lo que se busca es dejar de lado las variables que no
+utilizaremos para el proyecto con el objetivo de que podamos quedarnos
+con las variables relevantes para el análisis. Entonces, para hacer la
+limpieza primero cargamos las librerías y la información (Data frame)
+que necesitaremos para nuestra base de datos:
+
+```{r}
+ifelse(require(readr)==T, library(readr))
+DF = read_csv("Spotify 2010 - 2019 Top 100.csv")
+```
+
+Lo primero que debemos "limpiar" son aquellas variables que no nos
+servirán para nuestro objetivo, estas son: Year released, added, nrgy,
+dnce, live, val, acous, spch, pop, artis type. Para esto llamaremos a
+todas las variables que tenemos para conocer los indices de cada una.
+Posteriormente las eliminamos una a una.
+
+```{r}
+variables <- colnames(DF)
+DF1 <- DF[,-4] # Elimina Year realeased
+DF2 <- DF1[,-4] # Elimina added
+DF3 <- DF2[,-5] # Elimina nrgy 
+DF4 <- DF3[,-5] # Elimina dnce
+DF5 <- DF4[,-6] # Elimina live
+DF6 <- DF5[,-6] # Elimina val
+DF7 <- DF6[,-7] # Elimina acous
+DF8 <- DF7[,-7] # Elimina soch
+DF9 <- DF8[,-7] # Elimina pop
+DFL <- DF9[,-8] # Elimina artis type
+DFL
+```
+
+Una vez se tenga la base de datos con las variables que vamos a usar
+procederemos a buscar datos incompletos:
+
+```{r}
+#Verificaremos que el archivo no cuente con datos faltantes
+Na1 = sum((is.na(DFL$title)))
+Na2 = sum((is.na(DFL$artist)))
+Na3 = sum((is.na(DFL$`top genre`)))
+Na4 = sum((is.na(DFL$bpm)))
+Na5 = sum((is.na(DFL$dB)))
+Na6 = sum((is.na(DFL$dur)))
+Na7 = sum((is.na(DFL$`top year`)))
+
+#Nos indica que tenemos 3 valores N.A a lo último de la tabla, los eliminamos.
+DFL = head(DFL, 1000)
+DFL
+```
+
+Ahora sí ya tenemos la base de datos limpia. Como bien sabemos contamos
+con un ranking de 100 canciones por año, desde el 2010 al 2019. En
+nuestro caso, además de desarrollar la base de datos general DFL (Data
+frame Limpia), como también queremos observar un análisis por año, hemos
+creado variables las cuales contendrán los diferentes stacks (100
+canciones por año).
+
+```{r}
+#Selección canciones de cada año
+TOP2010 <- DFL[!(DFL$`top year` > 2010),]
+
+TOP2011 <- DFL[(DFL$`top year` == 2011),]
+
+TOP2012 <- DFL[(DFL$`top year` == 2012),]
+
+TOP2013 <- DFL[(DFL$`top year` == 2013),]
+
+TOP2014 <- DFL[(DFL$`top year` == 2014),]
+
+TOP2015 <- DFL[(DFL$`top year` == 2015),]
+
+TOP2016 <- DFL[(DFL$`top year` == 2016),]
+
+TOP2017 <- DFL[(DFL$`top year` == 2017),]
+
+TOP2018 <- DFL[(DFL$`top year` == 2018),]
+
+TOP2019 <- DFL[(DFL$`top year` == 2019),]
+
+```
+
+Una vez tenemos los stacks, procederemos a crear archivos
+correspondientes a ellos; es decir, tendremos 10 archivos los cuales
+cada uno representan las 100 canciones de cada año. Para hacerlo posible
+hemos desarrollado el siguiente código:
+
+```{r}
+#Crea base de datos limpia por cada año
+write_csv(TOP2010, "TOP100_2010.csv")
+write_csv(TOP2011, "TOP100_2011.csv")
+write_csv(TOP2012, "TOP100_2012.csv")
+write_csv(TOP2013, "TOP100_2013.csv")
+write_csv(TOP2014, "TOP100_2014.csv")
+write_csv(TOP2015, "TOP100_2015.csv")
+write_csv(TOP2016, "TOP100_2016.csv")
+write_csv(TOP2017, "TOP100_2017.csv")
+write_csv(TOP2018, "TOP100_2018.csv")
+write_csv(TOP2019, "TOP100_2019.csv")
+
+#Base de datos limpia con todos los años
+write_csv(DFL, "Base de Datos Limpia.csv")
+```
+
+Una vez tenemos los archivos, nos encontramos listos para poder trabajar
+la data frame.
+
+<h2 style="color: #BF0D0D">
+
+3.  Análisis Descriptivo
+
+    </h2>
+
+    ### 3.1. Artísta
+
+```{r}
+ifelse(require(readr)==T, library(readr))
+
+DD = read_csv("Base de Datos Limpia.csv")
+Frecuencia_artista <- table(DD$artist)
+Frecuencia_artista
+```
+
+La mayoría de los artistas no hacen más de una aparición entre todos los
+años. Aquellos que hacen más de una aparición suelen tenerlas en el
+mismo año o bien cerca entre sí, normalmente coincidiendo con un
+lanzamiento de un album y/o un Single de ese album. Por ejemplo, La
+banda Arctic Monkeys, que apareció un total de 3 veces, tuvo dos hits en
+el 2013 y uno en el 2012, todos de su albúm "AM", y "R U Mine?", su hit
+del 2012, fue un single del albúm que salió un año antes. La artista con
+más apariciónes en total es Taylor Swift, con un total de 21 hits en la
+decada, y es la única artista en tener una canción que aparece en la
+lista en dos años diferentes, siendo esta "Bad Blood" en los años 2014 y
+2015.
+
+### 3.2. Género
+
+-Para analizar las variables primero cargaremos las librerias que
+vayamos a utilizar
+
+```{r}
+ifelse(require(readr)==T, library(readr))
+ifelse(require(dplyr)==T, library(dplyr))
+```
+
+-Para analizar la variable "género musical", inciaremos por cargar la
+información
+
+```{r}
+BDL= read_csv("Base de Datos Limpia.csv")
+```
+
+y luego calculamos el género que más se repite entre todos los años
+(moda).
+
+```{r}
+#Moda
+
+#Total BDL
+dt= as.data.frame(table(BDL$`top genre`))
+names(dt) = c("Géneros","# de canciones")
+dt
+
+```
+
+Vemos que la moda es dance pop, con 361 canciones, las cuales son:
+
+```{r}
+#Vemos que la moda es dance pop
+cmt=BDL[BDL$`top genre`=="dance pop",] #canciones con dance pop
+cmt
+```
+
+-Ahora que sabemos que el género modal es "dance pop", y tenemos los
+datos, podemos ponerlos en una gráfica para observarlos mejor.
+
+```{r}
+#Gráfico de modas de género por año
+
+#Total
+plot(table(BDL$`top genre`),type="l",main="Gráfico de los géneros de canciones 2010-2019",ylab="Cantidad de canciones",las=2,cex.axis=0.6)
+```
+
+En esta gáfica se logra aprecia de una mejor manera como predomina el
+género "dance pop" en este top hits por encima de todas los otros
+géneros
+
+¿Cómo es la aparición de este género por año? Primero guardamos la
+información que usaremos
+
+```{r}
+#Gráfico de "dance pop" por apariciones por año
+
+a=BDL[BDL$`top genre`=="dance pop",]$`top genre`
+b=BDL[BDL$`top genre`=="dance pop",]$`top year`
+t=table(a,b)
+```
+
+Entonces el gráfico de \# de apariciones sería:
+
+```{r}
+barplot(t,col="red",main="Apariciones de 'dance pop' por año",ylab="Número de apariciones",xlab="Año")
+```
+
+Si lo pasamos a porcentajes...
+
+```{r}
+barplot(t/100,col="blue", main="Porcentaje de apariciones de dance pop por año", ylab="Porcentaje de apariciones",xlab="Año")
+```
+
+Pero ¿Qué caracteriza al dance pop?
+
+Para responder a esto vamos a utilizar las otras variables que tenemos:
+duración y BPM.
+
+Género x BPM
+
+Guardamos la información que vamos a usar...
+
+```{r}
+#¿Qué hace especial a "dance pop"?
+#Comparando con btm
+
+a=BDL[BDL$`top genre`=="dance pop",]$`top genre`
+b=BDL[BDL$`top genre`=="dance pop",]$bpm
+```
+
+Con ayuda de la función table, podemos comparar los bpm en todas las
+canciones
+
+```{r}
+#Gráfica de bpm en dance pop
+t2 = table(b)
+dt2=as.data.frame(t2)
+names(dt2)=c("BPM","# de canciones en las que se encuentra")
+dt2
+```
+
+Vemos que hay 87 observaciones, entonces usaremos la función barplot
+para crear una gráfica que nos ayude a ver mejor alguna posible
+relación.
+
+Con estos datos ordenados usamos la función barplot para graficarlos
+
+```{r}
+
+barplot(t2,main="cantidad de canciones con cierto bpm",ylab="# de canciones",xlab="bpm",col="green",las=2)
+#Vemos que hay un bpm que destaca el 128
+```
+
+Efectivamente, hay un bpm que más aparece con respecto a otros, con
+ayuda de la tabla de frecuencia se puede saber que el bpm de 128, es el
+bpm modal.
+
+¿Cómo es la presencia de este bpm en los años?
+
+```{r}
+#Relacionamos el bpm con el año
+c=BDL[BDL$`top genre`=="dance pop",]$bpm
+d=BDL[BDL$`top genre`=="dance pop",]$`top year`
+
+t=tail(head(table(c,d),53),1) #Encontramos las apariciones del bpm 128 por año
+barplot(t,main="Presencia del bpm modal 128 en cada año",ylab="#Número de canciones",xlab="año",col="brown")
+#El bpm modal de 128 aparece veces en los años 2010-1015 (mejores años)
+
+#Canciones que cuentan con este bpm y que son "dance pop":
+#The Time (Dirty Bit)
+#Club Can't Handle Me (feat. David Guetta)
+#Good Feeling
+```
+
+Vemos que la presencia de este bpm se reduce en el umbral del 2010 hasta
+el 2015. dejando libres los años desde el 2016 hasta el 2019.
+
+¿Qué hay de relación entre la duración y el género?
+
+```{r}
+#¿Qué hace especial a "dance pop"?
+#Comparando con duración
+
+a=BDL[BDL$`top genre`=="dance pop",]$`top genre`
+b=BDL[BDL$`top genre`=="dance pop",]$dur
+
+#Gráfica de duración en dance pop
+
+t2 = table(b)
+barplot(t2,main="Duración de las canciones 'dance pop'",ylab="# de canciones",xlab="duración en segundos",col="orange")
+#No hay una duración en específico única, varían desde 6 hasta 1
+
+```
+
+Vemos que no hay una clara relación entre la duración y las canciones
+del género "dance pop", pues los datos son bastantes datos y no hay una
+moda específica.
+
+Calculamos la media en segundos y en minutos y la desviación estandar
+para saber que tan dispersos estan los datos.
+
+```{r}
+mean(b) #En segundos
+
+mean(b/60) #En minutos
+
+sd(b) #Desviacion estandar
+```
+
+Conclusiones:
+
+1.  El género que más veces aparece es el "dance pop" con 361
+    apariciones en 1000 canciones (36.1%)
+
+2.  Entre los años del 2010 al 2016 hay una clara predominación,
+    abarcando más del 40% de las canciones
+
+3.  Desde el año 2017 en adelante, se ve una disminución ligera, pero
+    que se vuelve notoria en el 2019 donde la aparición es del casi 20%
+
+4.  Hay una relación entre el bpm y el género modal, en la mayoría de
+    canciones de este género se tiene un BPM de 128, apareciendo en 30
+    canciones de las 361 (8%)
+
+5.  Pese a que el porcentaje es bajo, es alto en comparación al de otros
+    bpm, los cuales en mayoría rondan el 1%
+
+6.  Vemos una falta total del bpm 128 desde el 2016 hasta el 2019, donde
+    los últimos 3 años justo son los años donde se comienza a ver una
+    disminución en la popularidad del género
+
+7.  No hay una relación clara entre la duración de la canción y el
+    género, la media de la duración es de 218s o 3.6 minutos
+
+8.  La desviación estándar es de 40.19.
+
+### 3.3. Beats por Minuto
+
+Leemos la data frame
+
+```{r}
+library(readr)
+library(dplyr)
+TB4 = read_csv("Base de datos limpia.csv")
+TB4
+```
+
+HISTOGRAMA bpm
+
+```{r}
+hist(TB4$bpm, breaks = 20, xlab = "Beats por minuto(bpm)", ylab = "Densidad", main="Histograma de bpm", col = "gray", probability = TRUE)
+lines(density(TB4$bpm), col = "blue", lwd = 2) # Densidad
+x <- seq(min(TB4$bpm), max(TB4$bpm), length = 40)
+f <- dnorm(x, mean = mean(TB4$bpm), sd = sd(TB4$bpm))
+lines(x, f, col = "red", lwd = 2)#normal
+legend("topright", c("Histograma", "Densidad", "Normal"), box.lty = 0,
+          lty = 1, col = c("black", "blue", "red"), lwd = c(1, 2, 2))
+```
+
+BOXPLOT bpm
+
+```{r}
+boxplot(main="BoxPlot bpm" ,xlab="ppm",TB4$bpm, horizontal = TRUE)
+segments(x0 = mean(TB4$bpm), y0 = 0.8,
+         x1 = mean(TB4$bpm), y1 = 1.2,
+         col = "red", lwd = 2)
+
+points(mean(TB4$bpm), 1, col = 3, pch = 19)
+par(mfrow = c(1, 1))
+
+legend("topright", c("Diagrama BoxPLot", "Mediana"), box.lty = 0,
+          lty = 1, col = c("black", "red"), lwd = c(2, 2))
+
+
+```
+
+BOXPLOT bpm vs TOP año
+
+```{r}
+boxplot(TB4$bpm ~ TB4$`top year`, xlab="TOP YEAR", ylab="bpm")
+```
+
+En conclusión, la cantidad de bpm está relacionada al tempo musical, La
+cantidad de golpes determina el ritmo de la música, así los géneros
+musicales tienen su propio tempo (bpm). Por dicha razón se busca
+encontrar la relación de esta variable con la popularidad que alcanza
+cada canción. Poder analizar los rangos de bpm en los que las canciones
+tienden a popularizarse.
+
+### 3.4. Decibeles
+
+Antes de empezar el análisis de la variable "dB" primero debemos cargar
+las librerías que vayamos a utilizar, para posteriormente subir y leer
+la base de datos.
+
+```{r}
+ifelse(require(readr)==T, library(readr))
+DFL= read_csv("Base de Datos Limpia.csv")
+```
+
+Ahora que tenemos la nueva data, procederemos a calcular el decibel que
+más se repite en total, así como también su promedio y mediana a lo
+largo de los años. Esto nos permitirá desarrollar el análisis de manera
+adecuada.
+
+```{r}
+#Moda Total
+Frecuencia_dB <- table(DFL$dB) # -6 dB -> 212/1000 -> 21.2%
+
+#Promedio 
+Promedio_dB <- mean(DFL$dB) # -5.663 dB
+
+#Mediana 
+Mediana_dB <- median(DFL$dB) # -5 dB
+
+plot(Frecuencia_dB,type="l",main="Gráfico de los decibeles de canciones entre 2010-2019",ylab="Cantidad de canciones",xlab="Decibeles")
+```
+
+Asimismo podemos hacer otro gráfico con el porcentaje de apariciones de
+decibeles por año.
+
+```{r}
+#Gráfico de "decibel" por apariciones por año
+
+a=DFL[DFL$dB== -6,]$dB
+b=DFL[DFL$dB== -6,]$`top year`
+
+t=table(a,b)
+
+#Apariciones de -6dB por Año
+barplot(t,col="red",main="Apariciones de -6 Decibeles por año",ylab="Número de apariciones",xlab="Año")
+#Porcentaje de apariciones de decibeles por año
+barplot(t/100,col="blue", main="Porcentaje de apariciones de -6 Decibeles por año", ylab="% de apariciones",xlab="Año")
+```
+
+Después de terminar la investigación y análisis, de la variable dB,
+realizado previamente hemos llegado a la conclusión que esta variable lo
+que nos muestra es la variación de decibeles; es decir, si una canción
+tiene un volumen, lo que hace el valor del dB es modificarlo (atenuar su
+tono sobre la señal original), por lo que necesitamos saber el valor de
+entrada y el de salida para que esta variable sea significante en esta
+investigación. Entonces, lo que en realidad se quería era el valor del
+tono de la canción para poder analizarlo y relacionarlo con las otras
+variables que tenemos, pero como hemos comprobado que para teniendo esta
+gráfica y el análisis previo podemos saber que esta variable no será
+usada para el proyecto.
+
+### 3.5. Duración
+
+
+```{r}
+ifelse(require(tidyverse)==T, library(tidyverse))
+
+Duracion<- DFL %>% group_by(`top year`) %>% summarise(dur_avg = mean(dur), dur_median = median (dur), dur_cv = sd(dur)/mean(dur), max_dur = max(dur),min_dur=min(dur))%>% arrange(desc(dur_avg))
+Duracion
+Promedio <- mean(Duracion$dur_avg)
+Promedio
+```
+
+En esta tabla podemos observar que las 100 canciones top de los últimos 10 años tienen una duración que rondan por 230.19 y 195.50 segundos. Es decir, la tendencia de las canciones top son de duración. Ademas, en promedio la duración de estas rondan los 220.41 segundos, entonces los usuarios de Spotify prefieren canciones cortas que largas como una obra teatral de opera. 
+
+```{r}
+Dur_Genero<- DFL %>% group_by(`top genre`) %>% summarise(dur_avg = mean(dur))%>% arrange(desc(dur_avg))
+Dur_Genero
+boxplot(Dur_Genero$dur_avg,main="Duracion promedio en segundos de cada genero top",xlab="Segundos promedio",horizontal = TRUE,col = "red")
+
+Cuantil_1 <- quantile(Dur_Genero$dur_avg,0.25)
+Cuantil_2 <- quantile(Dur_Genero$dur_avg,0.50)
+Cuantil_3 <- quantile(Dur_Genero$dur_avg,0.75)
+```
+La tendencia de duración entre los géneros top en la ultima década esta entre los segundos 204.43 y 239 segundos, los cual es interesante saber que este lapso no es tan corto que un minuto pero tampoco excede los 5 minutos. La mayoría de los géneros top en el periodo de nuestro estudio opta por una duración media, lo suficiente para ser disfrutada por los usuarios de Spotify.
+
+### 4 ANALISIS PROBABILISTICO
+
+### 4.1 Analisis probabilistico entre el numero de canciones del género "dance pop" por playlist anual
+
+Primero, organizamos la información del número de canción del género modal por año, y la guardamos en una tabla así.
+```{r}
+library(dplyr)
+BDL = read.csv("Base de Datos Limpia.csv")
+genero=filter(BDL,BDL$top.genre=="dance pop")
+Ta=data.frame(table(genero$top.year))
+colnames(Ta) <- c("Año","# de canciones")
+
+Ta
+```
+Ahora que tenemos organizada nuestra información será más fácil para trabajar, primero empezaremos con:
+
+1. Cual es la probabilidad de que al seleccionar una canción, esta sea de "dance pop"
+
+Para ello sabemos que tenemos 1000 canciones en total, ahora, necesitamos saber cuantas de estas canciones pertenecen al genero dance pop, para ello:
+
+```{r}
+nrow(genero)
+```
+
+Ahora sabemos que solo 361 canciones son del genero dance pop (género modal), entonces para calcular la probabilidad de que al seleccionar una canción al azar esta sea "dance pop" se calcula dividiendo el numero de canciones dance pop entre el total de canciones, sería:
+
+```{r}
+cat("P(x=Dance pop)=",round(361/1000,2))
+```
+
+Vemos que la probabilidad corresponde a casi 0.4, un numero que no sabríamos si decir que es grande o no, para ello procederemos a calcular la probabilidad de cada genero y ponerlo en un boxplot.
+
+```{r}
+boxplot(table(BDL$top.genre)/nrow(BDL),horizontal=T)
+```
+
+en este boxplot podemos ver que hay un dato atípico, el cual se encuentra más a la derecha que el resto, este dato corresponde a la probabilidad de encontrar una cancion dance pop entre las 1000 canciones. de esta manera podemos confirmar cómo se comporta la cancion modal, frente a otras.
+
+2. Ahora vamos a calcular la probabilidad de que al sacar una canción aleatoria en cada playlist, esta sea del genero modal.
+
+```{r}
+aea=BDL
+P0=nrow(filter(filter(aea,aea$top.year==2010),filter(aea,aea$top.year==2010)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2010))
+P1=nrow(filter(filter(aea,aea$top.year==2011),filter(aea,aea$top.year==2011)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2011))
+P2=nrow(filter(filter(aea,aea$top.year==2012),filter(aea,aea$top.year==2012)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2012))
+P3=nrow(filter(filter(aea,aea$top.year==2013),filter(aea,aea$top.year==2013)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2013))
+P4=nrow(filter(filter(aea,aea$top.year==2014),filter(aea,aea$top.year==2014)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2014))
+P5=nrow(filter(filter(aea,aea$top.year==2015),filter(aea,aea$top.year==2015)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2015))
+P6=nrow(filter(filter(aea,aea$top.year==2016),filter(aea,aea$top.year==2016)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2016))
+P7=nrow(filter(filter(aea,aea$top.year==2017),filter(aea,aea$top.year==2017)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2017))
+P8=nrow(filter(filter(aea,aea$top.year==2018),filter(aea,aea$top.year==2018)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2018))
+P9=nrow(filter(filter(aea,aea$top.year==2019),filter(aea,aea$top.year==2019)$top.genre=="dance pop"))/nrow(filter(aea,aea$top.year==2019))
+```
+
+y lo guardamos en esta tabla, donde tenemos "probabilidad de que sea "dance pop", dado cada año"
+
+```{r}
+tabla1=data.frame(Año=c(2010:2019),Probabilidad=c(P0,P1,P2,P3,P4,P5,P6,P7,P8,P9))
+tabla1
+```
+
+
+Entonces nos plantemos situaciones:
+
+3. Cual es la probabilidad de que al escoger una cancion dance pop, esta sea del 2015
+4. Cual es la probabilidad de que al escoger una cancion del 2017, esta no sea del género dance pop.
+5. Cual es la probabilidad de que al escoger 1 cancion de cada playlist, TODAS sean del género dance pop.
+
+Lo escribimos en terminos de probabilidad:
+
+3) P(2015|Si)=(P(Si|2015)P(2015))/P(Si) ,
+
+Donde:
+P(2015|Si)-> probabilidad de que al sacar una cancion del género dance pop, esta sea del 2015.
+
+P(Si|2015)-> probabilidad de que al sacar una cancion del 2015, esta sea del género dance pop.
+
+P(Si)-> probabilidad de que al sacar una cancion, esta sea del género dance pop.
+
+P(2015)-> probabilidad de que al sacar una cancion, esta sea del año 2015.
+
+Entonces cumpliendo con los calculos tenemos:
+```{r}
+cat("P(2015|Si)=",round((0.38*0.1)/0.361,2))
+```
+4) P(No|2017)=(P(2017|No)P(2017))/P(No), donde:
+
+P(No|2017)-> probabilidad de que al sacar una cancion del 2017, sea no sea del genero dance pop.
+
+P(2017|No)-> probabilidad de que al sacar una cancion que no es del genero dance pop, sea del 2017.
+
+P(2017)-> probabilidad de que al sacar una canción, esta sea del 2017.
+
+P(No)-> probabilidad de que al sacar una canción, esta no sea del genero dance pop.
+
+Entonces cumpliendo con los calculos tenemos:
+```{r}
+cat("P(No|2017)=",round((0.75*0.1)/0.639,2))
+```
+
+5) P(2010)P(2010|Si)+P(2011)P(2011|Si)...P(2019)P(2019|Si).
+
+Como son conjuntos disjuntos, la suma de la probabilidad de obtener una canción del genero dance pop en cada playlist, obteniendo un total de 10 canciones. es la probabilidad total de obtener 10 canciones del genero dance pop al sacar 1 canción por playlist.
+
+```{r}
+cat("P =",0.1*(sum(tabla1$Probabilidad)))
+```
+
+### 4.2 Analisis probabilistico entre el BPM, el género modal y la nacionalidad del artista de la canción.
+
+Primero leeremos la base de datos limpia que tenemos y obtenemos los bom más concurridos en el género dance pop, para poder trabajar mejor con la información
+```{r}
+library(readr)
+BDL = read_csv("Base de Datos Limpia.csv")
+
+a=BDL[BDL$`top genre`=="dance pop",]$`top genre`
+b=BDL[BDL$`top genre`=="dance pop",]$bpm
+t=table(b,a)
+
+```
+
+El siguiente gráfico nos muestra la cantidad de canciones del género dance pop con respecto a sus bpm
+```{r}
+tabla2 = table(BDL$`top genre`=="dance pop",BDL$bpm)
+barplot(tabla2,main="BPM vs 'dance pop'",ylab="# de canciones",xlab="BPM",col="orange")
+```
+
+Como el género que más destaca es dance pop, buscamos las canciones que usan 128 bpm, las cuales son 30 canciones,
+```{r}
+BD_DancePop_Bpm = BDL[BDL$`top genre` == "dance pop" & BDL$bpm == 128,]
+BD_DancePop_Bpm
+```
+
+De todas las 30 canciones listadas, ¿Cuál crees que sería la probabilidad de que se escoja un artista al azar y sea de nacionalidad Norte Americana? Primero procederemos a agregar una nueva variable "Artist_Origen" para sí poder colocar la nacionalidad correspondiente a cada artista o banda.
+
+```{r}
+Artist_Origen = c("EEUU","EEUU","Rumanía","Reino Unido","EEUU","EEUU","Reino Unido","Suecia","Suecia","Reino Unido","Reino Unido","Reino Unido","EEUU","EEUU","Suecia","EEUU","Reino Unido","Reino Unido","Reino Unido","EEUU","Países Bajos","Suecia","EEUU","Reino Unido","Reino Unido","EEUU","Suecia","Reino Unido","EEUU","EEUU")
+Copia_BDL = BD_DancePop_Bpm
+Copia_BDL = cbind(Copia_BDL,Artist_Origen)
+Copia_BDL
+```
+
+
+Primero observamos cuantas veces aparece EEUU
+```{r}
+table(Copia_BDL$Artist_Origen)
+```
+
+Observamos que las probabilidades no son iguales (espacio no equiprobable) y qué es más probable que se seleccione una canción cuyo artista es de los Estados Unidos
+
+```{r}
+Prob_EEUU = (12/30)
+cat("Prob de sacar un artista EE.UU:",Prob_EEUU)
+```
+Conclusion: observamos que durante el rango de 10 años a la mayoría de personas le gustaba la música que coincidentemente pertenecía a un artista estadounidense
+
+Hemos visto que la moda de BPM dentro del genero dance pop es 128 bpm. *¿Es esto verdad para la población general?*
+
+```{r}
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+   
+cat("Moda:",getmode(BDL$bpm))
+#nrow(BDL[BDL$bpm == 128,])
+```
+
+Se puede ver que la moda sigue siendo 128bp. *¿Cual es la probabilidad de que una canción tenga 128 bpm? ¿Como cambia la probabilidad de que tenga este bpm si se observan años específicos?*
+
+```{r}
+Probabilidad <- c(y2010bpm128 <- nrow(BDL[BDL$`top year` == "2010" & BDL$bpm == 128,])/100,
+y2011bpm128 <- nrow(BDL[BDL$`top year` == "2011" & BDL$bpm == 128,])/100,
+y2012bpm128 <- nrow(BDL[BDL$`top year` == "2012" & BDL$bpm == 128,])/100,
+y2013bpm128 <- nrow(BDL[BDL$`top year` == "2013" & BDL$bpm == 128,])/100,
+y2014bpm128 <- nrow(BDL[BDL$`top year` == "2014" & BDL$bpm == 128,])/100,
+y2015bpm128 <- nrow(BDL[BDL$`top year` == "2015" & BDL$bpm == 128,])/100,
+y2016bpm128 <- nrow(BDL[BDL$`top year` == "2016" & BDL$bpm == 128,])/100,
+y2017bpm128 <- nrow(BDL[BDL$`top year` == "2017" & BDL$bpm == 128,])/100,
+y2018bpm128 <- nrow(BDL[BDL$`top year` == "2018" & BDL$bpm == 128,])/100,
+y2019bpm128 <- nrow(BDL[BDL$`top year` == "2019" & BDL$bpm == 128,])/100,
+
+yTotalbpm128 <- nrow(BDL[BDL$bpm == 128,])/1000)
+
+year <- c('2010', '2011', '2012','2013', '2014', '2015', '2016', '2017', '2018', '2019', 'Total')
+bpm128 <- data.frame(year, Probabilidad)
+bpm128
+```
+La probabilidad de que una canción tenga 128 bpm es del 6% aproximadamente. La probabilidad cambia de año en año, aunque la probabilidad aumenta durante los años del 2011-2013, donde más del 10% tienen este bpm
+
+### 5. MODELOS
+
+### 5.1 Hypergeométrico
+
+Anteriormente observamos el grupo de canciones con el bpm más comun del genero más comun. Vimos que era un grupo muy reducido, Qué tan reducido se siente?
+
+Para darnos la idea de esto hagamos un experimento hypergeometrico. Escojamos 30 de las canciones, que es digamos el tamaño de una playlist normal y veamos si al menos 1 de estas es de nuestro grupo elegido
+```{r}
+HgExperimento <- 1-phyper(0, 30, 1000-30, 30)
+HgExperimento
+```
+
+#Podemos ver de que aunque el grupo sea bastante reducido, si empiezas a escojer varias canciones es más probable encontrarte una de las 30 que no hacerlo
+
+
+### 5.2 Analizando si existe una relación normal en la duraciones de las canciones del género dance pop.
+
+Para determinar que sigue una distribución normal hicimos 3 métodos:
+
+  Primero gráficamos la frecuencia de las duraciones de las canciones del género dance pop
+```{r}
+BDL = read.csv("Base de Datos Limpia.csv")
+# Grafica data
+g=BDL[BDL$top.genre=="dance pop" & BDL$dur<350,]$dur
+
+# Grafica
+hist(g,breaks = 200,main="Duración de las canciones 'dance pop'",ylab="# de canciones",xlab="duración en segundos",col="yellow")
+```
+
+Vemos que podría asemejarse a una gráfica de distribución normal, pero, ¿qué tanto?, para ello vamos a comparar ambas gráficas
+
+```{r}
+
+# Probando la normalidad gráficamente comparando la normal con la densidad
+# densidad
+plot(density(g))
+# normal
+curve(dnorm(x,mean=mean(g),sd=sd(g)), 
+      add=TRUE, col="blue", lwd=2)
+abline(v=mean(g),col="red", lwd=3, lty=2)
+abline(v=median(g),col="blue", lwd=3, lty=3)
+legend(x = "topright",legend = c("media", "mediana"),lty = c(2, 3),col = c("red", "blue"),lwd = 3) 
+
+```
+
+Otra forma de probar si existe la normalidad es con gráficos de cuantíles teóricos
+
+```{r}
+qqnorm(g, pch = 19, col = "gray50")
+qqline(g)
+
+```
+Con la distribución de cuantiles teóricos, desde -2 a 1 se observa claramente que cumple con la distribución normal.
+
+Se concluye por los 2 métodos que existe una relación NORMAL.
+
+Medidas importantes:
+```{r}
+cat("Media=",mean(g),"\n")
+cat("Mediana=",median(g),"\n")
+cat("Desviacion estandar=",sd(g),"\n")
+cat("Dominio=",length(g),"\n")
+```
+
+Anteriormente, durante el análisis descriptivo, determinamos que los promedio de todos los géneros de canciones top estaban entre los segundos 204.43 y 239, entonces nos planteamos ¿cual es la probabilidad que una canción top de genero pop se encuentre entre esos intervalos de duración?
+
+Para ello usaremos: P(204.43≤X≤239)= P(X<=239)-P(X<=204.43), obteniendo
+```{r}
+#X≈N(216.0084,28.38822) 
+# P(204.43≤X≤239)= P(X<=239)-P(X<=204.43)
+pnorm(239,mean(g),sd(g))-pnorm(204.43,mean(g),sd(g))
+```
+Graficamos la región entre estos dos intervalos
+```{r}
+
+regionX=seq(204.43,239,0.01)            
+xP <- c(204.43,regionX,239)              
+yP <- c(0,dnorm(regionX,mean(g),sd(g)),0)    
+curve(dnorm(x,mean(g),sd(g)),xlim=c(100,325),yaxs="i",ylim=c(0,0.015),ylab="f(x)",
+      main='Densidad N(216.0084,28.38822)') 
+polygon(xP,yP,col="orange1")
+box()
+```
+
+Luego de realizar los cálculos se determino que la probabilidad es de 44.93%. Por lo que se evidencia que existe una alta probabilidad de que una canción pop perdure en ese intervalo de tiempo, confirmando así el análisis previo de la caja de bigotes.
+
+Conclusión: La gran cantidad de canciones top con géneros populares se encuentran con una duración de 204.43-239 segundos. Por ejemplo, el 44.3% de la canciones de género dance pop se encuentran en ese intervalo de duración.
+
+### 5.3 Distribuición Binomial
+
+
+__*Según el IFPI MUSIC LISTENING 2019, el género más escuchó fue el Pop (120-140BPM), conociendo la relación que existe entre el género y los BPM de cada canción, analizaremos la probabilidad de que una canción elegida al azahar se encuentre en dicho rango.y además en américa latina el 57% de las canciones escuchadas es el POP, eso quiere decir que presenta una probabilidad de Pl=0.57 (probabilidad música pop en américa latina)*__
+
+De nuestra base de datos de la variable bpm se contará la cantidad de datos que se se encuentran entre los valores de 120 y 140 bpm para obtener su probabilidad, con respecto a toda la muestra.
+
+**A continuación se encontramos la probabilidad global "P".**
+
+```{r}
+ #(probabilidad música pop en américa latina)
+pl=0.57
+#probabilidad global
+DBL=BDL
+pop<-sum(DBL$bpm>=120 & DBL$bpm<=140, na.rm=TRUE)
+p<-(pop/1000)
+
+cat("P(119<x<141)=",p)
+```
+__*Para analizar la distribución binomial de acuerdo al planteamiento anterior se escogen las 60 primeras canciones de nuestra variable bpm y nos planteamos las siguientes preguntas:*__
+
+**1)¿Cual es la probabilidad de que 25 pertenezcan al género Pop, es decir se encuentra en un rango de 120 a 140 BPM?**
+
+Con ayuda de la función **dbinom** encontramos las probabilidades de que el suceso ocurra,  tanto para la probabilidad global como para la de américa latina.
+
+```{r}
+x=25
+cat("Probabilidad global: ",dbinom(x, 60,p, log=FALSE ),"\n")#probabilidad global
+cat("Prob. America latina: ",dbinom(x,60,pl, log=FALSE))#probabilidad américa latina
+```
+
+**Gráfica** de la **función de probabilidad binomial**, el comportamiento de las probabilidades para un rango de sucesos de la cantidad de éxitos **X=[1,60]**, se compara la probabilidad global y la de América latina.
+
+```{r}
+
+plot(dbinom(x=1:60, size = 60, p), type = "h", lwd = 2,
+     main = "Función de probabilidad binomial",
+     ylab = "P(X = x)", xlab = "Número de éxitos")
+
+
+lines(dbinom(x=1:60, size = 60, prob = 0.57), type = "h",
+      lwd = 2, col = 3)
+
+
+#lines(dbinom(x=1:60, size = 60, prob = 0.2), type = "h",
+      #lwd = 2, col = rgb(0, 1, 0, 0.7))
+
+# Añadimos una leyenda
+legend("topright", legend = c("Global------60  0.38", "America L.60  0.57"),
+      title = "n     p", title.adj = 0.85,
+       lty =1, col =c(1, 3), lwd = 2, box.lty = 0)
+
+
+
+```
+
+**2)¿Cual es la probabilidad de que a lo más 30 pertenezcan al género Pop?**
+
+Para responder a la pregunta ahora se utiliza la función **pbinom** , donde el número de éxitos debe ser menor o igual a 30. Se calcula tan to para "p" como para "pl".
+
+
+```{r}
+cat("Prob global: ",pbinom(30, size = 60, prob =p),"\n")
+cat("Prob américa latina: ",pbinom(30, size = 60, prob = pl))
+```
+
+**Gráfica de la función de probabilidad binomial**, para esta situación se crea una función que grafique de un color para los casos que cumplen con la condición y de otro color los que no. En la gráfica se observa que la cantidad de datos que cumplen con la condición es mayoritaria, lo que se corrobora con el resultado de la probabilidad encontrado en el apartado anterior. 
+```{r}
+binom_sum <- function(size, prob, lb, ub, col = 4, lwd = 1) {
+    x <- 0:size
+    
+    if (missing(lb)) {
+       lb <- min(x)
+    }
+    if (missing(ub)) {
+        ub <- max(x)
+    }
+      
+    plot(dbinom(x, size = size, prob = prob), type = "h", lwd = lwd, 
+         ylab = "P(X = x)", xlab = "Número de éxitos")
+  
+    if(lb == min(x) & ub == max(x)) {
+        color <- col
+    } else {
+        color <- rep(1, length(x))
+        color[(lb + 1):ub ] <- col
+    }
+    
+    lines(dbinom(x, size = size, prob = prob), type = "h",
+          col =  color, lwd = lwd)
+}
+
+binom_sum(size=60, prob=p,ub=30,lwd=2, col=3)
+```
+
+**3)¿Cual es la probabilidad de que entre 20 y 25 canciones pertenezcan al género Pop?**
+
+Se obtine la probabilidad con la función **pbinom** tanto para "p" como para "pl"
+
+```{r}
+cat("Prob global: ",pbinom(25, size = 60, prob = p) - pbinom(20, size = 60, prob = p),"\n")
+
+cat("Prob américa latina: ",pbinom(25, size = 60, prob = 0.57) - pbinom(20, size = 60, prob = 0.57))
+```
+
+**La Gráfica muestra las probabilidades de los casos que cumplen con la condición.**
+```{r}
+binom_sum(size=60,prob=p,lb=20,ub=25,lwd=2, col=3)
+```
+
+**Gráfica probabilidad acumulada**, se muestra la función de las probabilidades acumuladas de "P" y "pl".
+
+```{r}
+x <- 1:60
+
+plot(pbinom(x, size = 60, prob = p), type = "s", lwd = 2,
+     main = "Función de distribución binomial Acumulada",
+     xlab = "Número de éxitos", ylab = "F(x)")
+
+
+lines(pbinom(x, size = 60, prob = 0.57), type = "s",
+      lwd = 2, col = 3)
+
+legend("bottomright", legend = c("60  0.38", "60  0.57"),
+       title = "n     p", title.adj = 0.85,
+       lty = 1, col = c(1,3), lwd = 2, box.lty = 0)
+
+```
+**Gráfica de los cantilies por probailidad**, se muestra la distribuición de cada probabilidad por cuantiles.
+
+```{r}
+plot(qbinom(seq(0, 1, 0.001), size = 60, prob = p),
+     main = "Función binomial cuantil",
+     ylab = "Q(p)", xlab = "p",
+     type = "s", col = 3, xaxt = "n")
+axis(1, labels = seq(0, 1, 0.1), at = 0:10 * 100)
+
+# size = 80, prob = 0.3
+lines(qbinom(seq(0, 1, 0.001), size = 80, prob = 0.57), type = "s", col = 2)
+
+legend("topleft", legend = c("60  0.38", "60  0.57"),
+       title = "n     p", title.adj = 0.85,
+       lty = 1, col = c(3,2), lwd = 2, box.lty = 0)
+```
+
+
+
+
+
+

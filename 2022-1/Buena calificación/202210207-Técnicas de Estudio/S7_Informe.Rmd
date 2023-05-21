@@ -1,0 +1,1047 @@
+---
+title: "S7_Informe"
+author: "S7 Técnicas de estudio"
+date: "24-06-2022"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+    theme: journal
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: journal
+  pdf_document:
+    toc: yes
+---
+
+```{r, echo=FALSE}
+library("pacman")
+p_load(fitdistrplus, readr, dplyr, corrplot, ggplot2, tidyr, lubridate, scales, multimode)
+select <- dplyr::select
+filter <- dplyr::filter
+```
+
+# Introducción
+
+<h3>Análisis de las técnicas de estudio empleadas por los estudiantes de UTEC por medio de una encuesta.</h3>
+
+
+## Relevancia
+
+Según evidencia anecdótica, los estudiantes de UTEC, en su mayoría, estudian leyendo repetidas veces su material de estudio. Sin embargo, la psicología de la educación ha demostrado que la práctica de la recuperación (_retrieval learning_), acompañada de la repetición espaciada (_spaced repetition_), es la técnica de estudio más eficiente, minimizando el tiempo requerido y maximizando el aprendizaje a largo plazo (Karpicke & Roediger, 2008).
+
+
+## Objetivo del estudio
+
+Al final del estudio se espera determinar las técnicas de estudio más utilizadas por los estudiantes en UTEC, su relación con sus promedios y su conocimiento de estrategias de estudio eficientes como la práctica de recuperación espaciada. En base a esta información se espera poder hacer una sugerencia sobre la necesidad de implementar un curso de técnicas y estrategias de estudio para estudiantes de primer ciclo en UTEC.
+
+
+## Planificación
+
+
+```{r, echo=FALSE}
+
+asGant <- function(datos){
+  
+  today <- Sys.Date()
+  typeof(today)
+  
+  gantDF$Start <- as.Date(gantDF$Start)
+  gantDF$End <- as.Date(gantDF$End)
+  typeof(gantDF$Start)
+  typeof(gantDF$End)
+  
+  gantLong <- gantDF %>% tidyr::pivot_longer(col = c(Start, End))
+  
+  diagram <- ggplot(gantLong, aes(x = value, y = Etapa, colour = Complete)) + geom_line(alpha = 0.5, size = 7)+
+    geom_label(aes(label = format(value, format = "%d %m")), vjust =0.5, angle = 45, size = 3, color = "black") +
+    theme_light()+
+    geom_vline(xintercept = today, color = "red", size = 1, alpha = 0.5) +
+    labs(title = "Diagrama de Gantt | Planeación", subtitle = "Planeación",  x = "Fechas", y = "Etapas")+
+    scale_color_manual(values = c("red", "blue"))+
+    theme(legend.position = "none")+
+    scale_x_date(name = "Fechas", 
+                 date_labels = "%d %m", 
+                 date_breaks = "1 week",
+                 minor_breaks = "1 day",)
+    
+    
+  return(diagram)
+}
+```
+
+
+```{r, echo=FALSE}
+gantDF <- data.frame(
+  "Etapa"    = c("Presentación y\n elección de proyecto", "Recolección de datos", "Limpieza de datos y\n manejo de datos faltantes", "Análisis descriptivo", "Entrega P1", "Incorporación de mejoras", "Análisis probabilístico"),
+  "Start"    = c("2022-03-25", "2022-04-09", "2022-04-23", "2022-04-30", "2022-05-04", "2022-05-09", "2022-05-21"),
+  "End"      = c("2022-04-08", "2022-04-22", "2022-04-29", "2022-05-04", "2022-05-06", "2022-05-20", "2022-06-24"),
+  "Complete" = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)
+)
+
+
+asGant(gantDF)
+```
+
+# Datos
+
+## Proceso de recoleccion de datos
+  
+Los datos se recolectaron a través de una encuesta que fue enviada a 4179 alumnos de la universidad.
+Se elaboró la encuesta a través de _Google Forms_ y se envió a los 4179 estudiantes por correo electrónico.
+Finalmente, para tener estos datos en un formato utilizable por R se descargó el archivo de respuestas en formato `.csv`.
+Se realizo de esta manera porque el formulario a través de _Google Forms_ es gratuito, permite restringir los dominios de las variables fácilmente y se puede compartir de manera sencilla por correo electrónico.
+La principal estrategia utilizada para llegar a la población fue por medio de un sorteo de 50 soles para incentivar a los alumnos a responder la encuesta.
+
+
+## Poblacion, muestra y muestreo
+
++ Población de estudio: Alumnos de pregrado de la UTEC.
+
++ Unidad muestral: Alumnos de pregrado de la UTEC que respondieron la encuesta.
+
++ Muestreo: Muestreo por conveniencia, pues nos basamos en una lista de 4179 correos electrónicos de alumnos de UTEC. Se enviaron correos a todos los alumnos de la lista y se obtuvo una muestra cuyo tamaño efectivo es de 214 observaciones; sin embargo, el tamaño efectivo de la muestra para algunas variables puede ser menor.
+
++ Representatividad: Se considera que la muestra es representativa de la población, pues es de un tamaño considerable en relación al tamaño que estimamos de la población (5000 alumnos); además, consideramos que no tiene ningún sesgo particular fuera de pertenecer o no a la lista de correos.
+
+## Descripción de las variables de estudio (Codebook)
+
+Tomando como referencia las principales técnicas de estudio identificadas por Karpicke, Butler y Roediger en su estudio _Metacognitive strategies in student learning: do students practise retrieval when they study on their own?_ dirigido en la _Washington State University_ en el año 2009, identificamos las variables de interés de nuestro estudio.
+
+| Variable | Tipo de variable | Descripción |
+|:---------|:----------------:|:------------|
+| `promedio` | Numérica continua |  Toma valores del intervalo [0, 20]. Representa el promedio del estudiante del último ciclo que cursó en la universidad. |
+| `sexo` |  Categórica nominal |  Toma valores del conjunto {M, N}. Representa el sexo del estudiante. |
+| `ciclo` | Numérica discreta | Toma valores discretos en el intervalo [1, 10]. Representa el ciclo actual del alumno, según su propio criterio. |
+| `n_cursos` | Numérica discreta | Toma valores discretos en el intervalo [1, 10]. Representa el número de cursos llevados por el estudiante en el último ciclo que cursó en la universidad. |
+| `carrera` | Categórica Nominal. | Toma valores del conjunto de carreras ofrecidas por UTEC. Representa la carrera del alumno. |   
+| `horas_estudio_dia` | Numérica continua | Toma valores en el intervalo [0, 24]. Representa el número aproximado de horas que estudia el estudiante cada día. |
+| `horas_sueno_dia` | Numérica continua | Toma valores en el intervalo [0, 24]. Representa el número aproximado de horas que duerme el estudiante cada día. |
+| `horas_deporte_dia` | Numérica continua | Toma valores en el intervalo [0, 24]. Representa el número aproximado de horas que dedica al deporte el estudiante cada día. |
+| `horas_videojuegos_dia` | Numérica continua | Toma valores en el intervalo [0, 24]. Representa el número aproximado de horas que el estudiante juega videojuegos cada día. |
+| `dias_desayuna` | Numérica discreta | Toma valores discretos en el intervalo [0, 7]. Representa el número de días en los que el estudiante desayuna. |
+| `dias_almuerza` | Numérica discreta | Toma valores discretos en el intervalo [0, 7]. Representa el número de días en los que el estudiante almuerza. |
+| `dias_cena` | Numérica discreta | Toma valores discretos en el intervalo [0, 7]. Representa el número de días en los que el estudiante cena. |
+| `toma_apuntes_ciencias` | Categórica nominal | Toma valores lógicos `TRUE` o `FALSE`. Representa si el estudiante toma apuntes del contenido de sus cursos de ciencias o parecidos. |
+| `toma_apuntes_humanidades` | Categórica nominal | Toma valores lógicos `TRUE` o `FALSE`. Representa si el estudiante toma apuntes del contenido de sus cursos de humanidades o parecidos. |
+| `tecnica_preferida_ciencias`  | Categórica nominal | Toma valores del conjunto de técnicas consideradas en el estudio (tomando solo las palabras clave de cada técnica): {Lectura Repetida, Practicar con Problemas, Flashcards, Reescribir Apuntes, Resaltar, Estudiar en Grupo, Ninguna Técnica, Ninguna de las Anteriores}. Representa la técnica más utilizada por el alumno en sus cursos de ciencias o parecidos. |
+| `horas_tecnica_preferida_ciencias`  | Numérica continua | Toma valores en el intervalo [0, 24]. Representa el número aproximado de horas en las que el estudiante utiliza su técnica preferida para estudiar cursos de ciencias o similares. |
+| `tecnica_preferida_humanidades`  | Categórica nominal | Toma valores del conjunto de técnicas consideradas en el estudio (tomando solo las palabras clave de cada técnica): {Lectura Repetida, Practicar con Problemas, Flashcards, Reescribir Apuntes, Resaltar, Estudiar en Grupo, Ninguna Técnica, Ninguna de las Anteriores}. Representa la técnica más utilizada por el alumno en sus cursos de humanidades o parecidos. |
+| `horas_tecnica_preferida_humanidades`  | Numérica continua | Toma valores en el intervalo [0, 24]. Representa el número aproximado de horas en las que el estudiante utiliza su técnica preferida para estudiar cursos de humanidades o similares. |
+| `utiliza_repeticion_espaciada` | Categórica nominal | Toma valores lógicos `TRUE` o `FALSE`. Representa si el estudiante utiliza o no la repetición espaciada. |
+| `utiliza_recuperacion_activa` | Categórica nominal | Toma valores lógicos `TRUE` o `FALSE`.. Representa si el estudiante utiliza o no la recuperación activa. |
+| `considera_curso_ayuda` |  Categórica nominal | Toma valores lógicos `TRUE` o `FALSE`. Representa si el estudiante considera que un curso de técnicas de estudio le hubiera ayudado a mejorar su promedio. |
+
+Total : 21 variables
+
+## Limpieza de datos
+
+### Politica de manejo de datos faltantes
+
+No se modificarán los datos faltantes.
+
+### Política de resolución de errores
+
+Se eliminarán por completo las observaciones que tengan dos o más errores obvios, por ser poco razonables. No deberían haber muchas, pues la encuesta nos permitió establecer un dominio razonable para el valor de nuestras variables. Sin embargo, al permitir ingresar valores entre 0 y 24 para el número de horas que el estudiante hace ejercicio en el día, por ejemplo, podrían haber valores poco razonables como una persona que hace 24 horas de ejercicio al día.
+
+Luego, si hay errores obvios en alguna de las variables, se reemplazarán por `NA`.
+
+### Limpieza
+
+```{r}
+fname <- "tecnicas_de_estudio_final.csv"
+DF <- read_csv(fname)
+```
+
+Primero prescindimos de aquellas variables que no son objeto de nuestro estudio.
+
+```{r}
+DF %>% select(-`Marca temporal`, -`Nombre de usuario`) -> DF
+```
+
+
+Renombraremos las variables para que tengan los nombres que se describen en la tabla.
+
+```{r}
+names(DF) <- c("ciclo", "n_cursos", "carrera", "sexo", "promedio", "horas_sueno_dia", "horas_deporte_dia", "horas_videojuegos_dia", "dias_desayuna", "dias_almuerza", "dias_cena", "toma_apuntes_ciencias", "toma_apuntes_humanidades", "tecnica_preferida_ciencias", "horas_tecnica_preferida_ciencias", "tecnica_preferida_humanidades", "horas_tecnica_preferida_humanidades", "horas_estudio_dia", "utiliza_repeticion_espaciada", "utiliza_recuperacion_activa", "considera_curso_ayuda")
+```
+
+
+Ahora arreglamos el promedio, que se leyó incorrectamente como `chr`.
+
+```{r}
+DF$promedio <- as.numeric(DF$promedio)
+```
+
+Limpiamos las variables `tecnica_preferida_ciencias` y `tecnica_preferida_humanidades`, resumiendo su significado en una sola palabra y reemplazando el valor `"Ninguna de las anteriores"` por `NA`.
+
+```{r}
+Respuestas <- c("Leer repetidas veces el material de estudio (leer y re-leer varias veces hasta memorizarlo todo)", "Practicar con problemas", "Utilizar flashcards (tarjetas didácticas)", "Reescribir apuntes (volver a escribir los apuntes hechos durante clase para recordar)", "Resaltar (leer una vez y resaltar las ideas principales del texto, luego repasar sobre lo resaltado)", "Estudiar en grupo", "No utilizo ninguna técnica de estudio", "Ninguna de las anteriores")
+Valores <- c("Leer", "Problemas", "Flashcards", "Reescribir", "Resaltar", "Grupo", "Ninguna")
+DF$tecnica_preferida_ciencias <- factor(DF$tecnica_preferida_ciencias, levels=Respuestas, labels=Valores, exclude="Ninguna de las anteriores")
+DF$tecnica_preferida_humanidades <- factor(DF$tecnica_preferida_humanidades, levels=Respuestas, labels=Valores, exclude="Ninguna de las anteriores")
+```
+
+
+```{r}
+ToLogical <- function(columna){
+  columna[columna == "Sí"] <- TRUE
+  columna[columna == "No"] <- FALSE
+  columna <- as.logical(columna)
+  return(columna)
+}
+```
+
+
+```{r}
+DF$toma_apuntes_ciencias <- ToLogical(DF$toma_apuntes_ciencias)
+DF$toma_apuntes_humanidades <- ToLogical(DF$toma_apuntes_humanidades)
+DF$utiliza_recuperacion_activa <- ToLogical(DF$utiliza_recuperacion_activa)
+DF$utiliza_repeticion_espaciada <- ToLogical(DF$utiliza_repeticion_espaciada)
+DF$considera_curso_ayuda <- ToLogical(DF$considera_curso_ayuda)
+```
+
+
+Limpiamos las variables `horas_estudio_dia`, `horas_sueno_dia`, `horas_deporte_dia`, `horas_videojuegos_dia`, `horas_tecnica_preferida_ciencias` y `horas_tecnica_preferida_humanidades`.
+
+Consideramos poco razonable un valor en estas si este es mayor a 20 horas.
+
+```{r}
+DF %>% filter(horas_estudio_dia > 20 | horas_sueno_dia > 20 | horas_deporte_dia > 20 | horas_videojuegos_dia > 20 | horas_tecnica_preferida_ciencias > 20 | horas_tecnica_preferida_humanidades > 20)
+```
+
+Vemos que solo hay un caso poco razonable, pues duerme y hace deporte 24 horas al día, lo cuál es contradictorio.
+
+Se entiende que esta persona no llenó la encuesta a conciencia, por lo que se eliminará esta observación.
+
+```{r}
+DF %>% filter(horas_estudio_dia > 20 | horas_sueno_dia > 20 | horas_deporte_dia > 20 | horas_videojuegos_dia > 20 | horas_tecnica_preferida_ciencias > 20 | horas_tecnica_preferida_humanidades > 20) %>% setdiff(x=DF) -> DF
+```
+
+Una vez eliminada esta observación, se considera la base de datos final como _limpia_, pues bajo nuestra política de resolución de errores, hemos eliminado las observaciones con dos o más errores obvios y no hemos encontrado errores obvios en alguna otra variable que requieran reemplazar su valor por `NA`.
+
+Exportamos esta base de datos para utilizarla en nuestra presentación.
+
+```{r}
+write_csv(DF, "tecnicas_de_estudio_clean.csv")
+```
+
+
+# Análisis descriptivo
+
+Antes de pasar al análisis, definiremos algunas funciones que nos van a resultar útiles.
+
+```{r}
+CV <- function(x, na.rm=FALSE) {
+  return (sd(x, na.rm=na.rm) / mean(x, na.rm=na.rm))
+}
+```
+
+
+```{r}
+Moda <- function(x) {
+  return (table(x)[which.max(table(x))])
+}
+```
+
+```{r}
+R <- function(x) {
+  return (round(x, digits=2))
+}
+```
+
+```{r}
+Describir <- function(x) {
+  return (c("Min"=min(x, na.rm=TRUE),"Max"=max(x, na.rm=TRUE),"Media"=mean(x, na.rm=TRUE), "Mediana"=median(x, na.rm=TRUE), "Desviación Estándar"=sd(x, na.rm=TRUE), "Coeficiente de Variación"=CV(x, na.rm=TRUE), "Rango Intercuartil"=IQR(x, na.rm=TRUE)) %>% R)
+}
+```
+
+
+## Análisis de `ciclo`
+
+Analicemos la siguiente variable numérica discreta.
+
+Usaremos un gráfico de barras donde se visualiza de mejor manera la distribución de los alumnos en los diferentes ciclos académicos.
+
+```{r}
+barplot(table(DF$ciclo)/nrow(DF),ylab = "Frecuencia relativa",xlab = "Ciclo",ylim=c(0,0.4),main = "Ciclo que estás cursando actualmente", col="lightblue")
+```
+
+De acuerdo con la gráfica podemos observar que la mayor parte de los estudiantes son de segundo ciclo. Ademas que los números de estudiantes del 3 al 7 ciclo que respondieron la encuesta se encuentran en niveles similares.
+
+## Analisis de `n_cursos`
+
+Analicemos la siguiente variable numérica discreta.
+
+```{r}
+DF$n_cursos %>% Describir
+```
+
+Como se puede observar, existen estudiantes que se encuentran llevando entre 1 a 10 cursos durante el ciclo.
+
+```{r}
+hist(DF$n_cursos,ylab = "Frecuencia relativa",xlab = "Número de cursos", main = "Numero de cursos que llevaron los alumnos el ciclo pasado ", col="lightblue", probability=TRUE, breaks=(min(DF$n_cursos):(max(DF$n_cursos) + 1)) - 0.5)
+abline(v=c( median(DF$n_cursos, na.rm=TRUE)), col=c( "blue"), lwd=c(2))
+legend("topright", legend=c("Mediana"), col=c( "blue"), lwd=2)
+```
+
+La distribución esta sesgada hacia la izquierda como se puede visualizar en el gráfico.
+
+## Análisis de `carrera`
+
+Analicemos la siguiente variable categórica nominal.
+
+```{r}
+par(mar=c(10,4,4,2))
+barplot(sort(table(DF$carrera)/nrow(DF), decreasing=TRUE),ylab = "Frecuencia relativa",cex.names=0.6, las=2,main = "Carrera que está estudiando", col="lightblue")
+```
+
+Hay pocas personas de las carreras de Ciencia de Datos y Administración y Negocios Digitales, lo cuál es de esperarse pues es una carrera nueva.
+
+## Análisis de `sexo`
+
+Analicemos la siguiente variable categórica nominal.
+
+```{r}
+barplot(table(DF$sexo)/nrow(DF[!is.na(DF$sexo),]), ylab = "Frecuencia relativa", xlab = "Genero", main = "Genero de los estudiantes", col="lightblue")
+```
+
+La proporción de hombres es mayor a la de mujeres. Según evidencia anecdótica, esto coincide con la proporción de hombres y mujeres en la población.
+
+## Análisis de `horas_videojuegos_dia`
+  
+Analicemos esta variable numérica continua.
+  
+¿Cuántas horas al día suelen jugar videojuegos los alumnos de la UTEC?
+
+```{r}
+DF$horas_videojuegos_dia %>% Describir
+```
+  
+Tal parece que en promedio suelen jugar 1.17 horas al día. Este resultado nos sorprendió un poco, ya que teniendo en cuenta que los videojuegos se encuentran en su apogeo, esperábamos que el promedio fuera un poco más alto, de unas dos horas aproximadamente.
+  
+Utilicemos el histograma para observar la media y la forma de la variable
+
+```{r}
+hist(DF$horas_videojuegos_dia, xlab="Horas dedicadas", ylab="Frecuencia relativa", probability = TRUE, main="Horas dedicadas a jugar videojuegos durante el dia", col="lightblue")
+abline(v=c(mean(DF$horas_videojuegos_dia, na.rm=TRUE)), col=c("red"), lwd=c(2))
+legend("topright", legend=c("Media"), col=c("red"), lwd=2)
+```
+
+Se puede observar en la gráfica que está sesgada hacia la derecha, la mayoría de alumnos sólo juegan entre 0 y 1 hora al día. Con esto concluimos que los videojuegos no forman parte importante del día a día de los alumnos.
+
+## Análisis de `promedio`
+
+Veamos como se distribuyen los promedios de los estudiantes.
+
+```{r}
+hist(DF$promedio, main="Promedio de los estudiantes", breaks=(min(DF$promedio):(max(DF$promedio) + 1)) - 0.5, xlab="Promedio", ylab="Frecuencia relativa", probability=TRUE, col="orange3")
+abline(v=mean(DF$promedio), col="red", lwd=2)
+abline(v=median(DF$promedio), col="blue", lwd=2)
+legend("topright", legend=c("Media", "Mediana"), col=c("red", "blue"), lwd=2)
+```
+
+Los promedios parecen tener una forma acampanada, con media y mediana cercanas, lo cuál sugiere que la distribución es aproximadamente simétrica. Asimismo, se observa un promedio de 0. Podría ser un error, o una persona que el anterior ciclo se retiró de todos sus cursos, y por lo tanto, no tuvo calificaciones.
+
+
+## Análisis de `toma_apuntes_ciencias`
+
+Veamos una tabla de frecuencias relativas de esta variable.
+
+```{r}
+table("Toma apuntes ciencias"=DF$toma_apuntes_ciencias, useNA = "ifany") / nrow(DF)
+```
+
+Como se puede notar, casi el 90% de los estudiantes toma apuntes para sus cursos de ciencias, mientras que un 10% aproximadamente no lo hace.
+
+`Promedio` con respecto a `toma_apuntes_ciencias`
+
+```{r, warning=FALSE}
+boxplot(DF$promedio~DF$toma_apuntes_ciencias, col="lightgreen", main="Boxplot de promedio vs. toma apuntes ciencias", ylab="Promedio", xlab="Toma apuntes en cursos de ciencias")
+```
+
+A partir de las gráficas podemos ver que se espera que una persona que apunta en los cursos de ciencias, obtenga un promedio aproximado a 15 puntos. Sin embargo, a pesar de que la muestra indica que las personas que no apuntan corresponde a un número mucho menor, se puede ver y esperar que quien no apunte, obtenga puntajes mayores que quienes si apuntan. Es necesario mencionar que este resultado podría ser posible debido a otros factores que influyen en las variables. Estos factores pueden comprender otras técnicas posiblemente más eficientes, o incluso que la persona que no apunta pueda tener mejores capacidades para recordar o entender los cursos de ciencias.
+
+## Analisis de la variable `toma_apuntes_humanidades`
+
+Hagamos una tabla de frecuencias relativas.
+
+```{r}
+table("Toma apuntes humanidades"=DF$toma_apuntes_humanidades, useNA = "ifany") / nrow(DF)
+```
+
+Contrario a lo que se pudo observar en los cursos de ciencias, para los cursos de humanidades la mayoría de estudiantes no realizan apuntes. Esto se puede deber a diversos factores, teniendo en cuenta que las carreras se basan en ciencias e ingeniería.
+
+
+`Promedio` con respecto a `toma_apuntes_humanidades`
+
+```{r}
+boxplot(DF$promedio~DF$toma_apuntes_humanidades, col="lightblue", main="Boxplot de promedio vs. toma apuntes humanidades", ylab="Promedio", xlab="Toma apuntes en cursos de humanidades")
+```
+
+De acuerdo a las gráficas se puede ver que, contrario a los cursos de ciencias, se espera que los que toman apuntes y los que no, tengan promedios similares. 
+
+## Análisis de `toma_apuntes_ciencias` y `toma_apuntes_humanidades`
+
+Veamos la relación entre estas dos variables categóricas nominales mediante un gráfico de mosaico.
+
+```{r}
+mosaicplot(table(Ciencias=DF$toma_apuntes_ciencias, Humanidades=DF$toma_apuntes_humanidades), main="Toma de apuntes en cursos de ciencias y humanidades", col="lightyellow")
+```
+
+Se observan 2 tendencias:
+
+1. Hay un poco más de alumnos que toman apuntes en cursos de ciencias y no en cursos de humanidades que alumnos que toman apuntes en cursos de ciencias y cursos de humanidades, probablemente por cuestiones de tiempo.
+
+2. Es muy baja la proporción de estudiantes que suelen tomar apuntes exclusivamente en cursos de humanidades.
+
+Estas conclusiones de la gráfica tienen sentido puesto que en la universidad hay más cursos de ciencias que de humanidades. Al ser más, tienen una mayor influencia en el promedio final del estudiante, lo que puede llevarlo a priorizar sus apuntes en cursos de ciencias.
+
+## Análisis de `promedio` y `horas_videojuegos_dia`
+
+Para analizar estas dos variables numéricas utilizaremos un diagrama de dispersión
+
+
+```{r}
+plot(DF$horas_videojuegos_dia, DF$promedio,main = "Promedio vs Horas de juego", xlab = "Horas de juego", ylab = "Promedio", pch = 20, col = rgb(0, 0, 0, 0.2))
+abline(v = mean(DF$horas_videojuegos_dia, na.rm = TRUE), col = "cyan", lwd = 2)
+abline(h = mean(DF$promedio, na.rm = TRUE), col = "cyan", lwd = 2)
+abline(lm(DF$promedio ~ DF$horas_videojuegos_dia), col = "red", lwd = 2)
+legend("bottomright", legend = c("Promedios", "Tendencia"), col = c("cyan", "red"), lty = 1, lwd = 2)
+```
+
+Al analizar la tendencia nos podemos dar cuenta que la correlación tiende a ser 0, por lo que podemos deducir que no hay un impacto entre las horas que los alumnos le dedican a los videojuegos y sus promedios finales. Esto también podemos verlo con claridad en las 0 horas de juego, dónde a pesar de ser todos alumnos que no gastan su tiempo en esta actividad, hay una gran variedad de promedios.
+
+## Análisis de `horas_estudio_dia` y `horas_videojuegos_dia`
+
+Podremos observar la relación que existe entre el numero de cursos que lleva cada estudiante con las horas de videojuegos que le dedican a diario.
+
+```{r}
+plot(DF$horas_estudio_dia, DF$horas_videojuegos_dia, xlab="Horas de estudio por día", ylab="Horas de juego por día", main="Relación entre horas de estudio y horas de juego", col= rgb(0,0,0,0.3))
+abline(lm(DF$horas_videojuegos_dia ~ DF$horas_estudio_dia), col="red", lwd=2)
+```
+
+Como se puede apreciar en la gráfica, la mayoría de estudiantes que le dedican un mayor tiempo a estudiar, juegan en menor tiempo a comparación de los estudiantes con menos horas de estudio.
+
+## Análisis de `tecnica_preferida_humanidades`
+
+Analicemos la siguiente variable categórica nominal.
+
+¿Cuál es la técnica de estudio más empleada por los estudiantes de UTEC en sus cursos de humanidades o similares?
+
+```{r}
+Moda(DF$tecnica_preferida_humanidades)
+```
+
+Al parecer, la técnica más utilizada es releer repetidas veces el material de estudio. Es de esperarse pues es una técnica fácil de usar.
+
+Utilicemos un gráfico de barras para observar la distribución de técnicas de estudio.
+
+```{r}
+barplot(sort(table(DF$tecnica_preferida_humanidades) / nrow(DF[!is.na(DF$tecnica_preferida_humanidades),]), decreasing=TRUE)
+, cex.names = 0.7, ylab="Frecuencia relativa", xlab="Técnica de estudio", main="Uso de técnicas de estudio para cursos de humanidades", col="lightblue")
+```
+
+Se observa que la cantidad de estudiantes que no utilizan ninguna técnica de estudio para cursos de humanidades es relativamente elevada en comparación a los cursos de ciencias. Por otro lado, también podemos observar que las 3 técnicas mas utilizadas para cursos de humanidades son Leer repetidas veces, resaltar el material y reescribir apuntes.
+
+## Análisis de `horas_tecnica_preferida_humanidades`
+
+Ahora analizaremos esta variable numérica continua.
+
+De esta variable puede ser interesante conocer la forma de su distribución y sus descriptores numéricos de posición.
+
+Veamos su forma y descriptores de posición por medio de un histograma.
+
+```{r}
+hist(DF$horas_tecnica_preferida_humanidades, xlab="Horas dedicadas", ylab="Frecuencia relativa", probability = TRUE, main="Horas dedicadas a la técnica de humanidades preferida del estudiante", col="lightblue")
+abline(v=c(mean(DF$horas_tecnica_preferida_humanidades, na.rm=TRUE), median(DF$horas_tecnica_preferida_humanidades, na.rm=TRUE)), col=c("red", "blue"), lwd=c(2,2))
+legend("topright", legend=c("Media", "Mediana"), col=c("red", "blue"), lwd=2)
+```
+
+Se observa una distribución claramente unimodal donde la clase modal es [0,1>. Esto quiere decir que la mayoría de estudiantes suele dedicar entre 0 a 1 horas a estudiar cursos de humanidades con su técnica preferida. Además, la distribución es sesgada a la derecha, lo que quiere decir que son menos los estudiantes que estudian más horas utilizando su técnica preferida en cursos de humanidades.
+
+
+## Análisis de `utiliza_repeticion_espaciada`
+
+De esta variable categórica ordinal nos puede interesar hacer una tabla de frecuencias relativa.
+
+```{r}
+table("Repetición Espaciada"=DF$utiliza_repeticion_espaciada, useNA = "ifany") / nrow(DF)
+```
+
+Como podemos apreciar, aproximadamente un tercio de todos los estudiantes utiliza repetición espaciada y dos tercios no la utilizan.
+
+## Análisis de `utiliza_recuperacion_activa`
+
+Para esta variable, también haremos una tabla de frecuencias relativas.
+
+```{r}
+table("Recuperación Activa"=DF$utiliza_recuperacion_activa, useNA = "ifany") / nrow(DF)
+```
+
+Los resultados son muy similares al caso anterior, solo que en este caso más de un tercio de estudiantes utilizan la recuperación activa. 
+
+
+## Análisis de `considera_curso_ayuda`
+
+Veamos que opinan los estudiantes sobre la creación de un curso de técnicas de técnicas de estudio.
+¿Consideran que un curso así sería favorable para su promedio?
+Hagamos la tabla de frecuencias relativas de esta variable.
+
+```{r}
+table(DF$considera_curso_ayuda, useNA = "ifany") / nrow(DF)
+```
+
+Vemos que hay una gran cantidad de datos faltantes; sin embargo, si consideramos solo aquellos que sí respondieron la pregunta obtenemos lo siguiente:
+
+```{r}
+table(DF$considera_curso_ayuda) / nrow(DF[!is.na(DF$considera_curso_ayuda),])
+```
+
+La gran mayoría de estudiantes consideran que un curso de técnicas de estudio les hubiera ayudado a mejorar sus promedios.
+
+## Análisis de `utiliza_recuperacion_activa` y `utiliza_repeticion_espaciada`
+
+Podríamos ver si los estudiantes tienden a usar estas técnicas en conjunto o no.
+
+```{r}
+Tabla <- table("Recuperación"=DF$utiliza_recuperacion_activa, "Repetición"=DF$utiliza_repeticion_espaciada, useNA = "ifany") / nrow(DF)
+Tabla
+```
+
+Parece no ser el caso. Un 20% de los estudiantes utilizan la Repetición Espaciada, mas no la Recuperación, y un 15% utiliza la Recuperación Activa, más no la repetición espaciada. Casi la mitad de estudiantes no utiliza ninguna de las dos técnicas.
+
+Veamos el rendimiento de aquellos estudiantes que utilizan la Recuperación Espaciada (ambas técnicas) en comparación de aquellos que no utilizan las dos técnicas juntas.
+
+```{r}
+ylim <- c(min(DF$promedio), max(DF$promedio))
+op <- par(mfrow=c(1,2))
+PromUtiliza <- DF$promedio[DF$utiliza_recuperacion_activa & DF$utiliza_repeticion_espaciada]
+PromNoUtiliza <- DF$promedio[!(DF$utiliza_recuperacion_activa & DF$utiliza_repeticion_espaciada)]
+boxplot(PromUtiliza, main="Recuperación Espaciada", ylim=ylim, ylab="Promedio", varwidth=TRUE, col="lightblue3")
+boxplot(PromNoUtiliza, main="No Recuperación Espaciada", ylim=ylim, ylab="Promedio", varwidth=TRUE, col="pink3")
+```
+
+La tendencia es contraria a lo que se espera en términos del nivel de los promedios, pues esperábamos que aquellos que utilizan repetición espaciada tuviesen promedios más altos según sugieren los estudios de Karpicke y Roediger. Una de las posibles explicaciones es que los estudiantes estén aplicando incorrectamente la técnica, sea porque le dedican poco tiempo o porque creen que están utilizando Recuperación Activa cuando en realidad no la están utilizando. Otra posible explicación, aunque menos probable, es que los promedios de los estudiantes en UTEC no se relacionen directamente con el aprendizaje que obtienen en los cursos.
+
+Asimismo, algo que llama la atención de la gráfica es la diferencia en la variabilidad, pues parece que los estudiantes que utilizan repetición espaciada obtienen promedios más cercanos a la mediana, lo que quiere decir que obtienen notas cercanas a 15 de manera más consistente.
+
+Analicemos y comparemos los descriptores numéricos de los promedios categorizados por utilización de recuperación espaciada.
+
+```{r}
+PromUtiliza %>% Describir
+```
+```{r}
+PromNoUtiliza %>% Describir
+```
+
+Al parecer, hay una diferencia considerable en el rango intercuartil, y ligera en la desviación estándar y el coeficiente de variación, lo que parece indicar que los estudiantes que utilizan recuperación espaciada obtienen promedios cercanos a 15 de manera consistente.
+
+## Análisis de `utiliza_recuperacion_activa` y `promedio`
+
+Veamos si la utilización de técnicas de recuperación activa se relacionan con promedios más altos.
+
+Un _boxplot_ indexado nos puede ayudar.
+
+```{r}
+boxplot(DF$promedio ~ DF$utiliza_recuperacion_activa, xlab="Utiliza Recuperación Activa", ylab="Promedio", main="Promedio explicado por utilizar Recuperación Activa", col="pink")
+```
+
+Se observa algo interesante. Pareciera que hay menor variabilidad en las notas de aquellos que utilizan Recuperación Activa. Veámoslo a mayor detalle con ayuda de algunos descriptores numéricos.
+
+```{r}
+DF$promedio[DF$utiliza_recuperacion_activa] %>% Describir
+```
+
+```{r}
+DF$promedio[!DF$utiliza_recuperacion_activa] %>% Describir
+```
+
+Se observa que la media de promedios de aquellos que no utilizan Recuperación Activa es mayor, incluso habiendo alguien con promedio cero en aquellos que no utilizan la técnica. Además, por lo visto, la alta variabilidad del segundo caso puede verse explicada por el valor atípico de promedio 0. Pareciera que aquellos que utilizan la Recuperación Activa tienen suelen tener promedios ligeramente menores. Una posible explicación para este extraño fenómeno podría ser que los estudiantes que creen utilizar Recuperación Activa la están aplicando o sin repetición o de manera incorrecta.
+
+## Análisis de `utiliza_repeticion_espaciada` y `promedio`
+
+Ahora veamos estas dos variables.
+
+```{r}
+boxplot(DF$promedio ~ DF$utiliza_repeticion_espaciada, xlab="Utiliza Repetición Espaciada", ylab="Promedio", main="Promedio explicado por utilizar Repetición Espaciada", col="pink")
+```
+
+Parece que los promedios de aquellos que utilizan Repetición Espaciada suelen ser mayores, pues el $Q_3$ de estos es mayor y el bigote superior se extiende más. Analicemos algunos descriptores numéricos.
+
+```{r}
+DF$promedio[DF$utiliza_repeticion_espaciada] %>% Describir
+```
+
+```{r}
+DF$promedio[!DF$utiliza_repeticion_espaciada] %>% Describir
+```
+
+Vemos que la media es menor en aquellos que no utilizan repetición espaciada. Quitemos el dato atípico del 0, pues es poco probable que alguien tenga ese promedio, y veamos que ocurre.
+
+```{r}
+DF$promedio[!DF$utiliza_repeticion_espaciada & DF$promedio != 0] %>% Describir
+```
+
+Ahora ha subido la media y se ha reducido la variabilidad de los datos; sin embargo, ahora que eliminamos el dato que distorsionaba la media, parece haber una mejora real de los promedios en aquellos que sí utilizan Repetición Espaciada.
+Entonces podemos concluir que aquellos que utilizan Repetición Espaciada tienden a tener promedios ligeramente más altos.
+
+
+## Análisis de `tecnica_preferida_ciencias`
+
+Utilicemos un gráfico de barras para observar la distribución de técnicas de estudio.
+
+```{r}
+barplot(sort(table(DF$tecnica_preferida_ciencias) / nrow(DF[!is.na(DF$tecnica_preferida_ciencias),]), decreasing=TRUE)
+, cex.names = 0.7, ylab="Frecuencia relativa", xlab="Técnica de estudio", main="Uso de técnicas de estudio para cursos de ciencias", col="lightgreen")
+```
+
+La técnica más usada a primera vista son los problemas. Se puede observar una gran diferencia entre la cantidad de estudiantes que utilizan esta técnica en comparación a las demás, lo cuál puede indicarnos acerca de su eficacia.
+
+
+## Análisis de `promedio` y `tecnica_preferida_ciencias`
+
+Veamos si hay una relación entre estas dos variables. Suponemos que la hay, ya que hay técnicas más eficientes que otras. Y suponemos que, al haber más cursos de ciencias que de humanidades, el promedio se verá más afectado.
+
+Un _boxplot_ indexado nos va a ayudar a observar mejor esto. Utilizaremos el _boxplot_ con ancho variable para detectar aquellas técnicas de estudio con pocas observaciones y analizarlas con mayor cuidado.
+
+```{r}
+boxplot(DF$promedio ~ DF$tecnica_preferida_ciencias, ylab="Promedio del último ciclo", xlab="Técnica preferida para cursos de ciencias", main="Promedio explicado por técnica preferida de ciencias", cex.axis=0.7, col="lightgreen", varwidth=TRUE)
+```
+
+Lo primero que destaca a la vista es que hay mucha variabilidad en la técnica de Resaltado para ciencias. Por la anchura, podemos pensar que es por el bajo número de observaciones. Veamos si esto es cierto.
+
+```{r}
+table(DF$tecnica_preferida_ciencias)
+```
+
+Solo hay 2 personas con resaltar como técnica preferida, por lo tanto, el rango intercuartil se puede mover fácilmente cambiando cualquiera de los 2 valores.
+
+Podríamos concluir que Practicar con Problemas y Estudiar en Grupo suelen tener mejores resultados que Reescribir apuntes para los cursos de ciencias.
+
+
+## Análisis de  `horas_tecnica_preferida_ciencias`
+
+Nos interesa saber cuántas horas dedican los alumnos a estudiar sus cursos de ciencias con su técnica preferida.
+
+```{r}
+hist(DF$horas_tecnica_preferida_ciencias, breaks=(min(DF$horas_tecnica_preferida_ciencias):(max(DF$horas_tecnica_preferida_ciencias)+1)), xlab="Horas dedicadas", ylab="Frecuencia relativa", probability = TRUE, main="Horas dedicadas a la técnica de ciencias preferida del estudiante", col="lightgreen")
+abline(v=c(mean(DF$horas_tecnica_preferida_ciencias, na.rm=TRUE), median(DF$horas_tecnica_preferida_ciencias, na.rm=TRUE)), col=c("red", "blue"), lwd=c(1,1))
+legend("topright", legend=c("Media", "Mediana"), col=c("red", "blue"), lwd=1)
+```
+
+Aquí se observa una diferencia clara entre los valores, siendo que la media se encuentra en el intervalo [3,4> y la mediana en 3. Esto significa que la mitad de los estudiantes estudian al menos tres horas al día sus cursos de ciencias con su técnica preferida.
+
+
+## Correlación entre variables numéricas
+
+Para evaluar la posible relación entre variables numéricas, podemos usar la librería `corrplot`, para mostrar gráficamente la matriz de correlación.
+
+```{r}
+DFCORR <- DF %>% select(promedio, n_cursos, horas_estudio_dia, horas_sueno_dia, horas_deporte_dia, horas_videojuegos_dia, horas_tecnica_preferida_ciencias, horas_tecnica_preferida_humanidades, dias_desayuna, dias_cena, dias_almuerza)
+```
+
+```{r}
+corrplot(cor(DFCORR, use = "complete.obs"), tl.cex = 0.6, tl.srt = 45, tl.col = "black")
+```
+
+De este gráfico podemos sacar las siguientes conclusiones:
+
+1. Hay una elevada correlación positiva entre `horas_tecnica_preferida_ciencias` y `horas_estudio_dia`; que de acuerdo al gráfico es más intensa que la correlación entre `horas_tecnica_preferida_humanidades` y `horas_estudio_dia`. De esto, podemos concluir que los estudiantes dedican más horas a estudiar los cursos de ciencias con su técnica preferida que a los cursos de humanidades, lo cual puede significar dos cosas: o bien que los estudiantes suelen utilizar técnicas más variadas para los cursos de humanidades, o bien que los estudiantes dedican más horas a estudiar cursos de ciencias que de humanidades. La última alternativa parece razonable, pues al tratarse de una universidad de ingeniería, los estudiantes tienen que dedicar más horas a estudiar ciencias que a estudiar humanidades por el hecho de que llevan más cursos de ciencias que de humanidades. Aunque no podemos descartar la primera alternativa.
+
+2. Hay una correlación negativa entre `horas_tecnica_preferida_humanidades` y `promedio`. Esto puede deberse a las mismas razones que la anterior conclusión.
+
+3. Hay una correlación negativa entre `horas_videojuegos_dia` y `n_cursos`. Una posible explicación es que aquellos que llevan menos cursos tienen más tiempo para jugar videojuegos.
+
+# Análisis probabilístico
+
+Ahora realizaremos el análisis de nuestras variables relevantes en términos de las probabilidades de los distintos eventos que estas representan.
+
+## Análisis de `promedio` y `horas_estudio_dia`
+
+Calculemos algunas probabilidades relevantes de la relación entre estas variables.
+
+**¿Cuál es la probabilidad condicional de obtener un promedio mayor a la media dado que un estudiante estudió más que la media?**
+
+Sea $P$ el promedio y $E$ las horas de estudio por día de un estudiante, eliminando observaciones incompletas y posibles errores:
+
+```{r}
+Cond <- !is.na(DF$promedio) & DF$promedio != 0 & !is.na(DF$horas_estudio_dia)
+P <- DF$promedio[Cond]
+E <- DF$horas_estudio_dia[Cond]
+n <- nrow(DF[Cond, ])
+```
+
+**Nota:** Para que el cálculo de nuestras probabilidades tenga sentido, hemos tenido que filtrar las variables para considerar solo los casos en los que ambas variables están definidas.
+
+```{r}
+MediaP <- mean(P)
+MediaE <- mean(E)
+```
+
+Esta pregunta equivale a:
+
+$$\mathbb{P}(P > `r MediaP` \ | \ E > `r MediaE`)=\frac{\mathbb{P}(P > `r MediaP` \ \cap \ E > `r MediaE`)}{\mathbb{P}(E > `r MediaE`)}$$
+
+Utilizando la definición de probabilidad condicional, y teniendo en cuenta que nuestro experimento aleatorio consiste en sacar a una persona de un subconjunto de la muestra que satisface cierta condición en la que todos tienen la misma probabilidad de ser escogidos, podemos calcular esta probabilidad como sigue:
+
+```{r}
+(sum((P > MediaP) & (E > MediaE)) / n) / (sum(E > MediaE) / n)
+```
+Un estudiante que estudió más que la media tiene aproximadamente $55.56\%$ de probabilidad de sacar un promedio mayor a la media.
+
+Siguiendo la línea de razonamiento anterior, nos preguntamos:
+
+**¿Cuál es la probabilidad condicional de obtener un promedio mayor a la media dado que un estudiante estudió menos o igual que la media?**
+
+```{r}
+((sum((P > MediaP) & (E <= MediaE)) / n) / (sum(E <= MediaE) / n))
+```
+Es más probable que un estudiante que estudió menos que la media saque un promedio mayor a la media. Esto puede deberse a que estudiar más o menos no necesariamente influye de manera directa en el promedio, como pudimos ver en el gráfico de correlación del análisis descriptivo.
+
+## Análisis de `promedio`, `utiliza_repeticion_espaciada` y `utiliza_recuperacion_activa`
+
+Para analizar este caso, consideraremos el promedio $P$ nuevamente, pero esta vez con diferentes condiciones. Asimismo, introduciremos la variable $U$, que representa los estudiantes que utilizan recuperación espaciada.
+
+```{r}
+U <- DF$utiliza_recuperacion_activa & DF$utiliza_repeticion_espaciada
+Cond <- !is.na(DF$promedio) & DF$promedio != 0 & !is.na(U)
+P <- DF$promedio[Cond]
+U <- U[Cond]
+n <- nrow(DF[Cond, ])
+```
+
+**Nota:** Para que el cálculo de nuestras probabilidades tenga sentido, hemos tenido que filtrar las variables para considerar solo los casos en los que ambas variables están definidas.
+
+```{r}
+MediaP <- mean(P)
+```
+
+
+**¿Cuál es la probabilidad condicional de obtener un promedio mayor a la media dado un estudiante utiliza recuperación espaciada?**
+
+Al igual que antes, nuestro espacio es equiprobable, pues cada persona tiene la misma probabilidad de ser elegida en el subconjunto que satisface cierta condición que tomamos de la muestra.
+
+La pregunta equivale a calcular la siguiente probabilidad:
+
+$$\mathbb{P}(P > `r MediaP` \ | \ U=TRUE)=\frac{\mathbb{P}(P > `r MediaP` \ \cap \ U=TRUE)}{\mathbb{P}(U=TRUE)}$$
+
+Aplicando la definición de probabilidad condicional:
+
+```{r}
+((sum((P > MediaP) & U) / n) / (sum(U) / n) )
+```
+Hay un $47.37\%$ de probabilidades de obtener un promedio mayor a la media dado que un estudiante utiliza recuperación espaciada.
+
+## Análisis de `horas_videojuegos_dia`
+
+Por lo que pudimos ver en la gráfica pertinente en la parte del análisis descriptivo, la variable numérica continua `horas_videojuegos_dia` parece distribuirse aproximadamente como una variable aleatoria exponencial.
+
+Veamos si nuestra hipótesis se puede sustentar.
+
+Primero, planteemos cómo sería esta distribución exponencial. Llamemos $H$ a nuestra variable aleatoria.
+__Nota:__ Eliminaremos todos los valores faltantes de la variable para este análisis.
+
+Nuestra hipótesis es que:
+$$H \sim Exp(\lambda)$$
+
+```{r}
+H <- DF$horas_videojuegos_dia[!is.na(DF$horas_videojuegos_dia)]
+```
+
+
+El parámetro de esta distribución se puede determinar a través del inverso multiplicativo de su media $\lambda$.
+
+```{r}
+Lambda <- (1/mean(H))
+```
+
+Como podemos ver, redondeado a 2 decimales, nuestro parámetro para la media vale $\lambda=`r Lambda`$.
+
+Ahora grafiquemos la función densidad de probabilidad de nuestra variable teórica sobre el histograma de frecuencias relativas. Tomaremos el parámetro `breaks=8` para hacer la comparación aproximada, puesto que las personas tendieron a responder el número de horas de manera _discretizada_, aunque en la práctica, la variable es continua.
+
+```{r}
+Xs <- seq(0, max(H), 0.1)
+Ys <- dexp(Xs, rate=Lambda)
+hist(H, probability=TRUE, ylim=c(0, 0.8), col="yellow", main=paste("Comparación de aproximación exponencial con el histograma de H"), ylab="Densidad", breaks=8)
+lines(Xs,Ys, col="red", lwd=2)
+```
+
+Vemos una similitud considerable en cuanto a forma entre la densidad de la variable teórica y el histograma.
+
+Es importante tener en cuenta que, si bien el rango de la variable exponencial teórica es el conjunto de los reales positivos, la variable `horas_videojuegos_dia` está claramente acotada en el intervalo $[0, 24]$. Entonces, si nuestra aproximación fuese sensata, la probabilidad de que nuestra variable exponencial sea mayor a $24$ debería ser muy pequeña.
+
+```{r}
+pexp(24, rate=Lambda, lower.tail=FALSE)
+```
+Se comprueba que esto es cierto.
+
+Comparemos algunos de sus descriptores numéricos para continuar validando nuestra hipótesis.
+
+Partimos de la media para hallar el parámetro $\lambda$, por lo que ya sabemos que el valor esperado de la variable teórica es igual a la media de la variable en la práctica.
+
+Su varianza debería ser aproximadamente $\mathsf{Var}(H)=\frac{1}{\lambda^2}$.
+
+```{r}
+1/Lambda^2
+```
+
+```{r}
+var(H)
+```
+Podemos decir que los valores son cercanos.
+
+Asimismo, la desviación estándar teórica debería dar aproximadamente $\mathsf{Sd}(H)=\frac{1}{\lambda}$.
+
+```{r}
+1/Lambda
+```
+
+```{r}
+sd(H)
+```
+De nuevo, son valores cercanos.
+
+El coeficiente de variación debería ser aproximadamente $1$.
+
+```{r}
+CV(H)
+```
+En la práctica, tenemos un valor muy cercano a $1$.
+
+Para terminar con el análisis, podemos probar si la variable $H$ cumple con la propiedad de pérdida de la memoria.
+
+Debería cumplirse que:
+
+$$\mathbb{P}(H>s+t \ | \ H>t)=\mathbb{P}(H > s)$$
+
+Veamos el error absoluto medio de este cálculo. Idealmente, si nuestra variable cumpliera con la propiedad de pérdida de la memoria, este error daría 0.
+
+```{r, echo=FALSE}
+ss <- seq(0, 24, 0.1)
+tt <- seq(0, 24, 0.1)
+E <- 0
+cnt <- 0
+for (s in ss) {
+  for (t in tt) {
+    E <- E + abs((pexp(t+s, rate=Lambda, lower.tail=FALSE) / pexp(t, rate=Lambda, lower.tail=FALSE)) - (pexp(s, rate=Lambda, lower.tail=FALSE)))
+    cnt <- cnt + 1
+  }
+}
+E / cnt
+```
+
+```{r}
+ss <- seq(0, 24, 0.1)
+tt <- seq(0, 24, 0.1)
+E <- 0
+cnt <- 0
+for (s in ss) {
+  for (t in tt) {
+    if ((sum(H > t) > 0) & (s + t <= 20)) {
+      E <- E + abs(((sum(H>t+s)/length(H)) / (sum(H>t)/length(H))) - (sum(H>s)/length(H)))
+      cnt <- cnt + 1
+    }
+  }
+}
+E / cnt
+```
+Vemos que hay un error considerable en el cálculo, por lo que no podríamos afirmar que nuestra variable cumple con la propiedad de pérdida de memoria. Creemos que esto se debe al tamaño de la muestra y al sesgo de las personas a discretizar el número de horas. Suponemos que el modelo sí satisfacería la propiedad de pérdida de memoria si se tuviera una cantidad mayor de datos de la variable. Por lo tanto, creemos que aproximar esta variable como una distribución exponencial sí sería adecuado.
+
+$$H \sim \mathsf{Exp}(`r Lambda`)$$
+
+En base a esta aproximación, podemos calcular algunas probabilidades interesantes.
+
+**¿Cuál es la probabilidad de que un estudiante de UTEC juegue videojuegos más de una hora al día?**
+
+```{r}
+pexp(1, rate=Lambda, lower.tail=FALSE)
+```
+Según nuestro modelo, esta probabilidad es menos del 50%.
+
+**¿Cuál es la probabilidad de que un estudiante de UTEC juegue videojuegos más de 8 horas al día?**
+
+```{r}
+pexp(8, rate=Lambda, lower.tail=FALSE)
+```
+Como es de esperarse, es extremadamente poco probable que un estudiante juegue más de 8 horas al día según nuestro modelo.
+
+Podemos comprobar que nuestra suposición es correcta con un gráfico de _Cullen y Frey_ que nos muestre cómo se ajusta nuestro modelo a algunos de los modelos estándar.
+
+```{r}
+descdist(H, boot = 5000)
+```
+
+Como se puede observar, la aproximación exponencial que pudimos derivar de nuestro análisis no está muy lejos de la realidad. De hecho, utilizando el parámetro `boot=5000`, nos damos cuenta de que algunos subconjuntos de datos de la muestra se encuentran muy cerca de ajustarse a una distribución exponencial. Sin embargo, el gráfico sugiere que para la muestra recogida, con los sesgos particulares que mencionamos, una distribución que se ajusta mejor en términos de curtosis y sesgo es la gamma.
+
+Veamos entonces cómo se vería esta aproximación y volvamos a calcular las probabilidades anteriores en base a este mejor ajuste.
+
+```{r}
+Params <- fitdist(H, "gamma", method = "mme")
+Shape <- Params$estimate[1]
+Rate <- Params$estimate[2]
+```
+
+
+```{r}
+Xs <- seq(0, max(H), 0.1)
+Ys <- dgamma(Xs, shape=Shape, rate=Rate)
+hist(H, probability=TRUE, ylim=c(0, 0.8), col="yellow", main=paste("Comparación de aproximación gamma con el histograma de H"), ylab="Densidad", breaks=8)
+lines(Xs,Ys, col="blue", lwd=2)
+```
+
+Bajo este nuevo ajuste tenemos:
+
+$$H \sim Gamma(`r Shape`, `r Rate`)$$
+
+**¿Cuál es la probabilidad de que un estudiante de UTEC juegue videojuegos más de una hora al día?**
+
+```{r}
+pgamma(1, shape=Shape, rate=Rate, lower.tail=FALSE)
+```
+La probabilidad es cercana al 40%. Sigue siendo menos del 50%.
+
+**¿Cuál es la probabilidad de que un estudiante de UTEC juegue videojuegos más de 8 horas al día?**
+
+```{r}
+pgamma(8, shape=Shape, rate=Rate, lower.tail=FALSE)
+```
+
+Una vez más, es una probabilidad muy baja, aunque más alta que con la aproximación exponencial a la que llegamos.
+
+
+## Análisis de `utiliza_repetición_espaciada` y `utiliza_recuperacion_activa`
+
+En base a estas dos variables, podemos plantear el experimento $E_U$: "escojo un estudiante al azar y anoto $1$ si utiliza recuperación espaciada y $0$ si no utiliza". De este experimento se deriva la variable aleatoria Bernoulli $U$, que vale $1$ si el estudiante utiliza recuperación espaciada y $0$ si no la utiliza.
+
+$$U \sim Ber(p)$$
+
+Hallemos su parámetro $p$ usando los datos recolectados.
+
+```{r}
+p <- sum(DF$utiliza_recuperacion_activa & DF$utiliza_repeticion_espaciada) / nrow(DF)
+```
+
+Algunas preguntas interesantes que nos podemos hacer utilizando este modelo son:
+
+**Si escogemos aleatoriamente 10 estudiantes de UTEC (con reemplazo), ¿cuál es la probabilidad de que al menos la mitad de ellos utilice recuperación espaciada? ¿cuál es el número de alumnos del grupo que utilizan la técnica en promedio?**
+
+Se puede considerar que los estudiantes escogidos son _intentos_ independientes del experimento $E_U$, asumiendo que la muestra no tiene sesgos. Por lo que podemos plantear una variable aleatoria $N$ de tipo binomial que cuente el número de éxitos en $10$ intentos del experimento.
+
+Los parámetros de esta variable serán $10$ y $p$ respectivamente.
+
+$$N \sim Binom(10,`r p`)$$
+
+Ahora respondamos la primera pregunta. Esta probabilidad equivale a $\mathbb{P}(N\geq5)$.
+
+```{r}
+pbinom(4, size=10, prob=p, lower.tail = FALSE)
+```
+Hay una probabilidad de aproximadamente $0.02$ de que este evento ocurra.
+
+Para responder la segunda pregunta, utilicemos la fórmula para la esperanza de una variable binomial.
+
+$$\mathsf{E}(N)=np$$
+
+```{r}
+10 * p
+```
+El valor esperado del número de alumnos que utilizan recuperación espaciada de un grupo de $10$ es de $1.78$ aproximadamente.
+
+**¿Cuántos alumnos de UTEC habría que entrevistar en promedio hasta encontrar uno que utilice recuperación espaciada?**
+
+Para responder a la pregunta, planteemos una variable $I$ que cuente el número de _intentos_ del experimento $E_U$ hasta el primer éxito.
+
+Esta es una variable geométrica con parámetro $p$.
+
+$$I \sim Geom(`r p`)$$
+
+Entonces, la fórmula para la esperanza de una variable aleatoria geométrica **que cuenta el número de intentos** es: $\frac{1}{p}$.
+
+```{r}
+1/p
+```
+
+Habría que entrevistar, en promedio, a unos $6$ alumnos.
+
+## Análisis de `promedio`
+
+En el análisis descriptivo pudimos ver que la variable promedio tiene una forma acampanada y es aproximadamente simétrica. Esto nos lleva a pensar de que esta se puede modelar mediante una variable aleatoria normal. Veamos si es cierto. **Nota:** Para nuestro análisis eliminaremos los datos faltantes y no consideraremos el promedio de $0$ que observamos. 
+Nuestra hipótesis es que:
+
+$$P \sim Nor(\mu, \sigma)$$
+
+```{r}
+P <- DF$promedio[!is.na(DF$promedio) & DF$promedio != 0]
+```
+
+Veamos si tiene sentido investigar la relación mediante un gráfico de _Cullen y Frey_.
+
+```{r}
+descdist(P, boot=500)
+```
+
+Como podemos observar, nuestra variable es buena candidata para ser modelada como una distribución normal.
+
+
+Los parámetros de la distribución se pueden determinar utilizando la media y la desviación estándar.
+
+```{r}
+Mu <- mean(P)
+Sigma <- sd(P)
+```
+
+Comparemos la gráfica de la densidad teórica con el histograma de la variable $P$. Tomaremos el parámetro `breaks=10` por la misma razón que antes.
+
+```{r}
+Xs <- seq(min(P) - 5, max(P) + 5, 0.1)
+Ys <- dnorm(Xs, mean=Mu, sd=Sigma)
+hist(P, prob=TRUE, ylim=c(0, 0.25), xlim=c(min(P) - 5, max(P) + 5), breaks=10, ylab="Densidad", main=paste("Comparación de aproximación normal con histograma de P"), col="cyan")
+lines(Xs, Ys, type="l", col="purple", lwd=2)
+```
+
+Se observa gran similitud entre la densidad de la aproximación teórica y nuestra variable en la práctica.
+
+Evidentemente, al ser la normal una variable con rango en todos los reales, debemos verificar que la probabilidad de que esta esté fuera del rango sea muy baja.
+
+```{r}
+pnorm(0, mean=Mu, sd=Sigma)
+```
+```{r}
+pnorm(20, mean=Mu, sd=Sigma, lower.tail=FALSE)
+```
+Se cumple.
+
+Nuestro modelo quedaría finalmente como:
+
+$$P \sim Nor(`r Mu`, `r Sigma`)$$
+
+En base a esto, podemos hacernos las siguientes preguntas.
+
+**¿Cuál es la probabilidad de que un alumno de UTEC tenga un promedio mayor o igual a 17?**
+
+$$\mathbb{P}(P\geq17)$$
+
+```{r}
+pnorm(17, mean=Mu, sd=Sigma, lower.tail=FALSE)
+```
+Según el modelo, solo un $10.9\%$ de los estudiantes de UTEC tienen promedios mayores o iguales a 17.
+
+**¿Cuánto tiene que sacar de promedio un estudiante de UTEC para que sea un _straight-A_ (tenga _A_ de promedio) en una universidad de Estados Unidos con escala relativa en la que el cuarto quintil de los alumnos obtiene esta nota como promedio final?**
+
+```{r}
+qnorm(0.8, mean=Mu, sd=Sigma)
+```
+
+Para obtener un _A_, es necesario que el alumno de UTEC tenga $16.35$ de promedio como mínimo.
+
+
+# Referencias
+
++ Karpicke, J. D., Butler, A. C., & Roediger III, H. L. (2009). Metacognitive strategies in student learning: do students practise retrieval when they study on their own?. Memory, 17(4), 471-479.
+
++ Karpicke, J. D., & Roediger III, H. L. (2008). The Critical Importance of Retrieval for Learning. Science, 319(5865), 966-968

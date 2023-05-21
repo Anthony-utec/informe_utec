@@ -1,0 +1,641 @@
+---
+title: "<center><h2> **La correlación de precios entre dos criptomonedas** </h2></center>"
+date: "<center> 24 de junio del 2022 </center>"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  word_document:
+    toc: yes
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: yeti
+  pdf_document:
+    toc: yes
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+## **Tema: La correlación de precios entre dos criptomonedas**
+
+## **Introducción**
+
+### **Relevancia:**
+
+-   Las criptomonedas permiten a sus usuarios guardar los fondos disponibles a través de billeteras digitales, en las cuales se pueden realizar operaciones de pago(transacciones) sin costo alguno por las transacciones realizadas. Debido a que la presencia de las criptomonedas han ido aumentando como instrumentos de inversión, y su función en el mundo de los negocios con el objetivo de aumentar la rentabilidad. En la actualidad, llegan a producir rendimientos económicos mayores a los que son generados por los activos financieros en los mercados de valores.
+-   Nos interesa estudiar qué tan rentable puede llegar a ser este tipo de inversiones para saber en qué momento invertir en ellas , también , saber cómo los precios de dos de estas criptomonedas se correlacionan entre sí.
+
+### **Planificación:**
+
+```{r include=FALSE}
+
+# GGPLOT GANTT CHART
+library(ggplot2)
+library(tidyr)
+library(lubridate)
+```
+
+```{r include=FALSE}
+
+df <- data.frame(Stage = c("Búsqueda de posibles temas a analizar" , "Diagrama de Gantt"
+                           , "Introducción y datos"          , "Análisis descriptivo"
+                           , "Gráficas"   , "Entrega 1"
+                           ,"Intervalos de confianza", "Búsqueda de feedback Prof. Roger 1", "Hipótesis", "Regresión", "Búsqueda de feedback Prof. Roger 2", "Revisión final", "Entrega 2")
+                 , Start = c("2022-04-08"      ,"2022-04-30"
+                             ,"2022-05-01"        ,"2022-05-02",        "2022-05-05"
+                             ,"2022-05-06"        ,"2022-05-10",        "2022-05-18"
+                             ,"2022-05-22"        ,"2022-05-26",        "2022-06-09"
+                             ,"2022-06-19"        ,"2022-06-24")
+                 
+                 ,End = c("2022-04-08"      ,"2022-04-30"
+                             ,"2022-05-04"        ,"2022-05-05",        "2022-05-05"
+                             ,"2022-05-06"        ,"2022-05-14",        "2022-05-18"
+                             ,"2022-05-27"        ,"2022-06-01",        "2022-06-09"
+                             ,"2022-06-23"        ,"2022-06-24")
+                 , Complete = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+
+
+
+
+df$Start <- ymd(df$Start)
+df$End <- ymd(df$End)
+
+
+
+df.melt <- df%>%
+  tidyr::pivot_longer(col = c(Start,End))
+
+
+today <- as.Date('2022-05-06')
+```
+
+```{r echo=FALSE}
+pl <- ggplot(df.melt, aes(x = value, y = Stage, colour = Complete ))
+pl <- pl + geom_line( alpha = 0.5, size = 9)
+pl <- pl + geom_text(aes(label = format(value, "%d %b")), vjust = 0, angle = 30, size = 3
+                  , color = "black")
+pl <- pl +  theme_gray()
+pl <- pl + geom_vline(xintercept = today, color = "red", size = 2, alpha = 0.5)
+pl <- pl + labs(title = "Diagrama de Gantt ")
+pl <- pl + labs(subtitle = "Planificación de avances")
+
+pl <- pl + labs(x = "Fechas")
+pl <- pl + labs(y = "Actividad")
+pl <- pl + scale_color_manual(values = c("red", "blue"))
+pl <- pl + theme(legend.position = "none")
+pl <- pl + scale_x_date( 
+                       , minor_breaks = "1 day")
+pl
+```
+
+## **Datos:**
+
+### **Recolección de datos**
+
+-   Los datos se extraerán mediante la página de Coin Market que nos muestra detalladamente la evolución de la moneda mediante gráficas, asimismo lleva un registro de su cambio al paso del tiempo.
+-   Asimismo, haremos uso de la base de datos de Análisis de Criptomonedas compuesta por el tipo de información que usaremos para responder nuestras preguntas planteadas.
+
+### **Población, muestra y muestreo**
+
+-   Población de estudio: Los diversos tipos de Criptomonedas, sus valores y posiciones en el mercado.
+
+-   Muestra: La muestra se extraerá mediante las bases de datos recopiladas de distintas páginas web como coinmarketcap y la base de datos de kaggle "Análisis de criptomonedas".
+    En estas se pueden encontrar sus comportamientos en el mercado, valores y posicionamiento. 
+
+-   Muestreo: Se realizará un muestreo estratificado ya que se seleccionan los datos que se necesite de acuerdo a la investigación planteada.
+
+### **Variables**
+
+-   Definimos cada variable del estudio, identificando su tipo y sus restricciones.
+
+    | **Variable**                         | **Clase**  | **Tipo** | **Restricción**                                                                                           |
+    |--------------------------------------|------------|----------|-----------------------------------------------------------------------------------------------------------|
+    | Moneda Crypto                        | Categórica | Nominal  | Las cripto (bitcoin, ripple, ethereum, stellar, bitcoin cash, eos, litecoin, tether, bitcoin sv, Cardano) |
+    | Precio de compra                     | Numérica   | Discreta | Real positivo                                                                                             |
+    | Precio de venta                      | Numérica   | Discreta | Real positivo                                                                                             |
+    | Variación del valor de la moneda     | Numérica   | Discreta | \-                                                                                                        |
+    | Ranking de Criptomoneda              | Numérica   | Discreta | Entero positivo mayor o igual a 0                                                                         |
+    | Punto máximo (semanal)               | Numérica   | Discreta | Real positivo                                                                                             |
+    | Punto mínimo (semanal)               | Numérica   | Discreta | Real positivo                                                                                             |
+    | Precio de apertura de mercado        | Numérica   | Discreta | Real positivo                                                                                             |
+    | Precio cierre de mercado             | Numérica   | Discreta | Real positivo                                                                                             |
+    | Número de operaciones compra - venta | Numérica   | Discreta | Entero positivo , y mayor igual que cero                                                                  |
+    | Capital de compañía                  | Numérica   | Discreta | Real positivo                                                                                             |
+
+### **Procesamiento del dataframe**
+
+-   Cargamos las librerías
+
+```{r include=FALSE}
+
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(lattice)
+library(janitor)
+library(ggridges)
+library(fitdistrplus)
+```
+
+-   Hacemos uso de nuestro CSV "crypto-markets.csv"
+
+```{r include=FALSE}
+
+
+dfi <- read_csv("crypto-markets.csv")
+```
+
+-   Verificamos que en total hay 2071 criptomonedas
+
+```{r include=FALSE}
+
+unique(dfi$name)
+```
+
+### **Limpieza de base de datos**
+
+-   A través del código que realizamos en RStudio, nos dimos cuenta de que no hay ningún dato faltante (NA) y todas las observaciones están completas.
+
+Total de Observaciones:
+
+-   Casos completos
+
+```{r echo= FALSE}
+sum(complete.cases(dfi))
+```
+
+-   Casos incompletos
+
+```{r echo= FALSE}
+sum(!complete.cases(dfi))
+```
+
+-   Total de Variables:
+
+```{r echo= FALSE}
+ncol(dfi)
+```
+
+## **Análisis descriptivo:**
+
+### **1. Relaciones numéricas identificadas**
+
+-   Precio de apertura de la criptomoneda: Nos indica a qué precio base abre la criptomoneda en el mercado.
+    Con esto queremos identificar qué tanto es la variación del precio de apertura a lo largo del tiempo y ver el desarrollo de la criptomoneda.
+
+-   Precio de cierre del mercado: No indica el precio final en que cierra la criptomoneda en el mercado.
+    Este puede ser mayor o menor a su precio de apertura.
+    Con esto queremos identificar qué tanto es la variación del precio de cierre a lo largo del tiempo y ver el desarrollo de la criptomoneda.
+
+### **2. Análisis de patrones identificados**
+
+**Ranking de criptomonedas**
+
+-   En nuestro csv existe la variable ranknow que nos indica el rango de cada criptomonedas y solo consideraremos a las 10 con mayor fluctuación
+
+```{r echo=FALSE}
+mit <- table(dfi$name)
+tablasorteada <- mit[order(mit, decreasing = TRUE)]
+dfs <- data.frame(tablasorteada)
+dfr <- dfs[1:10,]
+df <- dfi[dfi$name %in% c('Bitcoin', 'XRP', 'Ethereum','Stellar','Bitcoin Cash','	EOS','Litecoin','Tether','Bitcoin SV','Cardano'), ]
+#DF ES LA BASE DE DATOS COMPLETA CON LAS 10 MONEDAS MAS POPULARES en que sentido 
+
+```
+
+```{r echo=FALSE}
+#g <- as_tibble(table(df$name),.name_repair = "universal" )
+#f <- arrange(g, (n))
+#f
+
+x <- df 
+x
+
+```
+
+**Cantidad de títulos negociados de cada moneda**
+
+-   Se busca calcular el volumen de la cantidad de transacciones realizadas en las 10 criptomonedas.
+-   En esta gráfica podemos observar el ranking del top 10 de las criptomonedas con sus respectivos volúmenes de negociación. Como podemos ver, el bitcoin no solo es la criptomoneda más famosa, sino que también es la más demandada en el mercado. Nos podemos dar cuenta de esto debido a la cantidad del volumen transaccional que presenta en el mercado.
+
+```{r echo=FALSE}
+dfbbc <- filter(dfi, name == "Bitcoin")
+dfbt <- filter(dfi, name == "Tether")
+dfbe1 <- filter(dfi, name == "Ethereum")
+dfbx <- filter(dfi, name == "XRP")
+dfbbcc <- filter(df, name == "Bitcoin Cash")
+dfbe2 <- filter(dfi, name == "EOS")
+dfbl <- filter(dfi, name == "Litecoin")
+dfbc <- filter(dfi, name == "Cardano")
+dfbs <- filter(dfi, name == "Stellar")
+dfbbs <- filter(dfi, name == "Bitcoin SV")
+```
+
+```{r echo=FALSE}
+volumenes <- c(sum(dfbbc$volume),
+               sum(dfbt$volume),
+               sum(dfbe1$volume),
+               sum(dfbx$volume),
+               sum(dfbbcc$volume),
+               sum(dfbe2$volume),
+               sum(dfbl$volume),
+               sum(dfbc$volume),
+               sum(dfbs$volume),
+               sum(dfbbs$volume))
+```
+
+```{r echo=FALSE}
+volumenes[6]
+```
+
+```{r echo=FALSE}
+monedas <- c("Bitcoin","Tether","Ethereum","XRP","Bitcoin Cash","EOS" ,"Litecoin","Cardano","Stellar","Bitcoin SV")
+dff <- data.frame(monedas,volumenes)
+```
+
+```{r echo=FALSE}
+barplot(height = volumenes, names = c("Bt","Teh","Eth","XRP","Btc","EOS" ,"Lc","Card","Stelr","BtSV"),col = c("lightblue","pink","yellow","brown","purple","red","blue","orange","green","black")
+,main = "Volumen de Criptomonedas", ylab = "Volumen", xlab="Nombres")
+legend(x = "topright", legend = c("Bitcoin","Tether","Ethereum","XRP","Bitcoin Cash","EOS" ,"Litecoin","Cardano","Stellar","Bitcoin SV"), fill = c("lightblue","pink","yellow","brown","purple","red","blue","orange","green","black")
+, 
+       title = "Leyenda")
+```
+
+**Evolución del precio de las criptomonedas**
+
+-   La evolución del precio de apertura a lo largo del tiempo en las principales criptomonedas.
+-   La diferencia del bitcoin a comparación de las otras criptomonedas tiene mayor varianza.
+-   Podemos observar que el bitcoin es la moneda con más apogeo en estos últimos años. Siendo su tope máximo en el 2018.
+-   La evolución de precios de estas 10 criptomonedas ha variado a lo largo del tiempo, observamos que las criptomonedas "Stellar" y "XRP" son las únicas criptomonedas que presenta estabilidad de precios, mientras que otras como "Ethereum", "Bitcoin Cash" y "Bitcoin" se han incrementado en gran medida, siendo Bitcoin la moneda que más valor a registrado en sus instrumentos financieros en los últimos años.
+
+```{r include=FALSE}
+names(df)
+```
+
+```{r echo=FALSE}
+library(ggridges)
+library(ggplot2)
+
+df$date <- as.Date(df$date)
+
+
+
+# Plot
+df %>% filter(date >= "2016-03-26" & date <= "2018-11-29") %>% 
+ filter(!(symbol %in% c("BCH", "LTC", "USDT", "ADA"))) %>%
+  tail(100000) %>%
+  ggplot( aes(x=`date`, y=`open`, color = name)) +
+    geom_line(position = "stack",size=0.5, alpha =0.5,main = "Evolución del precio de las criptomonedas", ylab = "open", xlab="fecha") 
+
+```
+
+**Correlación entre Bitcoin y Bitcoin-cash**
+
+El mercado Bursátil es aquel en donde se negocian activos financieros que son cotizados por todo el mundo.
+En este mercado, se maneja una gran cantidad de volúmenes de negociaciones de las criptomonedas.
+En este campo, destaca la principal criptomoneda denominada Bitcoin, la cual fue la primera en aparecer.
+Luego de su éxito, aparecieron diversos competidores promocionando sus propias criptomonedas.
+Una de ellas es Bitcoin-cash, la cual si interiorizamos en su capacidad de almacenamiento es inferior al de bitcoin, además de ser distinta a Bitcoin.
+Es por ello que los inversionistas que no se encuentran familiarizados con el tema de las criptomonedas, suelen confundirse al momento de invertir.
+La principal confusión entre Bitcoin y Bitcoin-cash yace en el nombre de las monedas, ya que ambas comparten el término de Bitcoin.
+A su vez, el símbolo de Bitcoin-cash, el cual se creó años después de Bitcoin, es muy similar al de Bitcoin siendo el color de los símbolos la única diferencia entre ellos.
+Se podría decir que Bitcoin-cash emplea estas similitudes con el objetivo de impulsar su crecimiento financiero.
+Esto se puede ver reflejado en su crecimiento acelerado desde su lanzamiento duplicando su valor en el mercado en un periodo corto. 
+Cabe resaltar que el crecimiento de las acciones de Bitcoin se vio mermada ante el acelerado crecimiento de su competidor quien también comparte el mismo nombre.
+
+-   Buscamos comparar el precio entre Bitcoin y Bitcoin-cash.
+-   Donde buscamos encontrar algún patrón o relación entre estas ya que ambas monedas tienen un nombre muy similar.
+-   Cabe resaltar que el gráfico es a partir del 2017 ya que fue el año en donde se creó Bitcoin-cash y es donde iniciamos la búsqueda de la correlación de los datos.
+
+```{r include=FALSE}
+head(dfbbc$date)
+nrow(dfbbcc)  
+```
+
+```{r include=FALSE}
+dfBITCOIN <- filter(dfbbc,dfbbc$date > "2017-07-23")
+nrow(dfBITCOIN)
+```
+
+```{r echo=FALSE}
+#Ver la correlacion entre el precio de bitcoin y bitcoin cash
+BITCOINCASH<-c(dfbbcc$open)
+BITCOIN<-c(dfBITCOIN$open)
+
+length(BITCOIN) <- length(BITCOINCASH)
+prueba <- data.frame(BITCOIN,BITCOINCASH) 
+
+
+plot(prueba)
+```
+
+-   Al hallar la correlación entre ambas, encontramos que tienen una fuerte correlación del 86 % entre ellas.
+-   Una hipótesis es que ambas monedas al compartir el mismo nombre y al ser muy similares, esto puede influir en el valor del precio y en su demanda, ya que las personas están considerando a Bitcoin-cash como si fuera el Bitcoin original.
+
+```{r echo=FALSE}
+cor.test(BITCOIN,BITCOINCASH)
+```
+
+**Búsqueda de un patrón de comportamiento entre Bitcoin y Bitcoin-cash**
+
+-   Con este gráfico trazamos una línea donde se encuentran a su alrededor la gran mayoría de los puntos.
+-   Esta es la línea del patrón del comportamiento que sigue el precio de Bitcoin y Bitcoin-cash. -vemos la tendencia que sigue el precio de ambas y hacer estimaciones e hipótesis sobre un precio a futuro en el mercado. Sin embargo, no siempre será certero ya que los precios y su dirección siempre puede cambiar.
+
+```{r echo=FALSE}
+plot(prueba, )
+abline(lm(BITCOINCASH~BITCOIN))
+
+```
+
+**Histograma de Bitcoin cash**
+
+-   Buscamos identificar el número que más se ha repetido en la variable de precio de apertura en el mercado.
+
+```{r echo=FALSE}
+hist(BITCOINCASH,main = "Histograma de BITCOINCASH", ylab = "Frecuencia", xlab="BITCOINCASH")
+
+```
+
+**Boxplot de Bitcoin Cash**
+
+-   Donde nos muestra cual es la mediana, los puntos máximos y mínimos.
+-   La línea negra dentro del gráfico representa la mediana del precio de apertura de mercado, las líneas en los extremos son los puntos máximos y mínimos de apertura de bitcoin Cash en el mercado.
+-   Los puntos que se encuentran fuera de los rangos son los datos atípicos.
+-   En esta ocasión se consideran atípicos en la gráfica ya que la repetición de este precio se ha visto muy pocas veces en el mercado, puesto que no es común y no es duradera.
+
+```{r echo=FALSE}
+gf<-boxplot(BITCOINCASH, horizontal = TRUE)
+
+```
+
+-   Como resultado obtenemos que el dato más repetido que es 714.7
+
+```{r echo=FALSE}
+#imprimir el valor mas alto de cada moneda
+#Valor mas bajo de bitcoin cash
+
+summary(BITCOINCASH)
+```
+
+**Histograma de Bitcoin**
+
+-   Buscamos identificar el número que más se ha repetido en la variable de precio de apertura en el mercado.
+
+```{r echo=FALSE}
+hist(BITCOIN,main = "Histograma de BITCOIN", ylab = "Frecuencia", xlab="BITCOIN")
+
+```
+
+**Boxplot de Bitcoin**
+
+-   Este boxplot cumple la misma función que el boxplot anterior solo que esta vez consideramos a Bitcoin.
+
+```{r echo=FALSE}
+gf<-boxplot(BITCOIN, horizontal = TRUE)
+
+```
+
+-   En este caso el valor más repetido es de 6788.
+
+```{r echo=FALSE}
+#imprimir el valor mas alto de cada moneda
+#Valor mas bajo de bitcoin
+
+summary(BITCOIN)
+
+```
+
+## **Análisis Probabilístico**
+
+### **1. Primera pregunta**
+
+**¿Cuál es la probabilidad de que gane dinero 4 días seguidos si compro bitcoin al iniciar y vendo al terminar de la sesión?**
+
+El Day Traiding es una estrategia comercial que implica negociar instrumentos financieros, incluida la compra y venta, en el mismo día de negociación.
+Todas las posiciones se cerrarán antes del cierre del mercado.
+A los comerciantes que se dedican al day trading se les denomina day traders (en español, day traders).
+Los métodos comerciales rápidos son lo opuesto a las estrategias comerciales a largo plazo.
+Algunos de los instrumentos financieros que se negocian a través del comercio diario incluyen acciones, opciones, divisas y futuros.
+
+El day trading era actividad exclusiva de empresas financieras y especuladores profesionales.
+Muchos comerciantes diarios son empleados de bancos o empresas de inversión que realizan análisis de mercado.
+Sin embargo, con la llegada del comercio electrónico y el comercio de margen, el comercio diario ahora está disponible para los inversores minoristas.
+
+```{r}
+dfBITCOIN <- mutate(dfBITCOIN ,diferencia =  dfBITCOIN$close - dfBITCOIN$open)
+```
+
+-   El day trading es muy común en la vida real se trata de comprar Criptomonedas al iniciar el día y vender al finalizar.
+
+-   El análisis de esta acción lo haremos restando la variable open y close de la criptomoneda bitcoin.
+
+-   Seleccionaremos de la base de datos las observaciones con el nombre de Bitcoin y crearemos una nueva variable diferencia con la resta de la variable close con la variable open.
+
+-   Contaremos los días en los que esta nueva variable diferencia sean negativos.
+
+-   Cuando el valor de la variable diferencia es negativo significa que se perdió dinero en ese día.
+
+-   Al momento de verificar la diferencia de precios entre la apertura y el cierre, y verificar que se obtiene un resultado POSITIVO, se puede concluir y asegurar una ganancia.
+
+-   "positivos(bitcoin)" hace referencia a los días que se observa ganancia.
+
+-   Cuando se observa ganancia entre días consecutivos se representará con el número "1".
+
+```{r}
+PositivosBITCOIN <- which(dfBITCOIN$diferencia >= 0)
+```
+
+```{r}
+PositivosBITCOIN
+```
+
+**Por ejemplo :**
+
+-   Entre el día 4 y 5 se considera que hubo ganancia dos días consecutivos.
+
+-   Otro ejemplo sería desde el dia 74 hasta el 83, aquí observamos 9 secuencias de días, donde hay ganancias consecutivas en 10 días.
+
+```{r}
+nB<- c(diff(PositivosBITCOIN))
+```
+
+```{r}
+tmp <- table(nB)
+plot(tmp)
+```
+
+```{r}
+suma <- 146 + 60 + 33 + 18 +7 +1+1+1
+prob4<- 18/suma
+prob4
+```
+
+**Histograma de días consecutivos**
+
+-   En el histograma usamos las variables frecuencia y días consecutivos, se observa que hay mayor cantidad de dos días seguidos y solo una vez donde hay 10 días seguidos de ganancia.
+
+```{r}
+r<- rle(nB)
+diasConsecutivos <- r$lengths[r$values == 1]
+table(diasConsecutivos)
+```
+
+**Gráfica de Cullen and Frey**
+
+-   En la gráfica de Cullen and Frey se puede confirmar que existe una distribución normal, ya que el punto azul está cerca a la normal (asterisco).
+
+-   El significado de boot es que cuando sacamos otra distribución al azar la cual será muy parecida a nuestra primera observación.
+
+-   Esta será restada con la verdadera para saber que tan efectiva es (la cantidad de error que presenta).
+
+-   Luego se generará distribuciones al azar los cuales estarán basados en la resta (puntos amarillos).
+
+-   Se observa que el punto azul con el boot se encuentra en el área ploma.
+
+-   El área ploma resulta ser una binomial negativa. 
+
+```{r}
+hist(diasConsecutivos, breaks = "Scott", main = "Histograma de días consecutivos", ylab = "Frecuencia", xlab="Días consecutivos")
+
+descdist(diasConsecutivos, discrete = TRUE, boot = 1000)
+fitdist(diasConsecutivos,"nbinom")
+
+```
+
+**Histograma de nbx (negative binomial numbers- numeros binomiales negativos)**
+
+-   Primero pasamos a fijarnos los parámetros de la binomial negativa, que sabemos que son 2, "tamaño" y "mu".
+    El programa en este caso nos botan los siguiente valores:
+
+-   Para "tamaño" (size) nos da 24.33 y para "mu" nos da 2.18.
+
+-   Posteriormente con la función rnbinom se generan 900 números con los 2 parámetros ya mencionados, dándonos como nuevo resultado, el histograma, siendo esta la nueva teórica, la distribución teórica en binomial.
+
+```{r}
+nbx <- rnbinom(900,size  = 24.328831, mu = 2.179257)
+hist(nbx, probability = TRUE, main = "Histograma de nbx", ylab = "Densidad", xlab="nbx")
+```
+
+**Conclusión**
+
+```{r}
+dnbinom(4, size  = 24.328831, mu =2.179257 )
+```
+
+-   Se usan los parámetros que ya hemos encontrado en el anterior punto.
+
+-   Nos da como resultado 10% de probabilidad que gane dinero por 4 días la primera vez comprando al iniciar y vendiendo al terminar la sesión.
+
+### **2. Segunda pregunta**
+
+**¿Qué distribución sigue la variable spread? ¿Cuál es la probabilidad de que el spread sea menor a 5%?**
+
+El spread es la diferencia entre el precio que alguien está dispuesto a pagar y el precio que alguien está dispuesto a vender.
+Este indicador es importante debido a que si este ratio es pequeño (diferencias de menores a 5% del precio de compra) se dice que la moneda es altamente líquida y el volumen de compra venta del día es alto.
+Es decir, si mayor es el spread, la moneda está siendo menos movida, ya que si la moneda es líquida es fácil cambiarla o venderla a otras personas, un ejemplo básico de entender es el bitcoin, al ser esta la moneda más famosa, tiene un spread pequeño ya que la gente compra y vende con una alta frecuencia.
+
+Como ya mencionamos anteriormente, si el spread es mayor al 5% la moneda no es tan líquida, esto sirve para medirlo, y para poder observar mejor se realizó el siguiente histograma.
+
+**Histograma de Spread Valor**
+
+-   Como podemos visualizar la variable spread se parece mucho a una distribución continua exponencial, además que no hay muchos datos atípicos. Así como se mencionó anteriormente, el bitcoin al tener un spread pequeño, su porcentaje está más que nada entre 0%-5%, cabe recordar que la barra indica probabilidad, mientras más área de la barra exista, su probabilidad será mayor.
+
+```{r}
+spreadValor <- (dfBITCOIN$spread/dfBITCOIN$close)*100
+hist(spreadValor,main = "Histograma de spreadvalor", ylab = "Frecuencia", xlab="Spreadvalor")
+```
+
+**Gráfica de Cullen and Frey**
+
+Como en el histograma anterior se mencionó la posibilidad de una exponencial, con este descdist, podemos confirmar dichas suposiciones, y además también se observa su mayor cercanía a la uniforme (obsérvese la leyenda de los iconos), entonces  procedemos a modelarlo uniforme usando la función fitdist para que nos arroje los valores de esta distribución teórica.
+
+```{r}
+descdist(spreadValor, boot = 300)
+```
+
+-   Obteniendo el valor de la distribución teórica que es "0,163" (el rate)
+
+```{r}
+fitdist(spreadValor, distr = "exp")
+```
+
+**Conclusión**
+
+-   Usamos la función pexp para saber la probabilidad acumulada de hasta 5% dándonos como resultado 55.93%, y se puede interpretar como que existe una probabilidad del 56% que en un día el spread sea menor al 5%.
+
+-   También podemos decir que más del 5% de los días la moneda está estable históricamente.
+
+```{r}
+pexp(5,0.1639)
+```
+
+### **3. Tercera pregunta**
+
+**¿Cual es la probabilidad de que el close_ratio de un día al azar sea menor a 0.5?** La variable close ratio hace referencia a la cantidad de órdenes de compra que se hicieron entre el total de solicitudes de pedir precio.
+Por ejemplo, queremos comprar bitcoins y el precio es de 5 soles, pero al momento de comprar el precio cambia, lo que nos dice el close_ratio es que varió 85% de precios.
+
+```{r}
+dfBITCOIN
+
+```
+
+**Histograma de frecuencia del close ratio**
+
+-   El gráfico que usa columnas verticales para visualizar las frecuencias, nos va a mostrar cuántas veces ocurre cada puntaje, además, no presenta espacios entre las barras que se van a mostrar en dicha gráfica.
+
+```{r}
+
+hist(dfBITCOIN$close_ratio, main = "Histograma de frecuencia del close ratio", ylab = "Frecuencia")
+
+```
+
+**Histograma de densidad del close ratio**
+
+-   Un Gráfico de Densidad visualiza la distribución de datos sobre un intervalo continuo o período de tiempo. Este gráfico es una variación de un histograma que utiliza el suavizado Kernel para trazar valores. Una ventaja que tienen los gráficos de densidad sobre los histogramas es que son mejores para determinar la forma de distribución porque no se ven afectados por la cantidad de contenedores utilizados (cada barra utilizada en un histograma típico). Este está compuesto por solo 4 contenedores y no produciría una forma de distribución lo suficientemente distinguible como lo haría un histograma de 20 contenedores. Sin embargo, con las gráficas de densidad, esto no es un problema. En ese sentido podemos ver que esa variable se puede modelar como una variable aleatoria uniforme, la variable aleatoria uniforme tiene la característica que las ocurrencias tienen la misma probabilidad de ocurrir entre 0 a 1.
+
+```{r}
+hist(dfBITCOIN$close_ratio, probability = TRUE, main = "Histograma de densidad del close ratio", ylab="Densidad")
+descdist(dfBITCOIN$close_ratio)
+fitdist(dfBITCOIN$close_ratio, "unif")
+```
+
+**Conclusión**
+
+```{r}
+punif(0.5,0,1)
+```
+
+-   Podemos concluir que la probabilidad de que el close_ratio de un día sea menor que 0.5 es decir hay una probabilidad del  50%.
+
+## **Bibliografías:**
+
+-   CoinMarketCap.
+    (s.f.).
+    Obtenido de CoinMarketCap: <https://coinmarketcap.com/>
+
+-   Dontas, G.
+    (23 de Agosto de 2010).
+    desarrollo-web-br-bd.
+    Obtenido de desarrollo-web-br-bd: <https://www.desarrollo-web-br-bd.com/es/r/diagramas-de-gantt-con-r/969187369/>
+
+-   Fernández, R.
+    (24 de Marzo de 2022).
+    Statista.
+    Obtenido de Statista: <https://es.statista.com/temas/8092/criptomonedas/#topicHeader__wrapper>
+
+-   Poma, J.
+    (2021).
+    Kaggle.
+    Obtenido de Kaggle: <https://www.kaggle.com/code/juanpoma/an-lisis-de-las-criptomonedas>
+
+-   Rosales Hernandez, M.
+    (27 de Febrero de 2021).
+    Tecnológico de Monterrey.
+    Obtenido de Tecnológico de Monterrey: <https://transferencia.tec.mx/2021/02/27/las-criptomonedas-y-su-relacion-con-la-economia-mundial/>
+
+\

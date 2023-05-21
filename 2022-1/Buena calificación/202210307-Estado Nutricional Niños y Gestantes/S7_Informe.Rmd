@@ -1,0 +1,567 @@
+---
+title: 'P1: Relación entre estado nutricional de los niños y madres gestantes en el
+  Perú'
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+---
+
+<style type="text/css">
+body, td {
+   font-size: 10px;
+}
+
+h1.title {
+  font-size: 28px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkRed;
+}
+h1 { /* Header 1 */
+  font-size: 22px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+}
+h2 { /* Header 2 */
+  font-size: 15px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+}
+h3 { /* Header 3 */
+  font-size: 13px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+}
+
+img {
+    max-width: 50%;
+}
+</style>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+# Instalación de Paquetes
+packages = c("readr", "dplyr", "ggplot2", "stringi", "stringr", "stats", "ggpmisc")
+
+for (p in packages) {
+  if (!require(p, character.only = TRUE)) {
+    library(p, character.only = TRUE)
+  }
+}
+```
+
+# 1) Introducción
+
+## Relevancia
+
+La desnutrición es un problema muy grave a nivel mundial, especialmente de los países subdesarrollados, dado que encierra en un bucle sistemático de pobreza a familias de generación en generación que no tienen los ingresos económicos necesarios para una alimentación adecuada afectando negativamente sus capacidades físicas e intelectuales, las que a su vez frenan las condiciones personales para salir de la pobreza. En este contexto, son dos periodos en los cual esta problemática tiene especial afectación sobre las habilidades de los niños: la etapa prenatal, marcada por el estado de salud de las madres gestantes, y la etapa infantil, sus primeros cinco años de vida.
+
+Esta situación recobra mayor importancia en la actualidad considerando que las repercusiones económicas de la pandemia han incrementado el número de personas bajo la línea de la pobreza monetaria, impactando en la salud especialmente de las poblaciones vulnerables como son los madres gestantes y niños, que son el futuro de nuestro país.
+
+# 2) Datos
+
+## Proceso de Recolección de datos
+
+
+La data en bruto utilizada para este proyecto se extrajo de los archivos del primero semestre del 2021 de la [Plataforma Nacional de Datos Abierto del Peru](https://www.datosabiertos.gob.pe/) del [Sistema de información del Estado Nutricional de niños y gestantes Perú - INS/CENAN](https://www.datosabiertos.gob.pe/dataset/sistema-de-informaci%C3%B3n-del-estado-nutricional-de-ni%C3%B1os-y-gestantes-per%C3%BA-inscenan-instituto)
+
+Esta base de datos es una fuente secundaria recopilada por el INS de la data de Historias Clínicas de los Establecimiento de Salud del Perú sobre el estado nutricional de niños menores de cinco años y mujeres gestantes.
+
+Este método de recolección permite afrontar el problema de recolección de data sobre una población extremadamente grande con éxito.
+
+## Población, muestra y muestreo
+
+### Población de estudio
+Este trabajo plantea estudiar y establecer una relación entre dos poblaciones distintas del primer semestre del 2021:
+* Mujeres gestantes
+* Niños menores de 5 años
+
+### Muestra y Muestreo
+La muestra seleccionada de estas 2 poblaciones corresponde a las mujeres gestantes y niños menores de 5 años que fueron atendidas y registradas en el SIEN (Sistema de Información del Estado Nutricional) durante el primer semestre del 2021. El tamaño del muestreo en los niños corresponde a un total de 942869 observaciones, mientras que para las madres gestantes el número de observaciones es de 190429. 
+
+El tipo de muestreo utilizado para la construcción de esta base de datos es por conveniencia, puesto que se ha recolectado únicamente información sobre las mujeres gestantes y niños que han recibido atención medica en un centro de salud. Esto podría potencialmente representar un sesgo en nuestro estudio, sin embargo el número de observaciones realizadas es lo suficientemente elevado para que esto no sea un problema y se conserve un alto grado de representatividad.
+
+## Variables
+Con respecto a la población infantil, se identificaron:
+### Categoricas Nominales
+* DIRESA: Lugar de procedencia del individuo - Restricción: Tiene que ser una región del Perú
+
+### Categoricas Ordinales
+* Estado Nutricional Agudo - Restricción: Valor tiene que ser ["D.Aguda","Normal","Obesidad","Sobrepeso"]
+* Estado Nutricional Crónica - Restricción: Valor tiene que ser ["D.Crónica","Normal","Obesidad","Sobrepeso"]
+* Estado Nutricional Global - Restricción: Valor tiene que ser ["D.Global","Normal","Obesidad","Sobrepeso"]
+
+Para las madres gestantes:
+### Categoricas Nominales
+* DIRESA: Lugar de procedencia de la madre - Restricción: Tiene que ser una región del Perú
+
+### Categoricas Ordinales
+* Tipo de Ganancia de Peso- Restricción: Valor tiene que ser ["Déficit","Normal","Sobrepeso","No Evaluado"]
+
+
+## Limpieza de Base de Datos
+
+La base de datos original del INS se encuentra dividida en múltiples archivos csv por DIRESAs. Para trabajar con esta data fue necesario unificarla en dos archivos: PT_Niños.csv y PT_Gestantes.csv. Las tildes del idioma español ocasionaban problemas con los paquetes utilizados,  siendo necesario usar la función iconv en las columnas con tildes para convertir sus strings en caracteres ASCII, así eliminándolas.
+
+```{r eval=FALSE, echo=TRUE, message=FALSE,warning=FALSE}
+## CARGA DE ARCHIVOS
+# Niños
+regiones = c("AMAZONAS", "ANCASH", "APURIMAC", "AREQUIPA", "AYACUCHO", "CAJAMARCA", "CALLAO", "CUSCO", "HUANCAVELICA", "HUANUCO", "ICA", "JUNIN", "LA LIBERTAD", "LAMBAYEQUE", "LIMA DIRIS CENTRO", "LIMA DIRIS ESTE", "LIMA DIRIS NORTE", "LIMA DIRIS SUR", "LIMA", "LORETO", "MADRE DE DIOS", "MOQUEGUA", "PASCO", "PIURA", "PUNO", "SAN MARTIN", "TACNA", "TUMBES", "UCAYALI")
+DFNd <- data.frame()
+for (r in regiones) {
+  temp<- read_csv(paste("HIS_Niños_ISem/PT/Niños ",r,".csv",sep=""))
+  DFNd <- rbind(DFNd,temp)
+}
+# Gestantes 
+regiones = c("Amazonas","Ancash","Andahuaylas","Apurimac","Ayacucho","Cusco","Cutervo","Huancavelica","Ica","Jaen","Junin","La Libertad","Lambayeque","Lima Centro","Lima Este","Lima Sur","Lima","Loreto","Madre De Dios","Pasco","Piura","Puno","Sullana","Tacna","Tumbes")
+DFGd <- data.frame()
+for (r in regiones) {
+  temp<- read_csv(paste("SIEN_Gestantes_ISem/PT/Gestantes ",r,".csv",sep=""))
+  DFGd <- rbind(DFGd,temp)
+}
+## LIMPIEZA DE DATA
+DFNd$Dx_TE <- iconv(DFNd$Dx_TE, "ASCII", "UTF-8", sub="")
+DFGd$Dx_CLAP <- iconv(DFGd$Dx_CLAP, "ASCII", "UTF-8", sub="")
+## ESCRITURA
+write_csv(DFNd, "PT_Niños.csv")
+write_csv(DFGd, "PT_Gestantes.csv")
+```
+
+
+
+# 3) Análisis descriptivo
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_niños <- read_csv("PT_Niños.csv")
+df_gestantes <- read_csv("PT_Gestantes.csv")
+```
+
+## Estado nutricional de los niños
+
+El estado nutricional del niño se evaluó con tres indicadores: Talla/Peso, Talla/Edad y Peso/Edad para identificar la desnutrición aguda, crónica y global respectivamente. Para ello se usaron los Z-scores, que permiten medir cuantas desviaciones estándar se encuentra  alejado un valor de su punto medio.
+
+### Estado Nutricional Agudo
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_desaguda <- df_niños %>% group_by(Dx_PT) %>% count()
+df_desaguda$n <- 100*df_desaguda$n / nrow(df_niños)
+#df_desaguda
+
+df_des_dep <- (df_niños %>% group_by(Diresa) %>% count()) 
+df_desna <- (df_niños %>% filter(Dx_PT=="D.Aguda")%>% group_by(Diresa) %>% count()) 
+df_desna$n <- 100*df_desna$n  / df_des_dep$n
+df_desna <- rename(df_desna, NiñoDesAguda=n)
+#df_desna
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width= "65%", out.extra='style="float:right; padding:10px"'}
+pl <- ggplot(data=df_niños,aes(x=Diresa, fill=Dx_PT))
+pl <- pl + geom_bar(stat = "count", position="fill")
+pl <- pl + scale_y_continuous(labels=scales::percent)
+pl <- pl + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+pl <- pl + labs(title="Distribución del Estado Nutricional Agudo en Niños por DIRESA", x="DIRESA", y="Porcentage")
+pl <- pl + guides(fill=guide_legend(title="Estado Nutricional Agudo"))
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl
+```
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+print(paste("Minimo:",min(df_desna$NiñoDesAguda)))
+print(paste("Maximo:",max(df_desna$NiñoDesAguda)))
+print(paste("Desviación Estandar:",sd(df_desna$NiñoDesAguda)))
+```
+
+El estado nutricional agudo se divide en cuatro categorías: Desnutrición Aguda cuando el z-score < (-2), Normal si su valor absoluto es menor a 2, Sobrepeso cuando > 2 y Obesidad si es >3. Los niños del estudio se encuentran clasificados en base a estos rangos en la columna Dx_PT.
+Con esta data  se logra generar un gráfico de barras proporcionales para evaluar la distribución del estado nutricional crónico en niños por DIRESA.
+
+
+En el gráfico se observa que la incidencia de Desnutrición Aguda tiene valores máximos en las DIRESAs de Ucayali, Loreto y San Martin en dicho orden, que pertenecen a la región de la selva. Sin embargo, es importante destacar que las variaciones entre DIRESAs son relativamente pequeños.  Al calcular la desviación estándar de la incidencia por DIRESA,  se obtiene una cifra mínima de 0.60.
+
+### Estado Nutricional Cronica
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_descron <- df_niños %>% group_by(Dx_TE) %>% count()
+df_descron$n <- 100*df_descron$n / nrow(df_niños)
+#df_descron
+
+df_des_dep <- (df_niños %>% group_by(Diresa) %>% count()) 
+df_desnc <- (df_niños %>% filter(Dx_TE=="D.Crsnica")%>% group_by(Diresa) %>% count()) 
+df_desnc$n <- 100*df_desnc$n  / df_des_dep$n
+df_desnc <- rename(df_desnc, NiñoDesCronica=n)
+#df_desnc
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width= "65%", out.extra='style="float:right; padding:10px"'}
+pl <- ggplot(data=df_niños,aes(x=Diresa, fill=Dx_TE))
+pl <- pl + geom_bar(stat = "count", position="fill")
+pl <- pl + scale_y_continuous(labels=scales::percent)
+pl <- pl + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+pl <- pl + labs(title="Distribución del Estado Nutricional Crónico en Niños por DIRESA", x="DIRESA", y="Porcentage")
+pl <- pl + guides(fill=guide_legend(title="Estado Nutricional Crónico"))
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl
+```
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+print(paste("Minimo:",min(df_desnc$NiñoDesCronica)))
+print(paste("Maximo:",max(df_desnc$NiñoDesCronica)))
+print(paste("Desviación Estandar:",sd(df_desnc$NiñoDesCronica)))
+```
+El estado nutricional crónico, empleando el Z score, se divide en: Desnutrición Crónica, Normal, Sobrepeso y Obesidad.  De igual forma, los niños han sido clasificados en base a estos rangos en la columna Dx_TE.
+
+A continuación, se presenta un gráfico de barras proporcionales para evaluar la distribución del estado nutricional crónico en niños por DIRESA.
+
+A diferencia del gráfico previo, se observa que la variación de la incidencia en Desnutrición Crónica es mayor, teniendo una desviación estándar de 5.72. En este caso, se identificaron como las DIRESAs con mayor incidencia, Huancavelica, Cajamarca y Amazonas en ese orden descendente. A diferencia de la problemática anterior, estos resultados identifican a  la región de la sierra  como la más afectada en desnutrición crónica.
+
+
+
+### Estado Nutricional Global por DIRESA
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_desglob <- df_niños %>% group_by(Dx_PE) %>% count()
+df_desglob$n <- 100*df_desglob$n / nrow(df_niños)
+#df_desglob
+
+df_des_dep <- (df_niños %>% group_by(Diresa) %>% count()) 
+df_desng <- (df_niños %>% filter(Dx_PE=="D.Global")%>% group_by(Diresa) %>% count()) 
+df_desng$n <- 100*df_desng$n  / df_des_dep$n
+df_desng <- rename(df_desng, NiñoDesGlobal=n)
+#df_desng
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width= "65%", out.extra='style="float:right; padding:10px"'}
+pl <- ggplot(data=df_niños,aes(x=Diresa, fill=Dx_PE))
+pl <- pl + geom_bar(stat = "count", position="fill")
+pl <- pl + scale_y_continuous(labels=scales::percent)
+pl <- pl + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+pl <- pl + labs(title="Distribución del Estado Nutricional Global en Niños por DIRESA", x="DIRESA", y="Porcentage")
+pl <- pl + guides(fill=guide_legend(title="Estado Nutricional Global"))
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl
+```
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+print(paste("Minimo:",min(df_desng$NiñoDesGlobal)))
+print(paste("Maximoi:",max(df_desng$NiñoDesGlobal)))
+print(paste("Desviación Estandar:",sd(df_desng$NiñoDesGlobal)))
+```
+
+Con el mismo criterio, se agrupo la data mostrada en la columna Dx_PE. En el siguiente gráfico de barras proporcionales se evalúa la distribución del estado nutricional global en niños por DIRESA.
+
+Como se observa, la incidencia de Desnutrición Global tiene sus valores máximos en la DIRESA de Loreto, seguida de Ucayali y Huancavelica. En este sentido, nuevamente se identifica a la región de la selva con el mayor nivel de desnutrición. Cabe destacar que, si bien en la gráfica las variaciones entre los valores parecen mínimas, si se calcula la desviación estándar como medida de dispersión, se observa que los datos están considerablemente separados con un valor de 1.47.
+
+
+## Estado Nutricional de Madres Gestantes por DIRESA
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_desges_dep <- (df_gestantes %>% group_by(DIRESA) %>% count()) 
+df_desges <- (df_gestantes %>% filter(Dx_CLAP=="Dificit")%>% group_by(DIRESA) %>% count()) 
+df_desges$n <- 100*df_desges$n  / df_desges_dep$n
+df_desges <- rename(df_desges, GestanteDeficit=n)
+df_desges <- rename(df_desges, Diresa=DIRESA)
+#arrange(df_desges, GestanteDeficit)
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width= "65%", out.extra='style="float:right; padding:10px"'}
+pl <- ggplot(data=df_gestantes,aes(x=DIRESA, fill=Dx_CLAP))
+pl <- pl + geom_bar(stat = "count", position="fill")
+pl <- pl + scale_y_continuous(labels=scales::percent)
+pl <- pl + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+pl <- pl + labs(title="Distribución del Estado Nutricional en\nMadres Gestantes por DIRESA", x="DIRESA", y="Porcentage")
+pl <- pl + guides(fill=guide_legend(title="Estado Nutricional (CLAP)"))
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl
+```
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+print(paste("Minimo:",min(df_desges$GestanteDeficit)))
+print(paste("Maxmio:",max(df_desges$GestanteDeficit)))
+print(paste("Desviación Estandar:",sd(df_desges$GestanteDeficit)))
+```
+
+El estado nutricional de una madre gestante se ha medido mediante los criterios del Centro Latinoamericano de Perinatología y Desarrollo Humano (CLAP) que lo clasifica en Déficit, Normal o Sobrepeso. Adicionalmente, en algunos casos esta data esta faltante, con lo que ha sido marcada con "No evaluado".
+
+En el siguiente grafico de barras proporcionales se muestra la distribución del estado nutricional de las madres gestantes por DIRESA.
+
+Se observa que la incidencia de Déficit de ganancia de peso tiene valores máximos en las DIRESAs de Loreto, Amazonas y Junín. De esta forma, se evidencia que la región selva nuevamente se ubica en el extremo de máxima incidencia. En la gráfica se observa una dispersión considerable de las incidencias de déficit, lo cual se confirma con una desviación estándar de 2.62.
+
+
+
+
+
+## Relación del estado nutricional de madres gestantes y el estado nutricional de niños 
+En esta sección se analiza la correlación entre las incidencias de las poblaciones de madres gestantes en déficit nutricional y de niños en estado de desnutrición en una misma DIRESA. Cabe precisar que no todas las DIRESAs evaluadas en el estudio de madres gestantes se encuentran en el estudio de niños y viceversa, por lo que para evaluar esta relación se consideran únicamente los casos completos. 
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_desnutricion <- df_desges
+df_desnutricion <- inner_join(df_desnutricion, df_desna,by="Diresa")
+df_desnutricion <- inner_join(df_desnutricion, df_desnc,by="Diresa")
+df_desnutricion <- inner_join(df_desnutricion, df_desng,by="Diresa")
+```
+
+### Relación con Desnutrición Aguda
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width= "40%", fig.align = 'center'}
+pl <- ggplot(df_desnutricion, aes(x=GestanteDeficit, y=NiñoDesAguda)) + geom_point()
+pl <- pl + labs(title="Relación entre incidencia de Madres Gestantes en Déficit\ny Niños con Desnutrición Aguda", x="Incidencia de Madres Gestantes en Déficit", y="Incidencia de Niños con Desnutrición Aguda")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl <- pl + geom_smooth(method="lm")
+pl <- pl + stat_poly_eq(aes(label = after_stat(eq.label)))
+pl
+
+print(paste("Correlación:",cor(df_desnutricion$GestanteDeficit, df_desnutricion$NiñoDesAguda)))
+```
+En la gráfica se observa una moderada correlación positiva entre la incidencia de Madres gestantes en déficit nutricional y la incidencia de niños con desnutrición aguda. Esta relación se confirma con el valor obtenido del coeficiente de Pearson, con un valor de 0.64.
+
+### Relación con Desnutrición Cronica
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width= "40%", fig.align = 'center'}
+pl <- ggplot(df_desnutricion, aes(x=GestanteDeficit, y=NiñoDesCronica)) + geom_point()
+pl <- pl + labs(title="Relación entre incidencia de Madres Gestantes en Déficit\ny Niños con Desnutrición Cronica", x="Incidencia de Madres Gestantes en Déficit", y="Incidencia de Niños con Desnutrición Cronica")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl <- pl + geom_smooth(method="lm")
+pl <- pl + stat_poly_eq(aes(label = after_stat(eq.label)))
+pl
+
+print(paste("Correlación:",cor(df_desnutricion$GestanteDeficit, df_desnutricion$NiñoDesCronica)))
+```
+
+Similar a lo que se  observa en el primer diagrama de dispersión, en esta gráfica también se encuentra una moderada correlación positiva entre la incidencia de madres gestantes en déficit nutricional y la incidencia de niños con desnutrición crónica. No obstante, al calcular el coeficiente de Pearson, se evidencia una relación más débil con un valor de 0.56. Esto se debe en gran medida al conjunto de datos concentrados entre 6% y 8% de madres en déficit los cuales se encuentran altamente dispersos.
+
+### Relación con Desnutrición Global
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE, out.width= "40%", fig.align = 'center'}
+pl <- ggplot(df_desnutricion, aes(x=GestanteDeficit, y=NiñoDesGlobal)) + geom_point()
+pl <- pl + labs(title="Relación entre incidencia de Madres Gestantes en Déficit\ny Niños con Desnutrición Global", x="Incidencia de Madres Gestantes en Déficit", y="Incidencia de Niños con Desnutrición Global")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl <- pl + geom_smooth(method="lm")
+pl <- pl + stat_poly_eq(aes(label = after_stat(eq.label)))
+pl
+
+print(paste("Correlación:",cor(df_desnutricion$GestanteDeficit, df_desnutricion$NiñoDesGlobal)))
+```
+
+En comparación con los gráficos previos, este diagrama muestra la correlación más fuerte de los tres, que se ve reforzado por tener un coeficiente de Pearson de 0.75, que indica una correlación fuerte.
+
+# 3) Analisis Probabilistico 
+Este análisis consta de dos secciones:
+
+En la primera, se identifica y modela las distribuciones probabilísticas que permiten describir a las variables de interés, priorizando el enfoque en las frecuencias de los eventos dentro de una región.
+
+En la segunda sección, se  utiliza las probabilidades obtenidas del análisis descriptivo para generar modelos probabilísticos de interés que, mediante variables aleatorias, permiten realizar cálculos de gran utilidad para la problemática investigada a lo largo del presente informe.
+
+
+
+## Indices de Frecuencias
+Las variables que se modelan en esta sección son: frecuencia de desnutrición (aguda, crónica y global) de una región y frecuencia del déficit de ganancias de peso en madres gestantes de una región.
+
+El moldeamiento probabilístico de estas variables de tipo continuas requiere un mayor cuidado. Por ello, para identificar el tipo de distribución que describe a cada variable se ha utilizado una aproximación de la función de distribución. Para el cálculo de dicha aproximación, se ha utilizado la siguiente metodología:
+
+_Teniendo el vector de puntos_ $X$ _de tamaño_ $n$ _correspondientes a las muestras obtenidas experimentalmente de una variable aleatoria, se genera una tabla de puntos_ $( x, F(x) )$ _pertenecientes a la aproximación de la función de distribución utilizando la siguiente fórmula para calcular_ $F$: $$F(x) = \frac{\sum_{x' \leq x\in X}1}{n}$$
+
+La aproximación de $F$ consiste en contar el número de elementos para los cuales, experimentalmente, se tiene que $X<x$. Entonces se tiene que:$F(x) \approx P(X<x)$, cumpliendo con la definición de función de distribución.
+
+A continuación se presentan los resultados obtenidos al aplicar esta técnica de aproximación a cada una de las variables de interés y se discute su significado.
+
+
+### Desnutrición Aguda
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_desnutricion_aguda_prob <- df_desnutricion %>% select(Diresa, NiñoDesAguda) %>% arrange(., NiñoDesAguda)
+df_desnutricion_aguda_prob$Acumulativo <- 1:nrow(df_desnutricion_aguda_prob) / nrow(df_desnutricion_aguda_prob)
+
+snda = sd(df_desnutricion_aguda_prob$NiñoDesAguda)
+mnda = mean(df_desnutricion_aguda_prob$NiñoDesAguda)
+
+pl <- ggplot(df_desnutricion_aguda_prob, aes(x=NiñoDesAguda, y=Acumulativo)) + geom_point()
+pl <- pl + labs(title="Funcion de distribución de incidencia de Niños con Desnutrición Aguda por region", x="Incidencia de Niños con Desnutrición Aguda", y="Probabilidad acumulada")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl <- pl + xlim(0, 3) + geom_function(fun = pnorm, args= list(mean = mnda, sd = snda))
+pl
+```
+En general, para la incidencia de las variables estudiadas se espera que todas tengan un naturaleza _Normal_. Esta hipótesis se sustenta en el Teorema de Limite central: cuando el resultado de un evento se ve definido por la suma de un gran número de factores independientes de naturaleza aleatoria, entonces el comportamiento del evento tiende a una distribución _Normal_. En este aspecto, es importante recordar que los objetos de estudio del presente informe son dos problemáticas complejas: la desnutrición infantil y el déficit de ganancia de peso en madres gestante, y por lo tanto son ocasionadas por un número no trivial de factores que contribuyen a que esta problemática nazca. Por lo tanto, una distribución _Normal_ es la más apropiada. Tomar en cuenta que para que esto sea cierto, se asume que los factores deben contribuir en aproximadamente la misma proporción a que el evento suceda, en caso contrario se podrán evidenciar sesgos o otras distribuciones.
+
+Tomando el caso particular de la variable de Desnutrición Infantil Aguda, al graficar los puntos de probabilidad acumulada aproximados, podemos confirmar que estos se ajustan fuertemente a la distribución normal obtenida de la aproximación puntual de los parámetros de desviación estándar `r round(snda,2)` y media  `r round(mnda,2)`. En este sentido, este caso comprueba la hipótesis planteada.
+
+Entonces, podemos modelar la variable aleatoria A como: $$A \text{~} Norm(1.57,0.52^2)$$
+
+### Desnutricion Cronica
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_desnutricion_cronica_prob <- df_desnutricion %>% select(Diresa, NiñoDesCronica) %>% arrange(., NiñoDesCronica)
+df_desnutricion_cronica_prob$Acumulativo <- 1:nrow(df_desnutricion_cronica_prob) / nrow(df_desnutricion_cronica_prob)
+
+mandc = max(df_desnutricion_cronica_prob$NiñoDesCronica)
+mindc = min(df_desnutricion_cronica_prob$NiñoDesCronica)
+sndc = sd(df_desnutricion_cronica_prob$NiñoDesCronica)
+mndc = mean(df_desnutricion_cronica_prob$NiñoDesCronica)
+
+pl <- ggplot(df_desnutricion_cronica_prob, aes(x=NiñoDesCronica, y=Acumulativo)) + geom_point()
+pl <- pl + labs(title="Funcion de distribución de incidencia de Niños con Desnutrición Cronica por region", x="Incidencia de Niños con Desnutrición Cronica", y="Probabilidad acumulada")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+#pl <- pl + geom_smooth(method="lm")
+pl <- pl + xlim(0, 30) + geom_function(fun = punif, args= list(min = mindc, max = mandc))
+#pl <- pl + xlim(0, 30) + geom_function(fun = pnorm, args= list(mean = mndc, sd = sndc))
+pl
+```
+La variable de la Desnutrición Infantil Crónica representa el caso más particular de los cuatro. Como observa en la gráfica, los puntos de probabilidad acumulada aproximados en el plano cartesiano exhiben una tendencia casi lineal. Es decir, contrario a la hipótesis inicial, esta tendencia sugiere que la desnutrición crónica no sigue un comportamiento normal, pues se ajusta mejor a una distribución uniforme. Cabe resaltar que con la información disponible no se puede explicar el motivo exacto de esta distribución,  constituyendo un punto interesante de futura investigación al sugerir la potencial existencia de un grupo de factores causales que genera esta distribución.
+
+Con la suposición de que esta variable aleatoria C es uniforme, se puede modelar usando el mínimo `r round(mindc,2)` y máximo  `r round(mandc,2)` de nuestra data experimental: $$C \text{~} Unif(3.16,23.41)$$
+
+
+### Desnutricion Global
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_desnutricion_global_prob <- df_desnutricion %>% select(Diresa, NiñoDesGlobal) %>% arrange(., NiñoDesGlobal)
+df_desnutricion_global_prob$Acumulativo <- 1:nrow(df_desnutricion_global_prob) / nrow(df_desnutricion_global_prob)
+
+sndg = sd(df_desnutricion_global_prob$NiñoDesGlobal)
+mndg = mean(df_desnutricion_global_prob$NiñoDesGlobal)
+
+pl <- ggplot(df_desnutricion_global_prob, aes(x=NiñoDesGlobal, y=Acumulativo)) + geom_point()
+pl <- pl + labs(title="Funcion de distribución de incidencia de Niños con Desnutrición Global por region", x="Incidencia de Niños con Desnutrición Global", y="Probabilidad acumulada")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl <- pl + xlim(0, 5) + geom_function(fun = pnorm, args= list(mean = mndg, sd = sndg))
+pl
+```
+En el caso de la desnutrición global, se presenta un ajuste medio con la distribución normal. Aunque el error presentado por cada punto al compararlos con la gráfica de la distribución normal esperada es relativamente pequeño, la desviación estándar es tan elevada que por fragmentos parece que la función toma un aspecto lineal, sugiriendo la posibilidad de una distribución uniforme. Si bien parece improbable que la distribución sea uniforme por la naturaleza de la variable, en este aspecto el incremento del número de muestras utilizadas para el cálculo de los puntos de probabilidad acumulada potencialmente nos ofrecería un mayor grado de certeza de la aproximación que se está realizando.
+
+
+Asumiendo que esta variable efectivamente adquiere un comportamiento normal, entonces se puede definir la variable aleatoria G usando los valores de desviación `r round(sndg,2)` y media  `r round(mndg,2)` calculados: $$G \text{~} Norm(3.49,1.52^2)$$ 
+
+
+### Distribucion de Déficit de Madres Gestantes
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+df_gestantes_prob <- df_desnutricion %>% select(Diresa, GestanteDeficit) %>% arrange(., GestanteDeficit)
+df_gestantes_prob$Acumulativo <- 1:nrow(df_gestantes_prob) / nrow(df_gestantes_prob)
+
+smg = sd(df_gestantes_prob$GestanteDeficit)
+mmg = mean(df_gestantes_prob$GestanteDeficit)
+
+pl <- ggplot(df_gestantes_prob, aes(x=GestanteDeficit, y=Acumulativo)) + geom_point()
+pl <- pl + labs(title="Funcion de distribución de incidencia de Madres Gestantes con Déficit de ganancia\nde peso por region", x="Incidencia de Madres Gestantes con Déficit de ganancia de peso", y="Probabilidad acumulada")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl <- pl + xlim(0, 15) + geom_function(fun = pnorm, args= list(mean = mmg, sd = smg))
+pl
+```
+
+Finalmente, la variable de incidencia de Madres Gestantes con Déficit de ganancia de peso se presenta como un caso en el cual, si bien existe un buen ajuste al modelo normal, este no es exacto. En cambio, la probabilidad acumulada incrementa en el rango de incidencia entre 6 y 8 con mayor rapidez de lo que se esperaría  en base a los parámetros de media y desviación estándar calculados: `r round(mmg,2)` y`r round(smg,2)` respectivamente. Ello da indicios de la posibilidad de que la distribución de la variable sea una distribución normal con sesgo a la derecha.
+
+No obstante, para los fines de este informe se considerara a la distribución normal estándar como aproximación suficiente para esta variable. Entonces, se puede definir a la variable aleatoria M como:
+$$M \text{~} Norm(7.72,3.17^2)$$ 
+
+
+## Casos Probabilisticos
+
+### CASO 1:  Madres gestantes con déficit en ganancias de peso en hospitales
+El número de casos de madres gestantes con déficit nutricional es una cifra importante para la planificación de medidas que permitan minimizar los riesgos a los que están expuestas. Para este fin, si bien los índices encontrados en la sección previa son buenas aproximaciones a gran escala, en casos particulares estos pueden resultar insuficientes. En cambio, resulta más apropiado planificar en base a rangos de confianza. En este caso, por ejemplo, un centro hospitalario deseara planificar acciones medicas que cubran el 90% de los casos o más. Por consiguiente, se plantea el siguiente modelo que permite determinar la cantidad de madres gestantes que estarán en déficit en un K% de los casos.
+
+Para este modelo se plantean las siguientes suposiciones:
+- La probabilidad de que una Madre Gestante tenga déficit en Ganancias de Peso se puede aproximar correctamente mediante su porcentaje por región obtenido en la sección previa. Esta suposición se fundamenta en el gran número de casos utilizados para el cálculo de estos valores, que son equivalentes a realizar un cálculo de dicha probabilidad de forma experimental.
+- Todas las Madres Gestantes de un hospital pertenecen a una misma región. Si bien esta suposición no es verdadera en su totalidad, resulta una buena aproximación especialmente para las regiones fuera de la capital donde este suele ser el caso.
+- La probabilidad entre Madres Gestantes es independiente. La única relación entre las Madres Gestantes es que pertenecen a una misma región.
+
+Entonces, podemos definir los siguientes parámetros para un experimento de Bernoulli:
+
+- Éxito: Definido como “Madre tiene déficit en Ganancias de Peso”
+- p: Probabilidades de éxito = porcentaje de incidencia en la región / 100 $= 6.969309/ 100 = 0.06969309 \approx 0.07$ 
+- n: Total de madres gestantes en el hospital Lircay
+
+Podemos entonces definir la variable aleatoria:$$X \text{~} Bin(n, p)$$ Donde P(X=x) es la probabilidad de que hallan x madres gestantes con déficit en el hospital.
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+HUANC_GEST<-read_csv("Gestantes Huancavelica.csv")
+```
+
+De acuerdo al Sistema de Información del Estado Nutricional del INS se considera a Huancavelica como la región con mayor proporción de madres gestantes con desnutrición. Entonces, buscamos en nuestra base de datos “Gestantes Huancavelica” hospitales con mayor número de madres gestantes, siendo este el hospital Lircay que cuenta con 261 gestantes.
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+HOSP<-HUANC_GEST %>% count(EESS)
+#HOSP
+NUM<-HOSP[2]
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+table(NUM)
+```
+
+*QBINOM
+Si queremos saber de 261 madres gestantes pertenecientes al hospital Lircay, cuántas tienen déficit de ganancia de peso con una propabilidad de éxito de 0.07, utilizamos la función qbinom, arrojando 24 madres como respuesta:
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+qbinom(0.9,261,0.07)
+```
+
+Por lo tanto, el hospital Lircay debe planificar con una confianza del 90% para 24 madres gestantes con déficit en ganancia de peso.
+ 
+ 
+*DBINOM
+Asimismo, suponiendo que queremos calcular la probabilidad de que de 261 madres gestantes pertenecientes al hospital Lircay, 20 tengan déficit de ganancia de peso utilizamos la función dbinom, la cual nos arrojó una probabilidad de 0.85.
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+dbinom(20,261,0.07)
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+
+x<-(0:261)
+y<-dbinom(x,261,0.07)
+#plot(x,y)
+
+#plot(x, y, col="blue")
+
+gest_huan_c1 = data.frame(x,y)
+gest_huan_c1 <- rename(gest_huan_c1, Exitos=x)
+gest_huan_c1 <- rename(gest_huan_c1, Probabilidad=y)
+
+pl <- ggplot(gest_huan_c1, aes(x=Exitos,y=Probabilidad)) + geom_point()
+pl <- pl + labs(title="Funcion de densidad de CASO1", x="Número de exitos", y="Probabilidad")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl
+```
+
+### CASO 2: Contrastar la posibilidad de que un salón de 25 alumnos  por lo menos uno tenga desnutrición.
+- Éxito: Un alumno se encuentra con desnutrición 
+- Fracaso: Un alumno se encuentra sin desnutrición
+ 
+Donde:
+- p = probabilidad de éxito = Índice de desnutrición global en niños (HUANCAVELICA) / 100 = p = 4.5881523 / 100 = 0.05
+- k = número máximo de pruebas de Bernoulli antes de que se produce el éxito por primera vez = 25
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+pgeom (25, 0.05)
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+x <- seq(0, 25, by=1)
+y <- pgeom(x, 0.05)
+#plot(x, y, col="blue")
+
+pgeom_lima = data.frame(x,y)
+pgeom_lima <- rename(pgeom_lima, Fallos=x)
+pgeom_lima <- rename(pgeom_lima, Probabilidad=y)
+
+pl <- ggplot(pgeom_lima, aes(x=Fallos,y=Probabilidad)) + geom_point()
+pl <- pl + labs(title="Funcion de distribución de CASO2 en Lima", x="Número de fallos", y="Probabilidad acumulada")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl
+```
+
+De un total de 25 alumnos por salón, podemos observar que hay una probabilidad de 0.74 de que por lo menos uno tenga desnutrición global en la región de Huancavelica.
+
+- p = probabilidad de éxito = Índice de desnutrición global en niños (LIMA) / 100 = p = 1.8634180 / 100 = 0.02 
+- k = número máximo de pruebas antes de que se produzca el éxito por primera vez = 25
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+pgeom (25, 0.02)
+```
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+x <- seq(0, 25, by=1)
+y <- pgeom(x, 0.02)
+#plot(x, y, col="blue")
+
+pgeom_huan = data.frame(x,y)
+pgeom_huan <- rename(pgeom_huan, Fallos=x)
+pgeom_huan <- rename(pgeom_huan, Probabilidad=y)
+
+pl <- ggplot(pgeom_huan, aes(x=Fallos,y=Probabilidad)) + geom_point()
+pl <- pl + labs(title="Funcion de distribución de CASO2 en Huancavelica", x="Número de fallos", y="Probabilidad acumulada")
+pl <- pl + theme(plot.title = element_text(hjust = 0.5))
+pl
+```
+De un total de 25 alumnos por salón, podemos observar que hay una probabilidad de 0.41 de que existan por lo menos un niño con desnutrición global en la región Lima.
+
+
+
+

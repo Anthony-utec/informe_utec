@@ -1,0 +1,893 @@
+---
+title: "P2"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+---
+
+# **Tema**
+
+**Análisis de la influencia de los factores socioeconómicos en personas afiliadas al sector de seguros oncológicos en Lima**
+
+### **Introducción**
+
+-   **Objetivo:** Determinar que factores socioeconómicos influyen en la afiliación de una persona a un seguro oncológico.
+
+-   **Relevancia:** Según “la revista peruana de medicina experimental y salud pública” La incidencia estimada de cáncer en el Perú es de 150 casos x 100 000 habitantes ,se estima que el 75% de los casos se diagnostican en etapa avanzada , siendo el lugar de residencia de los pacientes principalmente en Lima.La influencia de los factores socioeconómicos en esta etapa es importante porque van a determinar la decisión o motivo de adquirir un seguro oncológico,ya que estos seguros oncológicos van a brindar un respaldo de asistencia médica ante y durante  la enfermedad teniendo esto en cuenta vamos a comprender mejor la situación de las personas que los llevaron a tomar la decisión de afiliarse y contrastarlas con sus propios casos.
+
+-   **Planificación:** Para la mostrar la planificación se creó un Diagrama de Gantt. Primero se tuvo que instalar las librerías correspondientes
+
+
+```{r}
+if(!require(readr)){install.packages("tidyverse")}
+if(!require(readr)){install.packages("dplyr")}
+if(!require(readr)){install.packages("reader")}
+if(!require(readr)){install.packages("rcompanion")}
+
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+Luego, leer el archivo e identificar las variables
+
+```{r}
+gantt <- read.csv("Gantt.csv", h=T)
+acts <- c("Planteamiento Temas", "Investigación de los Temas", "PO PreEntrega", "Selección Tema Principal", "Reconocimiento de Variables", "Planteamiento de Preguntas Encuesta", "Feedback Encuesta", "Reformulación Encuesta", "Difusión Encuesta Escrito", "Difusión Encuesta Video", "Introducción", "Recolección de Datos", "Población, Muestra y Muestreo", "Variables", "Limpieza de Datos", "Análisis Descriptivos", "Revisión Final", "Exposición","Feedback Profesora", "Revisión de Errores","Gestión de los NA","Análisis Descriptivo Individual","Análisis Descriptivo Relaciones","Planteamiento de Modelos Probabilísticos","Análisis Probabilístico","Bibliografía","Creación PPT","Revisión Final P2","Exposición Final")
+els <- c("P0", "P1", "P2")
+```
+
+Establecer de manera correcta la fecha en Día-Mes-Año. Además, de leer las variables
+
+```{r}
+g.gantt <- gather(gantt, "state", "date", 4:5) %>% mutate(date = as.Date(date, "%d.%m.%Y"), Activity=factor(Activity, acts[length(acts):1]), Project.element=factor(Project.element, els))
+```
+
+Finalmente, Establecer los colores que queremos tomen los componentes del proyecto. Y establecer los nombres a las abscisas, a la gráfica.
+
+```{r}
+actcols <- c("#FF773C", "#3CDFFF","#4CBD49")
+ggplot(g.gantt, aes(date, Activity, colour = Project.element, group=Item)) +
+  geom_line(size = 10) +
+  scale_color_manual(values=actcols, name="Componentes del Proyecto") +
+  labs(x="Meses del Proyecto", y="Actividades del Proyecto", title="Línea de Tiempo del Proyecto")
+```
+
+### **Datos**
+
+-   **Proceso de recolección de datos**
+
+    Para este trabajo, los datos fueron obtenidos mediante una encuesta creada por el equipo de trabajo y recibió un feedback de un profesor del curso. Esta encuesta contaba con preguntas relacionadas a las variables directamente, y otras que permitían dar contexto a los encuestados. Así, con el fin de motivar a las personas a completar la encuesta, se decidió realizar un sorteo dirigido a todo aquel que lo rellenara y cumpliera con los requisitos:
+
+    -   Seguro Oncológico Privado (SOP)
+    -   Mayor de 18 años
+    -   Residir en Centro de Lima.
+
+    Y para lograr un mayor alcance, no nos limitamos a los conocidos y decidimos hacer uso de la red social TikTok para poder llegar a más personas; asignamos esta tarea a un integrante del equipo, quien se encargo de elaborar y subir el vídeo en su cuenta de la red social. Finalmente, es necesario tener en cuenta que esta encuesta tiene un sesgo de confiabilidad, porque asumimos que las personas que completaron la encuesta fueron sinceras y confiables.
+
+-   **Población, muestra y muestreo**
+
+    -   **Población:**
+
+        Personas Mayores de 18 años que cuenten con Seguro Oncológico Privado y resida en Centro de Lima
+
+    -   **Muestra:**
+
+        204 personas que completaron el formulario
+
+    -   **Muestreo:**
+
+        Se trata de un muestreo por conveniencia, porque establecimos parametros especîficos para tener una muestra más significativa
+
+-   **Variables**
+
+| **Variables**                  | **Tipo**                        | **Restricción**             |
+|--------------------------|------------------------|----------------------|
+| *Género*                       | *Categórica-Nominal/Dicotómica* | *-*                         |
+| *Trabajo*                      | *Categórica-Nominal/Politómica* | *-*                         |
+| *Religión*                     | *Categórica-nominal/Politómica* | *-*                         |
+| *Edad*                         | *Numérica-discreta*             | *Ser un entero no negativo* |
+| *EstadoCivil*                  | *Categórica-nominal/Politómica* | *-*                         |
+| *CantidadPersonasDependientes* | *Numérica-discreta*             | *Ser un entero no negativo* |
+| *GradoSociabilidad*            | *Numérica-discreta*            | *-*                         |
+| *NombreSeguro*                 | *Categórica-Nominal/Politómica* | *-*                         |
+| *Ingresos*                     | *Numérica-Continua*             | *Número no negativo*        |
+| *Deudas*                       | *Numérica-Continua*             | *Número no negativo*        |
+| *AntecedentesConocidoCancer*   | *Categórica-Nominal/Dicotómica* | *-*                         |
+| *EdadDelAntecedente*           | *Numérica-discreta*             | *Ser un entero no negativo* |
+| *CostoSeguro*                  | *Numérica-Continua*             | *Número no negativo*        |
+| *TiempoSeguro*                 | *Numérica-Discreta*             | *Ser un entero no negativo* |
+| *AntecedenteCancer*            | *Categórica-Nominal/Dicotómica* | *-*                         |
+| *AntecedenteCancerSeguro*      | *Categórica-Nominal/Politómica* | *-*                         |
+| *CambiaríaDeSeguro*            | *Categórica-Nominal/Dicotómica* | *-*                         |
+| *RazónDeCambio*                | *Categórica-Nominal/Politómica* | *-*                         |
+
+| **Variables**                  | **Categoría**      |
+|--------------------------------|--------------------|
+| *Género*                       | *Social*           |
+| *Trabajo*                      | *Social*           |
+| *Religión*                     | *Social*           |
+| *Edad*                         | *Social*           |
+| *EstadoCivil*                  | *Social*           |
+| *CantidadPersonasDependientes* | *Económico*        |
+| *GradoSociabilidad*            | *Social*           |
+| *NombreSeguro*                 | *Social/Económico* |
+| *Ingresos*                     | *Económico*        |
+| *Deudas*                       | *Económico*        |
+| *AntecedentesConocidoCancer*   | *Social*           |
+| *EdadDelAntecedente*           | *Social*           |
+| *CostoSeguro*                  | *Económico*        |
+| *TiempoSeguro*                 | *Social/Económico* |
+| *AntecedenteCancer*            | *Social*           |
+| *AntecedenteCancerSeguro*      | *Social*           |
+| *CambiaríaDeSeguro*            | *Social/Económico* |
+| *RazónDeCambio*                | *Social/Económico* |
+
+-   **Limpieza de base de datos**
+
+Uso de las librerías.
+
+```{r}
+
+library(rcompanion)
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+Se lee el archivo csv.
+
+```{r}
+DF <- read_csv("respuestas.csv")
+```
+
+Se selecciona solo las variables que se van usar mediante el comando select, asignando ello a otra variable.
+
+```{r}
+DFN <- select(DF, 6:23) 
+DFN
+```
+
+```{r}
+summary(DFN)
+```
+
+Mediante el comando summary, podemos notar que las variables fueron leídas correctamente, tanto como numéricas como categóricas.
+
+```{r}
+names(DFN)
+```
+
+Se va renombrar las variables, para poder ver el nombre de las variables se usa el comando names. Mediante el comando rename cambiamos el nombre a todas las variables.
+
+```{r}
+DFN %>% rename(Genero=`Género`,EstadoCivil=`Estado Civil`, Edad=Edad, Religion=`Religión`, Trabajo=`¿Qué trabajo tiene?`,Deudas=`Deudas (soles)`, CantidadPersonasDependientes = `¿Cuántas personas tiene a su cuidado?`, GradoSociabilidad=`Medida de sociabilidad`, Ingresos= `Ingresos Mensuales en el hogar (en soles)`, Deudas= `Deudas (soles)`, AntecedentesConocidosConCancer=`¿Tiene o tuvo usted personas en su círculo social que presente enfermedad cancerígena?`, EdadDelAntecedente=`¿Cuál es la edad de esa persona?`, NombreSeguro=`¿A qué seguro oncológico se encuentra usted afiliado?`, CostoSeguro=`Aproximadamente, ¿Cuánto es el costo mensual en el seguro (soles)?`, TiempoSeguro=`¿Cuánto tiempo lleva con el seguro?(años)`, AntecedenteCancer=`¿Cuántas veces tuvo la enfermedad?`, AntecedenteCancerSeguro=`¿Tuvo la enfermedad antes de contar con seguro?`, CambioDeSeguro=`¿Cambiaría de seguro?`, RazonDeCambio=`¿Por qué razón cambiaría de seguro?`) -> DFNN
+
+```
+
+Ahora mediante el comando names sobre nuestra nueva variable, podemos ver los nuevos nombres asignados.
+
+```{r}
+names(DFNN)
+```
+
+
+Para ver cuántas filas (número de observaciones).
+
+```{r}
+nrow(DFNN)
+```
+
+Para ver cuántas columnas (número de variables).
+
+```{r}
+ncol(DFNN)
+```
+
+Se va hacer la limpieza de los datos, en caso estén escritas de manera diferente, pero en realidad la respuesta es la misma. Analizando la escritura en la base de datos de las variables que contenga Si/No.
+
+Respecto a la variable CambioDeSeguro:
+```{r}
+table(DFNN$CambioDeSeguro)
+```
+Podemos evidenciar que escriben diferente manera lo mismo, de tal manera que vamos a corregir esos datos.
+```{r}
+DFNN$CambioDeSeguro[DFNN$CambioDeSeguro == "SÍ"]<-"Si"
+DFNN$CambioDeSeguro[DFNN$CambioDeSeguro == "Sí"]<-"Si"
+DFNN$CambioDeSeguro[DFNN$CambioDeSeguro == "si"]<-"Si"
+DFNN[,10]
+```
+Mostramos nuevamente si se hizo el cambio
+```{r}
+table(DFNN$CambioDeSeguro)
+```
+
+Respecto a la variable AntecedentesConocidosConCancer:
+```{r}
+table(DFNN $AntecedentesConocidosConCancer)
+```
+Se puede evidenciar que los datos estan correctos.
+
+Variable AntecedenteCancerSeguro
+```{r}
+table(DFNN$AntecedenteCancerSeguro)
+
+```
+En este caso los datos también están correctamente escritos.
+Variable RazonDeCambio
+```{r}
+table(DFNN$RazonDeCambio)
+```
+
+Se observa que hay una opción repetida, por carecer de tilde. Además, las opciones son demasiado largas como para entrar en los diagramas, que se podrían realizar con esta variable. Por lo tanto, debemos filtrar este variación para evitar problemas futuros en el análisis. 
+
+```{r}
+DFNN$RazonDeCambio[DFNN$RazonDeCambio == "Dejaria de tener seguro"]<-"Dejaría de tener seguro"
+
+DFNN$RazonDeCambio[DFNN$RazonDeCambio == "Aumento de beneficios"]<-"Más beneficios"
+DFNN$RazonDeCambio[DFNN$RazonDeCambio == "Mayor cantidad de conocidos afiliados en otro seguro"]<-"Conocidos en otro SO"
+DFNN$RazonDeCambio[DFNN$RazonDeCambio == "Dejaría de tener seguro"]<-"Dejar el SO"
+DFNN$RazonDeCambio[DFNN$RazonDeCambio == "Menor costo mensual"]<-"Menos costoso"
+```
+Una vez hecho el filtro, confirmamos que el cambio fue realizado. 
+
+```{r}
+table(DFNN$RazonDeCambio)
+```
+
+**Gestión de los NA**
+
+Mostramos todas las variables en el nuevo dataframe
+```{r}
+DFNN
+```
+
+
+```{r}
+names(DFNN)
+```
+Respecto a la variable Deudas:
+Se va contar el número de datos faltantes.
+```{r}
+sum(is.na(DFNN$Deudas))
+```
+Se va considerar como si esa persona no tiene deudas, al ser un sólo caso.
+
+```{r}
+DFNN$Deudas[is.na(DFNN$Deudas)]<-0
+```
+
+
+
+Respecto a la variable Edad no se encontró NA.
+```{r}
+sum(is.na(DFNN$Edad))
+```
+
+Respecto a la variable Religion no se encontró NA.
+```{r}
+sum(is.na(DFNN$Religion))
+```
+
+Respecto a la variable Trabajo no encontró 0 NA en su columna .
+```{r}
+sum(is.na(DFNN$Trabajo))
+```
+
+Respecto a la variable CantidadPersonasDependientes no se encontró NA.
+```{r}
+sum(is.na(DFNN$CantidadPersonasDependientes))
+```
+Respecto a la variable AntecedentesConocidosConCancer no se encontró NA .
+```{r}
+sum(is.na(DFNN$AntecedentesConocidosConCancer))
+```
+Respecto a la variable EdadDelAntecedente: Se registro 87 NA en su columna
+
+```{r}
+sum(is.na(DFNN$EdadDelAntecedente))
+```
+
+Respecto a la variable CostoSeguro no se encontró NA.
+```{r}
+sum(is.na(DFNN$CostoSeguro))
+```
+Respecto a la variable TiempoSeguro no se encontró NA 
+```{r}
+sum(is.na(DFNN$TiempoSeguro))
+```
+Respecto a la variable AntecedenteCancer no se encontró NA.
+
+```{r}
+sum(is.na(DFNN$AntecedenteCancer))
+```
+Respecto a la variable AntecedenteCancerSeguro se encontró 191 NA en su columna .
+```{r}
+sum(is.na(DFNN$AntecedenteCancerSeguro))
+```
+Respecto a la variable Cambiodeseguro no se encontró NA.
+```{r}
+sum(is.na(DFNN$CambioDeSeguro))
+```
+Respecto a la variable Razondecambio se encontró 121 NA en la base de datos.
+```{r}
+sum(is.na(DFNN$RazonDeCambio))
+```
+
+Sobre los NA, es importante destacar que las tres variables con NA, deben este resultado a su dependencia de otras variables categóricas. EdadDelAntecedente depende de la variable AntecedentesConocidosConCancer, AntecedenteCancerSeguro depende de AntecedenteCancer y RazonDeCambio depende de CambioDeSeguro. Por lo tanto, los NA de EdadDelAntecedente y RazonDeCambio se debe a la respuesta "No" en sus variables independientes, mientras que la variable AntecedenteCancerSeguro debe sus NA a la cantidad de veces que una persona tuvo cáncer, que en su mayoria resulta ser 0. 
+En tal marco, podemos considerar las variables EdadDelAntecedente y RazonDeCambio porque tienen un numero considerable para las personas que dijeron "Si", sin embargo, para RazonDeCambio es recomendable que no se realice un análisis en relación a otras variables por la poca cantidad de observaciones en esta variable; en este sentido, para estas variables los NA serán eliminados. Sin embargo, para la variable AntecedenteCancerSeguro el numero de observaciones es muy pequeño como para tener un impacto significativo, por lo tanto, esta variable será descartada para este trabajo. 
+
+
+Se va hacer la selección de las principales variables que le vamos hacer uso:
+```{r}
+DFNN<-select(DFNN,Genero, EstadoCivil,Edad,Religion,Trabajo,CantidadPersonasDependientes, GradoSociabilidad,Ingresos,Deudas,AntecedentesConocidosConCancer,EdadDelAntecedente,NombreSeguro,CostoSeguro,TiempoSeguro,AntecedenteCancer, CambioDeSeguro,RazonDeCambio)
+```
+
+**Datos Atípicos**
+
+Analizamos los datos atípicos de las variables numéricas mediante boxplot. Para este analisis, se consideró a variables que no tengan un rango establecido, porque estas carecerian de datos atípicos; por lo tanto, las siguientes variables no serán analizadas con boxplot para datos atípicos: Edad, GradoSociabilidad, EdadDelAntecedente. 
+
+Para la variable CantidadPersonasDependientes:
+```{r}
+boxplot(DFNN$CantidadPersonasDependientes, horizontal = 1, main = "Boxplot: Tiempo que la persona lleva con el Seguro", xlab = "Cantidad de años",pch=20,border=rgb(0,0,0,0.2))
+```
+```{r}
+ValoresAtipicosCantidadPersonasDependientes<- boxplot.stats(DFNN$CantidadPersonasDependientes)
+ValoresAtipicosCantidadPersonasDependientes$out
+```
+
+En la gráfica se puede ver que hay por lo menos 3 datos atípicos en la variable CantidadPersonasDependientes, los cuales están por encima de los 5 años aproximadamente. Esto es confirmado por la ValoresAtipicosCantidadPersonasDependientes, que muestra el vector de todos los datos atípicos de la variable CantidadPersonasDependientes, donde el valor más pequeño es 6 y el más grande es 8. Para esta variable, estos datos atípicos serán considerados, porque la cantidad de personas que depende de uno varía para cada persona.
+
+Para la variable Ingresos:
+```{r}
+boxplot(DFNN$Ingresos, horizontal = 1, main = "Boxplot: Ingresos de las personas", xlab = "Cantidad de dinero en soles",pch=20,border=rgb(0,0,0,0.2))
+```
+```{r}
+ValoresAtipicosIngresos <- boxplot.stats(DFNN$Ingresos)
+ValoresAtipicosIngresos$out
+```
+
+En la gráfica se puede ver que hay por lo menos 4 datos atípicos en la variable Ingresos, los cuales están por encima de los 10000 soles aproximadamente. Esto es confirmado por la ValoresAtipicosIngresos, que muestra el vector de todos los datos atípicos de la variable Ingresos, donde el valor más pequeño es 10 000 y el más grande es 20 000. Para esta variable, estos datos atípicos serán considerados, porque los ingresos varían para cada persona.
+
+Para la variable Deudas:
+```{r}
+boxplot(DFNN$Deudas, horizontal = 1, main = "Boxplot: Deudas de las personas", xlab = "Cantidad de dinero en soles",pch=20,border=rgb(0,0,0,0.2))
+```
+```{r}
+ValoresAtipicosDeudas<- boxplot.stats(DFNN$Deudas)
+ValoresAtipicosDeudas$out
+```
+
+En la gráfica se puede ver que hay por lo menos 7 datos atípicos en la variable Deudas, los cuales están por encima de los 7 000 soles aproximadamente. Esto es confirmado por la ValoresAtipicosDeudas, que muestra el vector de todos los datos atípicos de la variable Deudas, donde el valor más pequeño es 8 000 y el más grande es 100 000. Pese a la gran diferencia entre valores, para esta variable los datos atípicos serán considerados, porque las deudas varían para cada persona.
+
+
+Para la variable CostoSeguro:
+```{r}
+boxplot(DFNN$CostoSeguro, horizontal = 1, main = "Boxplot: Costo del Seguro", xlab = "Cantidad de dinero en soles",pch=20,border=rgb(0,0,0,0.2))
+```
+```{r}
+ValoresAtipicosCostoSeguro<- boxplot.stats(DFNN$CostoSeguro)
+ValoresAtipicosCostoSeguro$out
+```
+
+En la gráfica se puede ver que hay por lo menos 2 datos atípicos en la variable Deudas, los cuales están por encima de los 1 000 soles aproximadamente. Esto es confirmado por la ValoresAtipicosCostoSeguro, que muestra el vector de todos los datos atípicos de la variable CostoSeguro, donde existen exactamente 2 datos atípicos y el valor más pequeño es 1 200 y el más grande es 1 500. Para esta variable los datos atípicos serán considerados, porque el costo del seguro, depende de muchos otros factores, como los beneficios, ingresos de las personas o la cantidad de personas dependientes.
+
+Para la variable TiempoSeguro:
+```{r}
+boxplot(DFNN$TiempoSeguro, horizontal = 1, main = "Boxplot: Tiempo que la persona lleva con el Seguro", xlab = "Cantidad de años",pch=20,border=rgb(0,0,0,0.2))
+```
+```{r}
+ValoresAtipicosTiempoSeguro<- boxplot.stats(DFNN$TiempoSeguro)
+ValoresAtipicosTiempoSeguro$out
+```
+
+Para esta variable, se afirma que no existen datos atípicos. Todos se encuentran en un rango no establecido previamente. 
+
+### **Análisis descriptivo**
+
+-   **Sobre las variables categóricas**
+
+SO = Seguro Oncológico 
+
+**Para la variable género:**
+
+```{r}
+barplot(table(DFNN$Genero),col=c("pink","lightblue"),main = "Género de las personas con SO",xlab="Género", ylab = "Frecuencia")
+```
+```{r}
+ContadorGenero<- DFNN %>%  group_by(Genero) %>% summarise(n = n())
+ContadorGenero
+```
+En esta encuesta, la proporción entre el genero femenino y masculino es similar, con una pequeña ventaja a favor de las mujeres (103 mujeres a 100 varones). Esto se puede evidenciar en la gráfica "Género de las personas con seguro oncológico". Además, ello se puede relacionar a la proporción que hay en el Perú sobre lo hombres y mujeres, porque en ese caso también hay una proporción mayor por parte de las mujeres.
+
+**Para la variable trabajo:**
+
+```{r}
+barplot(table(DFNN$Trabajo),main = "Tipos de trabajo de las personas con SO", xlab="Tipo de trabajo", ylab = "Frecuencia",xlim=c(0,4.5))
+```
+```{r}
+ContadorTrabajo<- DFNN %>%  group_by(Trabajo) %>% summarise(n = n())
+ContadorTrabajo
+```
+
+La gráfica nos muestra que en las personas de Lima centro hay una proporción muy similar entre las personas que trabajan en una institución privada, pública, los independientes y los que no trabajan. Donde las personas que no cuentan con un trabajo y los de una institución privada tienen igual valor de cantidad (53) y son los mayores, así mismo se tiene como menor proporción a las personas que cuentan con un trabajo en una institución publica. Finalmente, se conoce que las personas con trabajo independiente representan la cuarta parte. 
+
+**Para la variable religión:**
+```{r}
+barplot(table(DFNN$Religion),main = "Religión de las personas con SO",xlab="Religión", ylab = "Frecuencia")
+```
+```{r}
+ContadorReligion<- DFNN %>%  group_by(Religion) %>% summarise(n = n())
+ContadorReligion
+```
+Se evidencia que la religión predominante es la Católica con un total de 156 personas. Luego de esta variable tenemos en menor medida la evangélica con 20 personas, y las demás con valores aun menos significativos. Debido a que el catolicismo representa mas de 3/4 de las observaciones y se carece de una muestra más significativas para otra religión, el relacionar esta variable con alguna directamente relacionada al seguro (Nombre,Seguro,Tiempo,etc) se dificulta; de esta forma, esta variable solo será analizada de esta manera (individual) y no se usará para análisis de relaciones entre variables o análisis probabilístico. Por lo tanto, para este trabajo es difícil determinar si la religión es un factor determinante para que una persona tenga un SO, debido a la poca cantidad de observaciones en este trabajo.
+
+**Para la variable EstadoCivil:**
+
+```{r}
+barplot(table(DFNN$EstadoCivil),main = "Estado civil de las personas con SO",xlab="Estado civil", ylab = "Frecuencia")
+```
+
+```{r}
+ContadorEstadoCivil<- DFNN %>%  group_by(EstadoCivil) %>% summarise(n = n())
+ContadorEstadoCivil
+```
+Se evidencia que el estado civil predominante es el soltero con 119 personas, seguido de casado con 63 personas, mientras que divorciado, viudo y otro tienen cantidades mucho menos significativas. En tal marco, aunque es posible relacionar esta variable con alguna otra y realizar un análisis probabilístico, su análisis no sería óptimo porque solo dos estados civiles predominan y uno de ellos es mas del 50% de la muestra (soltero); es por ello, que para este trabajo no es posible determinar si el estado civil de una persona es un factor social influyente en la decisión de tener un SO.
+
+**Para la variable NombreSeguro:**
+
+```{r}
+table(DFNN$NombreSeguro)
+```
+
+```{r}
+barplot(table(DFNN$NombreSeguro),horiz=1,main = "Seguro afiliado de las personas", xlab="Cantidad de personas",cex.names = 0.6, las=1)
+
+```
+
+Se observa  que en total de las 203 personas 57 eligen al  seguro Oncosalud siendo este el que cuenta con la mayor proporción de personas que optan por el, tenemos al seguro Rimac con una cantidad de 43 personas que nos lleva a que este  sea el  segundo seguro mas elegido , por otro lado los seguros de Sanitas e Interbank  son  seguros que cuentan con igual proporción   contando con una cantidad de  6  personas cada uno ,los seguros de BCP y Pacifico cuentan con casi la misma proporción con una diferencia mínima , mientras que los seguros de Crediscotia y Scotiabank son los menos elegidos por las personas a comparación de otros seguros  teniendo tan solo 5 y 4 personas respectivamente que los eligen.
+
+**Para la variable AntecedentesConocidosConCancer:**
+```{r}
+barplot(table(DFNN$AntecedentesConocidosConCancer),main = "Familiar o conocido que tuvo una enfermedad cancerígena",xlab="Respuesta", ylab = "Frecuencia")
+```
+```{r}
+ContadorAntecedentesConocidosConCancer<- DFNN %>%  group_by(AntecedentesConocidosConCancer) %>% summarise(n = n())
+ContadorAntecedentesConocidosConCancer
+```
+
+A partir de la gráfica, se observa que hay una mayor cantidad de personas que tienen antecedentes de conocer a una persona con cáncer y a partir de la tabla se afirma que es mas del 50% de las observaciones. Mientras que las personas que no tienen este antecedente son menos del 50%, con ello podemos evidenciar del la importancia de este
+problema y el gran alcance que tiene en la población, además, nos permite usar la variable numerica discreta EdadDelAntecedente. 
+
+**Para la variable AntecedenteCancer:**
+
+```{r}
+barplot(table(DFNN$AntecedenteCancer),main = "Cantidad de veces que la persona con SI tuvo cancer", xlab = "Número de veces",ylab = "Frecuencia")
+```
+```{r}
+ContadorAntecedenteCancer<- DFNN %>%  group_by(AntecedenteCancer) %>% summarise(n = n())
+ContadorAntecedenteCancer
+```
+
+A partir del gráfico se puede evidenciar que en su mayoría las personas (191) no tuvieron o tienen cáncer alguna vez pese a tener el seguro, y una muy pequeña parte si tuvo de 1 a 3 veces cáncer. Debido a que predomina el hecho que no tuvieron antecedentes de cáncer, esta variable no podría ser analizada en relación a otras variables o participar en un análisis probabilístico; por lo tanto, solo será descrita de esta manera (individualmente). Adicional a esto, como se mencionó en la gestión de los NA, debido a que pocas personas presentan antecedentes de cáncer la variable de AntecedenteCancerSeguro queda descartada por la poca cantidad de observaciones (12), evidenciado en el predominio de los NA en esa variable. 
+
+**Para la variable CambioDeSeguro:**
+
+```{r}
+barplot(table(DFNN$CambioDeSeguro),main = "Cambio de Seguro", xlab = "Respuesta",ylab = "Frecuencia")
+```
+```{r}
+ContadorCambioDeSeguro<- DFNN %>%  group_by(CambioDeSeguro) %>% summarise(n = n())
+ContadorCambioDeSeguro
+```
+
+Es posible asegurar que la mayoría de personas no se cambiarían de seguro oncológico, puesto que la respuesta No predomina con más del 50%, mientras que los de Si con poco menos del 50%. Esta variable fue principalmente explorativa, y en conjunto con la variable RazonCambio permitiría realizar un análisis probabilistico. Sin embargo, como se describió en la gestión de los NA, no hubo suficientes respuestas en la variable RazonCambio y por lo tanto solo será descrita de esta manera.
+
+**Para la variable RazonDeCambio:**
+
+```{r}
+barplot(table(DFNN$RazonDeCambio),main = "Cambio de Seguro", xlab = "Respuesta",ylab = "Frecuencia",xlim=c(0,4.5))
+```
+```{r}
+ContadorRazonDeCambio<- DFNN %>%  group_by(RazonDeCambio) %>% summarise(n = n())
+ContadorRazonDeCambio
+```
+
+A partir del análisis de las  82 personas que respondieron que si se cambiaran de seguro se observa que una gran parte tiene como razón de cambio el aumento de beneficios que otra empresa le puede brindar , siguiéndole como segunda razón de cambio más común el de dejar de tener seguro , las razones de cambio menos comunes son las de que otros seguros les ofrezca pagar un menor costo mensual y el de que tengan mayor cantidad de conocidos afiliados a otro seguro.
+
+
+-   **Sobre las variables numéricas**
+**De la variable Gradosociabilidad:**
+```{r}
+boxplot(DFNN$GradoSociabilidad, horizontal = 1, main = "Boxplot: Escala de sociabilidad de las personas", xlab = "Escala del 1 al 10",pch=20,border=rgb(0,0,0,0.2))
+text(x=fivenum(DFNN$GradoSociabilidad), labels =fivenum(DFNN$GradoSociabilidad), y=1.25)
+```
+
+A partir del boxplot de esta variable, se afirma que carece de datos atípicos; esto debido a que la variable tiene un rango establecido que va de 1 a 10, donde 1 es el mínimo valor y 10 es el máximo valor que la variable puede tomar. Además, se observa que menos del 25% (Q1) de los encuestados tienen un grado de sociabilidad de 5, menos del 50% (Q2 = mediana) de los encuestados tienen un grado de sociabilidad de 6 y menos del 75% (Q3) de las personas tienen un grado de sociabilidad de 8.
+```{r}
+RangoIGS <- IQR(DFNN$GradoSociabilidad)
+RangoIGS
+```
+
+Adicional a ello, se tiene que el rango intercuartílico es 3, es decir los datos centrales de esta variable están relativamente juntos. 
+```{r}
+SGDS <- summarise(DFNN,Mínimo = min(GradoSociabilidad), Máximo = max(GradoSociabilidad), Media = round(mean(GradoSociabilidad),3), ,Mediana = median(GradoSociabilidad), Varianza = round(var(GradoSociabilidad),3), DesviaciónEstándar = round(sd(GradoSociabilidad),3), n = n())
+SGDS
+```
+```{r}
+x <- DFNN$GradoSociabilidad
+mode(x)
+```
+
+Por otro lado, es posible determinar que el grado de sociabilidad promedio, de las personas encuestadas, es de 6.315, con una tendencia a variar por debajo o por encima de este grado en 2.293. Y, la moda de esta variable es 5, es decir que es el grado de sociabilidad más frecuente. 
+```{r}
+plotNormalHistogram(DFNN$GradoSociabilidad, ylab = "Frecuencia", xlab = "Escala", main = "Escala de sociabilidad del 1-10", breaks = 10)
+abline(v = mean(DFNN$GradoSociabilidad), col = 'red', lwd = 2)
+abline(v = median(DFNN$GradoSociabilidad), col = 'green', lwd = 2)
+abline(v = mode(DFNN$GradoSociabilidad), col = 'orange', lwd = 2)
+legend(x = "topright", legend = c("Media", "Mediana","Moda"), lty = c(1, 1), col = c('red', 'green',"orange"), lwd = 2)
+```
+
+Finalmente, teniendo una mediana de 6 y una media de 6.315 se puede afirmar que la distribución es sesgada ligeramente a la derecha. Adicional a ello, a partir de la posición de la moda, mediana y media, se determina que es asimétrica hacia la izquierda o asimétrica negativa. Es decir, que los datos se reúnen más a la derecha de la media. 
+**De la variable Ingresos:**
+```{r}
+boxplot(DFNN$Ingresos, horizontal = 1, main = "Boxplot: Ingresos de las personas", xlab = "Cantidad de dinero en soles",pch=20,border=rgb(0,0,0,0.2))
+```
+```{r}
+boxplot.stats(DFNN$Ingresos, do.conf = FALSE)
+```
+
+Como se explicó previamente, la variable Ingresos tiene 10 datos atípicos mostrados en el vector $out. Por otro lado, tiene un valor mínimo de 400 y un máximo de 8300. Además, se observa que menos del 25% (Q1) de los encuestados tienen ingresos de 2 000 soles, menos del 50% (Q2 = mediana) de los encuestados tienen ingresos de 3 000 soles y menos del 75% (Q3) de las personas tienen un ingreso de 5 000 soles.
+```{r}
+RangoII <- IQR(DFNN$Ingresos)
+RangoII
+```
+
+Adicional a ello, se tiene que el rango intercuartílico es 3 000, es decir los datos centrales de esta variable están fuertemente dispersos. 
+```{r}
+SGDS <- summarise(DFNN,Mínimo = min(Ingresos), Máximo = max(Ingresos), Media = round(mean(Ingresos),3), ,Mediana = median(Ingresos), Varianza = round(var(Ingresos),3), DesviaciónEstándar = round(sd(Ingresos),3), n = n())
+SGDS
+```
+```{r}
+x <- DFNN$Ingresos
+mode(x)
+```
+
+Por otro lado, es posible determinar que el ingreso promedio, de las personas encuestadas, es de 3811.576, con una tendencia a variar por debajo o por encima de este grado en 2917.947. Y, la moda de esta variable es 5 000, es decir que es el ingreso más frecuente. 
+```{r}
+plotNormalHistogram(DFNN$Ingresos, ylab = "Frecuencia", xlab = "Dinero en soles", main = "Ingresos de las personas", breaks = 10)
+abline(v = mean(DFNN$Ingresos), col = 'red', lwd = 2)
+abline(v = median(DFNN$Ingresos), col = 'green', lwd = 2)
+abline(v = mode(DFNN$Ingresos), col = 'orange', lwd = 2)
+legend(x = "topright", legend = c("Media", "Mediana","Moda"), lty = c(1, 1), col = c('red', 'green',"orange"), lwd = 2)
+```
+
+Finalmente, teniendo una mediana de 3 000 y una media de 3811.576 se puede afirmar que la distribución es sesgada a la derecha. Adicional a ello, a partir de la posición de la moda, mediana y media, se determina que es asimétrica hacia la derecha o asimétrica positiva. Es decir, que los datos se reúnen más a la izquierda de la media. 
+
+**De la variable CostoSeguro:**
+```{r}
+boxplot(DFNN$CostoSeguro, horizontal = 1, main = "Boxplot: costo del Seguro", xlab = "Cantidad de dinero en soles",pch=20,border=rgb(0,0,0,0.2))
+```
+```{r}
+boxplot.stats(DFNN$CostoSeguro, do.conf = FALSE)
+```
+
+Como se explicó previamente, la variable CostoSeguro tiene 2 datos atípicos mostrados en el vector $out. Por otro lado, tiene un valor mínimo de 15 y un máximo de 800. Además, se observa que menos del 25% (Q1) de los encuestados pagan 151 soles por el seguro, menos del 50% (Q2 = mediana) de los encuestados pagan 300 soles por el seguro y menos del 75% (Q3) de las personas pagan 500 soles por el seguro.
+```{r}
+RangoICS <- IQR(DFNN$CostoSeguro)
+RangoICS
+```
+
+Adicional a ello, se tiene que el rango intercuartílico es 349, es decir los datos centrales de esta variable están dispersos. 
+```{r}
+SCS <- summarise(DFNN,Mínimo = min(CostoSeguro), Máximo = max(CostoSeguro), Media = round(mean(CostoSeguro),3), ,Mediana = median(CostoSeguro), Varianza = round(var(CostoSeguro),3), DesviaciónEstándar = round(sd(CostoSeguro),3), n = n())
+SCS
+```
+```{r}
+x <- DFNN$CostoSeguro
+mode(x)
+```
+
+Por otro lado, es posible determinar que el costo promedio, que las personas encuestadas pagan por el seguro, es de 340.729, con una tendencia a variar por debajo o por encima de este grado en 227,093. Y, la moda de esta variable es 500, es decir que es el costo de seguro más frecuente. 
+```{r}
+plotNormalHistogram(DFNN$CostoSeguro, ylab = "Frecuencia", xlab = "Dinero en soles", main = "Costo del seguro", breaks = 50)
+abline(v = mean(DFNN$CostoSeguro), col = 'red', lwd = 2)
+abline(v = median(DFNN$CostoSeguro), col = 'green', lwd = 2)
+abline(v = mode(DFNN$CostoSeguro), col = 'orange', lwd = 2)
+legend(x = "topright", legend = c("Media", "Mediana","Moda"), lty = c(1, 1), col = c('red', 'green',"orange"), lwd = 2)
+```
+
+Finalmente, teniendo una mediana de 300 y una media de 340.729 se puede afirmar que la distribución es sesgada a la derecha. Adicional a ello, a partir de la posición de la moda, mediana y media, se determina que es asimétrica hacia la derecha o asimétrica positiva. Es decir, que los datos se reúnen más a la izquierda de la media. 
+
+-   **Interacción entre las variables**
+
+**Análisis Entre el costo del seguro y los ingresos que tienen.**
+
+
+
+```{r}
+plot(DFNN$Ingresos,DFNN$CostoSeguro,pch=20,col=rgb(0,0,0,0.2),xlab = "Ingresos de la persona",ylab = "Costo del seguro",main = "Relación entre el costo del seguro y los ingresos de una persona")
+abline(lm(DFNN$CostoSeguro~DFNN$Ingresos,data=DFNN), col = 'red')
+```
+
+```{r}
+cor(DFNN$CostoSeguro,DFNN$Ingresos)
+```
+La correlación es 0.813124.
+
+En la gráfica se puede evidenciar en cierta medida que a medida que los ingresos de las personas es mayor, el costo que pagan por un seguro también es mayor, siendo directamente proporcional, eso sería sólo la tendencia, ya que en algunos casos las persona que tienen altos ingresos pagan poco, ello también se puede justificar con la correlación alta que hay.
+
+**Análisis entre Deudas con Costo del Seguro**
+```{r}
+plot(DFNN$Deudas,DFNN$CostoSeguro,pch=20,col=rgb(0,0,0,0.2),xlab = "Deudas de la persona",ylab = "Costo del seguro",main = "Relación entre el costo del seguro que paga una persona y sus deudas")
+abline(lm(DFNN$CostoSeguro~DFNN$Deudas,data=DFNN), col = 'red',)
+```
+
+```{r}
+cor(DFNN$CostoSeguro,DFNN$Deudas)
+```
+La correlación es 0.4418234.
+
+El mayor porcentaje de las personas con deudas esta entre 0 y 5000 soles, los cuales cuentan con un seguro de costo aproximado entre 0 y 1000 soles, respecto a la correlación se puede evidenciar que esta es positiva débil. Se puede determinar en cierta manera por la línea de tendencia que a mayor deuda, mayor es el pago por un seguro, esto razón se puede relacionar con los ingresos, ya que estos también van a ser más altos, por ende van a pagar más por un seguro.
+
+**Análisis entre la edad con el Costo del Seguro**
+```{r}
+plot(DFNN$Edad,DFNN$CostoSeguro,pch=20,col=rgb(0,0,0,0.2),xlab = "Edad",ylab = "Costo del seguro",main = "Relación entre el costo del seguro que paga una persona y su edad")
+abline(lm(DFNN$CostoSeguro~DFNN$Edad,data=DFNN), col = 'red')
+```
+
+```{r}
+cor(DFNN$CostoSeguro,DFNN$Edad)
+```
+La correlación es 0.3888959.
+
+Se puede evidenciar una correlación positiva débil entre el costo que paga por el seguro y la edad, con ayuda de ello y con la línea de tendencia se puede determinar de alguna manera que a mayor edad de la persona va pagar una mayor suma de dinero por el seguro, esto se puede deber a que va contar una mejor estabilidad económica. La mayor proporción de las personas están agrupadas aproximadamente entre los 40 y 60 años, los cuales pagan hasta 1000 soles aproximadamente.
+
+**Relación entre la edad y el tiempo que llevan en el seguro **
+
+```{r}
+plot(DFNN$Edad,DFNN$TiempoSeguro,pch=20,col=rgb(0,0,0,0.2),xlab = "Edad",ylab = "Tiempo que tiene seguro (años)",main = "Tiempo en el que la persona cuenta con el seguro según la edad")
+abline(lm(DFNN$TiempoSeguro~DFNN$Edad,data=DFNN), col = 'red',)
+```
+
+```{r}
+cor(DFNN$TiempoSeguro,DFNN$Edad)
+```
+La correlación entre ambas variables es 0.2363105
+```{r}
+cov(DFNN$TiempoSeguro,DFNN$Edad)
+```
+La covarianza es 10.03536.
+
+En el diagrama de dispersión por medio de la línea de tendencia se puede evidenciar en cierta medida que conforme aumente la edad de la persona, esta va contar con más años con un seguro, del mismo modo se puede corroborar con la covarianza positiva que hay, aunque esta es débil por la correlación un poco baja. 
+
+
+**Relación entre el sexo y el costo que pagan por seguro **
+
+```{r}
+boxplot(formula=DFNN$CostoSeguro~DFNN$Genero, xlab = "Género",ylab = "Costo del seguro",main = "Relación entre el sexo y el costo que pagan por un seguro")
+```
+
+Se puede ver que las mujeres como los varones pagan aproximadamente igual por un seguro, puesto que los valores de su mediana son muy cercanos, en el caso de los valores se puede evidenciar que hay algunos casos que pagan una cantidad mucho más alta. En puntos general ambos géneros pagan de igual manera, puesto que es algo que los podría beneficiar a ambos, indistintamente del género que sean.
+
+
+**Relación entre el grado de sociabilidad y el tiempo que tienen que cuentan con seguro **
+
+```{r}
+medianas <- reorder(DFNN$GradoSociabilidad,DFNN$TiempoSeguro, median)
+boxplot(DFNN$TiempoSeguro~medianas, xlab = "Grado de sociabilidad",ylab = "Tiempo que cuentan con seguro(años)",main = "Grado de sociabilidad según el tiempo que cuentan con seguro")
+
+```
+
+En los boxplot, los cuales están distribuidos según el grado de sociabilidad, los cuales se han ordenado según la mediana de manera creciente. Se puede ver en la mayoría de casos que mientras más sociable es una persona, va contar con un seguro más tiempo, ello puesto que el valor de su mediana es mayor, sin embargo hay algunos casos excepcionales donde las personas poco sociables si cuentan con un seguro, ello puede ser debido a otros factores como los económicos.
+
+**Relación entre el tipo de seguro y el costo **
+```{r}
+medianas <- reorder(DFNN$NombreSeguro,DFNN$CostoSeguro, median)
+boxplot(DFNN$CostoSeguro~medianas, cex.names = 0.5, las=2,xlab = "",ylab = "Costo del Seguro",main = "Costo según cada seguro")
+
+```
+
+En este caso se puede evidenciar cual es la relación entre el tipo de seguro Oncológico y su costo ordenados de forma ascendente según su mediana, sin embargo en algunos seguros como BCP se evidencia que puedo llegar a tener costos bien elevados como Oncosalud o Pacífico.
+
+
+### **Análisis probabilístico**
+
+-   **Sobre las variables discretas**
+
+Análisis de los tipos de seguro:
+Para ello se va determinar la probabilidad de que suceda cada uno de los Seguros Oncológicos mediante un gráfico de barras que este expresado respecto a la probabilidad.
+
+```{r}
+barplot(prop.table(table(DFNN$NombreSeguro)), main = "Probabilidad de cada seguro", ylab = "Probabilidad",cex.names = 0.5, las=1)
+```
+
+Para poder obtener ver los valores explícitamente de las probabilidades lo vamos a expresar en tablas.
+```{r}
+probSeguros <- prop.table(table(DFNN$NombreSeguro))
+probSeguros <- data.frame(probSeguros)
+names(probSeguros)[names(probSeguros)=='Freq'] <- 'Probabilidad'
+probSeguros
+```
+
+Aplicación:
+
+Se encontró que aproximadamente el 5% de las personas están afiliados al seguro La positiva, eso en nuestra muestra equivale a 10 personas.
+
+Para comparar en nuestra muestra, si esa probabilidad es igual en seguros oncológicos, vamos a evaluar la probabilidad de que 10 personas sean del Seguro La Positiva.
+
+P(X=10)
+N=200
+p=0.06896552 => pPo
+
+Evaluando con el modelo dbinom:
+```{r}
+pPo<-0.06896552
+dbinom(10,200,pPo)
+```
+Nos sale que la probabilidad de que 10 personas sean del Seguro Oncológico "La Positiva" es de 0.06935. Se puede evidencia que la probabilidad es cercano a la probabilidad del seguro "La positiva", respecto a toda la muestra.
+
+Para tener información de la probabilidad para todos los sucesos, se va graficar el modelo dbinom en un rango de 0 a 200 de la siguiente manera:
+
+dbinom(0:200,200,pPo)
+
+```{r}
+plot(dbinom(0:200,200,pPo),type="h",xlab="k",ylab="P(X=k)",main="Función de Probabilidad del seguro La Positiva")
+```
+
+En la gráfica se puede observar que la probabilidad del seguro oncológico La Positiva se da principalmente entre los una muestra de 0 y 30 aproximadamente, es decir cuando el valor de "k" no esté en esos rango su probabilidad va ser prácticamente 0.
+
+-   **Sobre las variables Continuas**
+
+
+Variable "TiempoSeguro":
+
+Se va analizar la la variable, el cual viene a ser el tiempo en el que las personas cuentan con su seguro oncológico, para poder evaluar cual es el modelo que sigue se va hacer un histograma según la densidad.
+
+```{r}
+hist(DFNN$TiempoSeguro,probability = 1,main = "Histograma de tiempo con el seguro",xlab = "Tiempo", breaks = 10)
+```
+
+En la gráfica podemos determinar que los datos siguen un modelo exponencial para lo cual vamos a calcular los parámetros.
+
+Se va calcular el valor de beta, el cual viene a ser la media:
+```{r}
+bt<-mean(DFNN$TiempoSeguro)
+bt
+```
+El valor de la media es 3.285714.
+
+El parámetro que se usa en el modelo exponencial es lambda, el cual es la inversa de beta o media.
+```{r}
+lt<-1/bt
+lt
+```
+El valor de lambda($λ$) es 0.3043478.
+
+Con los parámetros obtenidos podemos representar la función exponencial, añadiendo a la gráfica anterior.
+
+```{r}
+x<-DFNN$TiempoSeguro
+```
+
+```{r}
+hist(DFNN$TiempoSeguro,probability = 1,main = "Histograma de tiempo con el seguro",xlab = "Tiempo", breaks = 10)
+curve(dexp(x,lt),lwd=2,add=T)
+```
+
+En la gráfica se puede observar la función exponencial el cual representa a la densidad, como se evidencia la mayoría de personas tiene poco tiempo afiliada a un seguro oncológico. 
+
+Para poder aplicar lo planteado respecto a esta variable, se va plantear un caso probabilístico:
+
+Cual es la probabilidad de que las personas estén afiliadas a un seguro entre 2 a 8 años ?
+La función probabilidad va ser la siguiente:
+
+P(2 años<X<8 años) = P(X <8) - P(X<2)
+```{r}
+pexp(8,lt)-pexp(2,lt)
+```
+La probabilidad del tiempo con el que cuenta con el seguro entre 2 y 8 años es 0.4564433
+
+A pesar de que el rango sea grande, la probabilidad no tiene la misma proporción puesto que al ser exponencial la probabilidad va ser más pequeña según avance el tiempo en el que están afiliados al seguro.
+
+
+Variable "CostoSeguro":
+
+Para poder analizar el modelo que sigue la variable se va realizar un histograma respecto a la densidad que tiene, mediante el comando hist y la probabilidad igual a 1.
+
+```{r}
+hist(DFNN$CostoSeguro,probability = 1,main = "Histograma de costo del seguro",xlab = "Costo del seguro", breaks = 40)
+```
+
+Por la gráfica podemos evidenciar que tiende a seguir el modelo normal, de modo que vamos a calcular los parámetros del modelo.
+
+Se va calcular la media o "mu":
+```{r}
+mu_Cos<-mean(DFNN$CostoSeguro)
+mu_Cos
+```
+El valor de "mu" es: 340.7291
+
+También se va calcular la desviación estándar:
+```{r}
+sd_COs<-sd(DFNN$CostoSeguro)
+sd_COs
+```
+El valor de la desviación estándar es: 227.0933
+
+Con los datos obtenidos se va graficar la función normal en el histograma de densidad anterior.
+```{r}
+x<- DFNN$CostoSeguro
+```
+```{r}
+hist(DFNN$CostoSeguro,probability = 1,main = "Histograma de costo del seguro",xlab = "Costo del seguro", breaks = 40)
+curve(dnorm(x,mu_Cos,sd_COs),lwd=2,add=T)
+
+```
+
+En la gráfica podemos evidenciar que la función normal esta distribuida principalmente en costos menor a 1000 soles.
+
+En una fuente respecto al precio de los seguros privados menciona que estos oscilan entre 100 a 700 soles. En el caso nuestro se va calcular la probabilidad de que ello suceda, para lo cual nos planteaos la siguiente pregunta:
+¿Cuál es la probabilidad de que el costo del seguro este entre 100 a 700 soles?
+La función probabilidad sería P(100<X<700) el cálculo seria P(X<700) - P(X<100)
+```{r}
+pnorm(700,mu_Cos,sd_COs)-pnorm(100,mu_Cos,sd_COs)
+```
+La probabilidad de que suceda es de 0.7986178.
+Ese dato lo podemos corroborar con la gráfica, puesto puesto que el área de la función se ve que es más grande en ese rango. 
+
+Interacción entre variables
+
+En este caso se va relacionar la probabilidad de que una persona desee cambiarse de seguro, ello respecto a a cada seguro.
+
+Para ello vamos a realizar una tabla con las probabilidades 
+
+```{r}
+probSeguroscondicionado<-prop.table(table(DFNN$NombreSeguro,DFNN$CambioDeSeguro))
+probSeguroscondicionado
+```
+En la tabla podemos evidenciar la probabilidad de que una persona quiera cambiar o continuar en su seguro, ello se hizo respecto a toda la data, puesto que la suma de las probabilidades es igual a 1.
+
+Para ello podemos plantearnos casos de aplicación, en este caso va ser respecto al seguro más usado en nuestra muestra, el cual es Oncosalud:
+
+¿Cuál es la probabilidad de que se necesite encuestar a 10 personas, de los cuales 4 quieran  cambiarse del seguro Oncosalud?
+
+Podemos evidenciar que el modelo es de tipo binomial negativa o pascal.
+La probabilidad sería:
+
+P(X=10)
+El número de éxitos k -> 4
+
+
+Al ser pascal se va calcular el numero de fracasos: X=Y+k
+Y=6
+P(Y=6)
+La probabilidad de que quieran cambiarse del seguro Oncosalud es 0.128078818, aplicando en el modelo:
+```{r}
+dnbinom(6,4,0.128078818)
+```
+Se obtiene la probabilidad de 0.009932347
+
+Se va graficar la forma que siga modelo binomial negativo, donde el número de éxitos que consideremos va ser igual a 4, según nuestra pregunta.
+```{r}
+plot(dnbinom((0:200)-4,4,0.128078818),type="h",xlab="k",ylab="P(Y=X-k)",main="Función de Probabilidad")
+```
+
+En la gráfica podemos evidenciar que la probabilidad es mayor entre el rango de 4 a 110 aproximadamente, también se puede aclarar que para personas a 4 la probabilidad sería 0, puesto que no se podría obtener los 4 éxitos.
+
+### **Bibliografía**
+
+Comparabien. (2021, julio 3). ¿Cuánto cuesta un seguro privado de salud en Perú? Comparabien. https://comparabien.com.pe/blog-consejos/cuanto-cuesta-seguro-privado-salud-peru
+
+Peruano, E. E. (22d. C., agosto 5). Seguros de salud del Perú. Gob.pe. https://www.gob.pe/281-seguros-de-salud-del-peru
+
+Superintendencia de Banca, S. y. A. del P. (s/f). Seguros privados de salud: ¿Cómo operan y qué hay que considerar al momento de contratar una cobertura? SBSPerú. Recuperado el 24 de junio de 2022, de https://www.sbs.gob.pe/boletin/detalleboletin/idbulletin/72

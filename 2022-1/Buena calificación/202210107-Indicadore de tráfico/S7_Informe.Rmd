@@ -1,0 +1,669 @@
+---
+title: 'INDICADORES DEL TRÁFICO POR TIPO DE VEHÍCULO: ENE 2019-DIC 2021'
+output:
+  html_document:
+    df_print: paged
+---
+
+# **A.INTRODUCCIÓN:**
+
+# *1.Relevancia*
+
+La relevancia del estudio sobre el tránsito de los vehículos en las carreteras resulta útil, ya que con esta información se puede diseñar soluciones que ayuden a regular y mejorar el flujo de vehículos en los diferentes sectores de la carretera (Mejora en la institucionalidad, mayor desarrollo del transporte, Obras de infraestructura, Eliminación de los "topics", etc.), creando de esta forma los indicadores del tráfico que serán usados por las instituciones pertinentes.
+
+# **B.DATOS:**
+
+*Proceso de recolección de Datos*:
+
+Este estudio utiliza una base de Datos Pública (Plataforma Nacional de Datos Abiertos), el cual adjuntamos en este [Link](https://www.datosabiertos.gob.pe/dataset/indicadores-mensuales-de-trafico-por-tipo-de-veh%C3%ADculo-ene-2019-dic-2021-organismo-supervisor). El nombre de la base de Datos es: Indicadores Mensuales de Tráfico por tipo de vehículo: Ene 2019 - Dic 2021 -Organismo Supervisor de la Inversión en Infraestructura de Transporte de Uso Público - OSITRAN. El uso de una base de datos pública se debe al tiempo de recolección de datos para el estudio (3 años), la cual proporcionará una fuente de datos más amplia para el estudio.
+
+*Población, Muestra y Muestreo*:
+
+**a.POBLACION:** Todos los vehículos que circularon por cada concesión en categorizados por mes y año (2019-2021).
+
+**b.MUESTRA:**
+
+Se evaluaron un total de 288 tipos de vehículos, entre livianos y pesados, en cada una de las concesiones por las que circularon categorizados en mes y año (2019-2021).
+
+**c.MUESTREO**
+
+Dentro de nuestra base de datos podemos observar que el tipo de muestreo que se utilizó fue probabilístico aleatorio simple.
+
+# *1.Variables*:
+
+El tipo y restricción de cada variable usada en el estudio son los siguientes:
+
++-------------------------+----------------------+-------------------------------------------------------------------+
+| **VARIABLE**            | **TIPO**             | **RESTRICCIONES**                                                 |
++=========================+======================+===================================================================+
+| *Año*                   | *Categórico Ordinal* | *No puede ser un valor menor a 2019 ni mayor a 2021*              |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *MES*                   | *Categórico Ordinal* | *No puede ser un entero negativo,número no mayor 12 ni menor a 1* |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *CONCESIÓN*             | *Categórico nominal* | *No pude ser un valor numérico, ni tramos internacionales*        |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *ENTIDAD PRESTADORA*    | *Categórico nominal* | *No puede ser un valor numérico*                                  |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *TIPO DE VEHÍCULO*      | *Categórico Nominal* | *Solo pueden ser livianos o pesados*                              |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *CANTIDAD DE VEHÍCULOS* | *Numérico Contínua*  | *No puede ser un entero negativo*                                 |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *PESO*                  | *Numérico Contínua*  | *No puede ser un entero negativo*                                 |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *EJES*                  | *Numérico Discreto*  | *No puede ser un entero negativo*                                 |
++-------------------------+----------------------+-------------------------------------------------------------------+
+| *PASAJEROS*             | *Numérico Discreto*  | *No puede ser un entero negativo*                                 |
++-------------------------+----------------------+-------------------------------------------------------------------+
+
+# *2.Limpieza de base de datos*:
+
+La base de datos es de 288 observaciones, no se llegó a limpiar la data debido a que información brindada de esta es representativa y completa. La información contenida en la base de datos cumple con los objetivos propuestos del proyecto, ya que cuenta con información de la cantidad de vehículos livianos y pesados que pasan por diferentes tramos de la carretera, además cuenta con la información del flujo de vehículos por mes y la concesión de los tramos de la carretera. Además se abrevió el nombre de las concesiones de la variable CONCESION:
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(car)
+library(boot)
+library(ggplot2)
+library(reshape2)
+library(hrbrthemes)
+
+Datos <- read.csv("BASEDEDATOS.csv")
+Datos$CONCESION<-recode_factor(Datos$CONCESION,"AUTOPISTA DEL SOL TRAMO TRUJILLO-SULLANA"="T~S","EJE MULTIMODAL DEL AMAZONAS NORTE:  TRAMO YURIMAGUAS - TARAPOTO - RIOJA - CORRAL QUEMADO - OLMOS - PIURA - PAITA"="Amazonas Norte","RED VIAL N 4: TRAMOS VIALES PATIVILCA - SANTA - TRUJILLO Y PUERTO SALAVERRY - EMPALME R01N"="R.V-4","RED VIAL N 6: TRAMO VIAL PUENTE PUCUSANA - CERRO AZUL - ICA"="R.V-6")
+Datos$MES<- recode_factor(Datos$MES,"ENERO"="A.Ene","FEBRERO"="B.Feb","MARZO"="C.Mar","ABRIL"="D.Abr","MAYO"="E.May","JUNIO"="F.Jun","JULIO"="G.Jul","AGOSTO"="H.Ago","SETIEMBRE"="I.Set","OCTUBRE"="J.Oct","NOVIEMBRE"="K.Nov","DICIEMBRE"="L.Dic")
+Datos$ï..AÃ.O<-recode_factor(Datos$ï..AÃ.O,"A"="2019","B"="2020","C"="2021")
+
+Datosl<-rename(Datos,AÑO=ï..AÃ.O,MES=MES,CONCESIÓN=CONCESION,ENTIDAD_PRESTADORA=ENTIDAD.PRESTADORA, TIPO_DE_VEHÍCULO=TIPO.DE.VEHICULO,CANTIDAD_DE_VEHíCULOS=CV.k.)
+Datosl
+```
+
+Se considera que la base de datos final está "limpia" porque no cuenta con datos faltantes y nos brinda la información necesaria para el proyecto.
+
+# **C.ANÁLISIS DESCRIPTIVO:**
+
+*VARIABLE CONCESIÓN:*
+
+**ABREVIATURA DE CONCESIONES**
+
++-------------------------------------------------------------------------------------------------------------------+------------------+
+| **CONCESION**                                                                                                     | **ABREVIATURA**  |
++===================================================================================================================+==================+
+| *AUTOPISTA DEL SOL TRAMO TRUJILLO-SULLANA*                                                                        | *T\~S*           |
++-------------------------------------------------------------------------------------------------------------------+------------------+
+| *EJE MULTIMODAL DEL AMAZONAS NORTE: TRAMO YURIMAGUAS - TARAPOTO - RIOJA - CORRAL QUEMADO - OLMOS - PIURA - PAITA* | *Amazonas Norte* |
++-------------------------------------------------------------------------------------------------------------------+------------------+
+| *RED VIAL N 4: TRAMOS VIALES PATIVILCA - SANTA - TRUJILLO Y PUERTO SALAVERRY - EMPALME R01N*                      | *R.V-4*          |
++-------------------------------------------------------------------------------------------------------------------+------------------+
+| *RED VIAL 6: TRAMO VIAL PUENTE PUCUSANA - CERRO AZUL - ICA*                                                       | *R.V-6*          |
++-------------------------------------------------------------------------------------------------------------------+------------------+
+
+*VARIABLE CONCESIÓN:*
+
+Podemos ver la cantidad de veces que aparecen las concesiones por meses durante el 2019-2021. La cual fue renombrada en la limpieza de Datos
+
+```{r,}
+table(Datosl$CONCESIÓN)
+```
+
+**1.La cantidad total de vehículos livianos por concesión:**
+
+```{r,echo=TRUE,comment=""}
+BD_L<- filter(Datosl,TIPO_DE_VEHÍCULO=="LIVIANOS")
+boxplot(BD_L$CANTIDAD_DE_VEHíCULOS~BD_L$CONCESIÓN, main="CANTIDAD DE VEHICULOS LIVIANOS vs. CONCESIÓN",xlab="CONCESION",ylab="CANTIDAD (miles)",col="yellow")
+```
+
+Se puede ver a partir de la gráfica que la concesión con mayor flujo de vehiculos livianos es la del R.V-4 y la menor concurrencia es la concesion Amazonas Norte. Adicionalmente se puede observar la presencia de datos atípicos (Las cuales estarían relacionadas a los toques de queda impuetsos por el Gobierno durante la pandemia).
+
+**2.La cantidad total de vehículos pesados por concesión:**
+
+```{r,echo=TRUE,comment=""}
+BD_P<- filter(Datosl,TIPO_DE_VEHÍCULO=="PESADOS")
+boxplot(BD_P$CANTIDAD_DE_VEHíCULOS~BD_P$CONCESIÓN, main="CANTIDAD DE VEHICULOS PESADOS vs. CONCESIÓN",xlab="CONCESIÓN",ylab="CANTIDAD (miles)",col="green")
+
+```
+
+Se puede ver a partir de la gráfica que la concesión con mayor flujo de vehiculos pesados es la del R.V-4 y la menor concurrencia es la concesion Amazonas Norte.
+
+# VARIABLE TIPO DE VEHICULOS:
+
+La cantidad de vehiculos que hay en la base de datos se reparte entre livianos y pesados.
+
+```{r,echo=TRUE,comment=""}
+table(Datosl$TIPO_DE_VEHÍCULO)
+```
+
+**INFORMACIÓN DE VEHICULOS LIVIANOS**:
+
+Las cantidades de vehiculos están medidas en miles.
+
+```{r,echo=TRUE,comment=""}
+summary(BD_L$CANTIDAD_DE_VEHíCULOS)
+var(BD_L$CANTIDAD_DE_VEHíCULOS)
+sd(BD_L$CANTIDAD_DE_VEHíCULOS)
+coefvariacion <- (sd(BD_L$CANTIDAD_DE_VEHíCULOS)/mean(BD_L$CANTIDAD_DE_VEHíCULOS))*100
+coefvariacion
+```
+Los descriptores numéricos de dispersión basados en la información de los vehículos livianos nos muestra que el promedion de vehpiculosm livianos es 336.7 vehículos, además el coeficiente de variación obtenido es de 44.03397 lo que significa que no tiene homogeneidad alta.
+
+```{r,echo=TRUE,comment=""}
+stripchart(BD_L$CANTIDAD_DE_VEHíCULOS,main="CONCENTRACIÓN DE VEHICULOS LIVIANOS", method= "jitter", col= 2, pch= 0)
+```
+
+El mayor número de vehículos livianos se encuentran entre 200 mil y 500 mil vehículos.Esta gráfica verifica lo obtenido anteriomente con el coeficiente de variación, el cual decía que no exitía una alta homogeneidad.
+
+**INFORMACIÓN DE AUTOS PESADOS**:
+
+Las cantidades de vehiculos están medidas en miles.
+
+```{r,echo=TRUE,comment=""}
+summary(BD_P$CANTIDAD_DE_VEHíCULOS)
+var(BD_P$CANTIDAD_DE_VEHíCULOS)
+sd(BD_P$CANTIDAD_DE_VEHíCULOS)
+coefvariacion <- (sd(BD_P$CANTIDAD_DE_VEHíCULOS)/mean(BD_P$CANTIDAD_DE_VEHíCULOS))*100
+coefvariacion
+```
+Los descriptores numéricos de dispersión basados en la información de los vehículos pesados nos muestra que el promedio de vehículos es de 264.3 vehículos, además el coeficiente de variación obtenido es de 48.97263 lo que significa que habrá una mayor heterogenidad en la información.
+
+```{r,echo=TRUE,comment=""}
+stripchart(BD_P$CANTIDAD_DE_VEHíCULOS, main="CONCENTRACIÓN DE VEHICULOS PESADOS",method= "jitter", col= 3, pch= 0)
+```
+
+El mayor número de vehículos pesados se encuentran entre 100 mil y 200 mil vehiculos, también se aprecia una mayor concentración entre 350 mil y 450 mil vehiculos (Lo que significa una multimodalidad).
+
+
+# **TIPO DE VEHICULO VS. CANTIDAD DE VEHICULO**
+
+```{r,echo=TRUE,comment=""}
+boxplot(Datosl$CANTIDAD_DE_VEHíCULOS~Datosl$TIPO_DE_VEHÍCULO,main="TIPO DE VEHICULO VS. CANTIDAD DE VEHICULOS",xlab="TIPO DE VEHICULO",ylab="CANTIDAD DE VEHICULO (miles)",col=c("yellow","green"))
+
+```
+
+De la gráfica TIPO DE VEHICULO VS. CANTIDAD DE VEHICULO se puede interpretar que la mayor parte de vehiculos que transitan por las carreteras son los livianos.
+
+# **TIPO DE VEHÍCULOS VS. CONCESIÓN**
+```{r}
+table(Datosl$TIPO_DE_VEHÍCULO,Datosl$CONCESIÓN)
+barplot(table(Datosl$TIPO_DE_VEHÍCULO,Datosl$CONCESIÓN), main="TIPO DE VEHÍCULOS VS. CONCESIÓN", col=c("green","yellow"),beside=TRUE)
+legend(x="bottom",legend = c("LIVIANOS","PESADOS"),fill=c("green","yellow"), title="LEYENDA")
+```
+Debido a la uniformidad de la base de datos se puede ver que la cantidad de vehículos livianos y pesados son las mismas en las diferentes concesiones de la carretera.
+
+# VARIABLE CANTIDAD DE VEHICULOS:
+
+**1. CANTIDAD DE VEHICULOS LIVIANOS:**
+
+**TIPO DE VEHÍCULOS VS.MES**
+
+```{r,echo=TRUE,comment=""}
+boxplot(BD_L$CANTIDAD_DE_VEHíCULOS~BD_L$MES,main="CANTIDAD DE VEHICULOS LIVIANOS POR MES",xlab="MESES",ylab="N° DE VEHICULOS LIVIANOS (miles)", col="yellow")
+
+```
+
+Se observa que la mayor cantidad de vehiculos livianos que pasan por las carreteras es durante el mes de Marzo, y la menor cantidad durante el mes de Enero.También se puede observar que durante los meses de enero, febrero, marzo, mayo, octubre, noviembre y diciembre los datos mantienen un sesgo a la izquierda, además durante los meses de abril,junio y julio se presenta un sesgo a la derecha, finalmente durante agosto y setiembre las gráficas son insesgadas.
+
+**CANTIDAD DE VEHICULOS LIVIANOS:**
+```{r}
+hist(BD_L$CANTIDAD_DE_VEHíCULOS, main="CANTIDAD DE VEHÍCULOS LIVIANOS",col="green",xlab="Cantidad de vehículos (Miles)",ylab=" ")
+```
+
+```{r}
+library(EnvStats)
+density1<-density(BD_L$CANTIDAD_DE_VEHíCULOS)
+plot(density1, main="DENSIDAD DE AUTOS LIVIANOS", xlab="Cantidad de vehículos (MILES)", ylab="DENSIDAD")
+polygon(density1, col="yellow", border="black")
+```
+A partir de los dos gráficos, se puede concluir que la mayor cantidad de vehículos livianos se encuentran entre los 230 mil y 550 mil.
+
+```{r}
+CantidadIntervalos <- cut(BD_L$CANTIDAD_DE_VEHíCULOS, breaks = 5)
+levels(CantidadIntervalos) <- c("0 a 128", "129 a 256", "257 a 384", "385 a 512","513 a 640")
+Frecuencias<-c(16,19,46,50,13)
+etiquetas <- paste0(round(100 * Frecuencias/sum(Frecuencias), 2), "%")
+pie(Frecuencias,col = rainbow(6), labels = etiquetas)
+legend("topleft", legend = c("0 a 128", "129 a 256", "257 a 384", "385 a 512","513 a 640"),
+       fill =  c("red", "yellow", "green", "lightblue", "blue"))
+```
+A diferencia del gráfico barplot, este gráfico muestra con mayor presición los intervalos en los que se encuentran las mayores cantidades de vehículos. En relación a esto, el rango de mayor cantidad va de 257 mil a 512 mil vehículos livianos.
+
+# **2. CANTIDAD DE VEHICULOS PESADOS:**
+
+```{r,echo=TRUE,comment=""}
+boxplot(BD_P$CANTIDAD_DE_VEHíCULOS~BD_P$MES,main="CANTIDAD DE VEHICULOS PESADOS POR MES",xlab="MESES",ylab="N° DE VEHICULOS PESADOS (miles)",col="yellow")
+```
+
+Se observa que la mayor cantidad de vehiculos livianos que pasan por las carreteras es durante el mes de Julio, y las cantidades menores durante los meses de Agosto y Setiembre.También se puede observar que durante los meses de enero,octubre, noviembre y diciembre los datos mantienen un sesgo a la izquierda, además durante los meses de  febrero, marzo, abril, mayo,junio y julio se presenta un sesgo a la derecha, finalmente en setiembre la gráficas es insesgada.
+
+ **CANTIDAD DE VEHICULOS PESADOS:**
+```{r}
+hist(BD_P$CANTIDAD_DE_VEHíCULOS, main="CANTIDAD DE VEHÍCULOS PESADOS",col="green",xlab="Cantidad de vehículos (Miles)",ylab=" ")
+```
+
+
+```{r}
+library(EnvStats)
+density1<-density(BD_P$CANTIDAD_DE_VEHíCULOS)
+plot(density1, main="DENSIDAD DE AUTOS PESADOS", xlab="CANTIDAD DE VEHICULOS (MILES)", ylab="DENSIDAD")
+polygon(density1, col="yellow", border="black")
+
+
+```
+A partir de los dos gráficos, se puede concluir que la mayor cantidad de vehículos pesados se encuentran entre los 100 mil y 500 mil.
+
+```{r}
+CantidadIntervalos <- cut(BD_P$CANTIDAD_DE_VEHíCULOS, breaks = 5)
+levels(CantidadIntervalos) <- c("0 a 100","101 a 201", "202 a 302", "303 a 403","404 a 504")
+Frecuencias<-c(11,45,25,39,24)
+etiquetas <- paste0(round(100 * Frecuencias/sum(Frecuencias), 2), "%")
+pie(Frecuencias,col = rainbow(6), labels = etiquetas)
+legend("topleft", legend = c("0 a 100","101 a 201", "202 a 302", "303 a 403","404 a 504"),
+       fill =  c("red", "yellow", "green", "lightblue", "blue"))
+```
+A diferencia del gráfico barplot, este gráfico muestra con mayor precisión los intervalos en los que se encuentran las mayores cantidades de vehículos. En relación a esto, el rango de mayor cantidad va de 101 mil a 403 mil vehículos pesados.
+
+# VARIABLE AÑO:
+
+**CANTIDAD DE VEHICULOS LIVIANOS POR AÑO**
+
+```{r,echo=TRUE,comment=""}
+boxplot(BD_L$CANTIDAD_DE_VEHíCULOS~BD_L$AÑO,main="CANTIDAD DE VEHICULOS POR AÑO",xlab="AÑOS",ylab="CANTIDAD DE VEHICULOS (miles)",col=c("yellow","green","lightblue"))
+```
+A partir del gráfico de cajas, podemos apreciar quen el año 2020 hubo mayor flujo de vehículos livianos.
+
+```{r,echo=TRUE,comment=""}
+sumapasaj2019<-filter(Datosl,AÑO==2019)
+sumapasajeros2019<-colSums(select(sumapasaj2019,contains("PASAJEROS")))
+
+sumapasaj2020<-filter(Datosl,AÑO==2020)
+sumapasajeros2020<-colSums(select(sumapasaj2020,contains("PASAJEROS")))
+
+sumapasaj2021<-filter(Datosl,AÑO==2021)
+sumapasajeros2021<-colSums(select(sumapasaj2021,contains("PASAJEROS")))
+
+table(Datosl$PASAJEROS,Datosl$AÑO)
+barplot(table(Datosl$PASAJEROS,Datosl$AÑO),col=c("blanchedalmond","blueviolet","cornflowerblue","darkcyan","darkgray","darkkhaki","darkslateblue","lightslateblue","lightseagreen","greenyellow","mediumseagreen","powderblue"),beside=TRUE)
+#legend(x="center",legend = c("1","2","3","4","5","6","7","8","9","10","11","12"),fill=c("blanchedalmond","blueviolet","cornflowerblue","darkcyan","darkgray","darkkhaki","darkslateblue","lightslateblue","lightseagreen","greenyellow","mediumseagreen","powderblue"), title="LEYENDA")
+```
+Para este gráfico de barras, se concluye que en el año 2019, los meses de enero y abril fueron aquellos en los cuales hubo un mayor tránsito de pasajeros. Por otro lado, en el 2020, la mayor cantidad de pasajeros se calculó en los meses de marzo y abril. Finalmente, en el 2021, se ve que a partir de marzo hasta abril la densidad de pasajeros es alta respecto a los otros meses de ese mismo año.
+En conclusión, podemos interpretar que los 4 primeros meses del año son los que tienen mayor afluencia de pasajeros. 
+
+V
+
+```{r,echo=TRUE,comment=""}
+boxplot(BD_P$CANTIDAD_DE_VEHíCULOS~BD_P$AÑO,main="CANTIDAD DE VEHICULOS POR AÑO",xlab="AÑOS",ylab="CANTIDAD DE VEHICULOS (miles)",col=c("yellow","green","lightblue"))
+
+```
+
+En general, durante los años de pandemia el control de vehiculos en las carreteras de provincia no fue tan regulado, ya que se puede observar un gran numero de vehiculos que transitaron por las carreteras.
+
+# VARIABLE CANTIDAD DE PASAJEROS:
+
+**CANTIDAD DE PASAJEROS POR AÑO**
+
+```{r}
+sumapasaj2019<-filter(Datosl,AÑO==2019)
+sumapasajeros2019<-colSums(select(sumapasaj2019,contains("PASAJEROS")))
+sumapasaj2020<-filter(Datosl,AÑO==2020)
+sumapasajeros2020<-colSums(select(sumapasaj2020,contains("PASAJEROS")))
+sumapasaj2021<-filter(Datosl,AÑO==2021)
+sumapasajeros2021<-colSums(select(sumapasaj2021,contains("PASAJEROS")))
+table(Datosl$PASAJEROS,Datosl$AÑO)
+tab <- matrix(c(sumapasajeros2019,sumapasajeros2020,sumapasajeros2021), ncol = 3 , byrow = TRUE ) 
+colnames(tab) <- c ('2019', '2020', '2021')
+tab <- as.table (tab)
+barplot(tab,main="CANTIDAD DE PASAJEROS POR AÑO (Miles)",col=c("yellow","green","lightblue"),beside=TRUE,xlab="Pasajeros", ylab="Año", 
+        xlim=c(370,460),horiz = TRUE)
+```
+A partir de la gráfica obtenida se puede ver que durante el año 2019 la cantidad de psajeros disminuyó a comparación de los años posteriores, tal vez debido por la aparación de la Covid-19.
+
+# VARIABLE CANTIDAD DE PASAJEROS:
+**PESO DE VEHÍCULOS POR CANTIDAD DE EJES**
+
+```{r}
+dosEjes<-filter(Datosl,EJES==2)
+media2Ejes<-mean(dosEjes$PESO)
+tresEjes<-filter(Datosl,EJES==3)
+media3Ejes<-mean(tresEjes$PESO)
+cuatroEjes<-filter(Datosl,EJES==4)
+media4Ejes<-mean(cuatroEjes$PESO)
+cincoEjes<-filter(Datosl,EJES==5)
+media5Ejes<-mean(cincoEjes$PESO)
+tab2 <- matrix(c(media2Ejes,media3Ejes,media4Ejes,media5Ejes), ncol = 4 , byrow = TRUE ) 
+colnames(tab2) <- c ('2 ejes', '3 ejes', '4 ejes', '5 ejes')
+tab2 <- as.table (tab2)
+barplot(tab2,main="PESO DE VEHÍCULOS POR CANTIDAD DE EJES",col=c("yellow","green","lightblue","blue"),beside=TRUE,xlab="Cantidad de ejes", ylab="Peso del Vehiculo"
+        ,space=c(0.1,0.1,0.1,0.1))
+```
+Se puede observar que los vehículos más pesados son los que tienden a poseer una mayor cantidad de ejes.
+
+**CANTIDAD DE PASAJEROS POR CANTIDAD DE EJES**
+```{r}
+ggplot(Datosl,main="CANTIDAD DE PASAJEROS POR CANTIDAD DE EJES", aes(x=EJES, y=PASAJEROS)) + 
+    geom_point(color="orange",
+        fill="#69b3a2",
+        shape=21,
+        alpha=0.5,
+        size=6,
+        stroke=2)
+```
+Mediante la gráfica mostrada se puede ver que la mayor cantidad de pasajeros/conductores tienen vehículos de dos ejes, mientras que los vehículos con 3,4 y 5 ejes mantienen una cantidad de pasajeros casi uniforme.
+
+*REGRESIÓN LINEAL:*
+Se crea un dataframe para visualizar mejor las variables a analizar: 
+```{r}
+dat<-data.frame("Peso"=BD_L$PESO,"Pasajeros"=BD_L$PASAJEROS)
+dat
+```
+
+```{r}
+result<-lm(dat$Pasajeros~dat$Peso,data=dat)
+result
+```
+Intercepto es BETA-0: 5.4457516
+Pendiente es BETA-1: 0.0005677
+De aquí se tiene que el modelo es:   ^y = 5.4457516+0.00056775*x (x: valor real de x, ^y: valor estimado de y por el modelo de regresión)
+```{r}
+tabl<-data.frame("Peso"=BD_L$PESO,"Pasajeros"=BD_L$PASAJEROS,"Pasajeros-estimado"=5.4457516+0.00056775*BD_L$PESO)
+tabl
+```
+```{r}
+tabconerr<-data.frame("Peso"=BD_L$PESO,"Pasajeros"=BD_L$PASAJEROS,"Pasajeros-estimado"=5.4457516+0.00056775*BD_L$PESO,"Error"=BD_L$PASAJEROS-(5.4457516+0.00056775*BD_L$PESO))
+tabconerr
+```
+La gráfica de dispersión
+```{r}
+plot(dat$Peso,dat$Pasajeros,xlab = "PESO_L",ylab = "PASAJEROS_L")
+```
+
+Ahora le agregamos la recta de regresión
+```{r}
+plot(dat$Peso,dat$Pasajeros,xlab = "PESO_L",ylab = "PASAJEROS_L")
+abline(result)
+```
+Y el modelo es bueno?
+```{r}
+# covarianza
+cov(BD_L$PESO,BD_L$PASAJEROS)
+```
+Por la covarianza positiva sabemos que al aumentar el peso, el número de pasajeros también aumenta, por lo que están en relación directa.
+
+```{r}
+# coeficiente de correlación
+cor(BD_L$PESO,BD_L$PASAJEROS)
+```
+Se concluye que el modelo es malo debido a su bajo coeficiente de correlación, y se puede apreciar con claridad en el gráfico de dispersión, pues los datos están esparcidos en todos los extremos y no siguen mucho la tendencia de la recta.
+
+############################
+
+Ahora creamos und dataframe para los vehículos pesados:
+
+```{r}
+dat2<-data.frame("Peso"=BD_P$PESO,"Pasajeros"=BD_P$PASAJEROS)
+dat2
+```
+
+```{r}
+result2<-lm(dat2$Pasajeros~dat2$Peso,data=dat2)
+result2
+```
+Intercepto es BETA-0: 2.2584890 
+Pendiente es BETA-1: 0.0000261
+De aquí se tiene que el modelo es:   ^y = 2.2584890+0.0000261*x (x: valor real de x, ^y: valor estimado de y por el modelo de regresión)
+```{r}
+tabl2<-data.frame("Peso"=BD_P$PESO,"Pasajeros"=BD_P$PASAJEROS,"Pasajeros-estimado"=2.2584890+0.0000261*BD_P$PESO)
+tabl2
+```
+
+```{r}
+tabconerr2<-data.frame("Peso"=BD_P$PESO,"Pasajeros"=BD_P$PASAJEROS,"Pasajeros-estimado"=2.2584890+0.0000261*BD_P$PESO,"Error"=BD_P$PASAJEROS-(2.2584890+0.0000261*BD_P$PESO))
+tabconerr2
+```
+La gráfica de dispersión
+```{r}
+plot(dat2$Peso,dat2$Pasajeros,xlab = "PESO_P",ylab = "PASAJEROS_P")
+```
+
+Ahora le agregamos la recta de regresión
+```{r}
+plot(dat2$Peso,dat2$Pasajeros,xlab = "PESO_P",ylab = "PASAJEROS_P")
+abline(result2)
+```
+Y el modelo es bueno?
+```{r}
+# covarianza
+cov(BD_P$PESO,BD_P$PASAJEROS)
+```
+La covarianza positiva indica una relación directa proporcional entre las variables de estudio, por lo que si una aumenta, la otra también lo hará.
+
+```{r}
+# coeficiente de correlación
+cor(BD_P$PESO,BD_P$PASAJEROS)
+```
+Vemos que la correlación es baja, pero que es mayor respecto a la de vehículos pesados. Esto es debido a la aleatoriedad en la cantidad de pasajeros por vehículo. Una buena correlación se daría si el coeficiente fuese mayor o igual a +-0.75.
+
+# **D.ANÁLISIS PROBABILÍSTICO:**
+
+**MODELOS PROBABILISTICOS DISCRETOS:**
+
+1.DISTRIBUCIÓN HIPERGEOMÉTRICA:
+Variable usada:Cantidad de Vehículos. 
+
+La cantidad de vehículos totales de la muestra son 86542633, de las cuales hay 48483952 de vehículos livianos.Si se escogen aleatoriamente 15 de vehiculos sin reposición,
+¿Cuál es la probabilidad de tener 8 vehículos livianos?
+```{r}
+dhyper(8,48483952,38058681,15)
+
+```
+La probabilidad de obtener 8 vehículos livianos es casi de 19%.
+
+¿Cuál es la probabilidad de tener como máximo 7 vehículos pesados?
+```{r}
+phyper(7,38058681,48483952,15)
+```
+¿Cuál es la probabilidad de tener por lo menos 7 vehículos pesados?
+```{r}
+phyper(7,38058681,48483952,15,lower.tail = F)
+```
+SIMULACIÓN:
+```{r}
+set.seed(2021)
+N<-86542633
+n<-8
+K<-48483952
+K2<-38058681
+x4<-rhyper(1000,K,N-K,n)
+x5<-rhyper(1000,K2,N-K,n)
+db<-data.frame(cbind(x4,x5))
+db_long<-melt(db,measure.vars=c("x4","x5"),variable.name ="Variable",value.name = "Valores")
+ggplot(db_long,aes(x=Valores,fill=Variable))+geom_histogram(color="#e9ecef",alpha=0.6,position = "identity",bins=15)+scale_fill_manual(values = c("#ff6e00","#000000"))+theme_ipsum()+labs(fill="")
+
+
+```
+Como se puede ver en la gráfica x4=Livianos y x5=Pesados, es más probable conseguir un vehículos liviano a partir de intento número 4 hasta el intento 8, mientras que es más probable conseguir un vehículo pesado desde el primer intento hasta el tercero.
+
+
+2.DISTRIBUCIÓN DE POISSON:
+Se sabe que un vehículo liviano en los 4 tramos durante el 2019 puede cargar en promedio 1375 Kg por mes, en promedio.
+¿Cuál sería la probabilidad de que cargue 8150 Kg como carga acumulada en 6 meses?
+X= carga acumulada que llevará un vehículo liviano en 6 meses.
+dato:               en 1 mes puede cargar 1375 Kg en promedio 
+==>                 en 6 meses puede tener una carga acumulada de 8250 Kg  ==> L=8250 Kg.
+se pide P(X=8150)
+```{r}
+dpois(8150,8250)
+```
+¿Cuál sería la probabilidad de que la carga acumulada en 6 meses sea menor a 8150 Kg.?
+```{r}
+ppois(8149,8250,lower.tail = TRUE)
+```
+¿Cuál sería la probabilidad de que la carga acumulada en 6 meses sea mayor a 8150 Kg.?
+```{r}
+ppois(8150,8250,lower.tail = FALSE)
+```
+¿Qué valor de carga acumulada tendrá un vehículo liviano para que la probabilidad sea del 70%?
+```{r}
+qpois(0.7,8250)
+```
+SIMULACIÓN DISTRIBUCIÓN DE POISSON:
+```{r}
+x3<-rpois(100000,8250)
+mean(x3)
+sd(x3)
+coef<- (sd(x3)/mean(x3))*100
+coef
+hist(x3,main="DISTRIBUCIÓN DE POSSION",xlab=" ",ylab=" ", col="yellow")
+```
+Como se observa en la gráfica el promedio de los valores se encuentra entre 8200 y 8300 Kg. Además se puede ver que la distribución es parecida a la de una distribución normal, eso debido a que la distribución de Poisson usa valores discretos y la normal usa valores continuos.
+
+
+#3. DISTRIBUCIÓN GEOMÉTRICA:
+Se sabe que la probabilidad de sacar aleatoriamente un vehículo liviano es 0.56 (P(liviano)=0.56) y la de un vehículo pesado es 0.44 (P(pesado)=0.44)
+X:Número de intentos fallados hasta conseguir el primer vehículo liviano.
+Y:X:Número de intentos fallados hasta conseguir el primer vehículo pesado.
+¿Cuál es la probabilidad de encontrar un vehículo liviano al intento número 6? P(X=6)
+```{r}
+dgeom(5,0.56)
+```
+¿Cuál es la probabilidad de encontrar un vehículo pesado cuando la cantidad de intentos fallados sea como máximo 6? P(Y<=6)
+```{r}
+pgeom(6,0.44)
+```
+¿Cuál es la probabilidad de encontrar un vehículo pesado cuando la cantidad de intentos fallados sea menos 6? P(Y>6)
+```{r}
+pgeom(6,0.44,lower.tail = F)
+```
+*SIMULACIÓN:
+```{r}
+x7<-rgeom(1000,0.56)
+x6<-rgeom(1000,0.44)
+x7data<-data.frame(x7)
+x6data<-data.frame(x6)
+ggplot(data=x6data,aes(x6))+geom_histogram(color="black",fill="lightblue",linetype="dashed")
+ggplot(data=x7data,aes(x7))+geom_histogram(color="black",fill="darkcyan",linetype="dashed")
+```
+Las gráficas mostradas explican que tan probable es sacar el primer vehículo liviano o pesado durante 8 intentos.
+
+
+#**MODELOS PROBABILISTICOS CONTINUOS:**
+
+1.DISTRIBUCIÓN EXPONENCIAL:
+El peso en kilogramos que puede cargar los vehículos livianos durante 2019 en diferentes tramos de autopistas.
+
+*1.AUTOPISTA DEL SOL TRAMO TRUJILLO-SULLAN*
+X:El peso en kilogramos que puede cargar un vehículo liviano durante el año 2019 en la AUTOPISTA DEL SOL TRAMO TRUJILLO-SULLAN, Sigue una distribución exponencial de media 1360.57 kilogramos. -> E(X)=1360.57
+
+La probabilidad de que el peso cargado por un vehículo liviano sea 1600 kilos.(P(X=1600))
+```{r}
+dexp(1600,1/1360.57)
+```
+La probabilidad de que el peso cargado por un vehículo liviano sea menor 1600 kilos.(P(X<1600))
+```{r}
+pexp(1600,1/1360.57, lower.tail = TRUE)
+```
+La probabilidad de que el peso cargado por un vehículo liviano sea mayor 1600 kilos.(P(X>1600))
+```{r}
+pexp(1600,1/1360.57,lower.tail = FALSE) #El False se cumple solo porque es un función continua
+1-pexp(1600,1/1360.57,lower.tail = TRUE)
+```
+¿Cuál es el peso que puede cargar un vehículo liviano para que la probabilidad sea menor a un 60%? P(X<a)=0.6
+```{r}
+qexp(0.6,1/1360.57,lower.tail = TRUE)
+```
+¿Cuál es el peso que puede cargar un vehículo liviano para que la probabilidad sea mayor a un 30%? P(X>a)=0.3
+```{r}
+qexp(0.30,1/1360.57,lower.tail = FALSE)
+qexp(0.70,1/1360.57,lower.tail = TRUE)
+```
+DISTRIBUCIÓN EXPONENCIAL DE n=1000 y rate= 1/1360.57
+```{r}
+x1<-rexp(1000,1/1360.57)
+```
+
+Graficamos en ggplot:
+```{r}
+x1data<-data.frame(x1)
+ggplot(data = x1data,aes(x1))+geom_histogram(color="black",fill="lightblue",linetype="dashed")
+```
+Se observa que distribución exponencial va hacia la izquierda, Lo que significa que es más probable que un vehículo liviano cargue más de 1360.57 Kg. en los primeros meses de trabajo en la AUTOPISTA DEL SOL TRAMO TRUJILLO-SULLAN.
+
+
+*2.EJE MULTIMODAL DEL AMAZONAS NORTE:  TRAMO YURIMAGUAS - TARAPOTO - RIOJA - CORRAL QUEMADO - OLMOS - PIURA - PAITA*
+El peso en kilogramos que puede cargar un vehículo liviano durante el año 2019 en el EJE MULTIMODAL DEL AMAZONAS NORTE:  TRAMO YURIMAGUAS - TARAPOTO - RIOJA - CORRAL QUEMADO - OLMOS - PIURA - PAITA, Sigue una distribución exponencial de media 1413.01 kilogramos. -> E(X)=1413.01
+
+La probabilidad de que el peso cargado por un vehículo liviano sea 1700 kilos.(P(X=1700))
+```{r}
+dexp(1700,1/1413.01)
+```
+La probabilidad de que el peso cargado por un vehículo liviano sea menor 1700 kilos.(P(X<1700))
+```{r}
+pexp(1700,1/1413.01, lower.tail = TRUE)
+```
+La probabilidad de que el peso cargado por un vehículo liviano sea mayor 1700 kilos.(P(X>1700))
+```{r}
+pexp(1700,1/1413.01,lower.tail = FALSE) #El False se cumple solo porque es un función continua
+1-pexp(1700,1/1413.01,lower.tail = TRUE)
+```
+
+#DISTRIBUCIÓN EXPONENCIAL DE n=1000 y rate= 1/1413.01
+```{r}
+x1<-rexp(1000,1/1413.01)
+```
+
+Graficamos en ggplot:
+```{r}
+x1data<-data.frame(x1)
+ggplot(data = x1data,aes(x1))+geom_histogram(color="black",fill="lightblue",linetype="dashed")
+```
+Se observa que distribución exponencial va hacia la izquierda, Lo que significa que es más probable que un vehículo liviano cargue más de 1413.01 Kg. en los primeros meses de trabajo en el EJE MULTIMODAL DEL AMAZONAS NORTE:  TRAMO YURIMAGUAS - TARAPOTO - RIOJA - CORRAL QUEMADO - OLMOS - PIURA - PAITA.
+
+
+
+2.DISTRIBUCIÓN UNIFORME:
+
+X:La cantidad de ejes que pueden tener los vehículos pesados está distribuida uniformemente entre 2 y 5.
+¿Cuál es la probabilidad que al escoger un vehículo pesado de manera aleatoria tenga más de 3 ejes? P(3<x<5)
+```{r}
+1-punif(3,2,5)
+```
+#SIMULAMOS DISTRIBUCIÓN UNIFORME:
+
+```{r}
+dist_unif<- runif(1000,2,5)
+hist(dist_unif, main="DISTRIBUCION UNIFORME",col="green", xlab=" ", ylab=" ")
+```
+Se puede observar que la cantidad de vehículos con las diferentes cantidades de ejes mantiene una distribución uniforme si se usa una muestra de 1000 vehículos pesados.
+
+
+#3.DISTRIBUCIÓN NORMAL:
+
+La cantidad de vehículos pesados que transitan por los 4 tramos estudiados es una variable aleatoria con distribución normal.
+```{r}
+mean(BD_P$CANTIDAD_DE_VEHíCULOS)
+sd(BD_P$CANTIDAD_DE_VEHíCULOS)
+```
+La probabilidad de que la cantidad de vehículos pesados que transitan por las autopistas sea 230.285 mil. (P(X=230.285))
+```{r}
+dnorm(230.285,264.2964,129.4329)
+```
+La probabilidad de que la cantidad de vehículos pesados que transitan por las autopistas sea como máximo 230.285 mil. (P(X<=230.285))
+```{r}
+pnorm(230.285,264.2964,129.4329, lower.tail = TRUE)
+```
+La probabilidad de que la cantidad de vehículos pesados que transitan por las autopistas sea por lo menos 230.285 mil. (P(X>=230.285))
+```{r}
+pnorm(230.285,264.2964,129.4329, lower.tail = FALSE)
+```
+¿Cuál es la cantidad de vehículos pesados que deben transitar por los tramos para que la probabilidad sea como máximo un 60%? P(X<=a)
+```{r}
+qnorm(0.6,264.2964,129.4329)
+```
+¿Cuál es la cantidad de vehículos pesados que deben transitar por los tramos para que la probabilidad sea por lo menos un 70%? P(X<=a)
+```{r}
+qnorm(0.6,264.2964,129.4329, lower.tail = FALSE)
+```
+Simulación de n=1000 , mu=264.2964 , sigma=129.4329
+```{r}
+x2<-rnorm(1000,264.2964,129.4329)
+mean(x2)
+sd(x2)
+hist(x2,main="DISTRIBUCIÓN NORMAL",col="yellow",xlab=" ", ylab=" ")
+```
