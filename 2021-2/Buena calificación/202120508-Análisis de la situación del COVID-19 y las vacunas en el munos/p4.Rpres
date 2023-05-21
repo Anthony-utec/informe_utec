@@ -1,0 +1,422 @@
+P4 Presentación Oral
+========================================================
+
+Integrantes:
+ - Jorge Enrique Miranda Jaime
+ - Jesús Ricardo Carrillo Martínez 
+ - Leonardo Alfredo Montoya Solorzano 
+ - Santiago Roberto Rondón del Carpio (Líder)
+ - Marco Antonio Guimoye Machicao 
+ 
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(RColorBrewer)
+library(ggplot2)
+library(forcats)
+library(treemapify)
+library(gridExtra)
+```
+```{r include=FALSE}
+original <- read_csv("owid-covid-data.csv")
+```
+```{r include=FALSE}
+meses = strftime(original$date, "%Y-%m")
+original$mes = meses
+table(original$mes)
+```
+```{r include=FALSE}
+STM = group_by(original, mes)
+STM %>% summarise(
+  total_casos = max(total_cases,na.rm=T),
+  nuevos_casos = sum(new_cases, na.rm = T),
+  total_muertes = max(total_deaths, na.rm=T),
+  nuevas_muertes = sum(new_deaths, na.rm = T),
+  hospitalizados = sum(hosp_patients, na.rm = T),
+  vacunados = max(people_vaccinated, na.rm=T),
+  vacunados_completo = max(people_fully_vaccinated, na.rm = T),
+  total_vacunaciones = max(total_vaccinations, na.rm=T),
+  nuevas_vacunaciones = sum(new_vaccinations, na.rm = T),
+  ratio_positivo = max(positive_rate, na.rm = T)) -> STM
+STM = STM[3:nrow(STM)-1,]
+```
+```{r include=FALSE}
+STM1 = STM[12:nrow(STM),]
+table(STM1$mes)
+```
+```{r include=FALSE}
+PENST = group_by(original[original$location=="Peru", ], mes)
+PENST %>% summarise(
+  total_casos = max(total_cases,na.rm=T),
+  nuevos_casos = sum(new_cases, na.rm = T),
+  total_muertes = max(total_deaths, na.rm=T),
+  nuevas_muertes = sum(new_deaths, na.rm = T),
+  vacunados = max(people_vaccinated, na.rm=T),
+  vacunados_completo = max(people_fully_vaccinated, na.rm = T),
+  total_vacunaciones = max(total_vaccinations, na.rm=T),
+  nuevas_vacunaciones = sum(new_vaccinations, na.rm = T),
+  ratio_positivo = max(positive_rate, na.rm = T)) -> PENST
+PENST = PENST[3:nrow(PENST),]
+
+```
+```{r include=FALSE}
+VAC_PEN = PENST[12:nrow(PENST),]
+```
+
+Objetivos
+========================================================
+
+## Objetivo principal
+
+Lograr obtener una información clara sobre lo que ocurre en el mundo tras los sucesos de la pandemia del **Covid-19**.
+
+## Objetivos secundarios
+
+* Investigar el efecto de la aparición de la variante Delta frente a los esfuerzos de las campañas de vacunación.
+* Analizar el estado global de la pandemia para comprender la gravedad de la coyuntura en Perú.
+* Analizar la efectividad de las campañas de vacunación en el mundo.
+* Investigar la efectividad de las campañas de vacunación en Perú.
+
+
+Preguntas e Hipótesis
+========================================================
+
+| N°   | Pregunta   | Hipótesis |
+|------|------------|---------------|
+| 1 |¿Es la vacuna un factor determinante para evitar el aumento de número de muertes por COVID-19? | La vacuna puede prevenir efectos graves en el paciente, por lo que podría evitar la muerte a causa de la enfermedad.
+| 2 |¿Cuál es la relación de personas hospitalizadas y la cantidad de muertes? | Las personas hospitalizadas son usualmente personas con efectos graves por la enfermedad, por lo que se presume que, a más personas hospitalizadas, mayor la cantidad de fallecidos.
+
+Patrones
+========================================================
+
+```{r, echo=FALSE,fig.width = 15,fig.height = 10}
+ggplot(data=PENST, aes(x= mes, y= nuevos_casos, group=1)) +
+ geom_bar(stat="identity", fill="#F94144", alpha=0.7)+
+  labs(x = "Meses", y = "Casos nuevos", 
+              title = "Perú: Contagios nuevos mensuales") +
+      geom_line(linetype=2, size=0.4)+
+  geom_vline(xintercept = 9, color="steelblue",size=2)+
+  annotate("text", x = 5, y = 260020, hjust = 0.5, label = "Primera ola", size=9, color="black")+
+  annotate("text", x = 14, y = 270020, hjust = 0.5, label = "Segunda ola", size=9, color="black")+
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust=1), text = element_text(size = 20))
+```
+
+Patrones
+========================================================
+
+```{r, echo=FALSE,fig.width = 15,fig.height = 10}
+ggplot(PENST, aes(mes, total_muertes, group=1)) +
+    geom_line(size=0.2)+
+  geom_point(size=4, color="#F94144")+
+labs(x = "Meses", y = "Fallecimientos", 
+              title = "Perú: Evolución de la cantidad total de fallecimientos") +
+        annotate("text", x = 5, y = 180002, hjust = 0.5, alpha = 0.8, label = "Primera ola", size=12, color="black")+
+  annotate("text", x = 10, y = 180002, hjust = 0, alpha = 0.8, label = "Segunda ola", size=12, color="black")+
+  geom_vline(xintercept = 9, color="steelblue", alpha = 0.5,size=2)+
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust=1), text = element_text(size = 20))
+```
+
+Planteamiento de hipótesis
+========================================================
+
+¿Es la **vacuna** un factor determinante para evitar el aumento de número de muertes por COVID-19?
+
+```{r, echo=FALSE,fig.width = 15,fig.height = 8}
+ggplot(data=STM1, aes(x= mes, y= nuevas_vacunaciones, group=1)) +
+    geom_bar(stat="identity", fill="#F94144")+
+  geom_line(linetype=2, size=0.4)+
+  labs(x = "Meses", y = "Cantidad de vacunados", 
+              title = "Mundo: Vacunados por Covid-19 mensuales") +
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust=1), text = element_text(size = 20))
+```
+
+========================================================
+
+Relacionamos el número de **nuevos fallecidos** con el de **nuevos casos** mensuales. Comenzando el análisis a nivel **global**:
+
+```{r, echo=FALSE,fig.width = 15,fig.height = 8}
+ggplot(STM, aes(x = nuevos_casos, y = nuevas_muertes)) +
+  labs(x = "Nuevos casos", y = "Muertes nuevas", 
+              title = "Mundo: Relación entre muerte y contagios") +
+    geom_point(color="#F94144",size=4) + geom_smooth(method = "lm", formula = y ~ x, se = F, size = 0.8, linetype = 2, color="black")+
+  theme(text=element_text(size = 20))
+```
+
+```{r echo=FALSE}
+print(paste("Correlación: ",round(cor(STM$nuevas_muertes,STM$nuevos_casos),2)))
+```
+
+========================================================
+
+Y luego concentrándolo a nivel de **Perú**:
+
+```{r, echo=FALSE,fig.width = 15,fig.height = 8}
+ggplot(PENST, aes(x = nuevos_casos, y = nuevas_muertes)) +
+  labs(x = "Nuevos casos", y = "Muertes nuevas", 
+              title = "Perú: Relación entre muerte y contagios") +
+    geom_point(color="#F94144",size=4) + geom_smooth(method = "lm", formula = y ~ x, se = F, size = 0.8, linetype = 2, color="black")+
+  theme(text=element_text(size = 20))
+```
+
+```{r echo=FALSE}
+print(paste("Correlación: ",round(cor(PENST$nuevas_muertes,PENST$nuevos_casos),2)))
+```
+
+========================================================
+
+Las campañas de **vacunación** en el Perú comenzaron en **marzo** de este año.
+
+```{r, echo=FALSE,fig.width = 12,fig.height = 7,fig.align='center'}
+ggplot(VAC_PEN, aes(x = nuevas_muertes, y = nuevas_vacunaciones)) +
+  labs(x = "Muertes nuevas", y = "Nuevas vacunaciones", 
+              title = "Perú: Relación entre muerte y cantidad de vacunados") +
+    geom_point(color="#F94144", size=5) + geom_smooth(method = "lm", formula = y ~ x, se = F, size = 0.8, linetype = 2,color="black")+
+  theme(text=element_text(size = 20))
+```
+```{r echo=FALSE}
+print(paste("Correlación: ",round(cor(VAC_PEN$nuevas_muertes, VAC_PEN$nuevas_vacunaciones),2)))
+```
+
+========================================================
+
+¿Cuál es la relación de personas hospitalizadas y la cantidad de muertes?
+
+```{r, echo=FALSE,fig.width = 12,fig.height = 7,fig.align='center'}
+ggplot(STM, aes(y = nuevas_muertes, x = hospitalizados)) +
+  labs(y = "Cantidad de fallecidos", x = "Cantidad de Hospitalizados", 
+              title = "Mundo: Cantidad de hospitalizados vs Cantidad de fallecidos") +
+    geom_point(color = "red", size=4) +
+  geom_smooth(method = "lm", formula = y ~ x, se = F, size = 0.8, linetype = 2,color="black")+
+  theme(text=element_text(size = 20))
+```
+```{r echo=FALSE}
+print(paste("Correlación: ",round(cor(STM$nuevas_muertes, STM$hospitalizados),2)))
+```
+
+
+Variables Aleatorias discretas
+========================================================
+
+Nuevos casos. **Binomial**.
+
+```{r echo=FALSE}
+print(paste("Proporción de meses con menos de 50mil casos nuevos de COVID-19 en Perú:",round(nrow(PENST[PENST$nuevos_casos < 50000,])/nrow(PENST),2)))
+```
+
+Calcula la probabilidad de que durante **4 meses** la cantidad de nuevos casos mensuales de covid-19 en Perú no supere a los 50mil, si es que la proporción es de **0.29**.
+
+========================================================
+
+*Éxito*: nuevos casos menor que 50,000.
+
+*Fracaso*: nuevos casos mayor que 50,000.
+
+*Probabilidad de éxito*: 0.29
+
+$P(X=4)$
+
+```{r}
+round(dbinom(4,4,0.29),4)
+```
+
+*Análisis*: Elegimos la cifra 50mil nuevos contagios, debido a que durante la primera y segunda ola, hubieron incrementos de nuevos casos hasta los picos de más de 200mil mensuales y los periodos más estables no ascendian a más de 50mil casos. El ascenso hasta estos picos se mantuvo al rededor de 4 a 5 meses.
+
+Pruebas de Hipótesis
+========================================================
+
+Hipótesis 1
+
+H_0: El número de contagiados a nivel nacional mensualmente es mayor o igual 100000, se eligió un valor de 100000 ya que según la página Statista(https://es.statista.com/estadisticas/1110077/numero-casos-muertes-covid-19-peru/), el rango oscila en ese valor.
+
+H_0: µ>=100000
+
+H_1: El número de contagiados a nivel nacional mensualmente es menor a 100000
+
+H_1: µ<100000
+
+========================================================
+
+Para el nivel de confianza realizaremos los cálculos a un nivel de confianza del 90% y del 95%, para poder llegar a una conclusión acerca de cuál de ambos valores nos conviene, decidimos probar con estos valores debido a que la variable tiene valores muy dispersos.
+```{r echo=FALSE}
+print(paste("Mínimo:",min(PENST$nuevos_casos)))
+print(paste("Máximo:",max(PENST$nuevos_casos)))
+```
+
+</br>
+
+*Nivel de confianza = 95% por ende nivel de significancia = 0.05*
+
+*Nivel de confianza = 90% por ende nivel de significancia = 0.1*
+
+========================================================
+
+```{r echo=FALSE}
+µ = 100000
+n= length(VAC_PEN$nuevos_casos)
+media.muestral = mean(VAC_PEN$nuevos_casos)
+sd.muestral=sd(VAC_PEN$nuevos_casos)
+α = 0.05
+a=0.1
+
+t <- (media.muestral-µ)/(sd.muestral/sqrt(n)) #Calculo del estadístico
+
+
+```
+```{r echo=FALSE}
+print("Media muestral")
+media.muestral
+```
+
+La media muestral se obtuvo de nuestra data filtrada para Perú, en donde hallamos la media para los nuevos casos que aparecen mensualmente en el país.
+```{r echo=FALSE}
+print("Desviación Estándar muestral")
+sd.muestral
+```
+La desviación estándar muestral se obtuvo de nuestra data filtrada para Perú, en donde hallamos la desviación estándar para los nuevos casos que aparecen mensualmente país.
+
+========================================================
+
+```{r echo=FALSE}
+print("Tamaño de la muestra")
+n
+print("t-estadístico")
+t
+```
+
+
+Utilizamos el valor de T-estadístico debido a que no teníamos una desviación estándar poblacional conocida, y a su vez al estar separada en meses la data, el número de muestras no es mayor a 30, y solo tenemos 10 muestras, lo que serían 10 meses.
+
+```{r echo=FALSE}
+print("Valor-p")
+pvalor = pt(t, n - 1, lower.tail = T) 
+pvalor
+```
+Una vez hallado el Valor-P, observamos que es mayor que el nivel de significación, por lo tanto no se debería rechazar H0.
+
+========================================================
+
+
+```{r echo=FALSE}
+print("Punto crítico α = 0.05")
+qt(0.05,n-1)
+print("Punto crítico α = 0.1")
+qt(0.1,n-1)
+```
+Como podemos observar el valor del "t" es mayor que el punto crítico, por lo que la hipótesis nula en primera instancia no sería rechazada.\
+
+
+```{r echo=FALSE}
+print("Intervalo de confianza")
+IC1<-media.muestral+qt(0.025,n-1)*(sd.muestral/n)
+IC2<-media.muestral-qt(0.025,n-1)*(sd.muestral/n)
+print(paste("[",IC1,",",IC2,"]"))
+```
+
+========================================================
+
+```{r, echo=FALSE,fig.width = 12,fig.height = 9,fig.align='center'}
+hist(PENST$nuevos_casos, col=rgb(0.8,0.1,0.12,0.5), ylab="Frecuencia", xlab="Nuevos casos", main="Histograma de intervalos")
+
+abline(v=IC1, col="steelblue",lwd=5)
+abline(v=IC2, col="steelblue",lwd=5)
+abline(v=media.muestral, col="#AB1B0B",lwd=5)
+abline(v=µ, col="green",lwd=6, lty=5)
+legend(x = "topright", legend = c("Intervalos de confianza", "Media muestral", "Media propuesta"), fill = c("steelblue", "#AB1B0B","green"), 
+       title = "Loan")
+```
+
+========================================================
+
+```{r, echo=FALSE,fig.width = 12,fig.height = 9,fig.align='center'}
+curve(dnorm(x, mean=0, sd=1 , log=F), from=-3, to=3, xlim=c(-3, 3), col="#DD5959", lwd=4, ylab="",xlab="", main="Gráfico de distribución normal estándar")
+polygon(c(qt(0.05,n-1), seq(qt(0.05,n-1),qt(0.1,n-1), 0.01),qt(0.1,n-1)), c(0,dt(seq(qt(0.05,n-1),qt(0.1,n-1),0.01),df=n-1),0), col="#FF3333")
+
+polygon(c(-3, seq(-3,qt(0.05,n-1), 0.01),qt(0.05,n-1)), c(0,dt(seq(-3,qt(0.05,n-1),0.01),df=n-1),0), col="#FF5C5C")
+
+polygon(c(qt(0.1,n-1), seq(qt(0.1,n-1),3, 0.01),3), c(0,dt(seq(qt(0.1,n-1),3,0.01),df=n-1),0), col="#DD5959")
+abline(v=qt(0.05, n-1), col="#FF5C5C",lwd=5) ## Punto Critico
+abline(v=t,col="red",lwd=5)
+legend(x = "topright", legend = c("Punto crítico 95%","Punto crítico 90%" , "t-estadístico"), fill = c("#FF5C5C", "#FF3333","#DD5959"), 
+       title = "Leyenda")
+abline(v=qt(0.1, n-1), col="#FF3333",lwd=5)
+```
+
+========================================================
+
+```{r, echo=FALSE,fig.width = 12,fig.height = 9,fig.align='center'}
+curve(dnorm(x, mean=media.muestral, sd=sd.muestral , log=F), from=-100000, to=450000, col="#DD5959", lwd=4, ylab="",xlab="", main="Gráfico de distribución normal con datos de la variable")
+abline(v=qnorm(0.05,media.muestral,sd.muestral),col="#FF5C5C",lwd=5)
+abline(v=qnorm(0.1,media.muestral,sd.muestral),col="#FF3333",lwd=5)
+abline(v=100000,col="#DD5959",lwd=5)
+legend(x = "topright", legend = c("Punto crítico 95%","Punto crítico 90%" , "Media propuesta"), fill = c("#FF5C5C", "#FF3333","#DD5959"), 
+       title = "Leyenda")
+```
+
+Análisis predictivo
+========================================================
+
+Regresión: Cantidad de vacunados y Nuevas muertes
+
+La variable 'Cantidad de vacunaciones' (nuevas_vacunaciones) representará a la variable dependiente "y" y la variable 'Cantidad de nuevas muertes' (nuevas_muertes) será la variable independiente "x" tanto a nivel mundial como de Perú.<br />
+
+Correlación entre las variables<br />
+*Mundo:* La correlación entre las variables es -0.6, la cual es negativa y moderada. Esto representa una relación proporcional directa o positiva.<br />
+*Perú:* La correlación entre las variables es -0.94, la cual es negativa y fuerte por su cercanía al -1. Esto representa un una relación proporcional inversa.<br />
+
+========================================================
+
+Coeficientes de regresión
+
+Aplicamos **summary** a la función de modelo lineal (lm) para obtener los coeficientes estimados de la regresión.
+
+*Mundo: *
+
+ßo = 6855801798 <br />
+ß1 = -3180 <br />
+$y(x) = ßo +ß1*x$ <br />
+$y(x) = 6855801798-3180x$ <br />
+
+*Perú: *
+
+ßo = 7027702.50 <br />
+ß1 = -301.42 <br />
+$y(x) = ßo +ß1*x$ <br />
+$y(x) = 7027702.50-301.42x$ <br />
+
+
+R cuadrado
+========================================================
+
+*Mundo:* El R-cuadrado resultó 0.35, el cual es bajo, que que sólo es capaz de explicar el 35.42% del comportamiento de la variable nuevas_muertes.<br />
+*Perú:* El R-cuadrado resultó 0.88, el cual es mayor a 0.7, lo cual indica un buen ajuste del modelo lineal que es capaz de explicar en un 88.21% la variabilidad de nuevas_muertes. <br />
+
+
+========================================================
+
+```{r, echo=FALSE,fig.width = 10,fig.height = 6,fig.align='center'}
+grafico1 = ggplot(STM1,aes(nuevas_vacunaciones,nuevas_muertes))
+grafico1 + geom_point(color="red", size=5)+ geom_smooth(method = "lm", formula = y ~ x,size=0.7, linetype=2, colour = "black") + xlab("Cantidad de nuevos vacunados") + ylab("Cantidad de nuevas muertes") + ggtitle("Mundo: Nuevas vacunaciones vs Nuevas muertes") + theme(plot.title = element_text(hjust = 0.5), title=element_text(size=20))
+```
+
+Se utilizó este modelo de regresión lineal debido a que se consideró que a medida que se incrementan la cantidad de personas vacunadas (X), la cantidad de muertes tienden a disminuir (Y). Esto se consideró debido a cuantas más personas inmunizadas la probabilidad de sobrellevar el covid-19 incrementaría. Finalmente se obtuvo una relación no tan fuerte.
+
+========================================================
+
+```{r, echo=FALSE,fig.width = 10,fig.height = 6,fig.align='center'}
+grafico1 = ggplot(VAC_PEN,aes(nuevas_vacunaciones,nuevas_muertes))
+grafico1 + geom_point(color="red", size=2)+ geom_smooth(method = "lm", formula = y ~ x,size=0.5, linetype=2, colour = "black") + xlab("Cantidad de nuevos vacunados") + ylab("Cantidad de nuevas muertes") + ggtitle("Perú: Nuevas vacunaciones vs Nuevas muertes") + theme(plot.title = element_text(hjust = 0.5), title=element_text(size=20))
+```
+
+Se utilizó también la regresión lineal para las mismas variables, pero a nivel nacional, esta relación es mucho más fuerte que la de nivel mundial, logrando mostrar que el incremento de las vacunaciones impacta en la cantidad de muertes. Además el p-valor del modelo es significativo (5.547e-05).
+
+Conclusiones
+========================================================
+
+* Todos los países se han visto afectados por el covid-19 y en la primera mitad del 2020 Perú estaba entre los más afectados.
+* A partir de regresiones y gráficos de dispersión entre variables numéricas pudimos observar patrones y tendencias que permiten obtener predicciones con cierto rango de error.
+*  En base a la data recopilada se puede comprobar que las campañas de vacunaciones y las normas de bioseguridad han aportado a reducir el número de contagios de covid-19 y en mayor medida han aportado a reducir el número de muertes.
+
+========================================================
+
+* En Perú la vacunación ha sido muy efectiva porque ha aportado mucho a la reducción de contagios cada vez más de manera significativa.  
+* Las vacunaciones tuvieron un impacto más fuerte a comparación de la variante delta en Perú porque el número de contagiados fue descendiendo constantemente aún después de su aparición.
