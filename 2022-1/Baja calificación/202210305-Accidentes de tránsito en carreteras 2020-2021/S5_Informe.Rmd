@@ -1,0 +1,483 @@
+---
+title: "S5-Informe"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, include=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(modeest)
+library(timevis)
+Datos=read_csv("Datos_P1(2).csv")
+```
+
+## 1.Introducción  
+
+
+Actualmente en todo lugar se ven una gran cantidad de accidentes de tránsito. Sin embargo, pese a tales acontecimientos, la población en general no presta el interés adecuado, mas bien siguen actuando inapropiadamente. Según la OMS, los accidentes de tránsito son la segunda de las principales causas de muerte a nivel mundial, con lo que se evidencia la necesidad de conocer mas sobre este tema.  
+
+
+### 1.1 Relevancia  
+
++ Este proyecto es relevante ya que analizando los datos podemos obtener información de interés como los tramos de carretera, las horas y los Departamentos donde ocurren más accidentes. Por mencionar solo algunos ejemplos.
+  
+### 1.2 Planificación:
+
+```{r,echo=FALSE}
+data <- data.frame(
+  id      = 1:14,
+  content = c("Plantear temas de proyecto",
+       "Entrega de la P0",
+       "Encontrar variables para el estudio",
+"Realizar la muestra del estudio",
+"Describir las variables de la muestra y patrones",
+"Empezar la P1",
+"Hacer correción de la P1 y describir comportamiento de las variables",
+"Identificar relaciones entre las variables descritas",
+"Plantear hipotesis sobre los comportamientos de las variables",
+"Hacer correcion de la P2 y comprobación de la hipotesis",
+"Hacer analisis de fiabilidad",
+"Validar la dependencia de las variables",
+"Hacer correcion de la P3 y entrega final",
+"Conclusiones finales en relación con los objetos planteados"),
+  start   = c("2022-04-01",
+        "2022-04-03",
+        "2022-04-07",
+        "2022-04-11",
+        "2022-04-16",
+        "2022-04-19",
+"2022-04-23",
+"2022-04-30",
+"2022-05-05",
+"2022-05-12",
+"2022-05-20",
+"2022-05-25",
+"2022-06-03",
+"2022-06-19"),
+  end     = c("2022-04-02",
+      "2022-04-06",
+      "2022-04-10",
+      "2022-04-15",
+      "2022-04-18",
+      "2022-04-22",
+"2022-04-29",
+"2022-05-04",
+"2022-05-11",
+"2022-05-19",
+"2022-05-24",
+"2022-06-02",
+"2022-06-18",
+"2022-06-26")
+)
+
+timevis(data)
+```
+
+## 2.Datos:  
+La base de datos abarca todos los accidentes en carreteras registrados desde enero del 2020 hasta septiembre del 2021.
+
+### 2.1 Proceso de recolección de datos:  
++ La base de datos fue obtenida de la pagina "Datos abiertos" del gobierno del Perú junto con un ".docs" explicando ciertos detalles como el número de accidentes donde no se logró registrar ciertas variables.  
+
+### 2.2 Población:  
+
++ Los accidentes en carreteras ocurridos a nivel nacional, entre enero del 2020 y septiembre del 2021.
+
++ Tamaño de la muestra:
+
+```{r,comment=""}
+nrow(Datos)
+```
+
+
+### 2.3 Unidad muestral:  
+
++ Un accidente en carretera ocurrido a nivel nacional, entre enero del 2020 y septiembre del 2021.  
+
+### 2.5 Variables:  
+
+Nombre | Tipo de variable| Restricción  
+-|-|-| 
+FECHA_CORTE | Categórica Ordinal | Entero positivo de 6 dígitos |
+FECHA | Categórica Ordinal | Entero positivo de 6 dígitos |
+HORA | Categórica Ordinal | Entero positivo de hasta dos decimales entre 0 y 24 |
+DEPARTAMENTO | Categórica Nominal | Departamentos de Perú |
+CODIGO_VÍA | Categórica Nominal | Código de identificación de cada vía |
+KILÓMETRO | Categórica Ordinal | Kilómetro de vía |
+MODALIDAD | Categórica Nominal | Solo tiene los valores "CHOQUE", "DESPISTE", "ATROPELLO", "VOLCADURA" y "ESPECIAL" |
+FALLECIDOS | Numérica Discreta | Número entero positivo |
+HERIDOS | Numérica Discreta | Número entero positivo
+
+
+### 2.6 Limpieza:  
+* Para la limpieza de datos debemos considerar:  
+  + La información sin sentido    
+  + Información irrelevante  
+  + Reclasificación de algunas variables  
+  + Discutir lo que se hará con los NA's y las observaciones incompletas  
+
+**Base de Datos**
+
+```{r, echo=F}
+Datos
+```
+1. Debido a que la variable "FECHA_CORTE" tiene el mismo valor para todas las observaciones y no tiene nada que ver con los accidentes de tránsito, ya que solo da a conocer la fecha cuando el informe del accidente se registró en el sistema, la consideramos irrelevante para el proyecto y la eliminamos.  
+```{r}
+Datos=Datos[,-1]
+```  
+2. Revisión de los tipos de variables según el rstudio. Para ello usaremos 'str'.
+```{r,comment=""}
+str(Datos)
+```
+Hay que señalar que para nuestra conveniencia cambiamos la variable "Hora" a numérica para facilitar su análisis.
+
+3. La variable "FECHA" esta como numérica, sin embargo es Categorica Ordinal. Además para su posterior uso necesitaremos que deje deje de ser numérica, entonces la pasaremos a caracter con 'as.charater'.
+```{r,comment=""}
+Datos$FECHA=as.character(Datos$FECHA)
+class(Datos$FECHA)
+```
+4. Optención de datos y casos incompletos:  
+ + Número de datos incompletos:    
+```{r,comment=""}
+sum(is.na(Datos))
+```
+ + Qué tal si hallamos el número de datos incompletos por columna:
+```{r,comment=""}
+colSums(is.na(Datos))
+```
+ + Número de observaciones incompletas:  
+```{r,comment=""}
+sum(!complete.cases(Datos))
+```
+5. Se encontró un total de 227 datos incompletos repartidos en las diferentes variables y 205 observaciones incompletas. Sin embargo, tomando en cuenta la naturaleza del proyecto, decidimos no eliminar ninguna observación.
+
+
+## 4.Análisis descriptivo:  
+
+### Variables:  
+
+#### FECHA:  
+
+Es un variable categórica ordinal que da a conocer la fecha de ocurrido el accidente.  
+
+```{r,echo=F}
+frec_fechas=as.data.frame(table(Datos$FECHA))
+names(frec_fechas)=c("FECHA","ACCIDENTES")
+frec_fechas$FECHA=as.character(frec_fechas$FECHA)
+frec_fechas$FECHA=as.Date(frec_fechas$FECHA, format="%Y%m%d")
+frec_fechas
+```
+
+```{r,echo=FALSE}
+moda <- function(x){
+  return(names(which.max(table(x))))
+}
+```
+
+```{r, echo=FALSE}
+Datos$FECHA=as.Date(Datos$FECHA, format="%Y%m%d")
+ggplot(Datos,aes(x=FECHA))+geom_bar()+xlab("Fechas")+ylab("Accidentes")
+
+```
+
+* MODA:
+
+```{r,echo=FALSE,comment=""}
+moda(Datos$FECHA)
+```
+
+* Fecha con mas accidentes registrados:  
+
+```{r,echo=FALSE,comment=""}
+frec_fechas[frec_fechas$FECHA=="2021-08-01",]
+```
+
+##### Análisis:  
+El número de accidentes ocurridos en cada fecha es muy disperso, y tiene sentido, los accidentes pueden ocurrir en cualquier momento. Sin embargo, vemos que a inicios del 2020 pasado unos meses, los accidentes registrados disminuyeron drásticamente, lo más seguro es que fue debió a la cuarentena que inició el marzo del 2020. Además hallando la moda de la variable **FECHA** se observa que la fecha donde se registraron más accidentes de transito fue en 01/08/2021 con 36 accidentes registrados. 
+
+#### HORA:  
+
+Variable categórica ordinal que da a conocer la hora de ocurrido el accidente.  
+ 
+```{r, echo=FALSE}
+boxplot(Datos$HORA, horizontal = T, main="Hora del accidente",xlab="Horas")
+abline(v=mean(Datos$HORA,na.rm=T), col="red", lwd=3)
+abline(v=median(Datos$HORA,na.rm=T), col="blue",lwd=3,lty=2)
+legend("topright",legend = c("Mediana","Media"),fill=c("blue","red"))
+```
+
+* MEDIA:  
+```{r,echo=FALSE,comment=""}
+mean(Datos$HORA, na.rm=T)
+```
+* MEDIANA:  
+```{r, echo=FALSE,comment=""}
+median(Datos$HORA, na.rm=T)
+```
+* RANGO:
+```{r,echo=FALSE,comment=""}
+range(Datos$HORA, na.rm=T)
+```
+* CUARTILES:  
+```{r,echo=FALSE,comment=""}
+quantile(Datos$HORA, na.rm=T)
+```
+
+
+
+```{r,echo=FALSE}
+ggplot(filter(Datos,is.na(Datos$HORA)==F),aes(x=HORA))+geom_histogram(colour="black",fill="white", breaks=seq(0,24,1))+ylab("Accidentes registrados")+ggtitle("Hora del accidente")
+```
+
+* Análisis: 
+
+Del histograma podríamos decir, que el rango de horas donde ocurren el mayor número de accidentes es bimodal, siendo estas entre las 6 y 7 a.m., y las 5 y 6 p.m.
+Esto concuerda con los valores de media y mediana que son muy próximos. 
+
+
+#### DEPARTAMENTO
+
+Variable categórica nominal que da a conocer el departamento donde ocurrió el accidente.
+
+```{r,echo=FALSE}
+ggplot(filter(Datos,is.na(Datos$DEPARTAMENTO)==F),aes(x=reorder(factor(DEPARTAMENTO),DEPARTAMENTO,function(x)length(x))))+ylim(0,1800)+geom_bar()+coord_flip()+geom_text(aes(label=..count..), stat="count",hjust=-0.1)+xlab("Departamentos")+ylab("Acidentes registrados")+ggtitle("Número de accidentes por departamento")
+```
+
+* Análisis:
+
+Como vemos en la gráfica, el departamento donde se registró más accidentes es Lima con 1558, seguido por Arequipa con 707 y Junin con 715.
+
+#### CÓDIGO_ViA:
+
+Variable categórica nominal que da a conocer la vía donde ocurriÓ el accidente.  
+
+```{r,echo=FALSE}
+frec_vias=table(Datos$CODIGO_VÍA)
+Vias=as.data.frame(frec_vias)
+names(Vias)=c("Vía","Accidentes")
+Vias
+```
+
+* Análisis:
+
+Por la cantidad de filas en la tabla, se deduce que hay 173 vías diferentes en la base de datos.
+
+**Las 10 vías con más accidentes:**
+
+```{r, echo=FALSE}
+Vias=arrange(Vias,-Accidentes)
+Vias[1:10,]
+```
+
+Ordenando la tabla obtenemos que la vía donde ocurrieron más accidentes fue la PE-1N con 1494 casos, seguida por la PE-1S con 1410 y la PE-3S con 652.
+
+
+#### KILÓMETRO:
+
+Variable categórica ordinal que da a conocer el kilómetro de la vía donde ocurrió el accidente.  
+
+```{r,echo=FALSE}
+datos_filtrados=filter(Datos, CODIGO_VÍA=="PE-1N"|CODIGO_VÍA=="PE-1S"|CODIGO_VÍA=="PE-3S"|CODIGO_VÍA=="PE-22"|CODIGO_VÍA=="PE-3N")
+boxplot(datos_filtrados$KILOMETRO~datos_filtrados$CODIGO_VÍA,xlab="Vías",ylab="Kilómetro",main="Kilómetro de la Vía")
+```
+
+* Cuartiles PE-1N:
+
+```{r,echo=FALSE,comment=""}
+quantile(Datos[Datos$CODIGO_VÍA=="PE-1N",]$KILOMETRO,na.rm=T)
+```
+
+* Cuartiles PE-1S:
+
+```{r,echo=FALSE,comment=""}
+quantile(Datos[Datos$CODIGO_VÍA=="PE-1S",]$KILOMETRO,na.rm=T)
+```
+
+* Cuartiles PE-22:
+
+```{r,echo=FALSE,comment=""}
+quantile(Datos[Datos$CODIGO_VÍA=="PE-22",]$KILOMETRO,na.rm=T)
+```
+
+* Cuartiles PE-3N:
+
+```{r,echo=FALSE,comment=""}
+quantile(Datos[Datos$CODIGO_VÍA=="PE-3N",]$KILOMETRO,na.rm=T)
+```
+
+* Cuartiles PE-3S:
+
+```{r, echo=FALSE,comment=""}
+quantile(Datos[Datos$CODIGO_VÍA=="PE-3S",]$KILOMETRO,na.rm=T)
+```
+
+* **Análisis:**  
+
+Analizando los kilómetros de las 5 vías donde ocurrieron más accidentes, podemos llegar a la conclusión de que el 50% de los accidentes en la vía PE-1N ocurrieron antes del kilómetro 275; de la vía PE-1S, antes del kilómetro 283; de la vía PE-22, antes del kilómetro 104; de la vía PE-3N, antes del kilómetro 100.5 y de la vía PE-3S, antes del kilómetro 771. También podemos notar que se muestran datos atípicos según el boxplot en las vías PE-22 y PE-3N. Investigando encontramos que la vía PE-22 no mide más de 174Km; por lo tanto, los datos atípicos deben deberse a un error en el registro. Sin embargo, la vía PE-3N mide 1957Km y los datos obtenidos están dentro del rango.
+
+#### MODALIDAD:  
+
+Variable categórica nominal que da a conocer las circunstancias del accidente. 
+
+```{r,echo=FALSE}
+ggplot(filter(Datos,is.na(Datos$MODALIDAD)==F),aes(x=reorder(factor(MODALIDAD),MODALIDAD,function(x)length(x))))+geom_bar()+coord_flip()+ylim(c(0,4100))+geom_text(aes(label=..count..), stat="count",hjust=-0.1)+xlab("Modalidad")+ylab("Accidentes")+ggtitle("Modalidad de los accidentes")
+```
+* Análisis:  
+
+Observando la gráfica obtenemos que la modalidad con mayor ocurrencia de accidentes es despieste con 3829, seguida por choque con 3623, atropello con 361, especial con 186 y volcadura con 128.
+
+#### HERIDOS:
+
+Variable numérica discreta que da a conocer el número de heridos en cada accidente.
+
+```{r,echo=FALSE}
+boxplot(Datos$HERIDOS,horizontal = T,xlab="Heridos",main="Gráfico de caja")
+abline(v=mean(Datos$HERIDOS,na.rm=T),col="red",lwd=3)
+abline(v=median(Datos$HERIDOS, na.rm = T),col="blue",lwd=3,lty=2)
+legend("topright",legend = c("Mediana","Media"),fill=c("blue","red"))
+```
+
+```{r,echo=FALSE}
+stripchart(Datos$HERIDOS,pch=19,col = rgb(0,0,0,0.1),xlab = "Heridos",main="Gráfico de puntos")
+abline(v=mean(Datos$HERIDOS,na.rm=T),col="red",lwd=3)
+abline(v=median(Datos$HERIDOS, na.rm = T),col="blue",lwd=3,lty=2)
+legend("topright",legend = c("Mediana","Media"),fill=c("blue","red"))
+```
+
+
+* Media: 
+
+```{r,echo=FALSE,comment=""}
+mean(Datos$HERIDOS, na.rm=T)
+```
+* Mediana:
+
+```{r,echo=FALSE,comment=""}
+median(Datos$HERIDOS, na.rm=T)
+```
+* Rango:
+
+```{r,echo=FALSE,comment=""}
+range(Datos$HERIDOS, na.rm=T)
+```
+
+* Suma:
+
+```{r,echo=FALSE,comment=""}
+sum(Datos$HERIDOS,na.rm = T)
+```
+
+* Cuartiles:  
+
+```{r,echo=FALSE,comment=""}
+quantile(Datos$HERIDOS, na.rm=T)
+```
+* Análisis:
+
+Del gráfico de caja, los cuartiles y el gráfico de puntos se puede deducir que en el 50% de los accidentes solo hubo entre 0 y 1 herido. No obstante, hubo un total de 10671 heridos en accidentes de tránsito en carreteras a nivel nacional. 
+Además se muestran datos considerados por el boxplot como atípicos; sin embargo, no los consideraremos como tal, no es imposible que en un accidente de tránsito halla una cantidad considerablemente grande de heridos.
+
+#### FALLECIDOS:
+
+Variable numérica discreta que da a conocer el número de fallecidos en cada accidente.
+```{r,echo=FALSE}
+boxplot(Datos$FALLECIDOS,horizontal = T,xlab="Fallecidos",main="Gráfico de caja")
+abline(v=mean(Datos$FALLECIDOS,na.rm=T),col="red",lwd=3)
+abline(v=median(Datos$FALLECIDOS, na.rm = T),col="blue",lwd=3,lty=2)
+legend("topright",legend = c("Mediana","Media"),fill=c("blue","red"))
+```
+
+```{r,echo=FALSE}
+stripchart(Datos$FALLECIDOS,pch=19,col = rgb(0,0,0,0.1),xlab = "Fallecidos",main="Gráfico de puntos")
+abline(v=mean(Datos$FALLECIDOS,na.rm=T),col="red",lwd=3)
+abline(v=median(Datos$FALLECIDOS, na.rm = T),col="blue",lwd=3,lty=2)
+legend("topright",legend = c("Mediana","Media"),fill=c("blue","red"))
+```
+
+* Media: 
+
+```{r,echo=FALSE,comment=""}
+mean(Datos$FALLECIDOS, na.rm=T)
+```
+* Mediana:
+
+```{r,echo=FALSE,comment=""}
+median(Datos$FALLECIDOS, na.rm=T)
+```
+
+* Rango:
+
+```{r,echo=FALSE,comment=""}
+range(Datos$FALLECIDOS, na.rm=T)
+```
+
+* Suma:
+
+```{r,echo=FALSE,comment=""}
+sum(Datos$FALLECIDOS, na.rm = T)
+```
+* Cuartiles:  
+
+```{r,echo=FALSE,comment=""}
+quantile(Datos$FALLECIDOS, na.rm=T)
+```
+* Análisis:
+
+Del gráfico de caja, los cuartiles y el gráfico de puntos se puede deducir que en el 75% de los accidentes no hubo ningún fallecido. No obstante, hubo un total de 1377 fallecidos en accidentes de carretera a nivel nacional. 
+Además se muestran datos considerados por el boxplot como atípicos; sin embargo, no los consideraremos como tal, no es imposible que en un accidente de tránsito halla una cantidad considerablemente grande de fallecidos
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

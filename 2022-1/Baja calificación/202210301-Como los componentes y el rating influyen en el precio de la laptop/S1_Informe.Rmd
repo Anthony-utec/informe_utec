@@ -1,0 +1,584 @@
+---
+title: "S1_Informe"
+output:
+  html_document: default
+  pdf_document: default
+date: '2022-05-05'
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+# Aplicamos una lógica para instalar paquetes en caso de no estar instalado
+lista.paquetes <- c("readr", "dplyr", "ggplot2","modeest") 
+nuevos.paquetes <- lista.paquetes[!(lista.paquetes %in% installed.packages()[,"Package"])] 
+if(length(nuevos.paquetes)) install.packages(nuevos.paquetes) # instala si no está instalado
+library(readr)
+library(dplyr)
+library(modeest)
+library(ggplot2)
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+datos <- read.csv("Datos.csv", header = TRUE, sep = ";", dec = ".", fill = FALSE, encoding = "unknown")
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+View(datos)
+
+r <- function(x){
+  return(round(x, digits = 2))
+}
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+datos$Precio.Actual<-NULL
+datos$Descuento<-NULL
+datos$Calificación<-NULL
+datos$Visualizaciones<-NULL
+
+datos$Marca[datos$Marca %in% c("")]<- c(NA)
+datos$Modelo[datos$Modelo %in% c("")]<- c(NA)
+datos$Generación.Procesador[datos$Generación.Procesador %in% c("")] <- c(NA)
+datos$Procesador..Marca.[datos$Procesador..Marca. %in% c("")]<- c(NA)
+datos$Ram_gb[datos$Ram_gb %in% c("")]<- c(NA)
+datos$HDD[datos$HDD %in% c("")]<- c(NA)
+datos$os_bit[datos$os_bit %in% c("")]<- c(NA)
+datos$os[datos$os %in% c("")]<- c(NA)
+datos$Tarjeta_Grafica_Gb[datos$Tarjeta_Grafica_Gb %in% c("")]<- c(NA)
+datos$Peso[datos$Peso %in% c("")]<- c(NA)
+datos$Garantía..Años.[datos$Garantía..Años. %in% c("")]<- c(NA)
+datos$Pantalla.Táctil[datos$Pantalla.Táctil %in% c("")]<- c(NA)
+datos$Tipo_Ram[datos$Tipo_Ram %in% c("")]<- c(NA)
+datos$msoffice[datos$msoffice %in% c("")]<- c(NA)
+datos$Precio.Anterior[datos$Precio.Anterior %in% c("")]<- c(NA)
+datos$Puntuación..Estrellas.[datos$Puntuación..Estrellas. %in% c("")]<- c(NA)
+
+# Eliminamos los datos con errores en el CSV, tales como valores que por definición las variables no puedan tener 
+datos$Nombre.Procesador[datos$Nombre.Procesador %in% c("5")] <- c(NA)
+datos$Nombre.Procesador[datos$Nombre.Procesador %in% c("i5")] <- c("Core i5")
+datos$Nombre.Procesador[datos$Nombre.Procesador %in% c("Core")] <- c(NA)
+datos$Nombre.Procesador[datos$Nombre.Procesador %in% c("")] <- c(NA)
+datos$Nombre.Procesador[datos$Nombre.Procesador %in% c("i7")] <- c("Core i7")
+
+datos$Generación.Procesador[datos$Generación.Procesador %in% c("Missing")] <- c(NA)
+datos$Generación.Procesador[datos$Generación.Procesador %in% c("")] <- c(NA)
+
+datos$Tipo_Ram[datos$Tipo_Ram %in% c("i5")]<- c(NA)
+datos$Tipo_Ram[datos$Tipo_Ram %in% c("")]<- c(NA)
+
+datos$Ram_gb[datos$Ram_gb %in% c("5")]<- c(NA)
+
+datos$SSD[datos$SSD %in% c("")]<- c(NA)
+datos$SSD[datos$SSD %in% c("32")]<- c(NA)
+
+datos$os[datos$os %in% c("Missing")] <- c(NA)
+
+datos$Tamaño_Pantalla[datos$Tamaño_Pantalla %in% c("0")]<- c(NA)
+datos$Tamaño_Pantalla[datos$Tamaño_Pantalla %in% c("")]<- c(NA)
+
+datos$Precio.Anterior[datos$Precio.Anterior %in% c("0")]<- c(NA)
+```
+
+
+------------------------------------------------------------------------
+
+# [Introducción]{style="color:lightblue"} {.build}
+
+## [**Relevancia:**]{style="color:lightblue"} {.build}
+
+-   [Al comprar una laptop es importante tener en cuenta las
+    especificaciones de esta(hardware , software), precio y marca.Con
+    este estudio deseamos comprobar qué aspectos y factores determinan
+    su elección y futura valoración del producto por el
+    consumidor.]{style="color:gray16"}
+
+------------------------------------------------------------------------
+
+-   [Planificación:]{style="color:gray16"}
+
+```{r}
+data <- data.frame(name = c('Renato', 'Ana', 'Geronimo'), 
+start = c(10, 12, 15),
+end = c(20, 22, 23),
+Tiempo = c('10-20 junio', '12-22 junio', '15-23 junio')
+)
+```
+
+```{r}
+if(!require(ggplot2)){install.packages('ggplot2')}
+library(ggplot2)
+```
+
+```{r}
+
+
+ggplot(data, aes(x=start, xend=end, y=name, yend=name, color=Tiempo )) + 
+  theme_bw()+ 
+   geom_segment(size=8) + 
+   labs (title = "DIAGRAMA DE GANTT", x = 'Junio', y = 'Integrantes')
+
+```
+
+------------------------------------------------------------------------
+
+# [**Datos**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> **Recolección de datos**:<span>
+    -   <span style="color:gray16" size="10"> Ingresamos a la página
+        kaggle y elegimos esta base de datos. El autor consiguió esta
+        data de flipkart.com usando una extensión de chrome llamada
+        instant data scrapper. Asumimos que la data es una muestra
+        tomada por el autor <span>
+-   <span style="color:gray16"> **Población, muestra y muestreo**:<span>
+    -   <span style="color:gray16" size="10"> Población <span>
+        -   <span style="color:gray16" size="10"> Población de estudio:
+            Laptops que flipkart.com ofrecía en marzo del 2022 <span>
+        -   <span style="color:gray16" size="10"> Unidad muestral:
+            Modelo de Laptop con su respectiva marca <span>
+
+------------------------------------------------------------------------
+
+-   <span style="color:gray16" size="10"> Muestra <span>
+    -   <span style="color:gray16" size="10"> Unidad muestral: El tamaño
+        de la muestra es de 896 y asumimos que es representativa pues no
+        conocemos ni la población ni el proceso que siguió en autor.
+        <span>
+-   <span style="color:gray16" size="10"> Muestreo <span>
+    -   <span style="color:gray16" size="10"> Asumimos que el muestreo
+        elegido por el autor es el muestreo aleatorio simple. Este
+        muestreo se basa en seleccionar al azar los elementos de la
+        población que participan en la muestra. <span>
+
+------------------------------------------------------------------------
+
+-   <span style="color:gray16"> **Variables**:<span>
+    -   <span style="color:gray16" size="10"> Marca de Laptop:
+        Categórica nominal <span>
+    -   <span style="color:gray16" size="10"> Modelo de Laptop:
+        Categórica nominal <span>
+    -   <span style="color:gray16" size="10"> Marca del procesador:
+        Categórica nominal (Intel, AMD, QUALCOMM,Apple) <span>
+    -   <span style="color:gray16" size="10"> Nombre del
+        procesador:Categórica nominal (Core(3,5,7,9),
+        Ryzen(3,5,7,9),M1(1),Pentium) <span>
+    -   <span style="color:gray16" size="10"> Generación
+        Procesador:Categórica Ordinal (1 th, 7 th, 8 th,9 th,10 th,11th)
+        <span>
+    -   <span style="color:gray16" size="10"> gb de Ram: Numérico
+        discreta(4,8,5,16,32) <span>
+    -   <span style="color:gray16" size="10"> Tipo de Ram:Categórica
+        nominal (DDR4, DDR5, LPDDR 4X, LPDDR4, LPDDR3, DDR3) <span>
+
+------------------------------------------------------------------------
+
+-   <span style="color:gray16"> **Variables**:<span>
+    -   <span style="color:gray16" size="10"> Almacenamiento
+        SSD:Categórica Ordinal(256 gb,512 gb,1024 gb ,3072 gb) <span>
+    -   <span style="color:gray16" size="10"> Almacenamiento
+        HDD:Categórica nominal(512 gb, 1024 gb, 2048 gb) <span>
+    -   <span style="color:gray16" size="10"> Bits del sistema
+        operativo: categórica ordinal (números únicamente 32 bits y 64
+        bits) <span>
+    -   <span style="color:gray16" size="10"> gb de la tarjeta gráfica:
+        categórica ordinal (número entero de 0 a 8) <span>
+    -   <span style="color:gray16" size="10"> Peso: categórica nominal
+        (thinNlight, casual, heavy(gaming)) <span>
+    -   <span style="color:gray16" size="10"> Tamaño de pantalla:
+        categórica ordinal (decimal no negativo) <span>
+    -   <span style="color:gray16" size="10"> Años de garantía:
+        categórica ordinal (número entero del 1 al 3) <span>
+    -   <span style="color:gray16" size="10"> Pantalla tactil:
+        Categórica nominal (Opción: sí o no) <span>
+    -   <span style="color:gray16" size="10"> Instalación de msoffice:
+        categórica nominal. (Opción: sí o no) <span>
+    -   <span style="color:gray16" size="10"> Precio actual: numérica
+        continua (entero positivo) <span>
+    -   <span style="color:gray16" size="10"> Precio anterior: numérica
+        continua (entero positivo) <span>
+    -   <span style="color:gray16" size="10"> Descuento: numérica
+        discreta (número entero del 0 al 100) <span>
+    -   <span style="color:gray16" size="10"> Puntuación en estrellas:
+        categórica ordinal (numero positivo del 0 - 5) <span>
+
+------------------------------------------------------------------------
+
+-   <span style="color:gray16"> **Limpieza de base de datos**:<span>
+    -   <span style="color:gray16" size="10"> Empezamos eliminando las
+        variables que no son pertinentes en nuestro estudio, estas son
+        precio actual, descuento, calificación y visualizaciones. <span>
+    -   <span style="color:gray16" size="10"> Luego, cada elemento vacío
+        en el data frame lo reemplazamos con un NA. Para esto buscamos
+        un vacío en cada columna y hacemos que el programa haga el
+        cambio <span>
+    -   <span style="color:gray16" size="10"> Seguido de esto,
+        eliminamos los datos con errores en el CSV, tales como valores
+        que por definición las variables no puedan tener. En la variable
+        nombre del procesador hemos reemplazado los 5 con NA pues este
+        es un error de escritura. Además, luego de una investigación,
+        concluimos que los i5 equivalen a Core i5 entonces por temas de
+        facilidad al manipular los datos, hemos decidido reemplazar el
+        i5 por Core i5, de la misma manera para i7 y Core i7. <span>
+    -   <span style="color:gray16" size="10"> Además en la variable
+        Tipo_Ram hemos colocado el i5 como NA pues es un valor que no
+        corresponde a la variable. También en SSD encontramos un 32, el
+        cual tampoco corresponde a esta variable. Por último en la
+        variable tamaño de la pantalla hemos concluido que el 0 se debe
+        tratar de un error de escritura por ello lo reemplazamos por NA
+        <span>
+
+------------------------------------------------------------------------
+
+# [**Análisis Descriptivo**]{style="color:lightblue"} {.build}
+
+## [**Marca**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable marca vamos a hacer una
+    gráfica de puntos en donde la comparamos con la variable precio.
+    Esto nos va a permitir observar a la marca como un factor que altera
+    el precio del producto y definir cuales son las marcas más caras.
+    <span> \## [**Modelo**]{style="color:lightblue"}{.build}
+-   <span style="color:gray16"> Para la variable modelo vamos a hacer
+    uso de la moda. Esto nos permitirá ver con qué modelo de laptop
+    estamos trabajando más y si esta recurrencia afecta al precio.
+    <span>
+
+------------------------------------------------------------------------
+
+## [**Marca del procesador**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable marca del procesador
+    vamos a hacer una gráfica de caja por niveles en donde la comparamos
+    con la variable precio. Esto nos va a permitir observar el rango de
+    precios que tiene cada marca de procesador. <span>
+
+------------------------------------------------------------------------
+
+## [**Nombre del procesador**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para esta variable efectuamos un boxplot
+    donde compararemos como cada uno de los tipos de procesadores
+    influyen en el precio final de la laptop. <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+boxplot(datos$Precio.Anterior~datos$Nombre.Procesador,las=2,main="Precio de las laptops en comparación de sus procesadores",xlab="",ylab = "Precio de la laptop",col=palette(rainbow(7)))
+
+```
+
+Conclusiones:
+
+Podemos observar que la marca Force RTX y M1 MAX corresponden a las
+laptops con los precios más altos del mercado. Aunque cabe mencionar los
+datos atípicos de Ryzen 9, Core i5 y Celeron Dual también corresponden a
+altos precios. Podríamos conjeturar que estos datos atípicos se deben a
+que son laptops de una gama alta y que deben tener otras características
+que elevan su precio.
+
+------------------------------------------------------------------------
+
+## [**Generación del procesador**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Con esta variable efectuamos un gráfico
+    donde comparamos las diferentes generaciones de los procesadores y
+    como estos satisfacen las necesidades del consumidor , lo que
+    llevará a una mayor o menor puntuación de estos <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+boxplot(datos$Puntuación..Estrellas.~datos$Generación.Procesador,main="Gráfico sobre la puntuación de acuerdo a la generación de cada procesador",xlab = "Generación del procesador",ylab = "Puntuación(1-5) ",col=palette(rainbow(6)))
+```
+
+Conclusiones:
+
+Analizando el gráfico rescatamos que las laptops con un procesador de
+novena generación tienen solo puntuaciones altas (4-5 estrellas), en
+cambio las laptops que poseen un procesador de cuarta generación tienen
+puntuaciones muy bajas. Podríamos deducir que por las malas críticas,
+estas laptops tengan un precio menor pues no son tan atractivas para el
+mercado.
+
+------------------------------------------------------------------------
+
+## [**Ram.gb**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Con esta variable realizamos un
+    histograma para ver la preferencia o "frecuencia" con la que los
+    consumidores adquieren laptops de 4,8,16 y 32 GB <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+hist(datos$Ram_gb,main ="Preferencia de RAM por los consumidores ",xlab = "GB de RAM",ylab ="Frecuencia",col="lightcyan" )
+```
+
+Podemos concluir que los consumidores compran con mayor frecuencia los
+RAM con 8 GB y con menor frecuencia los de 32 GB. Podríamos suponer que,
+además de tener una capacidad mayor, los RAM de 32 GB al ser consumidos
+en menor medida su precio sea mayor.
+
+------------------------------------------------------------------------
+
+## [**Tipo Ram**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para esta variable vamos a analizar qué
+    tanto influye el tipo de Ram respecto al precio de una laptop, en la
+    cual vamos a hacer un diagrama de Boxplot para analizar ambas
+    variables. <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+boxplot(datos$Precio.Anterior~datos$Tipo_Ram, las=2, col=c("blue", "green", "yellow", "red", "pink", "brown", "black"), main="Gráfica de Tipos de Ram", xlab="Tipo de Ram", ylab ="Precio de laptop")
+```
+
+Conclusiones:
+
+Como podemos observar, el tipo Full y el DDR5 pertenecen a las laptops
+más costosas. Sin embargo, estos pueden ser debido a que dicha laptop es
+de gama alta ya que la mayoría de datos que obtenemos de dichos tipos de
+Ram están concentrados más abajo.
+
+------------------------------------------------------------------------
+
+## [**SSD**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para esta variable vamos a analizar qué
+    tanto influye en el precio de una laptop, el tener una unidad de
+    estado sólido (SSD), la cuál ayuda a almacenar datos en una memoria
+    no volátil, y presenta una unidad de memoria en Gb. <span>
+
+```{r  eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+boxplot(datos$Precio.Anterior~datos$SSD, las=2, col=c("blue", "green", "yellow", "red", "pink", "brown", "black"), main="Gráfica de SSD", xlab="Almacenamiento del SSD en GB", ylab ="Precio de laptop")
+```
+
+Conclusiones:
+
+Podemos observar que una laptop con tarjeta SSD de 1024 ofrece precios
+más altos que el resto de tipos de tarjetas y que los datos están más
+dispersos que en el resto de tipos de SSD.
+
+------------------------------------------------------------------------
+
+## [**HDD**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para esta variable vamos a analizar qué
+    tanto influye en el precio de una laptop, el tener una unidad de
+    disco duro (HDD), la cuál ayuda a almacenar y recuperar archivos
+    digitales, y presenta una unidad de memoria en Gb. <span>
+
+```{r  eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+boxplot(datos$Precio.Anterior~datos$HDD, las=2, col=c("blue", "green", "yellow", "red", "pink", "brown", "black"), main="Gráfica de HDD", xlab="Almacenamiento del HDD en GB", ylab ="Precio de laptop")
+```
+
+Conclusiones:
+
+Si bien la tarjeta HDD con 1024GB, en comparación a la tarjeta de 512GB,
+tiene precios más altos, es importante reconocer que hay una mayor
+cantidad de laptops sin HDD que tienen precios mucho más altos que las
+que poseen la tarjeta HDD de 1024 GB.
+
+------------------------------------------------------------------------
+
+## [**OS**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable OS usaremos la moda que
+    nos permita saber la preferencia de sistema operativo, para poder
+    ver si esto afecta o no al os_bit o a la Tarjeta Grafica GB <span>
+
+    ```{r}
+    mlv(datos$os,na.rm=TRUE)
+    ```
+
+Conclusiones:
+
+Con la ayuda de nuestra data frame, observamos que para el os "Mac" no
+se registra una tarjeta gráfica además que su os son únicamente de 64
+bits. En cambio en Windows hay una variedad en estos parámetros, lo cual
+hace que varié el precio y en algunos casos sea más accesible.
+
+## [**OS_BIT**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable OS_BIT analizaremos qué
+    tanto influye en la TARJETA GRAFICA GB respecto a la cantidad máxima
+    de GB que puede tolerar. <span>
+
+## [**TARJETA GRAFICA GB**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> En el caso de esta variable analizaremos
+    la influencia del OS_BIT y del OS, en el cual la tarjeta gráfica
+    limita la cantidad de GB de video que posee. <span>
+
+------------------------------------------------------------------------
+
+## [**Peso:**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable peso vamos a hacer una
+    gráfica de caja por niveles en donde la comparamos con la variable
+    precio. Esto nos va a permitir observar el rango de precios que
+    tiene cada tipo de peso en específico. <span>
+
+## [**Tamaño de pantalla**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable tamaño de pantalla
+    vamos a hacer una gráfica de caja por niveles en donde la comparamos
+    con la variable precio. Esto nos va a permitir observar el rango de
+    precios que tienen las laptops con cierto tamaño de pantalla. <span>
+
+## [**Garantía en años**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable Garantía vamos a hacer
+    una gráfica de caja por niveles en donde la comparamos con la
+    variable precio. Esto nos va a permitir observar el rango de precios
+    que tienen las laptops con cada tipo de garantía. <span>
+
+------------------------------------------------------------------------
+
+## [**Pantalla táctil**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable Pantalla táctil vamos a
+    hacer una gráfica de caja por niveles en donde la comparamos con la
+    variable precio. Esto nos va a permitir observar el rango de precios
+    que tienen las computadoras con pantalla táctil tienen mayor o menor
+    rango en comparación a las que no tienen. <span>
+
+## [**Ms office**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Para la variable Ms office vamos a hacer
+    una gráfica de caja por niveles en donde la comparamos con la
+    variable precio. Esto nos va a permitir observar el rango de precios
+    que tienen las computadoras con ms office preinstalado tienen mayor
+    o menor rango en comparación a las que no tienen ms office
+    preinstalado. <span>
+
+## [**Precio anterior**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Esta variable ya ha sido comparada
+    anteriormente con el resto de variables pues de esa forma cumplimos
+    el propósito de nuestro estudio. <span>
+
+## [**Puntuación estrellas**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Esta variable ya ha sido comparada
+    anteriormente con el resto de variables pues de esa forma cumplimos
+    el propósito de nuestro estudio. <span>
+
+# [**VAD msoffice**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> Esta variable tiene 896 respuestas
+    válidas, una independiente de otra y tienen la misma probabilidad de
+    ser seleccionadas.
+
+Al considerarse que es una distribución binomial con parámetros n y P,
+el éxito será la probabilidad de que una laptop tenga ms office
+preinstalado con valor P, y fracaso que la laptop no tenga ms office
+preinstalado, con valor 1-P, y n la cantidad total de observaciones
+válidas, y n la cantidad total de observaciones válidas. <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+#exito
+P <- nrow(filter(datos,datos$msoffice=="Yes"))/nrow(datos)
+P
+#numero total de observaciones válidas
+n <- nrow(datos)
+x <- 0:nrow(datos)
+#media y varianza
+m1 <- n*P
+m1
+v1 <- n*P*(1-P)
+v1
+plot(x,pbinom(x,n,P)*100, type= 'h', main = "Distribucion Binomial msoffice", xlab = "Cantidad de estudiantes", ylab = "Porcentaje", col="blue")
+lines(x,dbinom(x,n,P)*100,col="red",type = "p")
+legend("topleft",c("Funcion distribucion","Funcion acumulativa"),fill=c("red","blue"))
+```
+
+# [**Variable Aleatoria Continua Tamaño de Pantalla**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> En la data obtenida tenemos 895
+    observaciones para el tamaño de pantalla de las laptops, una
+    independiente de otra y de las cuales consideramos que tuvieron la
+    misma probabilidad de ser seleccionadas por el consumidor.
+
+Tamaños de pantalla presentes:<span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+unique(datos$Tamaño_Pantalla)
+```
+
+-   <span style="color:gray16"> Para el análisis de esta variable
+    tomamos un rango aleatorio de 400 observaciones, definiendo la
+    respectiva media y desviación estándar <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+display_sd<-sd(datos$Tamaño_Pantalla,na.rm=T)
+display_mean<-mean(datos$Tamaño_Pantalla,na.rm=T)
+unique(datos$Tamaño_Pantalla)
+print(display_sd)
+print(display_mean)
+```
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+x<-rnorm(400,display_mean,display_sd);
+hist(x,freq = F,xlab = "Tamaño de Pantalla")
+points(x,dnorm(x,display_mean,display_sd),col="red")
+legend("topleft",c("Funcion distribucion","Funcion acumulativa"),fill=c("red","gray"))
+```
+
+-   <span style="color:gray16"> De acuerdo al gráfico podemos ver que la
+    mayor cantidad de pantallas se encuentran con un tamaño entre 13 y
+    16 pulgadas. <span>
+
+# [**Variable aleatoria Discreta Marca**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> En la data obtenida tenemos 895
+    observaciones, una independiente de otra y de las cuales
+    consideramos que tuvieron la misma probabilidad de ser seleccionadas
+    por el consumidor. <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+all_brand<-unique(datos$Marca)
+print(all_brand)
+```
+
+-   <span style="color:gray16"> Consideramos que es una distribución
+    binomial con parámetros n y P. Para este análisis tomamos la marca
+    ASUS, la cual está presente en mayor número, es decir el éxito
+    estaría definido por la probabilidad de que un consumidor haya
+    comprado un laptop de marca DELL con valor P, y el fracaso estaría
+    definido por cualquier otra marca que haya sido adquirida con valor
+    1-P. <span>
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+# numero de laptop de marca ASUS
+x=254 
+n <- nrow(datos)
+P <- x/nrow(datos)
+print(P)
+x <- 0:nrow(datos)
+
+```
+
+```{r echo=FALSE}
+plot(x,pbinom(x,n,P)*100, type= 'h', main = "Distribucion Binomial Marca", xlab = "Cantidad de laptos", ylab = "Porcentaje", col="blue")
+lines(x,dbinom(x,n,P)*100,col="red",type = "p")
+legend("topleft",c("Funcion distribucion","Funcion acumulativa"),fill=c("red","blue"))
+
+```
+
+-   <span style="color:gray16"> Podemos observar que la probabilidad
+    acumulada de encontrar laptops de marca ASUS tiene un comportamiento
+    exponencial, cuanto más cerca nos encontramos del número total de
+    laptops de marca ASUS <span>
+
+
+# [**VAD Gb de Ram**]{style="color:lightblue"} {.build}
+
+-   <span style="color:gray16"> La variable "Gb de Ram" esta recuperada
+    de la base de datos Kaggle, donde los datos son indenpendientes y
+    tienen la misma propabilidad de ser escogidos. <span>
+
+-   <span style="color:gray16"> CRITERIO PARA EL ANALISIS
+    PROBABILISTICO: Se considero a la variable como una distribución de
+    Poisson. En donde el éxitos es la persona que decidio comprar un ram
+    mayor o igual a 8 Gb de ram y el fracaso a la persona que compro una
+    ram menor a 8 Gb.Hallamos $$ \lambda $$<span>
+
+$$E[X]= m_1 = \sum_{x=0}^{\infty}x^{1}f(x)= \sum_{x=0}^{\infty}x \cdot e^{- \lambda} \cdot \frac{\lambda^{x}}{x!} = \lambda $$
+$$E[X^2]= m_2 = \sum_{x=0}^{\infty}x^{2} \cdot e^{- \lambda} \cdot \frac{\lambda^{x}}{x!} = \lambda^2+\lambda $$
+$$Var[X]= E[X^2] - (E[X])^2 = (\lambda^2+\lambda) - (\lambda) = \lambda $$
+$$Var[X]=  \lambda $$
