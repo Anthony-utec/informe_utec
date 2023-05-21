@@ -1,0 +1,697 @@
+---
+title: "Informe P2 S2"
+output:
+  html_document:
+    df_print: paged
+---
+# Análisis de accidentes vehiculares por región del Perú entre los años 2020 y 2021
+ 
+
+
+# 1. Introducción
+
+
+## Relevancia
+
+<div align="justify">
+
+En Lima diariamente se suele escuchar noticias acerca de accidentes de tránsito. Sin embargo, no se escuchan en similar magnitud acerca de los accidentes de tránsito ocurridos en las diferentes regiones del interior del país. Por ello, es importante realizar una investigación detallada acerca de este tema, enfocándose en los primeros semestres de los años 2020 y 2021 para de esta forma realizar una comparación acerca de los accidentes ocurridos tanto en Lima como en las diferentes provincias del país según su región correspondiente.
+
+</div>
+
+## Objetivos del proyecto
+
+- _Visualizar_ los comportamientos de las variables a través de gráficos.
+- _Observar_ las posibles relaciones entre las variables de la base de datos. 
+- _Comparar_ el número de accidentes entre los períodos mencionados.
+- _Analizar_ los tipos de accidentes ocurridos según región.
+
+
+## Planificación
+
+A continuación se adjunta un diagrama de Gantt para mostrar la planificación y las tareas pertinentes para llevar a cabo el proyecto del curso:
+
+
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(ggthemes)
+A<-"Alexander David Caldas Machaca"
+C<-"Camilo Marcelo Velásquez Villar"
+E<-"Elian Manuel Nevado Capcha "
+JC<-"Jean Carlos Colmenares Vera Portocarrero"
+J<-"José Luis Álvarez Ccopa"
+M<-"Myriam Alicia Chambi Mamani"
+#PO
+A1<-"Selección del Líder,Selección de los posibles temas"
+A2<-"Recolección de data de los posibles temas, Elaboración del informe "
+A3<-"Entrega del informe"
+#P1
+a1<-"Obtención de la base de Datos"
+a2<-"Armar los slides"
+a3<-"Realizacion de los gráficos"
+a4<-"Organizar los datos"
+a5<-"Limpieza de datos"
+a6<-"Arreglo del formato"
+a7<-"Realización de los descriptores"
+a8<- "Corrección"
+a9<-"Desarrolo del Análisis probabilístico"
+
+data <- data.frame(
+Nombres = c("Todos","Todos",J,E,JC,"Todos",C,JC,E,J,M,A,C,JC,C,E,A,M,JC,C,E,M,A,J),
+  ACTIVIDADES = c(A1,A2,A3,a1,a1,a2,a3,a3,a4,a4,a4,a5,a5,a6,a6,a7,a7,a7,a8,a8,a8,a8,a9,a9),
+  Inicio = c(1,2,2,3,3,6,6,6,5,5,5,4,4,5,5,6,6,6,10,10,10,10,12,12),
+ Fin = c(2,3,3,4,4,7,7,7,6,6,6,5,5,6,6,7,7,7,13,13,13,13,14,14 )
+)
+
+ggplot(data, aes(x=Inicio, xend=Fin, y=Nombres, yend=Nombres, color=ACTIVIDADES)) + 
+  theme_bw(base_size =7)+ 
+  geom_segment(size=10)+
+  labs(title = "TRAYECTORIA DEL PROYECTO", x="TIEMPO (SEMANAS)", y="PERSONAL A CARGO")
+```
+
+# 2. Datos
+
+
+## Recolección de datos
+
+<div align="justify">
+Lo primero que hicimos fue buscar una plataforma en la cual se consigan bases de datos públicas. En este proceso uno de nuestros compañeros pudo encontrar la página web de la Plataforma Nacional de Datos Abiertos (PNDA)[^1] en la cual se logró encontrar diversas bases de datos y todas estas se encontraban categorizadas por temas, luego de ello decidimos elegir un tema específico que se considere relevante para la ejecución de nuestro proyecto. Las condiciones que se consideraron para la elección de la data fueron: publicación reciente, cantidad considerable de variables, fuente confiable, suficiente cantidad de muestras, entre otras. Finalmente, se eligió al tema de reportes preliminares de accidentes el cual logra cumplir todas las condiciones que se han mencionado anteriormente.
+
+[^1]: Plataforma Nacional de Datos Abiertos (2021). [Enlace](https://www.datosabiertos.gob.pe/dataset/reportes-preliminares-de-accidentes-centro-de-gesti%C3%B3n-y-monitoreo)
+
+</div>
+
+## Población, muestra y muestreo
+
+La __población__ de estudio incluiría a todos los accidentes automovilísticos ocurridos en el Perú entre los años 2020 y 2021. La __muestra__ del estudio sería los accidentes reportados en las diferentes provincias del Perú en los periodos anteriormente mencionados, por esta razón la unidad muestral sería un accidente registrado por día. En cuanto al tamaño de la muestra, al ser una base de datos pública, contamos 3833 obserrvaciones en total. Existe un porcentaje de __representatividad__, pero hay cierta cantidad de sesgos en algunas de las regiones analizadas. 
+
+El __muestreo__ fue por conveniencia ya que solamente se incluyeron en la tabla de datos los accidentes que fueron reportados.
+
+
+## Variables
+
+Las variables de estudio son 11 y se adjuntan a continuación:
+
+|Nombre                  | Tipo               | Restricciones                                                                      |
+|-------------           | -------------      | --------------                                                                    |
+|Fecha_Accidente          | Categórica ordinal | Debe estar entre los años 2020 y 2021 y el formato debe ser AAAAMMDD              |
+|Año                     | Categórica ordinal | Debe tomar dos valores: 2020 o 2021                                               |
+|Mes                     |Categórica nominal   | Debe tomar los valores desde Enero hasta Junio                                     |
+|Hora_Accidente          | Categórica nominal    | Debe tomar un valor entre 0:00:00 y 23:59:59                                      |
+|Modalidad_Accidente      | Categórica nominal   | Debe tomar los valores Despiste, Choque, Especial, Incendio, Atropello o Volcadura|
+|Cantidad_Fallecidos     | Numérica discreta | Debe ser un número natural |
+|Cantidad_Heridos        | Numérica discreta           | Debe ser un número natural|
+|Región_Natural          | Categórica ordinal | Debe tomar los nombres de las tres regiones del país |
+|Departamento            | Categórica nominal | Debe tomar los nombres de los departamentos|
+|Provincia | Categórica ordinal | Debe tomar los nombres de las provincias según departamento |
+|Distrito | Categórica ordinal | Debe tomar los nombres de los distritos según provincia |
+
+
+
+### Limpieza de la base de datos
+
+
+La limpieza de datos se hizo, por un lado, una modificación de la variable _Fecha_ en Excel y en R para quitar otras variables que no son pertinentes, en las que se incluyen:
+
+- _Fecha del reporte_
+- _Número del reporte_
+- _Latitud_
+- _Longitud_
+- _Código de la vía_
+- _Kilómetro de la vía donde ocurrió_
+
+```{r, message=FALSE}
+#LIBRERÍAS
+library(readr)
+library(dplyr)
+
+```
+
+```{r,include=FALSE}
+#Lectura del archivo
+
+DF<- read.csv2("Data_final.csv",encoding = "UTF-8")
+DF
+
+```
+
+```{r}
+#Limpieza de datos
+
+Auxilio<-DF
+Auxilio$X.U.FEFF.FECHA_CORTE<-NULL
+Auxilio$FECHA_CORTE<-NULL
+Auxilio$NRO_REPORTE<-NULL
+Auxilio$LATITUD<-NULL
+Auxilio$LONGITUD<-NULL
+Auxilio$PROGRESIVA<-NULL
+Auxilio$CODIGO_VIA<-NULL
+
+DF<-Auxilio
+DF
+
+```
+
+---
+
+## 3. Análisis descriptivo
+
+### Descriptores numéricos
+
+#### Variable Fallecidos
+
+```{r}
+#Hay que instalar el paquete "FinCal" con el siguiente comando: install.packages("FinCal")
+library(FinCal)
+```
+
+Resumen de la variable Fallecidos
+```{r,echo=FALSE}
+#Descriptores de Posición
+summary(DF$CANT_FALLECIDOS)
+```
+
+Rango, varianza y desviación estándar
+```{r}
+#Descriptores de Dispersión
+
+range(DF$CANT_FALLECIDOS)
+
+var(DF$CANT_FALLECIDOS)
+
+sd(DF$CANT_FALLECIDOS)
+```
+
+Coeficiente de variación
+```{r}
+coefficient.variation(sd=sd(DF$CANT_FALLECIDOS), avg = mean(DF$CANT_FALLECIDOS))
+
+```
+
+##### Análisis
+
+El rango es de 33 y presenta una varianza de 1.306623, la desviación estándar es de 1.143076 y un coeficiente de variación de 4.003901.
+
+## Variable Heridos
+
+Resumen de la variable Heridos
+```{r,echo=FALSE}
+#Descriptores de Posición
+summary(DF$CANT_HERIDOS)
+```
+
+Rango, varianza y desviación estándar
+```{r,echo=FALSE}
+#Descriptores de Dispersión
+
+range(DF$CANT_HERIDOS)
+
+var(DF$CANT_HERIDOS)
+
+
+sd(DF$CANT_HERIDOS)
+```
+
+Coeficiente de variación
+```{r,echo=FALSE}
+
+coefficient.variation(sd=sd(DF$CANT_HERIDOS), avg = mean(DF$CANT_HERIDOS))
+```
+
+##### Análisis 
+El mínimo número de heridos es cero, el máximo es 71, con un promedio de 1.435 y como su tercer cuartil vendría a ser 1. El rango es de 71 y presenta una varianza de 12.65305, la desviación estándar es de 3.557112 y un coeficiente de variación de 2.478788
+
+
+## Variable Modalidad
+
+```{r,echo=FALSE}
+DF<-read.csv2("Data_final.csv")
+```
+
+
+Resumen tabular de la variable 
+
+```{r,echo=FALSE}
+#Descriptores tabulares
+tabla_MOD<-table(DF$MODALIDAD_ACC)
+tabla_MOD #Tabla de frecuencias absolutas
+prop.table(tabla_MOD) #Tabla de frecuencias relativas
+```
+
+
+#### Análisis
+
+Se observa que las modalidades con mayor frecuencia son las de choque y despiste.Ambos casos tienen un alto nivel de incidencias pues sobrepasan los mil casos, teniendo entre el primer tipo de accidente una diferencia de 405 casos más que el segundo tipo.
+
+Posterior a estos tipos, los que continuarían serían los casos de atropello, volcadura, incendio y accidentes especiales. Las dos primeras con una diferencia de 14, la segunda y la tercera con una diferencia de 15, la tercera y la cuarta con una diferencia de 21 casos. Estos tipos de accidentes podemos notar que su variación es similar entre el orden en el que se presentan. 
+Y los tipos con menores casos reportados son los de accidente y embiste; entre ellos se presenta una diferencia de 2 casos. Y podemos afirmar, según los datos, que los casos de embiste es el tipo de accidentes con menor 9 casos. 
+Sin embargo, existe una amplia diferencia entre los casos de choque con los de embiste. En donde el primero lleva de diferencia un total de 1958 casos más que el segundo tipo. 
+
+
+## Variable Mes
+
+
+Resumen tabular
+```{r,tidy=TRUE}
+DF$MES<-factor(DF$MES, levels = c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"))
+tabla_MES<-table(DF$MES)
+tabla_MES #Tabla de frecuencias absolutas
+prop.table(tabla_MES) #Tabla de frecuencias relativas
+
+```
+#### Análisis
+
+El mes con mayor número de accidentes es el mes de enero seguido por el mes de noviembre y los meses de octubre, febrero, septiembre, agosto, julio, marzo, junio, mayo, abril y por último el mes de diciembre.
+
+## Variable Año
+
+Resumen tabular
+```{r}
+tabla_AÑO<-table(DF$AÑO)
+tabla_AÑO #Tabla de frecuencias absolutas
+prop.table(tabla_AÑO) #Tabla de frecuencias relativas
+```
+
+#### Análisis
+
+Los reportes obtenidos en la variable año, en los cuales nos presentan años la cantidad de incidentes reportados en los años 2020 y 2021, como se visualiza en la tabla tenemos que en el año 2020 se han reportado, en general, que hubo 1606 accidentes de tránsito y en el año 2021 se presentaron 2226 incidentes reportados. La diferencia de accidentes de tránsito ocurridos en ambos años es de 620 incidentes en la que la mayor cantidad esta en el año 2021.
+Se analiza que al transcurrir un año se han presentado mayor cantidad de incidentes, es decir, la situación en las carreteras sigue empeorando tras pasar los años.
+
+
+## Variable Departamento
+
+Resumen tabular
+```{r}
+tabla_DEPA<-sort(table(DF$DEPARTAMENTO),decreasing=TRUE)
+tabla_DEPA #Tabla de frecuencias absolutas
+prop.table(tabla_DEPA) #Tabla de frecuencias relativas
+```
+
+#### Análisis
+
+En cuanto a la variable departamento podemos percibir que como era de esperarse Lima es el departamento con mayor cantidad de accidentes de tránsito con 872 accidentes ocurridos. Esta cifra tiene una explicación bastante concreta pues Lima es el departamento que abarca la mayor cantidad de habitantes por sobre todos los demás departamentos. Asimismo, por ser Lima la capital del país es un punto en donde existe un exceso de vehículos y por ello puede considerarse como una predisposición ante los accidentes que por lo general ocurren en la capital.
+
+El segundo departamento que contiene una de las mayores cantidades de accidentes es Arequipa con 468 accidentes ocurridos y precisamente es también el quinto departamento con mayor población, pero también podemos destacar es que el departamento al cual tienen mayor accesibilidad los demás departamentos del sur del país y esta carretera es por la cual se viaja a departamentos del sur del país. Esta es una de las posibles causas por las cuales esta región es acreedora del segundo lugar con la mayor cantidad de accidentes de tránsito. Sin embargo, pese a ser la segunda región con mayor cantidad de accidentes ocurridos en el Perú. Arequipa se diferencia de Lima por 404 casos de accidentes de tránsito ocurridos.  
+
+El tercer departamento con mayor cantidad de accidentes de tránsito es el distrito de Junín, con 317 accidentes ocurridos en esta región. Asimismo, este departamento ocupa el séptimo lugar con mayor cantidad de habitantes, esta podría ser una de las causas por las cuales existen esta cantidad de accidentes en su región.
+
+El cuarto departamento con gran cantidad de accidentes es la región de accidentes es el departamento de Áncash con 285 accidentes ocurridos en este territorio, una de las probabilidades por las cuales este departamento este entre los cinco primeros departamentos con mayor cantidad de accidentes es que se encuentra al norte del país, por ello el camino para ir tanto al centro como al norte del país. Asimismo, la Panamericana Norte es una de las carreteras con mayor circulación de vehículos después de la Panamericana Sur, pero también en esta carretera es donde comúnmente se presentan la mayor cantidad de accidentes. 
+
+Uno de los datos que más relevantes por mencionar es que Loreto es el departamento con menor cantidad de accidentes de tránsito en el país, con 4 accidentes en esta región. La diferencia entre la cantidad de accidentes ocurridos en la capital del país es demasiado extensa, pues es mayor que la región Loreto por 868 accidentes de más.
+
+---
+
+## Descriptores gráficos
+
+### Boxplot de fallecidos:
+Esta gráfica nos muestra la cantidad de fallecidos que hay por accidente de tránsito.
+
+
+```{r,echo=FALSE}
+boxplot(DF$CANT_FALLECIDOS,
+        horizontal=TRUE,
+        main="Boxplot de fallecidos",
+        xlab="Número de fallecidos")
+abline(v=mean(DF$CANT_FALLECIDOS),col="blue",lty=1)
+legend("topright",legend = "Promedio de fallecidos",col="blue",lty=1)
+```
+
+### Boxplot de heridos
+```{r}
+boxplot(DF$CANT_HERIDOS,horizontal=TRUE, main="Boxplot de heridos", xlab = "Número de heridos")
+abline(v=mean(DF$CANT_HERIDOS),col="red",lty=2)
+legend("topright",legend = "Promedio de heridos",col="red",lty=2)
+
+```
+
+Se observa que, por un lado, la mediana de fallecidos es 0 y hay un leve sesgo a la derecha y, por otro lado, hay una mayor cantidad de heridos en los accidentes, con un leve sesgo a la derecha. 
+
+### Relación entre fallecidos y heridos
+
+```{r}
+plot(DF$CANT_FALLECIDOS~DF$CANT_HERIDOS,pch=c(20,18),col=c("black","gray"),main="Fallecidos vs. Heridos",xlab="Heridos",ylab="Fallecidos")
+abline(lm(DF$CANT_FALLECIDOS~DF$CANT_HERIDOS),col="blue",lty=1)
+legend("topright",legend=c("Nro. Fallecidos","Nro. Heridos","Línea de tendencia"),col=c("black","gray","blue"),pch=c(20,18))
+
+```
+
+Se observa que hay una leve correlación entre las dos variables con un valor de `r cor(DF$CANT_FALLECIDOS,DF$CANT_HERIDOS)`. Ambas variables se concentran al inicio pero divergen conforme la cantidad aumenta.
+
+
+### Fallecidos y heridos según región:
+
+
+```{r}
+#Subsetting para los fallecidos por región
+Accidentes_costa<-subset(DF,REGIONES.NATURALES=="COSTA")
+Accidentes_selva<-subset(DF,REGIONES.NATURALES=="SELVA")
+Accidentes_sierra<-subset(DF,REGIONES.NATURALES=="SIERRA")
+
+#Organización de los meses en orden cronológico
+DF$MES<-factor(DF$MES, levels = c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"))
+
+#Tabla de proporción entre fallecidos por región
+round(table(DF$REGIONES.NATURALES)/nrow(DF),digits=2)
+```
+
+## Boxplot de fallecidos
+```{r}
+#Boxplot
+boxplot(DF$CANT_FALLECIDOS~DF$REGIONES.NATURALES,
+        horizontal = TRUE,
+        main="Boxplot de fallecidos por región",
+        xlab="Número de fallecidos",
+        ylab="Región",
+        col=c("burlywood1","saddlebrown","limegreen"))
+abline(v=mean(Accidentes_costa$CANT_FALLECIDOS),lty=1,col="burlywood1")
+abline(v=mean(Accidentes_sierra$CANT_FALLECIDOS),lty=2,col="saddlebrown")
+abline(v=mean(Accidentes_selva$CANT_FALLECIDOS),lty=3,col="limegreen")
+legend("topright",legend=c("Promedio Costa","Promedio Sierra","Promedio Selva"),col=c("burlywood1","saddlebrown","limegreen"),lty=c(1,2,3))
+
+```
+
+Esta gráfica nos muestra el boxplot del número de fallecidos en cada región natural, donde analizaremos las medianas y datos atípicos por región natural.
+
+### Boxplot de heridos según región
+
+```{r,echo=FALSE}
+#Subsetting para los heridos por región
+Accidentes_costa<-subset(DF,REGIONES.NATURALES=="COSTA")
+Accidentes_selva<-subset(DF,REGIONES.NATURALES=="SELVA")
+Accidentes_sierra<-subset(DF,REGIONES.NATURALES=="SIERRA")
+
+#Tabla de proporción entre heridos por región
+round(table(DF$REGIONES.NATURALES)/nrow(DF),digits=2)
+
+#Boxplot
+boxplot(DF$CANT_HERIDOS~DF$REGIONES.NATURALES,
+        horizontal = TRUE,
+        main="Boxplot de heridos por región",
+        xlab="Número de heridos",
+        ylab="Región",
+        col=c("burlywood1","saddlebrown","limegreen"))
+abline(v=mean(Accidentes_costa$CANT_HERIDOS),lty=1,col="burlywood1")
+abline(v=mean(Accidentes_sierra$CANT_HERIDOS),lty=2,col="saddlebrown")
+abline(v=mean(Accidentes_selva$CANT_HERIDOS),lty=3,col="limegreen")
+legend("topright",legend=c("Promedio Costa","Promedio Sierra","Promedio Selva"),col=c("burlywood1","saddlebrown","limegreen"),lty=c(1,2,3))
+
+```
+
+Esta gráfica nos muestra el boxplot del número de heridos en cada región natural, donde analizaremos las medianas y datos atípicos por región natural.
+
+
+
+### Accidentes en la costa por mes
+```{r,echo=FALSE}
+table(Accidentes_costa$MES)
+barplot(table(Accidentes_costa$MES), xlab = "Mes", ylab = "Número de accidentes", main = "Número de accidentes por mes en la costa", col = "burlywood1",cex.names = 0.8,las=2)
+```
+
+
+### Accidentes en la sierra por mes
+ 
+```{r,echo=FALSE}
+table(Accidentes_sierra$MES)
+barplot(table(Accidentes_sierra$MES), xlab = "Mes", ylab = "Número de accidentes", main = "Número de accidentes por mes en la sierra", col = "saddlebrown",cex.names = 0.8,las=2)
+```
+
+### Accidentes en la selva por mes
+
+```{r,echo=FALSE}
+table(Accidentes_selva$MES)
+barplot(table(Accidentes_selva$MES), xlab = "Mes", ylab = "Número de accidentes", main = "Número de accidentes por mes en la selva", col = "limegreen",cex.names = 0.8,las=2)
+```
+
+
+### Accidentes por departamento
+
+```{r,echo=FALSE}
+table(DF$DEPARTAMENTO)
+barplot(sort(table(DF$DEPARTAMENTO),decreasing=TRUE), ylab = "Número de accidentes", main = "Número de accidentes por departamento", col = "brown3",cex.names = 0.55,las=2)
+```
+
+
+#### Accidentes por departamento en la costa
+
+```{r,echo=FALSE}
+table(Accidentes_costa$DEPARTAMENTO)
+barplot(sort(table(Accidentes_costa$DEPARTAMENTO),decreasing=TRUE), ylab = "Número de accidentes", main = "Número de accidentes por departamento en la costa", col = "burlywood1",cex.names = 0.7,las=3)
+boxplot(table(Accidentes_costa$DEPARTAMENTO),main = "Número de accidentes por departamento en la costa",col="burlywood1")
+```
+
+
+### Accidentes por departamento en la sierra
+
+```{r}
+table(Accidentes_sierra$DEPARTAMENTO)
+barplot(sort(table(Accidentes_sierra$DEPARTAMENTO),decreasing=TRUE), ylab = "Número de accidentes", main = "Número de accidentes por departamento en la sierra", col = "saddlebrown",cex.names=0.6, las=3)
+boxplot(table(Accidentes_sierra$DEPARTAMENTO),main = "Número de accidentes por departamento en la sierra",col="saddlebrown")
+```
+
+
+### Accidentes por departamento en la selva
+
+```{r}
+table(Accidentes_selva$DEPARTAMENTO)
+barplot(sort(table(Accidentes_selva$DEPARTAMENTO),decreasing=TRUE), ylab = "Número de accidentes", main = "Número de accidentes por departamento en la selva", col = "limegreen",cex.names=0.8)
+boxplot(table(Accidentes_selva$DEPARTAMENTO),main = "Número de accidentes por departamento en la selva",col="limegreen")
+```
+
+### Cantidad de fallecidos por accidente en la costa
+```{r}
+table(Accidentes_costa$CANT_FALLECIDOS)
+barplot(sort(table(Accidentes_costa$CANT_FALLECIDOS), decreasing = TRUE), xlab = "Cantidad de fallecidos por accidente", ylab = "Número de accidentes", main = "Número de fallecidos por accidentes en la costa", col = "burlywood1", cex.names = 0.8)
+```
+
+### Cantidad de fallecidos por accidente en la sierra
+
+```{r}
+table(Accidentes_sierra$CANT_FALLECIDOS)
+barplot(sort(table(Accidentes_sierra$CANT_FALLECIDOS), decreasing = TRUE), xlab = "Cantidad de fallecidos por accidente", ylab = "Número de accidentes", main = "Número de fallecidos por accidentes en la sierra", col = "saddlebrown", cex.names = 0.8)
+
+```
+
+### Cantidad de fallecidos por accidente en la selva
+
+```{r}
+table(Accidentes_selva$CANT_FALLECIDOS)
+barplot(sort(table(Accidentes_selva$CANT_FALLECIDOS), decreasing = TRUE), xlab = "Cantidad de fallecidos por accidente", ylab = "Número de accidentes", main = "Número de fallecidos por accidentes en la selva", col = "limegreen", cex.names = 0.8)
+
+boxplot(table(Accidentes_selva$CANT_FALLECIDOS),main = "Número de fallecidos por accidentes en la selva", col = "limegreen") ##aun no funciona
+```
+
+### Comparación entre accidentes con fallecidos y con heridos en la costa
+
+```{r}
+table(Accidentes_costa$CANT_FALLECIDOS!=0)
+barplot(sort(table(Accidentes_costa$CANT_FALLECIDOS!=0), decreasing = TRUE), xlab = "Cantidad de fallecidos por accidente", ylab = "Número de accidentes", main = "Cantidad de accidentes con fallecidos en la costa", col = "burlywood1", cex.names = 0.8)
+```
+
+### Comparación entre accidentes con fallecidos y con heridos en la sierra
+
+```{r}
+table(Accidentes_sierra$CANT_FALLECIDOS!=0)
+barplot(sort(table(Accidentes_sierra$CANT_FALLECIDOS!=0), decreasing = TRUE), xlab = "Cantidad de fallecidos por accidente", ylab = "Número de accidentes", main = "Cantidad de accidentes con fallecidos en la sierra", col = "saddlebrown", cex.names = 0.8)
+```
+
+### Comparación entre accidentes con fallecidos y con heridos en la selva
+
+```{r}
+table(Accidentes_selva$CANT_FALLECIDOS!=0)
+barplot(sort(table(Accidentes_selva$CANT_FALLECIDOS!=0), decreasing = TRUE), xlab = "Cantidad de fallecidos por accidente", ylab = "Número de accidentes", main = "Cantidad de accidentes con fallecidos en la selva", col = "limegreen", cex.names = 0.8)
+```
+
+### Mapa de calor de accidentes según provincia
+
+```{r,echo=FALSE}
+#Mapa de calor de accidentes
+
+library("rgdal")
+library("rgeos")
+library("sp")
+library("dplyr")
+library("tmap")
+library("leaflet")
+
+mapa=readOGR("MAPA/MAPA/dp.shp")
+names(mapa)
+names(DF)
+
+names(mapa)[6]="PROVINCIA"
+
+acci<-DF %>% group_by(PROVINCIA)%>% summarise(Accidentes=n())
+
+acci_mapa1<-merge(mapa,acci,by="PROVINCIA")
+qtm(acci_mapa1,fill="Accidentes",borders="black",text.size=10,style="col_blind")+tm_legend(legend.position = c("left", "bottom"), main.title = "Número de accidentes según provincia", main.title.position = "right",main.title.size=0.8, title.size=0.8)
+```
+
+
+### Mapa de calor de fallecidos según provincia
+```{r,echo=FALSE}
+#Mapa de calor de fallecidos
+
+library("rgdal")
+library("rgeos")
+library("sp")
+library("dplyr")
+library("tmap")
+library("leaflet")
+
+mapa=readOGR("MAPA/MAPA/dp.shp")
+names(mapa)
+names(DF)
+
+names(mapa)[6]="PROVINCIA"
+
+fallecidos<-DF %>% group_by(PROVINCIA)%>% summarise(Fallecidos=n())
+
+fallecidos_mapa2<-merge(mapa,fallecidos,by="PROVINCIA")
+
+qtm(fallecidos_mapa2,fill="Fallecidos",borders="black",text.size=10,style="bw")+tm_legend(legend.position = c("left", "bottom"), main.title = "Número de fallecidos según provincia", main.title.position = "right",main.title.size=0.8, title.size=0.8)
+```
+
+
+
+## 4. Análisis probabilístico
+### Variables aleatorias
+#### Variable heridos
+
+```{r}
+hist(DF$CANT_HERIDOS, xlab="Cantidad de heridos", ylab="Frecuencia Relativa", probability = TRUE, main="Cantidad de heridos", col="darkgoldenrod1")
+abline(v=c(mean(DF$CANT_HERIDOS, na.rm=TRUE)), col=c("black"), lwd=c(2))
+legend("topright", legend=c("Promedio de heridos"), col=c("black"), lwd=2)
+```
+
+Como podemos ver en el gráfico respecto al análisis descriptivo de esta sección. La variable `CANT_HERIDOS` parece distribuirse como una variable aleatoria exponencial decreciente.
+
+Veamos si lo planteado se puede sostener:
+
+Primero, planteemos cómo sería nuestra distribución exponencial decreciente. denominamos $Z$ a nuestra variable aleatoria.
+
+lo planteado es que:
+$$Z\sim Exp(\lambda)$$
+
+```{r}
+Z <- DF$CANT_HERIDOS[!is.na(DF$CANT_HERIDOS)]
+```
+El parámetro de esta distribución se puede determinar por el inverso de la media 
+ $\lambda$.
+
+```{r}
+Lambda1 <- (1/mean(Z))
+Lambda1
+```
+
+
+Después de presentar todo lo anterior graficamos la densidad de la variable aleatoria continua $Z$ sobre el histograma de  nuestras frecuencias relativas. Tomaremos el parámetro `breaks=10` para hacer la comparación aproximada, puesto que según la data provista la cantidad de heridos es una variable discreta.
+
+```{r}
+a <- seq(0, max(Z, na.rm=TRUE), 0.1)
+b <- dexp(a, rate=Lambda1)
+hist(Z, probability=TRUE, ylim=c(0,0.15), col="darkgoldenrod1", main=paste("Comparación entre ambos modelos para los heridos"), xlab="Cantidad de heridos",ylab="Densidad", breaks=10)
+lines(a,b, col="black", lwd=1)
+legend("topright", legend=c("Data real","Modelo exponencial"), col=c("darkgoldenrod1","black"), lwd=1)
+```
+
+Observamos que existe un parecido entre forma entre la densidad de la variable aleatoria continua y el histograma.
+
+Para seguir demostrando la semejanza comparamos algunos descriptores numéricos:
+Comenzamos con la media para hallar el parámetro, 
+
+Partimos de la media para hallar el parámetro $\lambda$, por lo mencionado sabemos que la media de la variable en la práctica será igual al valor esperado de la variable teórica.
+
+la varianza tendría que ser cercana a $\mathsf{Var}(Z)=\frac{1}{\lambda^2}$.
+
+```{r}
+1/Lambda1^2
+var(Z)
+```
+Podemos comentar que los valores se aproximan.
+
+De igual forma, la desviación estándar teórica debería tener un valor aproximado a la desviación estándar en la práctica.
+
+$\mathsf{Sd}(Z)=\frac{1}{\lambda}$.
+
+```{r}
+1/Lambda1
+sd(Z)
+```
+podemos ver otra vez que son valores aproximados ,  suponiendo que el coeficiente de variación es aproximadamente $1$.
+
+```{r}
+coefficient.variation(sd=sd(Z), avg = mean(Z))
+```
+
+#### Variable fallecidos
+```{r}
+FALLECIDOSCOMPLETOS<-DF$CANT_FALLECIDOS[!is.na(DF$CANT_FALLECIDOS)]
+hist(FALLECIDOSCOMPLETOS, xlab="Cantidad de fallecidos", ylab="Frecuencia Relativa", probability = TRUE, main="Cantidad de fallecidos", col="darkturquoise",breaks=10)
+abline(v=c(mean(DF$CANT_FALLECIDOS, na.rm=TRUE)), col=c("black"), lwd=c(2))
+legend("topright", legend=c("Promedio de fallecidos"), col=c("black"), lwd=2)
+```
+
+Por lo que pudimos ver en la gráfica pertinente en la parte de análisis descriptivo de esta sección, La variable `CANT_FALLECIDOS` parece distribuirse aproximadamente como una variable aleatoria .
+
+Veamos si nuestra hipótesis se puede sustentar.
+
+Primero, planteemos cómo sería esta distribución exponencial. Llamemos $T$ a nuestra variable aleatoria.
+
+Lo planteado es que:
+$$T \sim Exp(\lambda)$$
+
+```{r}
+T <- DF$CANT_FALLECIDOS[!is.na(DF$CANT_FALLECIDOS)]
+```
+
+El parámetro de esta distribución se puede determinar a través del inverso multiplicativo de su media $\lambda$.
+
+```{r}
+Lambda2 <- (1/mean(T))
+Lambda2
+```
+
+
+Después de presentar todo lo anterior graficamos la densidad de la variable aleatoria continua $T$ sobre el histograma de  nuestras frecuencias relativas. Tomaremos el parámetro `breaks=10` para hacer la comparación aproximada, puesto que según la data provista la cantidad de fallecidos es una variable discreta.
+
+```{r}
+d <- seq(0, max(T, na.rm=TRUE), 0.1)
+e <- dexp(d, rate=Lambda2)
+hist(e, probability=TRUE, ylim=c(0, 1), col="darkturquoise", main="Comparación entre ambos modelos para los fallecidos", ylab="Densidad",xlab="Cantidad de fallecidos", breaks=10)
+lines(d,e, col="black", lwd=1)
+legend("topright", legend=c("Data real","Modelo exponencial"), col=c("darkturquoise","black"), lwd=1)
+```
+
+Observamos que existe un parecido entre forma entre la densidad de la variable aleatoria continua y el histograma.
+
+Para seguir demostrando la semejanza comparamos algunos descriptores numéricos:
+Comenzamos con la media para hallar el parámetro, 
+
+Partimos de la media para hallar el parámetro $\lambda$, por lo mencionado sabemos que la media de la variable en la práctica será igual al valor esperado de la variable teórica.
+
+la varianza tendría que ser cercana a $\mathsf{Var}(T)=\frac{1}{\lambda^2}$.
+
+```{r}
+1/Lambda2^2
+var(T)
+```
+Podemos comentar que los valores se aproximan.
+
+De igual forma, la desviación estándar teórica debería tener un valor aproximado a la desviación estándar en la práctica.
+
+$\mathsf{Sd}(T)=\frac{1}{\lambda}$.
+
+```{r}
+1/Lambda2
+sd(T)
+```
+
+podemos ver otra vez que son valores aproximados ,  suponiendo que el coeficiente de variación es aproximadamente $1$.
+
+```{r}
+coefficient.variation(sd=sd(T), avg = mean(T))
+```
+
+
+
+

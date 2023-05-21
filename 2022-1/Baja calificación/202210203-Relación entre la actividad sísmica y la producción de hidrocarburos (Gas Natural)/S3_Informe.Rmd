@@ -1,0 +1,825 @@
+---
+title: "Relación entre la actividad sísmica y la producción de hidrocarburos (Gas Natural)"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+  html_notebook: default
+---
+
+## Librerías para ejecutar el código
+
+
+```{r message=FALSE}
+if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+if (!require('ggthemes')) install.packages('ggthemes'); library('ggthemes')
+if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
+if (!require('readr')) install.packages('readr'); library('readr')
+if (!require('sf')) install.packages('sf'); library('sf')
+if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+if (!require('ggrepel')) install.packages('ggrepel'); library('ggrepel')
+if (!require('readxl')) install.packages('readxl'); library('readxl')
+if (!require('lubridate')) install.packages('lubridate'); library('lubridate')
+if (!require('PerformanceAnalytics')) install.packages('PerformanceAnalytics'); library('PerformanceAnalytics')
+if (!require('plotly')) install.packages('plotly'); library('plotly')
+```
+
+## Relevancia
+
+La relevancia de este tema se encuentra en que la extracción de hidrocarburos, en especial el gas natural, es una industria importante para este país. Otro aspecto significativo de este país es la frecuencia de sismos que ocurren en este. Por ello decidimos realizar esta investigación. ya que si los sismos resultan tener un efecto en la actividad de extracción de los hidrocarburos, encontrar esta relación puede servir para ayudar a la industria gasolinera en la extracción.
+
+## Planificación
+
+```{r}
+data <- data.frame(
+  Nombres = c("Alejandro Ortiz","Daniel Zevallos","Eber Farfan","Kevin Espinoza","Renato Cernades", "Diego Gutiérrez"),
+  Tareas = c("Armar los slides","Describir los datos", "Organizar lo datos","Limpieza de datos","Análisis descriptivo y armar el informe", "Armar las variables aleatorias"),
+  Inicio = c(20, 12, 10, 1, 14, 25),
+  Fin = c(28, 20, 18, 10, 22, 28)
+)
+
+ggplot(data, aes(x=Inicio, xend=Fin, y=Nombres, yend=Nombres, color=Tareas)) + 
+  theme_bw(base_size = 8.9) + 
+  geom_segment(size=8) +
+  labs(title = "Planificación", x="Tiempo (Días)", y="Integrantes", caption = "")
+```
+
+# Proceso de recolección de datos
+
+## Datos mensuales del gas
+
+Los datos de los sismos se han recuperado de la página oficial del Instituto Geofísico del Perú en donde podemos especificar el periodo de fechas, el rango de magnitud y la ubicación (latitud y longitud). Para este proyecto solo especificamos el periodo desde 01/01/1995 hasta 31/12/2010, el resto de especificaciones se mantuvo por defecto. Fuente: [Igp sismos](https://ultimosismo.igp.gob.pe/descargar-datos-sismicos).
+
+Los datos de los hidrocarburos (gas natural), se ha recuperado de la página del Ministerio de Energía y Minas en la sección de Informe Estadístico. El archivo llamado Producción Fiscalizada de Hidrocarburos (EXCEL) fue es el escogido para el desarrollo del proyecto ya que tiene datos desde el 1995 hasta la fecha. Fuente: [Minem gas natural](https://www.minem.gob.pe/_estadistica.php?idSector=5&idEstadistica=13385).
+
+## Datos diarios del gas
+
+Los datos para el DD que son datos actuales del gas, los obtuvimos de la página de **Petro perú** donde obtuvimos la tasa de extracción diaria de gas en el 2022. Fuente: [perupetro](https://www.perupetro.com.pe/wps/portal/corporativo/PerupetroSite/estadisticas/producci%C3%B3n%20hidrocarburos/producci%C3%B3n%20diaria/!ut/p/z1/pdKxDoIwFIXhZ_EJWqAUHTUilYCAIuBdDBMhUXQwPr9cw8qpie0CyfeH0laQaAQN7bvv2lf_GNrb-H4hfT24oTJGOXGUp0tZqHIbl-PDJnVF_QVyZqyloPneSdTUz4DC1ahPE4l7BqAPK417BqBfyQD3DEBf5h7uGaD9O1l6Bv_sPwP65fwBIHw9akE2QmgNRRJYAN8hCDwfgsgY2xqOtk_sFAZOZgFaWn5TZ7543s_TaGS_59ktPvhl-CM!/dz/d5/L2dBISEvZ0FBIS9nQSEh/)
+
+
+## Datos diarios de los sismos
+
+A parte de los datos sísmicos recolectados, ampliamos los datos, usando la misma fuente del Instituto Geofísico del Perú, conseguimos datos desde 1960 hasta el 2022. Fuente: [Igp sismos](https://ultimosismo.igp.gob.pe/descargar-datos-sismicos).
+
+
+## Datos de ubicación y profundidad de los pozos
+
+Los datos de profundidad fueron encontrados en diferentes páginas buscando el nombre del lote en internet. Por otro lado, para la ubicación usamos Google maps que nos permitía ver las coordenadas. Y finalmente creamos la data con toda esta información.
+
+
+# Población, muestra y muestreo
+
+Población: 
+ + Los sismos
+ + La tasa diaria de extracción de gas
+ + La tasa mensual de extracción de gas
+
+Muestra:
+ + Sismos entre 1960 hasta hoy
+ + Tasa diaria de extracción de gas en el 2022
+ + Tasa mensual de extracción de gas desde 1995 hasta 2010
+ 
+Muestreo:
+ + Se utilizó toda la data disponible hasta la fecha.
+
+
+# Variables
+
+## Variables de los datos mensuales del gas
+
+-   Fecha :
+    -   Tipo : categórica ordinal / Restricciones : Desde enero de 1995 hasta diciembre del 2010.
+    
+-   Tasa promedio de extracción de gas (Millones de pies cúbicos diarios) mensual:
+    -   Tipo : Numérica discreta / Restricciones : Real positivo.
+    
+-   Número de sismos:
+    -   Tipo : Numérica discreta / Restricciones : Entero positivo.
+    
+-   Profundidad promedio
+    -   Tipo : Numérica discreta / Restricciones : Entero positivo. Porque medimos desde la superficie de la tierra hacia el centro de misma.
+    
+-   Magnitud promedio ($M_W$) (Magnitud momento):
+    -   Tipo : Numérica discreta / Restricciones : Real positivo, mayor que 0 y menor o igual a 10.
+
+## Variables de los datos diarios del gas
+
+-   Lotes :
+    -   Tipo :Conjunto de variables numérica  Restricciones: Todos los reales 
+    
+
+-   Fecha :
+    -   Tipo : Categórica ordinal /Restricciones:Desde el primero de enero del 2020 hasta el 31 de mayo del 2020
+
+## Variables de los datos diarios de sismos
+
+-   Fecha UTC: 
+    -   Tipo: Categorica ordinal 
+    -   Limitaciones: Desde el 13 de enero de 1960 hasta 17 de junio de 2022.
+
+-   ora UTC:
+    -   Tipo: Categorica ordinal
+    -   Limitaciones: Las 24 horas del dia de 0 a 24.
+
+-   Latitud (°)
+    -   Tipo: Numerica
+    -   Limitaciones: Todos los reales.
+
+-   Longitud (°)
+    -   Tipo: Numerica
+    -   Limitaciones: Todos los reales.
+
+-   Profundidad (km)
+    -   Tipo: Numerica
+    -   Limitaciones: Todos los reales.
+
+-   Magnitud (M)
+    -   Tipo: Numerica
+    -   Limitaciones: de 0 a 10.
+
+
+
+## Variables de los datos de los pozos
+
+-   Latitud (°)
+    -   Tipo: Numerica
+    -   Limitaciones: Todos los reales.
+
+-   Longitud (°)
+    -   Tipo: Numerica
+    -   Limitaciones: Todos los reales.
+
+-  Profundidad mínima
+    - Tipo :Numérica / Restricciones :Todos los reales positivos
+    
+-  Profundidad máxima
+    - Tipo :Numérica / Restricciones :Todos los reales positivos
+
+
+# Limpieza de base de datos
+
+## Limpieza de los datos mensuales del gas
+
+Para la limpieza de datos, en primer lugar se obtuvo la base de datos recopilada sobre la extracción de gas natural brindada por Ministerio de Energía y Minas y, por otro lado, del instituto de Geofísica del Perú, una vez obtenidas en formato .xls, estos datos se convirtieron a .csv con coma decimal, para que el programa R pueda leerlos. Por un lado, en la base de datos de los sismos, mediante la función sum(is.na(DF)), la cual nos arrojó el valor de 0 nos indicó que no existían datos vacíos y, a su vez, se verificó que toda la data sea numérica. Por otro lado, teniendo fecha como un carácter poco manipulable, regresamos a la base de datos inicial y agrupamos los datos por meses y de esta manera será almacenado en un vector para proceder a usar este parámetro para los siguientes análisis. Para la data del gas natural, la función sum(is.na(DF)), nos arrojó 12, los cuales eliminamos, ya que no iban a ser útiles para el estudio. Por último, se pasaron todas las fechas al tipo de dato `Date` de R.
+
+## Limpieza de los datos diarios del gas
+
+La limpieza se hace en una función llamada `createDD` creada por nosotros mismos.
+
+## Limpieza de los datos diarios de sismos
+
+Estos datos no necesitaron limpieza.
+
+## Limpieza de los datosubicación y profundidad de los pozos
+
+Estos datos no necesitaron limpieza.
+
+
+# Análisis de los datos mensuales
+
+## Análisis descriptivo
+
+### Análisis descriptivo de una variable
+
+Leemos la data para empezar con el análisis.
+
+```{r}
+DF <- read_csv("DataFrame.csv")
+
+gsub(pattern = "z", replacement = "", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "s", replacement = "", x = DF$Fechas) -> DF$Fechas
+
+gsub(pattern = "z", replacement = "", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "s", replacement = "", x = DF$Fechas) -> DF$Fechas
+
+gsub(pattern = "Ene", replacement = "1", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Feb", replacement = "2", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Mar", replacement = "3", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Abr", replacement = "4", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "May", replacement = "5", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Jun", replacement = "6", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Jul", replacement = "7", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Ago", replacement = "8", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Sep", replacement = "9", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Oct", replacement = "10", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Nov", replacement = "11", x = DF$Fechas) -> DF$Fechas
+gsub(pattern = "Dic", replacement = "12", x = DF$Fechas) -> DF$Fechas
+as.Date(paste("01",DF$Fechas, sep = "-"), format = "%d-%m-%y") -> DF$Fechas
+```
+
+#### Número de sismos mensual.
+
+En promedio ocurren 40 sismos mensuales.
+
+```{r}
+summary(DF$NumeroSismos)
+```
+
+Podemos ver mejor estos descriptores un gráfico de cajas y bigotes.
+
+```{r}
+boxplot(DF$NumeroSismos, main="Número de sismos")
+```
+
+Nos podemos dar cuenta que en su mayoría ocurren no más de 60 sismos mensuales.
+
+#### Profundidad promedio de los sismos a nivel mensual
+
+La profundidad promedio mensual es de 66.35 km.
+
+```{r}
+summary(DF$Profundidad_Promedio)
+```
+
+#### Magnitud promedio de los sismos a nivel mensual
+
+La magnitud promedio mensual es de 4.75 $M_W$ (Magnitud momento).
+
+```{r}
+summary(DF$Magnitud_Promedio)
+```
+
+#### Promedio mensual de la tasa de extracción diaria de gas natural (MPCD)
+
+En promedio se extrae 145,970 millones de pies cúbicos diarios y la mediana es de 55,869. Claramente existen ciertos datos atípicos que incrementan radicalmente nuestra media.
+
+```{r}
+summary(DF$`PROMEDIO MENSUAL(MPCD)`)
+```
+
+Esos datos atípicos los podemos ver aquí.
+
+```{r}
+boxplot(DF$`PROMEDIO MENSUAL(MPCD)`, main="Datos atípicos en la tasa de extracción diaria de gas natural", ylab="Tasa de extracción diaria")
+```
+
+### Análisis descriptivo de 2 o más variables
+
+#### Número de sismos mensual vs Promedio mensual de tasa de extracción de gas natural
+
+Vemos que la correlación entre estas dos variables de -0.03, lo que podemos identificar como una escasa relación casi nula.
+
+```{r}
+round(cor(DF$NumeroSismos, DF$`PROMEDIO MENSUAL(MPCD)`), 2)
+```
+
+Para ver mejor este resultado, podemos usar un `plot` y hallar su recta de regresión lineal.
+
+```{r}
+plot(DF$NumeroSismos, DF$`PROMEDIO MENSUAL(MPCD)`, xlab = "Número de sismos mensual", ylab = "Tasa de extracción diaria de gas natural", main="Número de sismos mensual vs Tasa de extracción de gas natural")
+abline(lm(DF$NumeroSismos ~ DF$`PROMEDIO MENSUAL(MPCD)`), col = "red", lwd = 2.4)
+```
+
+Nos podemos dar cuenta que la recta de regresión es casi horizontal lo que nos indica que la relación es mínima entre estas dos variables.
+
+#### Magnitud mensual de los sismos vs Promedio mensual de tasa de extracción de gas natural
+
+Al igual que la comparación anterior, vemos que la correlación entre estas dos variables de muy cercana a 0 siendo esta -0.06. Lo cual nos indica que estas variables están claramente no relacionadas.
+
+```{r}
+round(cor(DF$Magnitud_Promedio, DF$`PROMEDIO MENSUAL(MPCD)`), 2)
+```
+
+Podemos ver esta relación usamos la función `plot`.
+
+```{r}
+plot(DF$Magnitud_Promedio, DF$`PROMEDIO MENSUAL(MPCD)`, xlab = "Magnitud mensual de los sismos (MW)", ylab = "Tasa de extracción diaria de gas natural", main="Magnitud de los sismos vs Tasa de extracción de gas natural.")
+abline(lm(DF$Magnitud_Promedio ~ DF$`PROMEDIO MENSUAL(MPCD)`), col = "red", lwd = 2.4)
+```
+
+La recta de regresión es casi horizontal lo cual nos indica una vaga relación entre estas variables.
+
+#### Profundidad mensual de los sismos vs Promedio mensual de tasa de extracción de gas natural
+
+En este caso, vemos que existe una mayor correlación de 0.13 con la profundad que con las anteriores variables. Sin embargo, sigue siendo muy pequeña como para afirmar que existe una verdadera relación entre estas variables.
+
+```{r}
+round(cor(DF$Profundidad_Promedio, DF$`PROMEDIO MENSUAL(MPCD)`), 2)
+```
+
+Podemos ver esta relación usamos la función `plot`.
+
+```{r}
+plot(DF$Profundidad_Promedio, DF$`PROMEDIO MENSUAL(MPCD)`, xlab = "Profundidad mensual de los sismos (Km)", ylab = "Tasa de extracción diaria de gas natural", main="Profundidad de los sismos vs Tasa de extracción de gas natural.")
+abline(lm(DF$Profundidad_Promedio ~ DF$`PROMEDIO MENSUAL(MPCD)`), col = "red", lwd = 2.4)
+```
+
+Nos damos cuenta que la recta de regresión es casi horizontal, es decir, no hay casi relación entre las variables.
+
+```{r}
+dat1<-data.frame(DF$NumeroSismos,DF$Profundidad_Promedio,DF$Magnitud_Promedio,DF$`PROMEDIO MENSUAL(MPCD)`)
+dat2<-data.frame(DF$Profundidad_Promedio,DF$Magnitud_Promedio)
+chart.Correlation(dat1)
+chart.Correlation(dat2)
+```
+Para una mayor información acerca de la correlación entre todas las variables, podemos usar la función `chart.Correlation`, donde nos indica por la cantidad de estrellas que las variables `Profundidad` y `Magnitud` de los sismos es estadísticamente significativa para el nivel de 1%.
+
+
+### Tiempo vs Tasa de extracción promedio
+
+```{r}
+plot(DF$`PROMEDIO MENSUAL(MPCD)` ~ DF$Fechas, main="Tasa de extracción en el tiempo", xlab="Tiempo (Meses)", ylab="Tasa promedio de extracción", type = "p",  xaxt = "n", pch=20., xlim=c(as.Date("1995/1/1"), as.Date("2010/1/1")))
+axis(1, DF$Fechas, format(DF$Fechas, "%b-%y"), cex.axis = .5)
+```
+Se podrá notar que la tasa de extracción ha ido creciendo a lo largo de los años, desde el inicio hasta el 1997 casi siendo constante, luego aumento la tasa, pero se quedo igual hasta el 2003 donde empezó a crecer de manera lineal hasta el 2009 y en 2010 creció de manera exponencial. Algo curioso que podemos notar, es que cada año hay un ciclo en el que la tasa de extracción sube y baja.
+
+Lo podremos notar mejor en el siguiente gráfico.
+
+```{r}
+plot(DF$`PROMEDIO MENSUAL(MPCD)` ~ DF$Fechas, main="Tasa de extracción en el entre 2003 y 2010",xlab="Tiempo (Meses)", ylab="Tasa promedio de extracción", type = "p",  xaxt = "n", pch=20, xlim=c(as.Date("2003/01/01"),as.Date("2010/01/01")))
+axis(1, DF$Fechas, format(DF$Fechas, "%b-%y"), cex.axis = .5)
+```
+
+Podemos notar que a inicios del año la extracción es baja, pero a mediados y a finales de años la tasa de extracción es alta.
+
+## Tiempo vs Número de sismos
+
+```{r}
+plot(DF$NumeroSismos ~ DF$Fechas, main="Número de sismos en el tiempo", xlab="Tiempo (Meses)", ylab="Número de sismos", type = "p",  xaxt = "n", pch=20, xlim=c(as.Date("1995/01/01"),as.Date("2010/01/01")))
+axis(1, DF$Fechas, format(DF$Fechas, "%b-%y"), cex.axis = .5)
+abline(h = quantile(DF$NumeroSismos, 0.95, na.rm = TRUE), col="red")
+abline(h = median(DF$NumeroSismos, na.rm = TRUE), col="blue")
+legend("topright", legend = c("Media", "Cuantil 95"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("blue", "red"), lwd = 2)
+```
+
+Es interesante notar como los número de sismos regularmente se encuentra dentro de un límite (El 95% de ellos). Sin embargo, hay meses en los que la cantidad de sismos es muchísimo más grande a la promedio. Una observación es que la forma de este gráfico y el anterior parecen ser sinusoidales crecientes.
+
+# Datos diarios de extracción de Gas en el 2022
+
+Creamos la base de datos diarios de extracción de gas en base a la información de los archivos .csv 
+```{r}
+DD <- read_csv("DataFrameDiary.csv")
+```
+
+## Análisis Descriptivo
+
+Podemos ver, por ejemplo, los datos diarios pozo `CNPC.PERU.Lote.X`.
+```{r}
+plot(DD$CNPC.PERU.Lote.X ~ DD$Fecha, xlab="Fecha (meses)", ylab="Tasa de extracción de gas (m³/d)")
+```
+
+Su media
+```{r}
+mean(DD$CNPC.PERU.Lote.X)
+```
+
+```{r}
+CV<-function(X){
+        return(sd(X)/mean(X))
+}
+```
+
+Su coeficiente de varianza
+```{r}
+CV(DD$CNPC.PERU.Lote.X)
+```
+Su desviación estándar
+```{r}
+sd(DD$CNPC.PERU.Lote.X)
+```
+
+Si queremos ver los detalles de todos los lotes, podemos usar `summary`
+```{r}
+summary(DD)
+```
+
+
+
+# Datos diarios de sismos
+
+Leemos el archivo de límites departamentales del Perú [3]
+
+```{r}
+setwd("DatosGeograficosPeru/")
+peru_dt <- st_read("DEPARTAMENTOS.shp")
+```
+
+Leemos el archivo de ubicación de los pozos en el Perú [4]
+
+```{r}
+setwd("DatosGeograficosPozos/")
+pozos_dt <- st_read("Pozos.shp")
+```
+
+Creamos los puntos según las coordenadas de cada pozo
+
+```{r}
+pozos_dt %>%
+  filter(ESTADO != "Utilizable" & !is.na(LONGITUD) & !is.na(LATITUD)) %>%
+  st_as_sf(coords = c("LONGITUD", "LATITUD"),  remove = F) -> pozos_points
+```
+
+Leemos los datos sísmicos
+
+```{r}
+sismos_dt <- read_csv("DatosSismos/IGP_datos_sismicos.csv")
+
+# convertimos la fecha a un tipo Fecha
+as.Date(sismos_dt$`fecha UTC`, format = "%d/%m/%Y") -> sismos_dt$`fecha UTC`
+
+```
+
+## Análisis descriptivo
+
+### Gráfica de los pozos y los sismos en el 2022
+
+```{r}
+ggplot(data = peru_dt) + 
+  geom_sf() + 
+  geom_sf(data = pozos_points, color = "black") +
+  geom_point(data= sismos_dt %>% filter(`fecha UTC` >= as.Date("2022/01/01")), 
+             aes(x=`longitud (º)`, y = `latitud (º)`, color = "red", size = 1/10*`magnitud (M)`, alpha = 0.2)) +
+  labs( color = "Sismos", alpha = "Pozos", size = 'Escala por magnitud') +
+  ggtitle('Mapa geográfico de los pozos y los sismos (2022)') +
+  theme_map() + 
+  theme(legend.position = "left",
+        legend.title = element_text(color = "blue", 
+                                    size = 10,
+                                    face = 2),
+        plot.title = element_text(size = 15,
+                             face = 2, hjust=0.5))
+```
+Podemos darnos cuenta que buena parte los pozos se encuentran en la costa, zona donde justamente ocurren otra buena cantidad de sismos.
+
+### Análisis de los sísmos y ubicación de los pozos
+
+Categorizamos los sismos según su profundidad [1]
+
+```{r}
+sismos_dt %>% summarise(categoria = if_else(`profundidad (km)`<=70, "Superficial", if_else(`profundidad (km)`>300, "Profundo", "Intermedio"))) -> categoria
+
+if(!is.element("categoria", names(sismos_dt))){
+  sismos_dt <- cbind(sismos_dt, categoria)
+}
+```
+
+
+Investigando hemos encontrado que un lote tiene una área entre 2871 $Km^2$ y 511 $Km^2$ [7], es decir, en promedio $\frac{2871+511}{2}$, considerando que estamos hablando de un área cuadrada podemos hallar su largo sacando raíz cuadrada Entonces tenemos que el largo promedio de un lote es: $$ L = \sqrt{\frac{2871+511}{2}}$$
+
+```{r}
+L = sqrt( (2871 + 511)/2 )
+```
+
+Como los lotes de gas son **demasiado** grandes, Vamos a considerar que un sismo afecta al lote si está dentro de su área + **30** kilómetros por lado. A esta constante la llamaremos $k$
+
+```{r}
+k <- 30
+```
+
+Lo primero será convertir los kilómetros a longitud y latitud, para esto hemos encontrado que al hablar de 1 grado de latitud son 111.1 Km aproximadamente y 1 grado de longitud es 110.4 km [2]
+
+Como sabemos que el largo de un lote es `L` a partir de la ubicación del pozo vamos a hallar los límites en términos de latitud y longitud.
+
+```{r}
+pozos_dt <- read_csv("DatosPozosProfundidad/Profundidad-latitud-longitud-pozos.csv")
+
+pozos_dt %>% summarise(
+  latitud_max=latitud+((L/2)+k)*(1/111.1),
+  latitud_min=latitud-((L/2)+k)*(1/111.1),
+  longitud_max=longitud+((L/2)+k)*(1/111.1),
+  longitud_min=longitud-((L/2)+k)*(1/111.1)
+  ) -> lat_lon_max_min
+
+if(!is.element("latitud_max", names(sismos_dt))){
+  pozos_dt <- cbind(pozos_dt, lat_lon_max_min)
+}
+gsub("\n", "", pozos_dt$Lote) -> pozos_dt$Lote
+
+```
+### Analisis del pozo SAPET lote VII y VI
+
+Ahora vamos a ver que sismos han afectado a estos lotes. Para eso debemos filtrar los sismos para ver si están dentro del rango del lote. Empezaremos con el lote `SAPET.LOTE.VII_VI`, veamos que sismos han habido dentro de su área.
+
+```{r}
+pozos_dt %>% filter(Lote=="SAPET.LOTE.VII_VI") -> SapetLote_dt
+SapetLote_dt
+sismos_dt %>% filter(`fecha UTC` >= as.Date("2022/1/1")) %>% filter(`latitud (º)`<SapetLote_dt$latitud_max) %>% filter(`latitud (º)`>SapetLote_dt$latitud_min) %>% filter(`longitud (º)`<SapetLote_dt$longitud_max) %>% filter(`longitud (º)`>SapetLote_dt$longitud_min) -> sismos_en_SapetLote
+```
+
+Notamos que todos los sismos son superficiales, los cuales son los que más daños provocan en la superficie, teniendo en cuenta la profundidad del pozo que son entre 1900 y 6000 pies (0.57 km y 1.82 km respectivamente).
+
+```{r}
+SapetLote_dt$`Profundidad minima(Pies)`
+SapetLote_dt$`Profundidad maxima(Pies)`
+```
+
+Y sabiendo que los sismos superficiales ocurren a partir de los 70 kilómetros de profundidad.
+
+Podemos ver como estos sismos cercanos han afectado a la extracción diaria de gas en este Lote.
+
+```{r}
+plot(DD$SAPET.Lote.VII_VI ~ DD$Fecha, xlab="Fecha (días)", ylab="Gas (miles de m³)", main="Gas diario extraído en 2022", pch=9, )
+abline(v=sismos_en_SapetLote$`fecha UTC`, col="red")
+legend("bottomright", legend = c("Sismos"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("red"), lwd = 2)
+
+```
+Como sabemos que los sismos ocurrieron en Enero, veamos que pasa más de cerca
+
+```{r}
+sismos_en_SapetLote
+```
+
+```{r}
+Enero_SapetLote_gas_dt <- DD %>% filter(Fecha >= as.Date("2022/1/1")) %>% filter(Fecha < as.Date("2022/2/1")) %>% summarise(
+  Fecha=Fecha,
+  SAPET.Lote.VII_VI=SAPET.Lote.VII_VI
+)
+```
+
+```{r}
+plot(Enero_SapetLote_gas_dt, xlab="Fecha (días)", ylab="Gas (miles de m³)", main="Gas diario extraído en enero 2022", pch=9, )
+abline(v=sismos_en_SapetLote$`fecha UTC`[1], col="red")
+abline(v=sismos_en_SapetLote$`fecha UTC`[3], col="blue")
+abline(h=mean(Enero_SapetLote_gas_dt$SAPET.Lote.VII_VI), col="green")
+legend("bottomright", legend = c("Sismo día 1", "Sismo día 4", "Media de gas"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("red", "blue", "green"), lwd = 2)
+```
+Vemos que los días que ocurrieron sismos, la extracción fue baja, por ejemplo el día 1 de enero, ocurrieron 2 sismos y el día 4 ocurrió uno.
+
+Gas extraído el día 1 de enero del 2022
+
+```{r}
+gas_uno_enero_SapetLote <- Enero_SapetLote_gas_dt[Enero_SapetLote_gas_dt$Fecha == as.Date("2022/1/1"),]
+```
+
+Promedio de gas extraído de enero 2022
+
+```{r}
+media_enero_SapetLote <- mean(Enero_SapetLote_gas_dt$SAPET.Lote.VII_VI)
+```
+
+Con esto podemos ver el porcentaje que estuvo desfasado ese día en base al promedio mensual
+
+```{r}
+(media_enero_SapetLote - gas_uno_enero_SapetLote$SAPET.Lote.VII_VI)*100 / media_enero_SapetLote
+```
+Es un porcentaje realmente no muy interesante.
+
+Pero sí hay algo realmente interesante si miramos en la tabla anterior (`sismos_en_SapetLote`) las horas en el que ocurrieron los sismos. Vemos que los sismos del 1 de Enero fueron en la tarde, a las 3:26 p.m. y 5:04 p.m. específicamente.
+
+
+Eso quiere decir que el pozo tuvo toda la mañana para extraer el gas, sin embargo, veamos lo que sucede el 4 de Enero.
+
+Gas extraído el día 4 de enero del 2022
+```{r}
+gas_cuatro_enero_SapetLote <- Enero_SapetLote_gas_dt[Enero_SapetLote_gas_dt$Fecha == as.Date("2022/1/4"),]
+```
+
+Porcentaje de desfase en base al promedio mensual
+```{r}
+(media_enero_SapetLote - gas_cuatro_enero_SapetLote$SAPET.Lote.VII_VI)*100 / media_enero_SapetLote
+```
+Notemos que esta vez el desface es mucho menor a la media en un 42% y hay que darnos cuenta que la hora del sismo fue a las 3:09 a.m, es decir, en la madrugada.
+
+
+Esto quiere decir, que de alguna forma ese día ocurrió un sismo que hizo que la extracción de gas sea escarza
+
+
+### Analisis del pozo OLYMPIC lote XIII
+```{r}
+pozos_dt %>% filter(Lote=="OLYMPIC.lote.XIII") -> OLYMPICLote_dt
+
+sismos_dt %>% filter(`fecha UTC` >= as.Date("2022/1/1")) %>% filter(`latitud (º)`<OLYMPICLote_dt$latitud_max) %>% filter(`latitud (º)`>OLYMPICLote_dt$latitud_min) %>% filter(`longitud (º)`<OLYMPICLote_dt$longitud_max) %>% filter(`longitud (º)`>OLYMPICLote_dt$longitud_min) -> sismos_en_OLYMPICLote
+```
+
+Veamos que en los días que hubo un sismo, la extracción de gas fue baja
+
+```{r}
+plot(DD$OLYMPIC.Lote.XIII ~ DD$Fecha, xlab="Fecha (días)", ylab="Gas (miles de m³)", main="Gas diario extraído en 2022", pch=9, )
+abline(v=sismos_en_OLYMPICLote$`fecha UTC`, col="red")
+legend("bottomright", legend = c("Sismos"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("red"), lwd = 2)
+```
+Si vemos más de cerca
+
+```{r}
+Enero_OLYMPICLote_gas_dt <- DD %>% filter(Fecha >= as.Date("2022/1/1")) %>% filter(Fecha < as.Date("2022/2/1")) %>% summarise(
+  Fecha=Fecha,
+  OLYMPIC.Lote.XIII=OLYMPIC.Lote.XIII)
+```
+
+```{r}
+plot(Enero_OLYMPICLote_gas_dt, xlab="Fecha (días)", ylab="Gas (miles de m³)", main="Gas diario extraído en enero 2022", pch=9, )
+abline(v=sismos_en_OLYMPICLote$`fecha UTC`[1], col="red")
+abline(v=sismos_en_OLYMPICLote$`fecha UTC`[3], col="blue")
+abline(h=mean(Enero_OLYMPICLote_gas_dt$OLYMPIC.Lote.XIII), col="green")
+legend("bottomright", legend = c("Sismo día 1", "Sismo día 4", "Media de gas"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("red", "blue", "green"), lwd = 2)
+```
+Podemos notar que esos días hubo un extracción de gas por debajo del promedio
+
+
+### Analisis del pozo AGUAYTIA Lote 31 C
+```{r}
+pozos_dt
+pozos_dt %>% filter(Lote=="AGUAYTIA.Lote.31.C") -> AGUAYTIALote_dt
+
+sismos_dt %>% filter(`fecha UTC` >= as.Date("2022/1/1")) %>% filter(`latitud (º)`<AGUAYTIALote_dt$latitud_max) %>% filter(`latitud (º)`>AGUAYTIALote_dt$latitud_min) %>% filter(`longitud (º)`<AGUAYTIALote_dt$longitud_max) %>% filter(`longitud (º)`>AGUAYTIALote_dt$longitud_min) -> sismos_en_AGUAYTIALote
+
+```
+
+Veamos que en los días que hubo un sismo, la extracción de gas fue baja
+
+```{r}
+plot(DD$AGUAYTIA.Lote.31.C ~ DD$Fecha, xlab="Fecha (días)", ylab="Gas (miles de m³)", main="Gas diario extraído en 2022", pch=9, )
+abline(v=sismos_en_AGUAYTIALote$`fecha UTC`, col="red")
+legend("bottomright", legend = c("Sismos"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("red"), lwd = 2)
+```
+
+Si vemos más de cerca
+
+```{r}
+Enero_AGUAYTIALote_gas_dt <- DD %>% filter(Fecha >= as.Date("2022/1/1")) %>% filter(Fecha < as.Date("2022/2/1")) %>% summarise(
+  Fecha=Fecha,
+  AGUAYTIA.Lote.31.C=AGUAYTIA.Lote.31.C)
+```
+
+```{r}
+plot(Enero_AGUAYTIALote_gas_dt, xlab="Fecha (días)", ylab="Gas (miles de m³)", main="Gas diario extraído en enero 2022", pch=9)
+abline(v=sismos_en_AGUAYTIALote$`fecha UTC`[1], col="red")
+abline(h=mean(Enero_AGUAYTIALote_gas_dt$AGUAYTIA.Lote.31.C), col="green")
+legend("topleft", legend = c("Sismo día 29", "Media de gas"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("red", "green"), lwd = 2)
+```
+Podemos notar que hubo ese día estuvo por debajo de la media, sin embargo no es tanta la diferencia.
+
+Gas extraído el día 29 de enero del 2022
+```{r}
+gas_29_enero_AGUAYTIALote <- Enero_AGUAYTIALote_gas_dt[Enero_AGUAYTIALote_gas_dt$Fecha == as.Date("2022/1/29"),]
+gas_29_enero_AGUAYTIALote$AGUAYTIA.Lote.31.C
+```
+
+Podemos ver que este dato se encuentra dentro de  
+```{r}
+boxplot(Enero_AGUAYTIALote_gas_dt$AGUAYTIA.Lote.31.C)
+abline(h=gas_29_enero_AGUAYTIALote$AGUAYTIA.Lote.31.C, col="green")
+```
+Podemos ver que esta tasa de extracción el día 29 de enero se encuentra dentro del rango intercuartil, por lo que no veríamos ningún valor atípico en el.
+
+
+
+## Variable aleatoria
+
+Variable aleatoria: $\mathbb{𝑿} = \# \,sismos\,\, con\,\, magnitud\,\, mayor\,\, o\,\, iguales\,\, a\,\, 6$
+
+Tipo de variable: Discreta Modelo: $Poisson(\lambda)$ Rango: Todos los $\mathbb{R}$
+
+Hemos decidido estudiar los sismos mayores o iguales a 6 ya que consideramos que sismos menores a este grado no causarían una diferencia notoria en la producción de gas.
+
+El modelo que usaremos será poisson debido a que no sabemos cuando no ocurre un sismo, solo podemos saben cuando ocurren.
+
+Para usar este modelo necesitaremos su parámetro $\lambda$ que es en nuestro caso media del número de sismos con magnitud de 6 a más en un año.
+
+Para hallar lambda necesitamos todas los sismos de magnitud mayores o iguales a 6
+
+```{r}
+sismo_6<-sismos_dt%>%  filter(`magnitud (M)`>=6)
+sismo_6 %>% group_by(year = format(`fecha UTC`, "%Y")) %>% summarise(num_of_sis = n() ) -> num_sis
+```
+
+El número promedio de sismos mayores o iguales a magnitud 6 por año es de 3.786885 sismos. Todo esto, en base a una data de 1960 a 2022. (62 años).
+
+```{r}
+mean(num_sis$num_of_sis)
+```
+
+Nuestro modelo finalmente sería $Poisson(3.786885)$
+
+| $E(\mathbb{X})$ | $Var(\mathbb{X})$ | $sd(\mathbb{X})$ |
+|:---------------:|:-----------------:|:----------------:|
+|      3.79       |       3.79        |       1.95       |
+
+Podemos su gráfica de probabilidad
+
+```{r}
+plot(dpois(1:100, 3.786885), xlab = "Número de sismos de magnitud mayor o igual a 6", ylab = "Probabilidad", xlim=c(1,20))
+axis(1, at = 1:20)
+abline(v = mean(num_sis$num_of_sis), col="blue")
+abline(v = quantile(num_sis$num_of_sis, 0.99), col="red")
+legend("topright", legend = c("Media", "Cuantil 99"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("blue", "red"), lwd = 2)
+```
+
+Podemos darnos cuenta que el 99% de los sismos de magnitud mayores o iguales a 6 ocurren al año 9 veces o menos y justamente coincide que a partir de 9 de sismos a más la probabilidad es casi 0.
+
+Es más podemos ver que la probabilidad de que ocurran más de 9 sismos de magnitud mayor o igual a 6 está dada por $\mathbb{X}(x>9)$
+
+```{r}
+ppois(9, 3.786885, lower.tail = FALSE)
+```
+
+Es una probabilidad muy pequeña es por eso que tan solo en el 1% de los casos ocurre.
+
+
+## Variable aleatoria 
+
+Variable aleatoria: $\mathbb{𝑿} = \# \,sismos\,\, con\,\, profundidades\,\, menores\,\, o\,\, iguales\,\, a\,\, 70 km$
+
+Tipo de variable: Discreta Modelo: $Poisson(\lambda)$ Rango: Todos los $\mathbb{R}$
+
+Se decidió estudiar los sismos con profundidades menores o iguales a 70 km de la superficie puesto que estos son superficiales. Dichos sismos (con profundidades menores a 70km) son los que producen mayor vibración y por ende pueden generar mayor daño a las infraestructuras. Por lo tanto, sismos con un geocentro de profundidad mayor no deberían presentar un problema con la infraestructura de extracción y el pozo de gas. 
+
+El modelo que usaremos será poisson debido a que no sabemos cuando no ocurre un sismo, solo podemos saben cuando ocurren.
+
+Para usar este modelo necesitaremos su parámetro $\lambda$ que es en nuestro caso media del número de sismos con profundidad menor igual 70 km en un año.
+
+Para hallar lambda necesitamos todas los sismos de magnitud menores o iguales a 70 km
+
+```{r}
+sis_prof_70<-sismos_dt%>%  filter(`profundidad (km)`<=70)
+sis_prof_70 %>% group_by(year = format(`fecha UTC`, "%Y")) %>% summarise(num_of_sis= n() ) -> num_sis
+```
+
+
+El número promedio de sismos con profundidades menores o iguales 70 km por mes es de 19.5 Todo esto, en base a una data de 1960 a 2022. (62 años).
+```{r}
+(mean(num_sis$num_of_sis)/12)
+```
+
+Nuestro modelo finalmente sería $Poisson(19.50397)$
+
+$E(\mathbb{X})$    | $Var(\mathbb{X})$  | $sd(\mathbb{X})$
+:-----------------:|:------------------:|:----------------:|
+     19.50         |        19.50       |        4.416    
+
+Podemos su gráfica de probabilidad
+
+```{r}
+plot(dpois(1:57,19.50397), xlab = "Número de sismos de profundidad menor o igual a 70 km", ylab = "Probabilidad", xlim=c(1,57))
+axis(1, at = 1:57)
+abline(v = ((mean(num_sis$num_of_sis))/12), col="blue")
+abline(v = ((quantile(num_sis$num_of_sis, 0.80))/12), col="green")
+legend("topright", legend = c("Media", "Cuantil 80"),
+       title = "Leyenda",
+       title.adj = 0.5,   
+       col = c("blue", "green"), lwd = 1)
+```
+
+Podemos darnos cuenta que el 80% de los sismos de menores o iguales a 70 km de profundidad ocurren un mes una 20 veces o menos. Asimismo, la probabilidad produzcan mas de 34 sismos a una profundidad de 70km es prácticamente 0.
+
+Para demostrarlo se mostrará la probabilidad de que ocurran 34 o más sismos a una profundidad menor igual a 70 km. Se usará $\mathbb{X}(x>70)$
+
+```{r}
+ppois(34, 19.81855, lower.tail = FALSE)
+```
+Como se observar es una probabilidad muy pequeña.
+
+
+Como pudimos ver en la gráfica es muy probable que ocurran entre 10 y 30 sismos de profundidad menor o igual a 70 km.
+Podemos calcular la probabilidad que ocurran entre 10 y 30 sismos con $$\mathbb{P}_X(10<x<30)$$
+```{r}
+sum(dpois(10:30, 19.81855))
+```
+Vemos que es **demasiado** probable que ocurran entre 10 y 30 sismos, exactamente un 98.24%
+
+
+
+## Conclusiones
+
+Para empezar hemos comparado la extracción de gas natural con los sismos en rangos de meses donde no hemos podido encontrar relación alguna a excepción de la profundidad y magnitud de sismo, sin embargo fue una relación muy baja. Más tarde, hemos añadido información de la extracción de gas natural y sismos en rangos de días donde si obtuvimos relaciones entre sus variables. 
+
+Gracias a esta información hemos realizado algunas variables aleatorias que nos brindan los siguientes datos. Con respecto a la primera variable nos indica que existe una mayor probabilidad de que ocurra entre 3 a 4 sismos durante el año con magnitud mayor o igual a 6, por lo que podríamos plantear a la empresa de gas, por ejemplo, que se haga un checkeo del pozo cada 3 o 4 veces al año, ahorrando dinero y tiempo. 
+
+La segunda nos indica que hay una grande probabilidad de que ocurran entre 10 y 30 sismos durante el año con una profundidad menor o igual a 70km, lo que implicaría mayores daños a los pozos, tiene una probabilidad de 0.98.
+
+
+
+# Referencias
+
+[1] Se extrajo la categorización de los sismos según su profundidad y su daños [udc](https://www.udc.es/dep/dtcon/estructuras/ETSAC/Investigacion/Terremotos/QUE_ES.htm#:~:text=Cuando%20ocurre%20en%20la%20corteza,unos%206.370%20km%20de%20profundidad)
+
+[2] Se extrajo los datos de conversión de latitud y longitud a kilómetros [elarning](https://elearning13.hezkuntza.net/014312/mod/page/view.php?id=132)
+
+[3] Se extrajo los datos para el mapa de pozos [geogpsperu](https://www.geogpsperu.com/2018/07/mapa-de-pozos-ana-descargar-shapefile.html)
+
+[4] Se extrajo los datos para el mapa de perú [geogpsperu](https://www.geogpsperu.com/2014/03/base-de-datos-peru-shapefile-shp-minam.html)
+
+[5] Se extrajeron los datos de profundidad de los pozos SAPET lote VII_VI, OLYMPIC LOTE XIII,REPSOL LOTE 57 CNPC PERU LOTE X,AGUAYTIA.Lote.31.C , Pluspetrol.Lote.88,SAVIA.LOTE.Z.2B [minem](https://www.minem.gob.pe/minem/archivos/file/Hidrocarburos/estadistica%202010/Noviembre/Pozos%20de%20Desarrollos%20Perforados.pdf)
+
+[6] Se extrajo los datos de profundidad del pozo AGUAYTIA.Lote.31.C [gasnatural](http://gasnatural.osinerg.gob.pe/contenidos/potenciales_inversionistas/alcance_labores-actividad_exploracion_explotacion_lote31.html)
+
+[7] Se extrajon los datos del tamaño de los lotes [perupetro](https://www.perupetro.com.pe/wps/wcm/connect/corporativo/20fcd57f-47e6-4e03-8d51-5d3aedc97524/PPT+Juan+Carlos+Huyhua-+Cusco+versi%C3%B3n+final.pdf?MOD=AJPERES) [perupetro](https://www.perupetro.com.pe/wps/wcm/connect/corporativo/10c04c2c-71a6-4a8c-a64d-04a2da44711c/Mapa%2BLote%2B57.pdf?MOD=AJPERES)
+
+
+
+
