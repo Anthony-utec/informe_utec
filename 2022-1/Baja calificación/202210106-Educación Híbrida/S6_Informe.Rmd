@@ -1,0 +1,608 @@
+---
+title: "P2 Informe" 
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+---
+
+## **Introducción**
+El tema que se escogió para realizar el estudio es "Modalidades de educación superior actual en Lima".
+
+### Relevancia:
+Este tema lo consideramos muy importante debido a la coyuntura actual que abarca la educación de nivel superior en estos momentos; ya que no podemos regresar completamente a la presencialidad por muchos factores externos queremos investigar los tres pilares de enseñanza actuales que implican el modelo híbrido, presencial y virtual. Nuestro objetivo será recolectar información de los estudiantes para considerar así los puntos positivos y negativos que generan estos modelos de enseñanza  aplicados en las universidades de la ciudad de Lima.
+
+### **Planificación**
+Para la planificación, usaremos el Diagrama de Gannt (el cual es el diagrama recomendado) de esta manera dejaremos reflejada nuestra organización y repartición respecto a las tareas grupales realizadas a lo largo de nuestro proyecto.
+
+Sección - "Librerías":
+
+```{r}
+library(dplyr)
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(plyr)
+library(readxl)
+library(RColorBrewer)
+library(modeest)
+library(lmtest)
+```
+Una vez ya cargadas todas las librerías que necesitaremos a lo largo de nuestro proyecto, procedemos a leer nuestro archivo "Planificacion.csv" (el cual en principio era un excel el cual contenía las tareas asignadas a cada miembro del grupo especificando la fecha inicio en la que se comenzó dicha tarea y la fecha fin en la que se culmino).
+```{r}
+gantt <- read_csv("Planificacion3.csv")
+```
+
+```{r}
+acts <- c("Poblacion, muestra y muestreo","Limpieza de la Base de Datos","Relevancia","Proceso de Recoleccion de datos","Analisis Descriptivo","Slides", "Planificacion","Variables","Planificacion de la encuesta", "Analisis Probabilistico")
+els <- c("Jheidy","Ximena","Justin","Emilio","Fabiola")
+```
+
+```{r}
+(g.gantt <- gather(gantt, "state", "date", 4:5))
+```
+
+```{r}
+g.gantt %>% mutate(
+  date = as.Date(date, "%Y.%m.%d")) %>% mutate(
+Proyect.element=factor(Proyect, els)) -> g.gantt
+```
+
+```{r}
+ggplot(g.gantt, aes(date, Activity, color = Proyect, group=Item)) +
+  geom_line(size = 10) +
+  labs(x="Tiempo", y=NULL, title="Planificación")
+```
+
+## **Datos**
+
+### Recolección de datos
+
+Realizamos la recopilación de datos mediante encuestas entorno al tema de las  Modalidades de la Educación Superior en Lima, siendo los encuestados no solo estudiantes de UTEC, si no también estudiantes de universidades externas, estas a su vez se dividen en 3 modalidades (virtual,presencial y híbrida). Nuestra encuesta se hizo en la plataforma "Google Forms", donde una vez ya formuladas todas nuestras preguntas, procedimos a enviar el enlace de nuestra encuesta, tanto a nuestros compañeros estudiantes de la UTEC, como también, amigos o conocidos de universidades externas para que puedan completar nuestra encuesta. Recopilando de esta manera su información personal y  opinión de como están llevando las clases con este tipo de modalidades, es así que gracias a la encuesta vemos que el promedio de edades de los  alumnos varia entre  18 años y 19 años, así mismo podemos observar que entre las diferentes universidades, la más repetitiva (la moda) es la Universidad de Ingeniería y Tecnología (UTEC). Tambien cabe resaltar que la mayoría de los alumnos están cursando el 3er ciclo  en las carreras de ingeniería y ciencias, teniendo en cuenta también, que las horas dedicadas al estudio alternan entre 5 y 6 horas al día aproximadamente. Tambien podemos observar una divergencias de respuestas acerca de las distintas modalidades (virtual,presencial e híbrida), y los dispositivos de uso frecuente por los estudiantes.
+
+### Población, muestra y muestreo
+
+- La población de estudio de nuestro proyecto son estudiantes universitarios de Lima.
+
+- Muestra: Estudiantes universitarios de Lima que esten llevando cursos en el presente ciclo.
+
+- Tipo de muestreo: muestreo no probabilistico por conveniencia, esto se debe a que nosotros como grupo elegimos a los que formarían parte de nuestro estudio. 
+
+- El tamaño de nuestra muestra fue de 205 estudiantes.
+
+### Variables
+* Nombre: Es de tipo categórica nominal y su restricción es que no se puede ordenar. 
+
+* Edad: Es de tipo numérica discreta y su restricción es que no puede ser un número negativo y debe ser un número entero mayor a 16.
+
+* Universidad: Es de tipo categórica nominal y su restricción es que sean de Lima 
+* Ciclo: Es de tipo numérica discreta y la restricción es que esta en el rango de 1 a 10.
+
+* Carrera: Es de tipo categórica nominal y la restricción es que son alumnos universitarios de Lima.  
+
+* Cursos: Es de tipo numérica discreta y la restricción es que sea un número entero mayor que 2 y menor que 8.
+
+* HorasEstudio: Es de tipo numérica continua y la restricción es que esta en un rango de 1 a 9 y sea un numero entero.
+
+* Modalidad: Es de tipo categórica nominal y su restricción es que se elija en entre tres opciones (presencial, híbrida, virtual).  
+
+* RecuersosNecesariosVirtual: Es de tipo categórica nominal y su restricción es una respuesta de si y no.
+
+* DispositivoElectronico: Es de tipo categórica nominal y su restricción es una respuesta de un si y no.
+
+* CalidadInternet: es de tipo numérica discreta y su restricción es que esta en un rango de 1 a 10.  
+
+* Satisfacción: es de tipo categórica nominal  y su restricción es que es una respuesta de si y no.      
+
+* ElegirModalidad: Es de tipo categórica nominal y su restricción es que se elija en entre tres opciones(presencial, híbrida, virtual).
+
+* Sexo: Es de tipo categórica nominal y su restricción es que se elija entre dos opciones (F y M). Donde "F" representa el sexo femenino y "M" representa el sexo masculino.
+
+## Limpieza de base de datos 
+
+A continuación explicaremos como es que limpiamos nuestra Base de Datos y el paso a paso de como llegamos a considerar de como nuestra Base de Datos esta limpia:
+
+- Primero tenemos que cargar las librerías "readr" y “dyplr”, como ya lo hicimos anteriormente en nuestra sección "Librerías".
+
+- Luego leemos nuestro archivo "Base de Datos_P1 - Hoja 1.csv":
+```{r}
+BD<-read.csv("Base de Datos_P1 - Hoja 1.csv")
+BD
+```
+Para ver todos los nombres de las variables:
+```{r}
+names(BD)
+```
+Ahora que visualizamos los nombres de las variable podremos renombrarlas. Teniendo en cuenta que se debe evitar tildes, caracteres especiales y espacios. Esto lo guardamos en una nueva Base de Datos "BD1", que es una copia de “BD”, pues de esta manera no perdemos la base de datos original.
+```{r}
+BD1=BD
+names(BD1) = c("Nombres","Edad","Universidad","Ciclo","Carrera","Cursos","HorasEstudio","Modalidad","RecursosNecesariosVirtual","DispositivoElectronico","CalidadInternet","SatisfechoModalidad","ElegirModalidad","Sexo")
+names(BD1)
+```
+Cambiando los espacios vacíos por NA:
+```{r}
+BD2=BD1
+BD2[BD2==""]<-NA
+#vemos la comparación NA's que habían antes y que hay ahora al cambiar los espacios en blanco por "NA"
+sum(is.na(BD1))
+sum(is.na(BD2))
+```
+Eliminando espacios en blanco de datos mal escritos:
+```{r}
+BD2$Nombres<-str_trim(BD2$Nombres, side="both")
+BD2$Universidad<-str_trim(BD2$Universidad, side="both")
+BD2$Carrera<-str_trim(BD2$Carrera, side="both")
+```
+Tambien, percibimos que ciertas respuestas son exactamente las mismas (hacen referencia a una sola) solo que de una forma distinta por ciertos encuestados, a continuación pasaremos todas las respuestas que son iguales a representarlas por una sola:
+-Primero cambiamos todas las respuestas de Universidad a minúscula para homologar:
+```{r}
+BD2
+BD2$Universidad <- str_to_lower(BD2$Universidad)
+table(BD2$Universidad)
+```
+Luego, removemos los acentos para las palabras con acentos y sin acentos, con mismo significado:
+```{r}
+BD2$Universidad<- chartr('áéíóúñ', 'aeioun', BD2$Universidad)
+table(BD2$Universidad)
+```
+Ahora unificamos las palabras con igual significado:
+```{r}
+BD2%>%mutate(Universidad=str_to_lower(Universidad)) %>% mutate(Universidad=
+                                                                 ifelse(Universidad %in%c("agraria la molina","unalm","uiversidad nacional agraria la molina","universidad agraria la molina","universidad nacional agraria la molina"),"UNALM",                                                                ifelse(Universidad %in%c("certus (instituto)","certus"),"CERTUS",               ifelse(Universidad=="columbia","COLUMBIA",                                      ifelse(Universidad %in%c("pontifica universidad catolica del peru","pontificie universidad catolica del peru","pucp","pontificia universidad catolica del peru"),"PUCP",                                                                   ifelse(Universidad %in%c("san martin de porres","usmp"),"USMP",                  ifelse(Universidad %in%c("tls","toulouse lautrec"),"TLS",                       ifelse(Universidad %in%c("u lima","universidad de lima","ulima"),"ULIMA",       ifelse(Universidad %in%c("univeridad nacional de ingenieria","uni"),"UNI",      ifelse(Universidad %in%c("universidad andina del cusco","universidade andina del cusco","uac"),"UAC",                                                             ifelse(Universidad %in%c("universidad cesar vallejo","ucv"),"UCV",              ifelse(Universidad %in%c("universidad de ingenieria y tecnologia (utec)","utec (intercambio con colorado school of mines)","universidad de ingenieria y tecnologia","universidad de ingeniria y tecnologia(utec)","utec"),"UTEC",       ifelse(Universidad %in%c("universidad del pacifico","up"),"UP",                 ifelse(Universidad %in%c("universidad nacional de la amazonia peruana","unap"),"UNAP",                                                        ifelse(Universidad %in%c("universidad nacional mayor de san marcos","unmsm"),"UNMSM",                                                       ifelse(Universidad %in%c("universidad peruana de ciencias aplicadas","upc"),"UPC",                                                        ifelse(Universidad %in%c("upn","universidad privada del norte"),"UPN",          ifelse(Universidad %in%c("cayetano heredia","upch","universidad peruana cayetano heredia"),"UPCH",                                                              ifelse(Universidad %in%c("cientfica del sur","ucsur"),"UCSUR",                  ifelse(Universidad %in%c("norbert wiener","uwiener"),"UWiener",                 ifelse(Universidad=="poussin","POUSSIN",                                      ifelse(Universidad %in%c("urp","ricardo palma"),"URP",                          ifelse(Universidad=="sencico","SENCICO",                                        ifelse(Universidad %in%c("ucsm","universidad catolica de santa maria"),"UCSM",
+ifelse(Universidad %in%c("universidad de san antonio abad del cusco","unsaac"),"UNSAAC",
+ifelse(Universidad=="universidad nacional del callao","UNAC",
+ifelse(Universidad=="usil","USIL",
+ifelse(Universidad=="utp","UTP",Universidad))))))))))))))))))))))))))))->BD2
+BD2
+```
+Y repetimos el procedimiento anterior para la Variable "Carrera":
+```{r}
+BD2%>%mutate(Carrera=str_to_lower(Carrera)) %>% mutate(Carrera=ifelse(Carrera %in%c("administración y marketing","Adm. Y marketing"),"Administración y marketing",ifelse(Carrera %in%c("Administración y Negocios Digitales","Administración y negocios digitales"),"Administración y Negocios Digitales",ifelse(Carrera=="Arquitectura de interiores","Arquitectura de Interiores",ifelse(Carrera %in%c("bioingenieria","Bioingeniria ","Bioingeniería","Bioingenieria","bioingenieria "),"Bioingeniería",ifelse(Carrera %in%c("administración de negocios internacionales","Administración de negocios internacionales","Administración de Negocios Internacionales"," Administración y negocios internacionales","Negocios Internacionales","Negocios y Administración"),"Negocios Internacionales y Administración",ifelse(Carrera %in%c("cs","ciencia de la computación","Ciencia de computación","Ciencia de la computación","Ciencia de la Computación","Ciencias de la computación","Ciencias de la Computacion","Computer Science","CS","","ciencias de la computacion"),"CS",ifelse(Carrera%in%c("ing. civil","Ingenieria Civil","Ingeniería civil","Ingeniería Civil","Civil","Ing civil","ING civil","Ing. Civil"),"ING. Civil",ifelse(Carrera== "Ingeniería de Computación y Sistemas","ING. Computación y Sistemas",ifelse(Carrera %in%c("ingeniería de energía", "Ingeniería de energía"),"ING. Energía",ifelse(Carrera%in%c("Ingeniería de las telecomunicaciones","Ingenieria de telecomunicaciones"),"ING. Telecomunicaciones",ifelse(Carrera== "Comunicaciónes","Ciencia de la Comunicación",ifelse(Carrera== "Ingeniería en industrias alimentarias","ING. Industrias Alimentarias",ifelse(Carrera== "Ingeniería en Gestión Empresarial","ING en Gestión Empresarial",ifelse(Carrera%in%c("ing. meteorologíca y gestión de riesgo","ingeniería meteorológica y gestión de riesgos climáticos","Meteorología","Ingienería meteorológica y gestión de riesgos climáticos","Ingeniería Meteorológica y Gestión del Riesgo Climático","Ingeniería Meteorológica y Gestión de riesgos climáticos","Ingeniería meteorológica y gestión de riesgos climáticos","Ingeniera meteorológica y gestión en riesgos climáticos","Ig meteorologica y gestion de risgos climaticos","ING meteorología","Ing. Meteorológica","ING. Meteorológica y Gestión de Riesgos Climáticos"),"ING. Meteorologíca y Gestión de Riesgo",ifelse(Carrera%in%c("Ingeniería ambiental","Ingeniería Ambiental","Ing. Ambiental","Ingenieria Ambiental"),"ING. Ambiental",ifelse(Carrera%in%c("Pesquería","Ing. Pesquera"), "ING. Pesquera",ifelse(Carrera %in%c("ing quimica","ingeniería química"),"ING.Química",ifelse(Carrera%in%c("ingeneria de sistemas","ingeniería de computación y sistemas","Sistemas","Ing de sistemas","Ingeneria De sistemas","Ingenieria de Sistemas"),"ING. Sistemas",ifelse(Carrera%in%c("ing. industrial","Insutrial","Ingeniería Industrial","Ingeniería industrial","ingeniería industrial","Ing industrial","Ingenería Industrial","Ing. Industrial","Ing.Industrial","insutrial","ing.industrial","ingenerã­a industrial","ing industrial","ingenierã­a industrial"),"ING. Industrial",ifelse(Carrera%in%c("	ingeniería mecaníca","Ingeniería Mecánica","ingeniería mecánica","Ingeniería Mecaníca","Ingenieria Mecanica","ing. mecánica","Ing. Mecánica"),"ING. Mecánica",
+ifelse(Carrera%in%c("ingeniería mecatrónica","mecatrónica","ing. mecatrónica","Mecatrónica","Mecatronica","Ingeniería mecatrónica","Ingeniería mecatronica","Ingenieria mecatrónica","Ing. Mecatronica","Ing. Mecatrónica"),"ING. Mecatrónica",ifelse(Carrera=="arquitectura","Arquitectura",
+ifelse(Carrera== "Economia","Economía",ifelse(Carrera== "ESTADÍSTICA INFORMÁTICA","Estadistica e Informatica",Carrera)))))))))))))))))))))))))->BD2
+BD2
+```
+# **Análisis Descriptivo**
+
+## *Descriptores Numéricos*
+
+## *Variables numéricas*
+
+### *Edad*
+Hallando la Media, Mediana, 1er quartil, 3er quartil, el mínimo y el máximo de la Variable "Edad":
+```{r}
+summary(BD2$Edad)
+```
+Con el comando "summary" anteriormente implementado, concluimos que: 
+
+La media es 19.29, es decir, los datos están alrededor de 19.29
+La mediana es 19, es decir, al menos la mitad de los datos son mayores o iguales a 19 o también, al menos la mitad de los datos son menores o iguales a 19.
+El 1er quartil (Q1) es 18
+El 3er quartil (Q3) es 20
+La mínima edad es 16
+La máxima edad es 26
+
+Hallando la moda de la variable "Edad":
+```{r}
+mfv(BD2$Edad)
+```
+Haciendo uso del comando "mfv" podemos observar que la moda de la variable "Edad" es 18 años, lo cual indica que es el valor más repetido en la distribución de casos de esta variable.
+
+Hallando el rango (Máximo - Mínimo):
+```{r}
+Rango_Edad=26-16
+Rango_Edad
+```
+El rango de edades es 10 años. 
+
+Hallando el rango intercuartil (Q3-Q1):
+```{r}
+R.I_Edad=20-18
+R.I_Edad
+```
+Como el rango intercuartil es 2, entonces podemos decir que la edad de los encuestados no varia mucho a primera vista, es por ello que se realiza un Diagrama de Cajas para evaluar la distribución de la edad en cada cuartil.
+
+Diagrama de cajas de la variable "Edad":
+```{r}
+boxplot(BD2$Edad,col="green", horizontal = TRUE)
+```
+Haciendo un análisis de la gráfica:
+De igual manera, podemos corroborar haciendo uso del comando "boxplot" que Q1=18 y Q3=20, por ende, confirmamos que el valor de la variable "R.I_Edad" efectivamente es 2. Tambien podemos confirmar que el valor de la mediana=19, el valor mínimo=16 y el valor máximo=26. Algo a resaltar al visualizar la gráfica es que la variable "Edad" tiene 3 datos atípicos, lo cual nos representa el rango de edad en que menos probable es encontrar alumnos estudiando en una universidad.
+
+Histograma respecto a la variable "Edad":
+```{r}
+hist(BD2$Edad , breaks = 4, main = "Edad",xlab = "Edades" , ylab = "Frecuencia", xlim=c(16,30) ,col="skyblue")
+```
+*Del histograma podemos visualizar que el rango de edades de los alumnos presentes en nuestra Base de Datos alternan entre los 16 hasta los 26 años, donde las edades de los alumnos tienen mayor presencia entre 16 a 18 años. Así mismo en la gráfica se visualiza que las edades menos frecuentes se dan entre los 22 y 26 años. Lo cual representa los datos atípicos que se habían encontrado en el Diagrama de Cajas*
+
+```{r}
+hist(BD2$Edad,
+     breaks = 20,   
+     main = "Histograma de la Variable Edad", 
+     freq = FALSE,
+     xlab = "Edades",                                          
+     ylab = "Frecuencia relativa", 
+     xlim = c(15,28),
+     #ylim = c(0,1),
+     col = "#ff9900",
+     border = "#0040ff"
+     )
+
+curve(dnorm(x, mean=mean(BD2$Edad), sd=sd(BD2$Edad)), add=TRUE, col="#00ff00", lwd=3)
+
+abline(v=mean(BD2$Edad), lwd=5, lty=3, col="blue3")
+abline(v=median(BD2$Edad), lwd=5, lty=3, col="red")
+abline(v=mfv(BD2$Edad), lwd=5, lty=3, col="#00E5EE")
+legend(x='topleft',legend=c("Media","Mediana", "Moda"),fill=c("blue3", "red", "#00E5EE"), inset = c(0,0),cex=0.8)
+```
+Haciendo un análisis del histograma previamente visualizado podemos decir que la gráfica esta sesgada hacia la derecha, pues nos muestra que la moda es menor que la mediana, y la mediana es menor que la media (moda < mediana < media lo que equivale a 18 < 19 < 19.29 respectivamente)
+
+Hallando la varianza:
+```{r}
+var(BD2$Edad)
+```
+Haciendo uso del comando "var", obtenemos que la varianza de la variable "Edad" es 3.56, esto quiere decir, que las edades de los alumnos encuestados varia en 3.56 años.
+
+Hallando la desviación estándar:
+```{r}
+sd(BD2$Edad)
+```
+Haciendo uso del comando "sd", obtenemos que la desviación estándar de la variable "Edad" es 1.88, esto nos quiere decir que los datos de la variable "Edad" se encuentran dispersos en 1.88 años.
+
+Hallando el coeficiente de variación:
+```{r}
+CV_Edad<-(sd(BD2$Edad)/mean(BD2$Edad))*100
+CV_Edad
+```
+Empleando el comando anterior, obtenemos que el coeficiente de variación de la variable "Edad" es 9.78, como el coeficiente de variación es menor a 10 % esto nos quiere decir que los datos tienen poca variabilidad (altamente homogénea).
+
+### *Horas de Estudio*
+
+Posteriormente se va analizar la relación estadística de las horas de estudio. Para ello se va a calcular la Media, Mediana, 1er quartil, 3er quartil, el mínimo y el máximo de la variable:
+```{r}
+summary(BD2$HorasEstudio)
+```
+Con el comando "summary" anteriormente implementado, concluimos que: 
+La media es 5.322, es decir, los datos están alrededor de 5.322
+La mediana es 5, es decir, al menos la mitad de los datos son mayores o iguales a 5 o también, al menos la mitad de los datos son menores o iguales a 5.
+El 1er quartil (Q1) es 4
+El 3er quartil (Q3) es 7
+La mínima cantidad de horas que estudian los alumnos es 1 hora. 
+La máxima cantidad de horas que estudian los alumnos son 9 horas.
+
+Hallando la moda de la variable "HorasEstudio":
+```{r}
+mfv(BD2$HorasEstudio)
+```
+Haciendo uso del comando "mfv" podemos observar que la moda de la variable "HorasEstudio" es 4 horas, lo cual indica que es el valor más frecuente/repetido en la distribución de casos de esta variable.
+
+Hallando el rango (Máximo - Mínimo):
+```{r}
+Rango_HorasEstudio=9-1
+Rango_HorasEstudio
+```
+Hallando el rango intercuartil (Q3-Q1):
+```{r}
+R.I_Horas=7-4
+R.I_Horas
+```
+El rango intercuartil de la variable "HorasEstudio" es 3.
+
+Diagrama de cajas de la variable "HorasEstudio":
+```{r}
+boxplot(BD2$HorasEstudio,col="green")
+```
+Haciendo un análisis de la gráfica:
+De igual manera, podemos corroborar haciendo uso del comando "boxplot" que Q1=4 y Q3=7, por ende, confirmamos que el valor de la variable "R.I_Horas" efectivamente es 3. Tambien podemos confirmar que el valor de la mediana=5, el valor mínimo=1 y el valor máximo=9. De la misma manera, al visualizar la gráfica, también nos damos cuenta que la variable "HorasEstudio" no tiene datos atípicos.
+
+Histograma respecto a la variable "HorasEstudio":
+```{r}
+hist(BD2$HorasEstudio , breaks = 4, main = "Horas de Estudio",xlab = "Horas" , ylab = "Frecuencia", xlim=c(0,12) ,col="#EE6363")
+```
+*Del histograma podemos visualizar que el rango de las horas que estudian los estudiantes diariamente en nuestra Base de Datos alternan entre 1 hora y 9 horas, donde las horas que estudian los alumnos se presentan mayormente entre 4 y 6 horas diarias.*
+
+```{r}
+hist(BD2$HorasEstudio,
+     breaks = 20,   
+     main = "Histograma de la Variable Horas de Estudio", 
+     freq = FALSE,
+     xlab = "Horas",                                          
+     ylab = "Frecuencia relativa", 
+     xlim = c(1,12),
+     #ylim = c(0,1),
+     col = "#ff9900",
+     border = "#0040ff"
+     )
+
+curve(dnorm(x, mean=mean(BD2$HorasEstudio), sd=sd(BD2$HorasEstudio)), add=TRUE, col="#00ff00", lwd=3)
+
+abline(v=mean(BD2$HorasEstudio), lwd=5, lty=3, col="blue3")
+abline(v=median(BD2$HorasEstudio), lwd=5, lty=3, col="red")
+abline(v=mfv(BD2$HorasEstudio), lwd=5, lty=3, col="#00E5EE")
+legend(x='topleft',legend=c("Media","Mediana", "Moda"),fill=c("blue3", "red", "#00E5EE"), inset = c(0,0),cex=0.8)
+```
+Haciendo un análisis del histograma previamente visualizado podemos decir que la gráfica esta sesgada hacia la derecha, pues el gráfico nos muestra que la moda es menor que la mediana, y la mediana es menor que la media (moda < mediana < media -> 4 < 5 < 5.322)
+Presentando la Curva de Densidad de la variable "Horas de Estudio":
+```{r}
+hist(BD2$HorasEstudio,main="Histograma de la variable Horas de Estudio",xlab="Horas de Estudio",col="pink", prob=T, freq=F,breaks = "FD")
+lines(density(BD2$HorasEstudio,na.rm=T),lwd=2,col="black")
+abline(v = c(mean(BD2$HorasEstudio,na.rm=T), median(BD2$HorasEstudio,na.rm=T)), col = c("red", "blue3"),lwd=2)
+legend(x='topleft',legend=c("Media","Mediana","Curva de Densidad"),fill=c("red", "blue3","black"), inset = c(0,0),cex=0.8)
+```
+En la gráfica podemos observar que en los puntos máximos, es la cantidad de horas en donde los estudiantes estudian frecuentemente.
+
+Hallando la varianza:
+```{r}
+var(BD2$HorasEstudio)
+```
+Haciendo uso del comando "var", obtenemos que la varianza de la variable "HorasEstudio" es 3.88 horas.
+
+Hallando la desviación estándar:
+```{r}
+sd(BD2$HorasEstudio)
+```
+Haciendo uso del comando "sd", obtenemos que la desviación estándar de la variable "HorasEstudio" es 1.97 horas.
+
+Hallando el coeficiente de variación:
+```{r}
+CV_Horas<-(sd(BD2$HorasEstudio)/mean(BD2$HorasEstudio))*100
+CV_Horas
+```
+Haciendo uso del comando anterior, obtenemos que el coeficiente de variación de la variable "HorasEstudio" es 37.04
+
+### *Cursos*
+
+Hallando la Media, Mediana, 1er quartil, 3er quartil, el mínimo y el máximo de la Variable "Cursos":
+```{r}
+summary(BD2$Cursos)
+```
+Con el comando "summary" anteriormente implementado, concluimos que: 
+La media es 5.649, es decir, los datos están alrededor de 5.649
+La mediana es 6 cursos, es decir, al menos la mitad de los datos son mayores o iguales a 6 o también, al menos la mitad de los datos son menores o iguales a 6.
+El 1er quartil (Q1) es 5
+El 3er quartil (Q3) es 6
+La mínima cantidad de cursos que llevan los alumnos es 1 curso.
+La máxima cantidad de cursos que llevan los alumnos son 8 cursos.
+
+Hallando la moda de la variable "Cursos":
+```{r}
+mfv(BD2$Cursos)
+```
+Haciendo uso del comando "mfv" podemos observar que la moda de la variable "Cursos" es 6 cursos, lo cual indica que es el valor más repetido en la distribución de casos de esta variable.
+
+Hallando el rango (Máximo - Mínimo):
+```{r}
+Rango_Cursos=8-1
+Rango_Cursos
+```
+Hallando el rango intercuartil (Q3-Q1):
+```{r}
+R.I_Cursos=6-5
+R.I_Cursos
+```
+El rango intercuartil de la variable "Cursos" es 1.
+
+Diagrama de cajas de la variable "Cursos":
+```{r}
+boxplot(BD2$Cursos,col="green")
+```
+Haciendo un análisis de la gráfica:
+De igual manera, podemos corroborar haciendo uso del comando "boxplot" que Q1=5 y Q3=6, por ende, confirmamos que el valor de la variable "R.I_Cursos" efectivamente es 1. Tambien podemos confirmar que el valor de la mediana=6, el valor mínimo=1 y el valor máximo=8. De la misma manera, al visualizar la gráfica, también nos damos cuenta que la variable "Cursos" tiene 4 datos atípicos.
+
+Histograma respecto a la variable "Cursos":
+```{r}
+hist(BD2$Cursos , breaks = 4, main = "Cursos",xlab = "Cantidad de Cursos" , ylab = "Frecuencia", xlim=c(0,10) ,col="#20B2AA")
+```
+*Del histograma podemos visualizar que el rango de los cursos que llevan el presente ciclo los estudiantes en nuestra Base de Datos alternan entre 1 curso y 8 cursos, donde la cantidad de cursos que estudian los alumnos en su mayoría oscilan entre 4 a 6 cursos.*
+
+```{r}
+hist(BD2$Cursos,
+     breaks = 20,   
+     main = "Histograma de la Variable Cursos", 
+     freq = FALSE,
+     xlab = "Cantidad de Cursos",                                          
+     ylab = "Frecuencia relativa", 
+     xlim = c(1,8),
+     #ylim = c(0,1),
+     col = "#ff9900",
+     border = "#0040ff"
+     )
+
+curve(dnorm(x, mean=mean(BD2$Cursos), sd=sd(BD2$Cursos)), add=TRUE, col="#00ff00", lwd=3)
+
+abline(v=mean(BD2$Cursos), lwd=5, lty=3, col="blue3")
+abline(v=median(BD2$Cursos), lwd=5, lty=3, col="red")
+legend(x='topleft',legend=c("Media","Mediana"),fill=c("blue3", "red"), inset = c(0,0),cex=0.8)
+```
+Haciendo un análisis del histograma previamente visualizado podemos decir que la gráfica esta sesgada hacia la izquierda, pues el gráfico nos muestra que la media es menor que la mediana (media < mediana ->5.649 < 6)
+
+Hallando la varianza:
+```{r}
+var(BD2$Cursos)
+```
+Haciendo uso del comando "var", obtenemos que la varianza de la variable "Cursos" es 1.54
+
+Hallando la desviación estándar:
+```{r}
+sd(BD2$Cursos)
+```
+Haciendo uso del comando "sd", obtenemos que la desviación estándar de la variable "Cursos" es 1.24
+
+Hallando el coeficiente de variación:
+```{r}
+CV_Cursos<-(sd(BD2$Cursos)/mean(BD2$Cursos))*100
+CV_Cursos
+```
+Haciendo uso del comando anterior, obtenemos que el coeficiente de variación de la variable "Cursos" es 21.98
+
+Interacción entre las variables "Cursos" y "HorasEstudio":
+```{r}
+Cursos<-BD2$Cursos
+Horas_de_Estudio<-BD2$HorasEstudio
+plot(x=Cursos, y= Horas_de_Estudio)
+lm.cursos.horas_estudio <- lm(BD2$Cursos ~ BD2$HorasEstudio)
+lm.cursos.horas_estudio
+abline(lm.cursos.horas_estudio, col = "red")
+```
+Hallamos la covarianza y la correlación entre las variables "Cursos" y "HorasEstudio"
+```{r}
+cov(Cursos,Horas_de_Estudio)
+cor(Cursos,Horas_de_Estudio)
+```
+Podemos observar, que el grado de asociación entre estas 2 variables no es lineal, y al ver que el valor de la correlación es menor que 0.75 podemos concluir que no hay una buena relación entre estas 2 variables.
+
+### Sexo
+
+```{r}
+tabSex<-table(BD2$Sexo)
+barplot(tabSex, main = "Grafico de Barras", col = "violet")
+```
+Del gráfico, podemos visualizar que hay una mayor cantidad notable de alumnos hombres en las diversas universidades a comparación de las alumnas mujeres.
+
+```{r}
+tabsexoyciclo <- table(BD2$Sexo,BD2$Ciclo)
+barplot(tabsexoyciclo, main="Barras Apiladas", col = c("green", "yellow"), xlab="Ciclos", ylab="Frecuencia")
+legend(x="topright", legend=c("F","M"),fill=c("green", "yellow"), title="leyenda")
+```
+De la gráfica podemos observar como varían los sexos respecto a los ciclos. Donde en la mayoría de los ciclos predominan más los estudiantes hombres. Y el ciclo con mayor cantidad de estudiantes mujeres a comparación de los estudiantes hombres es el primer ciclo.
+
+# **Análisis Probabilistico**
+
+## Variables Aleatorias
+
+Para determinar las variables aleatorias se considera establecer la distribución de cada una de ellas, para ello se ha establecido determinados casos probabilisticos y determinar el valor de tal variable y posteriormente se graficaran las distribuciones de las variables reales para que consecutivamente 
+se establezca los modelos aproximados a la distribución real.
+
+Listado de las variables aleatorias discretas:
+
+- Distribución binomial
+- Distribución hipergeometrica
+- Distribución de Poisson
+
+Listado de las variables aleatorias continuas:
+
+- Distribución gamma 
+- Distribución normal
+
+## Modelos:
+1) De los 205 universitarios encuestados, se escoge 10 alumnos de nuestra base de datos ¿Cuál es la probabilidad de tener a lo más 5 estudiantes de UTEC? Realizamos esta pregunta ya que nos es importante saber cual es la probabilidad de un estudiante "UTEC" en la Educación Superior, y de esa manera también evaluar la presencia que ha tenido la universidad "UTEC" en nuestro estudio.
+
+```{r}
+count(BD2$Universidad =="UTEC") 
+```
+Donde:
+xo: Representa el numero de éxitos, que es 5
+𝑴: Representa que la cantidad de estudiantes de la "UTEC" es 105
+N - M: Representa que la cantidad de estudiantes de las diversas universidades restantes es 100  
+n: Representa a la muestra, que es 10
+Como se desea a lo más tener 5 estudiantes de la "UTEC" P(X<=5), utilizamos el modelo hipergeometrico "phyper":
+Reemplazando:
+
+```{r}
+phyper(5,100,105,10)
+```
+Al tener una probabilidad alta de 0.66 podemos coincidir tambien que existe mayor presencia de alumnos "UTEC" dentro de nuestra investigacion.
+
+2) Así mismo de nuestra Base de Datos nos planteamos la siguiente interrogante: ¿Cual es la probabilidad de que se escoja a 10 estudiantes que deseen la presencialidad en la "UTEC", si se sabe que la probabilidad de escoger a 5 estudiantes es 0.66? 
+La relevancia de esta pregunta es para evaluar la preferencia de los alumnos con el retorno de las clases presenciales en la UTEC.
+
+```{r}
+count(BD2$ElegirModalidad =="Presencial")
+```
+Donde:
+n: Representa a los 10 alumnos elegidos (vector de cantidad a escoger)
+s: Es el tamaño de alumnos que desean la presencialidad (45 alumnos)
+p: La probabilidad condicionada 
+```{r}
+dnbinom(10,45,0.66) 
+```
+De una cantidad pequeña, como lo son 10 alumnos escogidos, vemos que la probabilidad de escoger la modalidad presencial es baja. 
+
+Así mismo es importante conocer la cantidad de alumnos de "UTEC" y la cantidad de alumnos que existen por genero:
+```{r}
+count(BD2$Universidad=="UTEC")
+count(BD2$Sexo=="F" & BD2$Universidad=="UTEC")
+count(BD2$Sexo=="M" & BD2$Universidad=="UTEC")
+```
+3) De 105 alumnos de "UTEC", donde hay 32 mujeres, ¿Cual es la probabilidad de al elegir un grupo de 5 alumnos, 3 integrantes sean mujeres?. Nos planteamos esta pregunta con el objetivo de evaluar cual es la presencia de las mujeres en una Universidad de Ingeniería y Tecnología.
+Donde:
+x0: Representa al numero de éxitos, que vienen a ser 3
+𝑴: Representa el numero de mujeres que estudian en la "UTEC", que vienen a ser 32 estudiantes
+N-M: Representa al numero de estudiantes hombres que estudian en la "UTEC", los cuales son 73 estudiantes.
+n: Representa a la muestra, que son los 5 alumnos del grupo escogido
+Como se desea tener 3 integrantes mujeres en el grupo p(X=3), hacemos uso de "dhyper", que viene a ser un tipo de hipergeometrica.
+Reemplazando:
+```{r}
+dhyper(3,32,73,5)
+```
+Vemos que la probabilidad de que 3 mujeres estudiantes de la "UTEC" conformen parte del grupo seleccionado es 0.13, que es un valor relativamente bueno, pues nos indica que hay una presencia de alumnas mujeres significativa en una universidad de Ingeniería y Tecnología. 
+```{r}
+count(BD2$HorasEstudio==3)
+```
+
+4) Si se sabe que 23 estudiantes estudian 3 horas al día. ¿Cual es la probabilidad de que 28 estudiantes estudien 5 horas diarias?. Utilizando el método de poisson. En grupo nos cuestionamos esta pregunta, ya que es relevante saber las horas de estudio diarias dedicadas por los estudiantes universitarios. 
+Donde:
+L: Representa el promedio de éxitos en una medida, que esta dado por el numero 38.3. Donde para obtener el valor de "L" se aplico la siguiente regla de tres: 
+23 -- 3h
+x  -- 5h   => x = 38.3
+x0: Representa el numero de éxitos de una medida (28)
+Hacemos uso de "ppois", ya que podemos contar el numero de éxitos en una medida, la cual en este caso seria el numero de horas
+Reemplazando:
+```{r}
+ppois(28,38.3)
+```
+Al tener una cantidad pequeña de 28 estudiantes, se puede reflejar que la probabilidad de que estudien 5 horas diarias es baja.
+
+Además, es importante dar a conocer la cantidad de alumnos de "UTEC" que existen por genero en la carrera de "Ingeniera Industrial", la cual es una de las más requeridas en el ámbito laboral:
+```{r}
+# Hay 20 estudiantes de la carrera Industrial, de las cuales 8 son estudiantes mujeres.
+count(BD2$Carrera=="ING. Industrial")
+count(BD2$Carrera=="ING. Industrial" & BD2$Sexo =="F")
+count(BD2$Carrera=="ING. Industrial" & BD2$Sexo =="M")
+```
+5) Al escoger un grupo de 10 alumnos de las diversas universidades. ¿Cuál es la probabilidad de que el alumno escogido estudie la carrera de Ingeniería Industrial y sea mujer? La importancia de esta pregunta planteada en grupo, se da por el motivo de que a lo largo del estudio, hemos podido notar que la cantidad de estudiantes hombres predomina a comparación de las estudiantes mujeres, por ello decidimos presentar la probabilidad de que de un grupo escogido de 10 alumnos de las distintas universidades de nuestra Base de Datos, la estudiante escogida sea mujer y estudie la carrera de Ingeniería Industrial, la cual es una carrera en donde predomina mayormente el sexo masculino. 
+Donde: 
+x0: Representa al numero de éxitos, que vienen a ser 1
+𝑴: Representa el numero de mujeres que estudian Ingeniera Industrial, que vienen a ser 8 estudiantes
+N-M: Representa al numero de estudiantes hombres de la carrera Ingeniera Industrial
+n: Representa a la muestra, que son los 10 alumnos escogidos
+Como se desea tener una alumna p(X=1), hacemos uso de "dhyper", que viene a ser un tipo de hipergeometrica.
+Reemplazando:
+```{r}
+dhyper(1,8,12,10)
+```
+Como tenemos una cantidad pequeña de estudiantes elegida, la cual es de 10 estudiantes, obtenemos una probabilidad pequeña respecto a que la estudiante escogida sea una mujer y estudie actualmente la carrera de "Ingeniería
+Industrial".
+
+Para comprender que tan dispersos están los datos se ha obtenido la distribución de las horas de estudio y se aplicaran diversos modelos para aproximar y evaluar que modelos se aproximan más a la distribución que tenemos.
+```{r}
+hist(BD2$HorasEstudio,main="Distribucion de Densidad de Horas de Estudio",xlab="Horas de Estudio",col="pink", prob=T, freq=F,breaks = "FD")
+lines(density(BD2$HorasEstudio,na.rm=T),lwd=2,col="black")
+x<-BD2$HorasEstudio
+y<-dbinom(x, 205, 0.66)
+library(fitdistrplus)
+model<-fitdist(x, "gamma")
+a=model$estimate[1]
+b=model$estimate[2]    
+curve(dnorm(x, a, b), add = T, col="green", lwd=3)
+curve(dgamma(x,a,b),from=0,to=160,col="red",lwd=2,add=T)
+legend(x='topleft',legend=c("Curva de Densidad", "Curva con Distribucion gamma", "Curva con Distribucion normal"),fill=c("black", "red", "green"), inset = c(0,0),cex=0.8)
+```
+Podemos observar que en la densidad de horas el modelo que se a cerca más a los datos reales es la curva de distribución gamma, mientras que la distribución normal se aleja hacia la derecha de la gráfica. Por lo tanto, la densidad de horas de estudio, puede ser estudiada de manera más eficiente y mejor con una distribución continua gamma.
+
+
+
+
+
+
+
+
