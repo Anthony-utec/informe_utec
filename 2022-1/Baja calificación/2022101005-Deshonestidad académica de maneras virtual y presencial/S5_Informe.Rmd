@@ -1,0 +1,873 @@
+---
+title: "Estadística y Probabilidades I"
+output:
+  html_document:
+    df_print: paged
+---
+
+# 📑 Introducción
+
+## Relevancia: 
+
+**Elegimos este tema debido a que nos parece interesante y sorprendente como han aumentado los casos de deshonestidad académica debido a las clases virtuales, un gráfico como el de abajo nos muestra la cantidad de reportes, alumnos involucrados y alumnos sancionados en los años 2019 a 2021, por ello nos gustaría saber que opinan al respecto los estudiantes de UTEC de esta realidad mediante una encuesta anónima. Este tema será el que principalmente abordaremos en nuestro proyecto.**
+
+**Objetivos:**
+
+**❤️: Conocer la relación entre la cantidad de veces que se ha cometido el acto de deshonestidad en los cursos de la universidad.**
+
+**💜: Determinar las principales carreras donde se recurrió a la deshonestidad académica y en que tipo de cursos estas fueron mas frecuentes.**
+
+**🧡: Determinar que ciclo donde se obtuvo mayor cantidad de amonestaciones debido a la deshonestidad académica.**
+
+**💚: Determinar los principales métodos de deshonestidad académica a los cuales se ha recurrido a realizar durante la presencialidad y virtualidad, cómo estos se relacionan con el genero. **
+
+**💙: Identificar los motivos más relevantes por el cual se llevó a cabo la deshonestidad académica tanto de manera presencial como de manera virtual. **
+
+
+## Planificación:
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+# 📊 Datos
+
+## Recolección de datos:
+
+**🔴 Identificamos las variables a usar en el proyecto. **
+
+**🟡 Plantear y definir las preguntas en función a las variables. **
+
+**🟢 Crear un cuestionario y armarlo en base a estos. Las preguntas tendrán relación y serán derivadas unas con otras, por lo tanto algunas de ellas serán divididas por páginas. **
+
+**🔵 El cuestionario se mandó por correo y redes sociales de la universidad abarcando llegando a 201 respuestas. Este método se escogió, debido a que en la actualidad el mundo gira a base de la tecnología e internet logrando llegar a cada estudiante y esperando su apoyo para tener su respuesta. **
+
+**🟤 Mandamos la encuesta se realizó en días diferentes para que los diferentes usuarios puedan responder, ya que la separación de días permite que los alumnos tengan la oportunidad de leer el mensaje. Asimismo, el envió se realizo con previa coordinación vía zoom para que un responsable lo puedan mandar a los estudiantes acordando días y una hora especifica.**
+
+**🟣 Se realizó de esta manera por qué vimos que fue una manera muy efectiva de que directamente con las respuestas del formulario se creara automáticamente una base de datos que con un proceso de limpieza la utilizariamos en nuestro R para responder todas las consultas que tenemos en mente**
+
+## Población, muestra y muestreo:
+
+**🔶 Nuestra población de estudio fueron todos los estudiantes de la Universidad de Ingeniería y Tecnología, siendo nuestra unidad muestral a un estudiante de tercer ciclo de cualquier carrera, nuestra muestra se basó en 200 alumnos del tercer ciclo en adelante para responder las preguntas planteadas. Se realizó un muestreo probabilístico aleatorio simple (MAS) ya que sabemos que cualquier alumno ha realizado o va a realizar un examen y pueda responder con total sinceridad este cuestionario planteado.**
+
+## Variables:
+
+**🟥 Ciclo (Variable Categórica Ordinal - Entero no negativo en el rango [3-10])**
+
+**🟧 Curso (Variable Categórica Nominal - Tipo del curso específicamente (Ciencias, Letras, Programación, Números))**
+
+**🟨 Veces realizadas (Variable Numérica Discreta - Entero no negativo sin límite)**
+
+**🟩 Razones (Variable Categórica Nominal - 8 razones propuestas por nosotros u otras)**
+
+**🟪 Involucrados (Variable Numérica Discreta - Entero no negativo sin límite)**
+
+**🟫 Método utilizado (Variable Categórica Nominal - 8 métodos propuestos u otros)**
+
+**🟦 Arrepentimiento (Variable Categórica Nominal - Variable sujeta a lo subjetivo pues dependerá de la moral del encuestado)**
+
+
+## 🧹 Limpieza de base de datos 🧹:
+
+# 1. Leer la data
+```{r}
+library(readr)
+library(dplyr)
+```
+
+```{r}
+DD <- read.csv("test.csv", header=T, sep=',')
+
+#El header nos ayuda a reconoce la primera fila como los encabezados o títulos de la base de datos y sep nos indica como estan separados los datos, para esta ocasión con comas
+
+```
+# 2.Revisamos la data
+
+**Con `ncol`, `nrow` y `dim` podemos tener las dimensiones de la base de datos (filas y columnas)**
+
+```{r}
+ncol(DD) # leer el número de columnas / variables
+nrow(DD) # leer la cantidad de filas / observaciones
+dim(DD) # Devuelve las dimensiones de la base de datos
+```
+
+**El comando `str` devuelve un resumen del tipo de variable que asumirá RStudio, al momento de leer la base de datos con el comando `read.csv`**
+
+```{r}
+str(DD) # Resumen del tipo de variable de la base de datos
+summary(DD) #Resumen general de la base de datos
+```
+
+# 3.Revisamos el inicio y final de la data
+Se hace una revision de inicio a fin de la data para tener una idea de qué podría estar fallando o si todos los datos estan bien
+```{r}
+head(DD) #lee las primeras filas de la base de datos
+tail(DD) #lee las últimas filas de la base de datos
+```
+
+**Como observamos la data no está del todo limpia por ello procedemos a limpiar la base de datos**
+
+### Hallar Datos Completos/Incompletos
+**Esto hace referencia a una casilla de la base de datos**
+**Un dato faltante es un variable que no ha sido respondida por un individuo o por la muestra**
+
+```{r}
+sum(is.na(DD)) #is.na() -> este comando detecta los datos incompletos; sum -> sumar
+#Sumar la cantidad de datos incompletos
+sum(!is.na(DD)) #!is.na() -> es la negación de is.na, es decir, indica los datos completos.
+```
+
+## is.na
+**El is.na identifica las casillas vacías en todo el dataframe, para saber la cantidad total de datos faltantes se puede usar el comando sum(is.na()).**
+
+### Hallar Casos Completos/Incompletos
+
+**Hace referencia a toda una observación**
+**Un caso completo hace referencia a una observación con todas las celdas completas; es decir un individuo que ha respondido a todas las variables.**
+
+## complete.cases
+
+**complete.cases() verifica la cantidad de casos completos, es decir verifica que en cada observación (filas) no haya casillas vacías, también se puede utilizar sum(complete.cases()).**
+
+**Si se llega a encontrar una casilla vacia o (NA) o un caso incompleto,debemos eliminar la información que no sea caso completo, aunque esto podria hacer que se pierdan unos datos, estos deben ser llenados solo con informacion que sea veridica es decir con informacion de la fuente, nada de informacion que sea aleatoria**
+
+**Si encontramos casillas con valores erroneós debemos consultar con los datos de la base y completar la información de manera verídica, solo se puede llenar la información con criterio personal siempre y cuando la fuente o base no reconozca el error**
+
+```{r}
+sum(complete.cases(DD)) #complete.cases -> casos completos
+sum(!complete.cases(DD))#!complete.cases -> casos incompletos
+```
+
+# 🧹 Limpiando data:
+
+### Usamos el paquete **dplyr** para la limpieza de datos
+
+```{r}
+names(DD)
+```
+**Usamos el comando Rename para que no haya errores de escritura en los nombres de columna**
+
+```{r}
+DD <- rename(DD,Genero = 'GÃ.nero.', Carrera = 'Carrera.', Ciclo = 'Ciclo.en.el.que.se.encuentra.estudiando.' , Honestidad = 'En.una.escala.del.1.al.10.Â.QuÃ..tan.honesto.te.consideras.' , Deshonestidad = 'Â.Alguna.vez.has.cometido.algÃºn.acto.de.deshonestidad.acadÃ.mica.' , Presencial = 'Â.QuÃ..mÃ.todos.de.deshonestidad.acadÃ.mica.has.recurrido.a.realizar.durante.la.presencialidad.' , Virtual = 'Â.QuÃ..mÃ.todos.de.deshonestidad.acadÃ.mica.has.recurrido.a.realizar.durante.la.virtualidad.' , Cursos = 'Â.En.que.cursos.has.empleado.la.deshonestidad.' , Veces = 'Â.CuÃ.ntas.veces.se.ha.empleado.en.el.proceso.de.deshonestidad.acadÃ.mica.' , Complicidad = 'Durante.tu.proceso.de.deshonestidad..Â.actuaste.solo.o.en.compaÃ.Ã.a.' , Cantidad = 'Si.tu.anterior.respuesta.fue.acompaÃ.ado..Â.CuÃ.ntos.usuarios.se.vieron.implicados.' , Razon = 'Â.Por.que.razÃ³n.decidiste.cometer.un.acto.de.deshonestidad.' , Arrepentimiento = 'Â.QuÃ..tan.arrepentido.esta.el.alumno.de.haber.realizado.esta.falta.' , Acto = 'Â.VolverÃ.as.a.cometer.un.acto.de.deshonestidad.' , Amonestacion = 'Â.Has.recibido.alguna.amonestaciÃ³n.por.cometer.este.acto.')
+
+names(DD)
+```
+
+
+**Usamos el comando mutate para arreglar el nombre de cada una de las carreras**
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a Ambiental","Ingenieria Ambiental",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="Computer science","Ciencia de la computacion",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a QuÃ­mica" ,"Ingenieria Quimica",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a Industrial" ,"Ingenieria Industrial",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a MecatrÃ³nica" ,"Ingenieria Mecatronica",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a Civil" ,"Ingenieria Civil",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a MecÃ¡nica" ,"Ingenieria Mecanica",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="BioingenierÃ­a" ,"Bioingenieria",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a ElectrÃ³nica" ,"Ingenieria Electronica",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="IngenierÃ­a de la energÃ­a" ,"Ingenieria de la Energia",Carrera))->DD
+```
+
+```{r}
+DD %>%mutate(Carrera=(Carrera)) %>%  mutate(Carrera=
+    ifelse(Carrera =="AdministraciÃ³n y negocios digitales" ,"Administracion y negocios digitales",Carrera))->DD
+```
+
+
+**Usamos el comando mutate para arreglar el nombre de los datos de cada una de las variables**
+
+```{r}
+DD %>%mutate(Deshonestidad=(Deshonestidad )) %>%  mutate(Deshonestidad=
+    ifelse(Deshonestidad == "SÃ­" ,"Si",Deshonestidad))->DD
+```
+
+```{r}
+DD %>%mutate(Complicidad=(Complicidad)) %>%  mutate(Complicidad=
+    ifelse(Complicidad =="AcompaÃ±ado" ,"Acompañado",Complicidad))->DD
+
+```
+
+```{r}
+DD %>%mutate(Presencial=(Presencial)) %>%  mutate(Presencial=
+    ifelse(Presencial =="AcompaÃ±ado" ,"Acompañado",Presencial))->DD
+
+```
+
+```{r}
+DD %>%mutate(Acto=(Acto)) %>%  mutate(Acto=
+    ifelse(Acto =="SÃ­" ,"Si",Acto))->DD
+
+```
+
+
+```{r}
+DD %>%mutate(Amonestacion=(Amonestacion)) %>%  mutate(Amonestacion=
+    ifelse(Amonestacion =="SÃ­" ,"Si",Amonestacion))->DD
+
+```
+
+```{r}
+DD %>%mutate(Presencial= (Presencial)) %>%  mutate(Presencial=
+ifelse(Presencial =="PÃ¡ginas de internet","Paginas de internet",
+ifelse(Presencial =="ResoluciÃ³n en grupo","Resolucion en grupo",
+ifelse(Presencial =="Medios de comunicaciÃ³n(llamadas, mensajes de texto, etc.)","Medios de comunicacion",
+ifelse(Presencial =="Medios de comunicaciÃ³n(llamadas, mensajes de texto, etc.), Apuntes","Medios de comunicacion",
+ifelse(Presencial =="CÃ³digo morse","Codigo morse",
+Presencial))))))->DD
+```
+
+```{r}
+DD %>%mutate(Virtual= (Virtual)) %>%  mutate(Virtual=
+ifelse(Virtual =="PÃ¡ginas de internet","Paginas de internet",
+ifelse(Virtual =="ResoluciÃ³n en grupo","Resolucion en grupo",
+ifelse(Virtual =="Medios de comunicaciÃ³n(llamadas, mensajes de texto, etc.)","Medios de comunicacion",
+ifelse(Virtual =="CÃ³digo morse","Codigo morse",
+Virtual)))))->DD
+```
+
+
+```{r}
+DD %>%mutate(Cursos= (Cursos)) %>%  mutate(Cursos=
+ifelse(Cursos =="Cursos de nÃºmeros","Curso de numeros",
+       ifelse(Cursos ==" Curso de ciencias","Curso de ciencias",
+ifelse(Cursos =="Cursos de programaciÃ³n","Curso de programacion",
+       ifelse(Cursos ==" Cursos de programaciÃ³n","Curso de programacion",
+              ifelse(Cursos =="Cursos_de_programacion","Curso de programacion",
+                     ifelse(Cursos =="Cursos de ciencias","Curso de ciencias",
+                            ifelse(Cursos =="Cursos de programacion","Curso de programacion",
+                                   ifelse(Cursos =="Cursos de numeros","Curso de numeros",Cursos)))))))))->DD
+```
+
+
+
+```{r}
+DD %>%mutate(Razon= (Razon)) %>%  mutate(Razon=
+ifelse(Razon =="Exceso de exÃ¡menes o tareas","Exceso de examenes o tareas",
+ifelse(Razon =="Exceso de exÃ¡menes o tareas ","Exceso de examenes o tareas",
+ifelse(Razon =="Por ayudar a tu compaÃ±er@","Por ayudar a un companero(a)",
+ifelse(Razon =="Poco interÃ©s en el curso","Poco interes en el curso",
+Razon)))))->DD
+```
+
+```{r}
+library(readr)
+library(dplyr)
+DD$Genero<-dplyr::recode(DD$Genero,"'M' = 'Masculino'")
+DD$Genero<-dplyr::recode(DD$Genero,"'F' = 'Femenino'")
+
+DD$Presencial<-dplyr::recode(DD$Presencial,"'Ninguna' = 'Solo deshonestidad virtual'")
+DD$Virtual<-dplyr::recode(DD$Virtual,"'Ninguna' = 'Solo deshonestidad presencial'")
+
+DD$Cursos<-dplyr::recode(DD$Cursos,"'Curso de numeros' = 'Numeros'")
+DD$Cursos<-dplyr::recode(DD$Cursos,"'Curso de ciencias' = 'Ciencias'")
+DD$Cursos<-dplyr::recode(DD$Cursos,"'Curso de programacion' = 'Programacion'")
+DD$Cursos<-dplyr::recode(DD$Cursos,"'Curso de letras' = 'Letras'")
+
+```
+
+
+**Eliminamos variables inservibles (Primera y segunda columna (Marca temporal, X)) que se crearon solas con el comando select**
+
+
+```{r}
+DD %>% select(-1) -> DD
+```
+
+```{r}
+DD %>% select(-1) -> DD
+```
+
+```{r}
+PruebaFiltro<-filter(DD, Deshonestidad=="Si")
+PruebaFiltro
+```
+
+
+# 📋 Análisis descriptivo
+
+*Se encuestaron 204 personas, de las cuales el 54.4% son de género masculino y el 45.6% son de género femenino, además la edad promedio fue de 19 y por último las personas encuestadas fueron desde segundo ciclo hasta el décimo ciclo, donde la mayoría de personas encuestadas fueron de tercer ciclo.*
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+B<-table(DD$Genero,DD$Deshonestidad)
+mosaicplot(B,pch=14,las=1,color = palette("set 2"), main = "Deshonestidad ~ Genero")
+```
+
+**Del gráfico podemos notar que la mayoría de personas que han cometido deshonestidad son las mujeres.**
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+A<-table(PruebaFiltro$Genero,PruebaFiltro$Amonestacion)
+mosaicplot(A,pch=14,las=1,color = palette("set 2"), main = "Gráfico 1.- Comparación entre amonestación y género")
+```
+**Del gráfico podemos notar que la mayoría de personas no han recibido una amonestación debido a la deshonestidad académica y la diferencia es mínima con respecto a ambos géneros al momento de recibir una amonestación. La relación género-amonestación es indistinta.**
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+barplot(table(DD$Honestidad), main = "Gráfico 2.- Escala de honestidad", ylab = "Cantidad de personas", xlab = "Nivel de honestidad", ylim = c(0,60), space = 0.4,cex.main=1, cex.names=0.9, cex.axis=0.9,col = palette("set 2"))
+```
+**Del gráfico podemos notar que la gráfica esta sesgada a la izquierda, podemos decir que la mayoría de personas se considera honest@.**
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+barplot(table(PruebaFiltro$Cursos), main = "Gráfico 3.- Incidencia de cursos donde hubo deshonestidad académica", ylab = "Cantidad de personas", xlab = "Cursos", ylim = c(0,60), space = 0.4,cex.main=1, cex.names=0.9, cex.axis=0.9,col = palette("set 2"))
+```
+**En este gráfico de barras se puede observar que el curso donde los alumnos cometieron más deshonestidad académica fue el curso de números.**
+
+```{r}
+library(stringr)
+library(car)
+library(gmodels)
+CrossTable(DD$Curso,DD$Deshonestidad, prop.r=F,
+prop.c=F, prop.t=F, prop.chisq=F)
+```
+**En esta tabla de doble entrada se puede analizar que la mayoría de actos de deshonestidad ocurrieron en los cursos de números y de letras con 39 y 20 datos afirmativos respectivamente.**
+
+```{r}
+library(stringr)
+library(car)
+library(gmodels)
+CrossTable(DD$Carrera,DD$Deshonestidad, prop.r=F,
+prop.c=F, prop.t=F, prop.chisq=F)
+```
+**En esta tabla de doble entrada podemos determinar que las carreras de ingeniería ambiental, civil y mecatrónica son las principales carreras que llegan a cometer los actos de deshonestidad.**
+
+```{r}
+CrossTable(DD$Carrera,DD$Cursos, prop.r=F,
+prop.c=F, prop.t=F, prop.chisq=F)
+```
+
+**Con ayuda de esta tabla de doble entrada se puede observar que en estas tres carreras el curso donde más actos de deshonestidad academica se cometen fue el curso de números.**
+
+
+```{r eval=TRUE, echo=FALSE, message=FALSE,warning=FALSE}
+AA<-table(PruebaFiltro$Genero,PruebaFiltro$Presencial)
+mosaicplot(AA,pch=14,las=1,color = palette("set 1"), main = "Gráfico 4.- Métodos de deshonestidad utilizados en presencialidad por géneros")
+```
+**En este gráfico mosaico se puede apreciar que el género femenino cometió mayor deshonestidad académica de manera virtual a comparación con el género masculino que se enfocó mayoritariamente a cometer actos de deshonestidad mediante apuntes y medios de comunicación.**
+
+```{r}
+AA<-table(PruebaFiltro$Genero,PruebaFiltro$Virtual)
+mosaicplot(AA,pch=14,las=1,color = palette("set 1"), main = "Gráfico 5.- Métodos de deshonestidad utilizados en virtualidad por géneros")
+```
+**En este gráfico mosaico se puede apreciar que en la modalidad virtual la resolución en grupo en el género femenino es el método más utilizado a diferencia de los hombres que son los apuntes.**
+
+
+*Debido a la naturaleza de las variables que obtuvimos para nuestro proyecto, su tipo, su relación entre ellas y su importancia, notamos que no es posible hacer ese tipo de regresión, sin embargo se puede realizar una regresión logística, pero solo hemos visto regresión lineal simple.* 
+
+# 💎 Proyecto (Segunda parte) 💎
+
+# Creamos un Backup de nuestro BD, en caso ocurra algún error
+```{r}
+DDBackup<-DD
+```
+
+# Recodificamos para agregar categorías a nuestras variables Ciclo y Honestidad para luego poder agruparlas con mayor facilidad
+```{r}
+DDBackup$Ciclo<-recode(DDBackup$Ciclo,"2:4 = 'Ciclos iniciales'")
+DDBackup$Ciclo<-recode(DDBackup$Ciclo,"5:7 = 'Ciclos intermedios'")
+DDBackup$Ciclo<-recode(DDBackup$Ciclo,"8:9 = 'Ciclos finales'")
+DDBackup$Ciclo<-recode(DDBackup$Ciclo,"10 = 'Ultimo ciclo'")
+
+DDBackup$Honestidad<-recode(DDBackup$Honestidad,"0:3 = 'Muy poco honesto'")
+DDBackup$Honestidad<-recode(DDBackup$Honestidad,"4:7 = 'Parcialmente honesto'")
+DDBackup$Honestidad<-recode(DDBackup$Honestidad,"8:9 = 'Muy Honesto'")
+DDBackup$Honestidad<-recode(DDBackup$Honestidad,"10 = 'Muy Honesto'")
+```
+
+# Creamos 2 tablas cruzadas con el comando table para aplicar los axiomas aprendidos en clase
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+### 1) Haremos una tabla cruzada comparando la variable Genero con la Honestidad de ellos, sabiendo que el nivel de honestidad en escala sería No honesto[0:3] , Parcialmente honesto[4:7] , Honesto[8:10]
+```{r}
+tablacruzada2gh <- table(DDBackup$Genero, DDBackup$Honestidad)
+tablacruzada2gh
+```
+
+```{r}
+Proptabletablagh <- prop.table(tablacruzada2gh)
+```
+
+```{r}
+tablacruzada2ghop1 <- cbind(Proptabletablagh, apply(Proptabletablagh,1,sum)); tablacruzada2ghop1
+tablacruzada2ghop2 <- rbind(tablacruzada2ghop1, apply(tablacruzada2ghop1,2,sum)); tablacruzada2ghop2 
+
+colnames(tablacruzada2ghop2) <- c('Muy Honesto (%)', 'Muy poco Honesto (%)', 'Parcialmente Honesto (%)', 'Total (%)') 
+rownames(tablacruzada2ghop2)[3] <- c('Total')    
+tablacruzada2ghop2 <- as.data.frame(tablacruzada2ghop2); tablacruzada2ghop2  
+```
+
+❗ <span style="color:#2E8B57">*Definiciones para la tabla género-honestidad*</span> ❗
+
+
+🔸Definimos la variable Femenino con la letra <span style="color:#EE7AE9">★ F</span> que representará la población de la muestra de estudiantes de la UTEC de género Femenino.
+
+🔸Definimos la variable Femenino con la letra <span style="color:#63B8FF">★ M</span> que representará la población de la muestra de estudiantes de la UTEC género Masculino.
+
+🔸Definimos la variable Muy Honesto con la letra <span style="color:#FF1493">★ D1</span> que representará la población de la muestra de estudiantes de la UTEC que han respondido con una escala notable de honestidad (8:10).
+
+🔸Definimos la variable Muy Poco Honesto con la letra <span style="color:#7A67EE">★ D3</span>  que representará la población de la muestra de estudiantes de la UTEC que han respondido con una escala pobre de honestidad (0:3).
+
+🔸Definimos la variable Parcialmente Honesto con la letra <span style="color:#FF00FF">★ D2</span>  que representará la población de la muestra de estudiantes de la UTEC que han respondido con una escala media de honestidad (4:7).
+
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+
+## 2) Creamos una tabla cruzada comparando las variables Ciclo y su respectiva Honestidad
+```{r}
+tablacruzada3cv <- table(DDBackup$Ciclo, DDBackup$Honestidad)
+tablacruzada3cv
+```
+```{r}
+Proptabletablacv <- prop.table(tablacruzada3cv)
+```
+
+```{r}
+tablacruzada3cvop1 <- cbind(Proptabletablacv, apply(Proptabletablacv,1,sum)); tablacruzada3cvop1
+tablacruzada3cvop2 <- rbind(tablacruzada3cvop1, apply(tablacruzada3cvop1,2,sum)); tablacruzada3cvop2 
+
+
+colnames(tablacruzada3cvop2) <- c('Muy Honesto (%)', 'Muy poco Honesto (%)', 'Parcialmente Honesto', 'Total (%)')   
+rownames(tablacruzada3cvop2)[5] <- c('Total')
+tablacruzada3cvop2 <- as.data.frame(tablacruzada3cvop2); tablacruzada3cvop2   
+```
+
+❗ <span style="color:#2E8B57">*Definiciones para la tabla ciclo-honestidad*</span> ❗
+
+🔸Definimos la variable Ciclos Finales con la letra <span style="color:#EE7AE9">★ C3</span> que representará la población de la muestra de estudiantes de la UTEC cursando los dos Ciclos finales sin contar el último (8,9).
+
+🔸Definimos la variable Ciclos Iniciales con la letra <span style="color:#63B8FF">★ C1</span> que representará la población de la muestra de estudiantes de la UTEC cursando los tres Ciclos Iniciales sin contar el primer ciclo (2,3,4).
+
+🔸Definimos la variable Ciclos Intermedios con la letra <span style="color:#FF1493">★ C2</span> que representará la población de la muestra de estudiantes de la UTEC cursando los tres Ciclos Intermedios (5,6,7).
+
+🔸Definimos la variable Último Ciclo con la letra <span style="color:#7A67EE">★ C4</span> que representará la población de la muestra de estudiantes de la UTEC cursando el Último ciclo (10).
+
+🔸Definimos la variable Muy Honesto con la letra <span style="color:#FF00FF">★ D1</span> que representará la población de la muestra de estudiantes de la UTEC que han respondido con una escala notable de honestidad (8:10).
+
+🔸Definimos la variable Muy Poco Honesto con la letra <span style="color:#8B0000">★ D3</span> que representará la población de la muestra de estudiantes de la UTEC que han respondido con una escala pobre de honestidad (0:3).
+
+🔸Definimos la variable Parcialmente Honesto con la letra <span style="color:#5D478B">★ D2</span> que representará la población de la muestra de estudiantes de la UTEC que han respondido con una escala media de honestidad (4:7).
+
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+# Axiomas:
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+👑 *Tabla 1.- Genero-Honestidad:*👑
+
+```{r}
+tablacruzada2gh
+```
+
+```{r}
+tablacruzada2ghop2
+```
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 1)
+¿Se puede confirmar que la probabilidad de cualquier elemento de la tabla cruzada con porcentajes sea 0<=P(A)<=1?
+
+Efectivamente se puede confirmar que todos los valores no son menores que 0 ni mayores que 1 y que el total suma 1 exacto gracias a la creación de la proptable con sus respectivos porcentajes.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 2) 
+¿Cuál es la probabilidad de no encontrar a una persona muy poco honesta y de género femenino en la UTEC?
+
+Aquí aplicaremos el axioma número 2 que se refiere a la probabilidad del complemento: P(A') = 1 - P(A).
+
+⚜ P(D3 ∩ F ') = 1 - P(D3 ∩ F) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de no encontrar una persona muy poco honesta de género femenino en la UTEC es de: 1 - 0.1078431	 = 0.8921569.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 3) 
+¿Cuál es la probabilidad de encontrar alumnos de género masculino o alumnos muy poco honestos en la UTEC?
+
+Aquí aplicaremos el axioma número 3 que vendría a ser la probabilidad de la Unión cuando son conjuntos que se interceptan: P(A∪B) = P(A) + P(B) - P(A∩B).
+
+⚜ P(M ∪ D3) = P(M) + P(D3) - P(M ∩ D3) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos de género masculino es de 0.5441176 y de encontrar alumnos Muy poco honestos es de 0.2156863, sin olvidarnos de encontrar alumnos que son de género masculino y son muy poco honestos que es de 0.1078431.
+
+Aplicando la fórmula obtenemos que la probabilidad de encontrar alumnos de la carrera de Ingeniería Ambiental o de Ciclos Intermedios en la UTEC es de: 0.5441176 + 0.2156863 - 0.1078431 = 0.6519608
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 4) 
+¿Cuál es la probabilidad de encontrar un alumno muy honesto o parcialmente honesto en la UTEC?
+
+Aquí aplicaremos el axioma número 4 que vendría a ser la probabilidad de la Unión cuando no hay conjuntos que se interceptan: P(A∪B) = P(A) + P(B).
+
+⚜ P(D1 ∪ D2) = P(D1) + P(D2) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos honestos es de 0.4705882 y la probabilidad de encontrar alumnos parcialmente honestos es de 0.3137255, por lo tanto obtendremos que la probabilidad de encontrar un alumno honesto o parcialmente honesto en la UTEC es de: 0.4705882 + 0.3137255 = 0.7843137.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 5) 
+¿Cuál es la probabilidad de encontrar alumnas y no sean Muy Honestas en la UTEC?
+
+Aquí aplicaremos el axioma número 5 que vendría a ser la probabilidad de la intersección pero que suceda uno de los dos, solo sucede A pero no B: P(A∩B') = P(A) - P(A∩B).
+
+⚜ P(F∩D1') = P(F) - P(F∩D1) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnas en la UTEC es de 0.4558824 y la probabilidad de encontrar alumnas Muy honestas en la UTEC es de 0.2107843, por lo que la probabilidad de encontrar alumnas y sean lo contrario a Muy Honestas en la UTEC es de: 0.4558824 - 0.2107843 = 0.2450981.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 6) 
+¿Cuál es la probabilidad de no encontrar alumnos de género masculino y que sean parcialmente honestos en la UTEC?
+
+Aquí aplicaremos el axioma número 6 que vendría a ser la probabilidad de la Intersección pero que suceda uno de los dos, solo sucede B pero no A: P(A'∩B) = P(B) - P(A∩B).
+
+⚜ P(M'∩D2) = P(D2) - P(M∩D2) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos de género masculino parcialmente honestos en la UTEC es de 0.1764706 y la probabilidad de encontrar alumnos parcialmente honestos es de 0.3137255, por lo tanto la probabilidad de no encontrar alumnos de género masculino y que no sean honestos en la UTEC es de 0.3137255 - 0.1764706 = 0.1372549.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 9) 
+Si los estudiantes son de género femenino ¿Cuál es la probabilidad de que un estudiante de la UTEC sea muy Honesto?
+
+Aquí aplicaremos el axioma número 9 que vendría a ser la probabilidad de que suceda A sabiendo B: P(A/B) = P(A∩B)/(B).
+
+⚜ P(D1/F) = P(D1∩F)/ P(F) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos que son muy honestos de género femenino es de 0.2107843 y sabemos también que la probabilidad de encontrar alumnos de género femenino es de 0.4558824.
+Por lo que aplicando la fórmula podemos obtener que la probabilidad de que un estudiante de la UTEC sea muy poco honesto sabiendo que es de ciclos finales es de: 0.2107843/0.4558824 = 0.46236551.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+👑 *Tabla 2.- Ciclo-Honestidad:*👑
+
+```{r}
+tablacruzada3cv
+```
+```{r}
+tablacruzada3cvop2
+```
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 7) 
+¿Cuál es la probabilidad de que los alumnos no sean ni muy honestos ni de último ciclo?
+
+Aquí aplicaremos el axioma número 7 que vendría a ser la probabilidad de que no suceda ninguno de los dos, ni A ni B: P(A'∩B') = P(A∪B)' = 1 - P(A∪B).
+
+⚜ P(D1' ∩ C4') = 1 - P(D1 ∪ C4) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos que sean muy honestos es de 0.470588235 y la probabilidad de encontrar alumnos de último ciclo es de 0.01960784, por lo que notamos que se interceptan, entonces aplicaremos antes que nada el axioma número 3 de la unión: P(A∪B) = P(A) + P(B) - P(A∩B).
+Por lo que nos quedaría: 0.470588235 + 0.01960784 - 0.009803922 = 0.48039215.
+Finalmente obtenemos que la probabilidad de que los alumnos no sean ni muy honestos ni de último ciclo es de: 
+1 - 0.48039215 = 0.51960785.
+(Efectivamente, 0.024509804 + 0.063725490 + 0.117647059	+ 0.02450980 + 0.09313725 + 0.19607843 = 0.51960785)
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 8) 
+¿Cuál es la probabilidad de que los alumnos no sean parcialmente honestos o no sean muy poco honestos en UTEC?
+
+Aquí aplicaremos el axioma número 8 que vendría a ser la probabilidad de que no suceda A o no suceda B: P(A'∪B') = P(A∩B)' = 1 - P(A∩B).
+ 
+⚜ P(D2' ∪ D3') = 1 - P(D2 ∩ D3) ⚜ 
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos que sean parcialmente honestos es de 0.31372549 y la probabilidad de encontrar alumnos que sean muy poco honestos es de 0.215686275, de ambas sabemos que la probabilidad de encontrar uno y el otro es aplicando el axioma 10 ya que son conjuntos disjuntos A10) P(A∩B) = P(A) * P(B), por lo tanto es de: 0.31372549 * 0.215686275 = 0.06766628.
+Finalmente obtenemos que la probabilidad de que los alumnos no sean Parcialmente Honestos o no sean muy poco honestos en la UTEC es de 1 - 0.06766628 = 0.93233372.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 9) 
+Si los estudiantes son de los ciclos finales ¿Cuál es la probabilidad de que un estudiante de la UTEC sea muy poco honesto?
+
+Aquí aplicaremos el axioma número 9 que vendría a ser la probabilidad de que suceda A sabiendo B: P(A/B) = P(A∩B)/(B).
+
+⚜ P(D3 / C3) = P(D3 ∩ C3)/ P(C3) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos que son muy poco honestos en los ciclos finales es de 0.024509804 y sabemos también que la probabilidad de encontrar alumnos de ciclos finales es de 0.07843137
+Por lo que aplicando la fórmula podemos obtener que la probabilidad de que un estudiante de la UTEC sea muy poco honesto sabiendo que es de ciclos finales es de: 0.024509804/0.07843137 = 0.31250001.
+
+
+📋 Axioma 9) 
+Si los estudiantes son de los primeros ciclos ¿Cuál es la probabilidad de que un estudiante de la UTEC sea muy honesto?
+
+Aquí aplicaremos el axioma número 9 que vendría a ser la probabilidad de que suceda A sabiendo B
+P(A/B) = P(A∩B)/(B).
+
+⚜ P(D1 / C1) = P(D1 ∩ C1)/ P(C1) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos que son muy honesto en los primeros ciclos es de 0.333333333 y sabemos también que la probabilidad de encontrar alumnos de primeros ciclos es de 0.64705882.
+Por lo que aplicando la fórmula podemos obtener que la probabilidad de que un estudiante de la UTEC sea muy poco honesto sabiendo que es de ciclos finales es de: 0.333333333/0.64705882 = 0.51515151.
+
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+📋 Axioma 10) 
+¿Cuál es la probabilidad de encontrar un estudiante de último ciclo y de ciclos finales en UTEC?
+
+Aquí aplicaremos el axioma número 10 que vendría a ser la intersección entre eventos disjuntos e independientes
+P(A∩B) = P(A) * P(B).
+
+⚜ P(C4 ∩ C3) = P(C4) * P(C3) ⚜
+
+Si nos guiamos de la tabla de porcentajes de la parte de arriba obtendremos que la probabilidad de encontrar alumnos de último ciclo es de 0.01960784	y la probabilidad de encontrar alumnos de ciclos finales es de 0.07843137, por lo tanto sabemos que la probabilidad de encontrar ambos a la vez es la multiplicación de esas probabilidades: 0.01960784 * 0.07843137 = 0.00153786.
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+# Distribuciones discretas notables
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+⭐ GEOMÉTRICA: 
+
+¿Cuál es la probabilidad de que al seleccionar exactamente 10 alumnos de los ciclos finales en UTEC obtengamos el primer alumno que sea muy poco honesto?
+
+♦ X: Número de estudiantes que sean muy poco honestos de la Universidad de Ingeniería y Tecnología. 
+
+♦ La probabilidad de que un alumno de ciclos finales sea muy poco honesto gracias a nuestra muestra es de 0.024509804 (Ver tabla 2 de probabilidades).
+
+♦ Notamos que es una distribución geométrica debido a que nos piden la probabilidad hasta obtener el primer éxito, que en nuestro caso es que el alumno sea muy poco honesto de los ciclos finales.
+
+♦ Debemos de calcular P(X=10), por lo que, utilizando el comando en R dgeom, debido a que es igualdad y le ponemos los parámetros (x-1, p).
+
+```{r}
+dgeom(9,0.024509804)
+```
+<span style="color:#66CDAA">★ Resultado: 0.01960406</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+¿Cuál es la probabilidad de que al seleccionar más de 15 alumnos de los primeros ciclos en UTEC obtengamos el primer alumno que sea muy honesto?
+
+♦ X: Número de estudiantes que sean muy poco honestos de la Universidad de Ingeniería y Tecnología. 
+
+♦ La probabilidad de que un alumno de primeros ciclos sea muy honesto gracias a nuestra muestra es de 0.333333333 (Ver tabla 2 de probabilidades).
+
+♦ Notamos que es una distribución geométrica debido a que nos piden la probabilidad hasta obtener el primer éxito, que en nuestro caso es que el alumno sea muy honesto de los primeros ciclos.
+
+♦ Debemos de calcular P(X>15) => 1-P(X<=15), por lo que, utilizando el comando en R pgeom, debido a que es menor igual y le ponemos los parámetros 1 - (x-1, p).
+
+```{r}
+1-pgeom(14,0.333333333)
+```
+<span style="color:#66CDAA">★ Resultado: 0.002283658</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+¿Cuál es la probabilidad de que al seleccionar menos de 10 alumnos de los ciclos intermedios en UTEC obtengamos el primer alumno que sea parcialmente honesto?
+
+♦ X: Número de estudiantes que sean muy poco honestos de la Universidad de Ingeniería y Tecnología. 
+
+♦ La probabilidad de que un alumno de ciclos intermedios sea parcialmente honesto gracias a nuestra muestra es de 0.09313725 (Ver tabla 2 de probabilidades).
+
+♦ Notamos que es una distribución geométrica debido a que nos piden la probabilidad hasta obtener el primer éxito, que en nuestro caso es que el alumno sea parcialmente honesto de los ciclos intermedios.
+
+♦ Debemos de calcular P(X<10) => P(X<=9), por lo que, utilizando el comando en R pgeom, debido a que es menor igual y le ponemos los parámetros (x-1, p).
+
+```{r}
+pgeom(8,0.09313725)
+```
+<span style="color:#66CDAA">★ Resultado: 0.5851663</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+
+⭐ BINOMIAL:
+
+La Universidad de Ingeniería y Tecnología informa que en la última semana se realizará los exámenes de manera presencial,  de los cuales se desea llenar un salón con una muestra aleatoria con reemplazo de 15 estudiantes mujeres. Si el 46.24% son mujeres muy honestas (Sacada con los valores de la tabla número uno). ¿Cuál es la probabilidad de que menos de 8 mujeres sean muy honestas?
+
+♦ X: Número de mujeres muy honestas
+
+♦ p = 0.4624
+
+♦ n = 15
+
+♦ P(X<8) = P(X<=7)
+
+♦ pbinom(7,15,0.4624) = 0.6165994
+
+```{r}
+pbinom(7,15,0.4624)
+```
+<span style="color:#8B0000">★ Resultado: 0.6165994</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+La Universidad de Ingeniería y Tecnología informa que en la última semana se realizará los exámenes de manera presencial,  de los cuales se desea llenar un salón con una muestra aleatoria con reemplazo de 8 estudiantes hombres. Si el 19.82% son hombres muy poco honestos (Sacada con los valores de la tabla número uno). ¿Cuál es la probabilidad de que más de 3 hombres sean muy poco honestos?
+
+♦ X: Número de hombres muy poco honestos
+
+♦ p = 0.1982
+
+♦ n = 8
+
+♦ P(X>3) = 1-P(X<=3)
+
+♦ 1-pbinom(3,8,0.1982) = 0.05464494
+
+```{r}
+1-pbinom(3,8,0.1982)
+```
+<span style="color:#8B0000">★ Resultado: 0.05464494</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+La Universidad de Ingeniería y Tecnología informa que en la última semana se realizará los exámenes de manera presencial,  de los cuales se desea llenar un salón con una muestra aleatoria con reemplazo de 12 estudiantes hombres. Si el 32.43% son hombres parcialmente honestos (Sacada con los valores de la tabla número uno). ¿Cuál es la probabilidad de que exactamente 2 hombres no sean parcialmente honestos?
+
+♦ X: Número de hombres muy poco honestos
+
+♦ p = 0.3243
+
+♦ n = 12
+
+♦ P(X=2)
+
+♦ 1 - dbinom(2,12,0.3243) = 0.8622863
+
+```{r}
+1 - dbinom(2,12,0.3243)
+```
+<span style="color:#8B0000">★ Resultado: 0.8622863</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+⭐ BINOMIAL NEGATIVA:
+
+En la Universidad de Ingeniería y Tecnología de nuestra muestra obtenida sabemos que la probabilidad de encontrar una estudiante de género femenino que sea muy honesta es de 0.2107843 (Ver tabla número 1 de probabilidades). Un estadístico realiza encuesta repetidamente ya que son eventos independientes con cada alumna en UTEC para saber si ocurre el éxito que desea. Lo que busca es realizar pruebas hasta su quinto éxito y luego se detiene.
+
+¿Cuál es la probabilidad de que el Estadístico realice exactamente 35 intentos hasta su quinto éxito?
+
+♦ X: Número de intentos hasta obtener el quinto éxito.
+
+♦ La probabilidad que una alumna sea muy honesta gracias a nuestra muestra es de 0.2107843.
+
+♦ k vendría a ser el número hasta el éxito que se quiere lograr, en nuestro caso 5.
+
+♦ Notamos que es una distribución binomial negativa debido a que nos piden la probabilidad hasta obtener su quinto éxito, que en nuestro caso se realizan exactamente 35 intentos.
+
+♦ Debemos de calcular P(X=35), por lo que, utilizando el comando en R dnbinom, debido a que es igualdad y le ponemos los parámetros (x-k, k, p).
+
+```{r}
+dnbinom(35-5,5,0.2107843)
+```
+<span style="color:#8B4513">★ Resultado: 0.0158985</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+En la Universidad de Ingeniería y Tecnología de nuestra muestra obtenida sabemos que la probabilidad de encontrar una estudiante de género masculino que sea muy poco honesto es de 0.1078431 (Ver tabla número 1 de probabilidades). Un estadístico realiza encuesta repetidamente ya que son eventos independientes con cada alumna en UTEC para saber si ocurre el éxito que desea. Lo que busca es realizar pruebas hasta su tercer éxito y luego se detiene.
+
+¿Cuál es la probabilidad de que el Estadístico realice menos de 12 intentos hasta su tercer éxito?
+
+♦ X: Número de intentos hasta obtener el tercer éxito.
+
+♦ La probabilidad que un alumno sea muy poco honesto gracias a nuestra muestra es de 0.1078431.
+
+♦ k vendría a ser el número hasta el éxito que se quiere lograr, en nuestro caso 3.
+
+♦ Notamos que es una distribución binomial negativa debido a que nos piden la probabilidad hasta obtener su quinto éxito, que en nuestro caso se realizan menos de 12 intentos.
+
+♦ Debemos de calcular P(X<12)=>P(X<=11), por lo que, utilizando el comando en R pnbinom, debido a que es menor igual y le ponemos los parámetros (x-k, k, p).
+
+```{r}
+pnbinom(11-3,3,0.1078431)
+```
+
+<span style="color:#8B4513">★ Resultado: 0.1069869</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+```{r}
+tablacruzada2ghop2
+```
+
+
+En la Universidad de Ingeniería y Tecnología de nuestra muestra obtenida sabemos que la probabilidad de encontrar una estudiante de género femenino que sea parcialmente honesta es de 0.1372549 (Ver tabla número 1 de probabilidades). Un estadístico realiza encuesta repetidamente ya que son eventos independientes con cada alumna en UTEC para saber si ocurre el éxito que desea. Lo que busca es realizar pruebas hasta su décimo éxito y luego se detiene.
+
+¿Cuál es la probabilidad de que el Estadístico realice exactamente 19 intentos hasta su séptimo éxito?
+
+♦ X: Número de intentos hasta obtener el séptimo éxito.
+
+♦ La probabilidad que una alumna sea muy honesta gracias a nuestra muestra es de 0.1372549.
+
+♦ k vendría a ser el número hasta el éxito que se quiere lograr, en nuestro caso 7
+
+♦ Notamos que es una distribución binomial negativa debido a que nos piden la probabilidad hasta obtener su séptimo éxito, que en nuestro caso se realizan exactamente 19 intentos.
+
+♦ Debemos de calcular P(X=19), por lo que, utilizando el comando en R dnbinom, debido a que es igualdad y le ponemos los parámetros (x-k, k, p).
+
+```{r}
+dnbinom(19-7,7,0.1372549)
+```
+
+<span style="color:#8B4513">★ Resultado: 0.002897054</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+⭐ HIPERGEOMÉTRICA
+
+Para nuestra encuesta contestaron hombres y mujeres, 111 y 93 respectivamente. De los cuales exactamente gracias a la encuesta del grupo 5 se sabe que hay 44 personas muy poco honestas.
+La profesora Emily selecciona al azar 60 alumnos para saber si hay personas muy poco honestas. 
+
+¿Cuál es la probabilidad de que el número de personas muy pocas honestas en la muestra sea mayor a 21?
+
+
+♦ M: 44
+♦ N: 204
+♦ n: 60
+♦ X: P(x>21) = 1 - P(x<=21)
+
+```{r}
+1-phyper(21,204,160,60)
+```
+<span style="color:#CD950C">★ Resultado: 0.999716</span> 
+
+〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰
+
+
+
+

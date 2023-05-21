@@ -1,0 +1,116 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r echo=FALSE}
+library(readr)
+library(dplyr)
+library(stringi)
+```
+
+1. Abrir el archivo
+```{r echo=FALSE}
+D<-read.csv("BaseDatos.csv",header=T,sep=',')
+```
+
+2. Revisar data
+```{r echo=FALSE}
+dim(D) # dimensiones
+str(D) # tipos de variables
+summary(D) # resumen general
+```
+
+3. Limpiar datos
+
+3.1.Limpiar nombres
+```{r echo=FALSE}
+names(D)
+```
+
+```{r}
+DL2<-rename(D, Género='GÃ.nero.', Edad='Edad..aÃ.os.cumplidos..', Ciclo='Ciclo.universitario.', Carrera='Carrera.universitaria.', Promedio='Promedio.ponderado.del.anterior.ciclo..dos.decimales...Ejemplo..14.38', 'Horas de estudio'='Â.CuÃ.ntas.horas.estudias.al.dÃ.a.sin.contar.las.horas.de.clase..Ejemplo..2.45..equivale.a.2.horas.y.45.minutos.', 'Horas de sueño'='Â.CuÃ.ntas.horas.de.sueÃ.o.tienes.por.la.noche.en.promedio..Ejemplo..7.2..equivale.a.7.horas.y.20.minutos.', Deporte='Â.Practicas.algÃºn.deporte.', 'Días de practica'='Â.CuÃ.ntos.dÃ.as.a.la.semana.prÃ.cticas.deporte.', Consumo='Â.Consumes.bebidas.energÃ.ticas.', Rendimiento='Responde.las.siguiente.preguntas...Â.Consideras.quÃ..el.consumo.de.bebidas.energizantes.mejora.tu.rendimiento.acadÃ.mico..', Frecuencia='Responde.las.siguiente.preguntas...Â.Con.quÃ..frecuencia.tomas.este.tipo.de.bebidas..', Necesidad='Responde.las.siguiente.preguntas...Â.QuÃ..tan.necesarias.consideras.que.son.las.bebidas.energÃ.ticas.durante.el.periodo.universitario..', Marca1='Â.QuÃ..marca.de.bebidas.energÃ.ticas.consumes.', Marca2='Â.CuÃ.l.es.tu.segunda.marca.favorita.de.bebidas.energÃ.ticas.', 'Efectos secundarios'='Â.Has.tenido.algÃºn.efecto.secundario.luego.de.consumir.las.bebidas.energÃ.ticas.', Momento='Â.En.quÃ..momento.consumes.mÃ.s.las.bebidas.energÃ.ticas.', Circunstancias='Â.Bajo.quÃ..circunstancias.consumes.bebidas.energÃ.ticas.')
+names(DL2)
+```
+```{r echo=FALSE}
+DL2%>%select(-1)->DL2
+```
+
+3.2. Limpiar cada variable
+```{r echo=FALSE}
+# Sección 1
+unique(DL2$Carrera)
+unique(DL2$Promedio)
+unique(DL2$Deporte)
+unique(DL2$`Días de practica`)
+unique(DL2$Consumo)
+unique(DL2$Momento)
+```
+
+```{r echo=FALSE}
+DL2 %>% count(Carrera)
+DL2 %>% mutate(Carrera=stri_trans_general(Carrera,'latin-ascii'))%>% mutate(Carrera=ifelse(Carrera=="IngenierA-a MecatrA³nica", "Ingeniería Mecatrónica",ifelse(Carrera=="IngenierA-a Ambiental", "Ingeniería Ambiental",ifelse(Carrera=="IngenierA-a Industrial", "Ingeniería Industrial", ifelse(Carrera=="IngenierA-a MecA!nica", "Ingeniería Mecánica",ifelse(Carrera=="IngenierA-a QuA-mica", "Ingeniería Química",ifelse(Carrera=="IngenierA-a Civil", "Ingeniería Civil",ifelse(Carrera=="AdministraciA³n y Negocios digitales","Administración y Negocios Digitales",ifelse(Carrera=="BioingenierA-a","Bioingeniería",ifelse(Carrera=="Ciencia de la computaciA³n","Ciencia de la Computación",ifelse(Carrera=="IngenierA-a de la EnergA-a","Ingeniería de la Energía",ifelse(Carrera=="IngenierA-a ElectrA³nica","Ingeniería Electrónica",Carrera))))))))))))->DL2
+DL2 %>% count(Carrera)
+```
+
+```{r echo=FALSE}
+DL2$Promedio<-as.numeric(DL2$Promedio,na.rm=TRUE)
+```
+
+```{r echo=FALSE}
+# Variable Deporte
+DL2 %>% count(Deporte)
+DL2 %>% mutate(Deporte=stri_trans_general(Deporte,'latin-ascii'))%>% mutate(Deporte=ifelse(Deporte=="SA-","Sí",Deporte))->DL2
+DL2 %>% count(Deporte)
+```
+
+```{r echo=FALSE}
+# Variable Días de practica
+DL2 %>% count(`Días de practica`)
+DL2 %>% mutate(`Días de practica`=ifelse(`Días de practica`=="No prÃ¡ctico",0,`Días de practica`))->DL2
+DL2 %>% count(`Días de practica`)
+```
+
+```{r echo=FALSE}
+# Variable Consumo
+DL2 %>% count(Consumo)
+DL2 %>% mutate(Consumo=stri_trans_general(Consumo,'latin-ascii'))%>% mutate(Consumo=ifelse(Consumo=="SA-","Sí",Consumo))->DL2
+DL2 %>% count(Consumo)
+```
+
+```{r echo=FALSE}
+# Variable Momento
+DL2 %>% count(Momento)
+DL2 %>% mutate(Momento=ifelse(Momento=="MaÃ±ana","Mañana",Momento))->DL2
+DL2 %>% count(Momento)
+```
+3.2. Completar espacios vacíos con NA
+```{r echo=FALSE}
+DL2 %>% mutate(Rendimiento=ifelse(Rendimiento =="",NA,Rendimiento))->DL2
+DL2 %>% mutate(Frecuencia=ifelse(Frecuencia=="",NA,Frecuencia))->DL2
+DL2 %>% mutate(Necesidad=ifelse(Necesidad=="",NA,Necesidad))->DL2
+DL2 %>% mutate(Marca1=ifelse(Marca1=="",NA,Marca1))->DL2
+DL2 %>% mutate(Marca2=ifelse(Marca2=="",NA,Marca2))->DL2
+DL2 %>% mutate(`Efectos secundarios`=ifelse(`Efectos secundarios`=="",NA,`Efectos secundarios`))->DL2
+DL2 %>% mutate(Momento=ifelse(Momento=="",NA,Momento))->DL2
+DL2 %>% mutate(Circunstancias=ifelse(Circunstancias=="",NA,Circunstancias))->DL2
+# Comprobar resultados
+DL2 %>% count(Rendimiento)
+DL2 %>% count(Frecuencia)
+DL2 %>% count(Necesidad)
+```
+
+```{r echo=FALSE}
+library(car)
+DLR<-DL3
+DLR$Promedio<-recode(DLR$Promedio,"0:13.49='Bajo';13.5:16.49='Intermedio';16.5:20='Alto'")
+#table(DLR$Consumo,DLR$Promedio)
+
+Prom<-rep(c("Bajo","Intermedio","Alto"),2)
+Consumo<-rep(c("Sí","No"),3)
+Cant<-c(10,79,46,6,42,25)
+Data<-data.frame(Prom,Consumo,Cant)
+
+library(ggplot2)
+ggplot(Data,aes(x=Prom,y=Cant,fill=Consumo))+geom_bar(position="dodge",stat="identity")+theme_minimal()+ggtitle("Comparación entre el consumo de bebidas energéticas y el promedio de los estudiantes encuestados")+xlab("Categorías del promedio")+ylab("Cantidad de estudiantes")+geom_text(aes(label=paste(Cant)),color="blue",vjust=1.5)
+```

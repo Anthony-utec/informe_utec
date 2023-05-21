@@ -1,0 +1,728 @@
+---
+title: "PROYECTO"
+output:
+  html_document:
+    df_print: paged
+---
+```{r}
+library(readr)
+library(tidyverse)
+library(ggpmisc)
+library(ggpubr)
+library("survival")
+library("fitdistrplus")
+BC<- read_csv("heart.csv")
+```
+
+
+# Características predominantes en la predicción de insuficiencia cardíaca
+## 1. Introducción:
+Las enfermedades cardiovasculares (ECV) son la principal causa de muerte en todo el mundo y se cobran aproximadamente 17,9 millones de vidas cada año, lo que representa el 31 % de todas las muertes en todo el mundo. Cuatro de cada 5 muertes por ECV se deben a ataques cardíacos y accidentes cerebrovasculares, y un tercio de estas muertes ocurren prematuramente en personas menores de 70 años. La insuficiencia cardíaca es un evento común causado por ECV y este conjunto de datos contiene 9 características que pueden usarse para predecir una posible enfermedad cardíaca.
+
+**Trabajos similares:**
+
+Vega determinó que la predicción del riesgo cardiovascular resulta ser una herramienta útil del médico para establecer prioridades en la atención primaria, mejorando la atención a los pacientes y eligiendo más eficazmente la terapéutica a seguir. Le permite plantear objetivos más cercanos a la realidad multifactorial de las enfermedades cardiovasculares y a su prevención. En este sentido, mejorar la exactitud en la predicción del riesgo requiere la evaluación y el tratamiento de múltiples factores de riesgo cardiovascular, los que tienen un efecto sinérgico, más que aditivo, sobre el riesgo cardiovascular total.
+[Jorge Vega, 2011]
+
+Díez encontró en su estudio que la prevalencia de las enfermedades cardiovasculares y sus factores de riesgo en atención primaria eran determinantes para la aparición de enfermedades cardiovasculares son especialmente frecuentes en varones y ancianos, asimismo que el 57,9% presentó al menos 1 factor de riesgo. Por otro lado que la edad media fue de 49,1 ± 18,9 años.  [Baena Díez, J. M., 2005]
+
+
+Fernández obtuvo que una de cada diez personas sufre de enfermedad cardiovascular. Por otro lado, los factores que contribuyen a la aparición de ECV son: sexo masculino, edad (de 50 años en adelante), inactividad física o exceso de ésta, estado de viudedad, nivel de estudios primario, clase social no cualificada, padecer sobrepeso/obesidad, HTA, colesterol y diabetes. Donde se concluyó que los factores de riesgo que más influyen en la enfermedad cardiovascular son, edad mayor de 65 años, sedentarismo, padecer HTA, diabetes y/o colesterol. [Pérez Fernández, 2017]
+
+
+
+Es por esta razón que el grupo se dispuso a analizar los 5 datasets obtenidos del hospital Universitario(Zurich-Suiza), Hospital Universitario(Basilea-Suiza) y del Medical Center Fundación de Long Beach y Cleveland Clinic Robert Detrano, MD, Ph.D. del instituto Húngaro de Cardiología Budapest quienes realizaron una toma de datos a sus pacientes con sospecha de Insuficiencia Cardíaca.
+
+*Pregunta General:*
+
+¿Cuáles son las principales características en la predicción de insuficiencia cardíaca?
+
+**1.1 Relevancia:**
+
+Se sabe que más del  30% de las muertes anuales son causadas por enfermedades cardíacas, por ello, nuestro grupo busca un análisis descriptivo de 12 variables referentes a las enfermedades cardiovasculares. Asimismo, involucra la aplicación de los conocimientos en R adquiridos durante el curso con el fin de determinar relaciones entre variables que sean relevantes y que demuestren una señal de alerta
+**1.2 Planificación:**
+![Diagrama de Gantt](Diagrama_Gantt_P2.jpg)
+
+## 2. Datos
+
+**2.1 Proceso de Recolección de Datos:**
+
+Se trabajó con un dataset publicado en Kaggle donde sus creadores Andras Janosi, William Steinbrunn, Matthias Pfisterer y Robert Detrano combinaron datasets ya existentes mediante 11 características comunes.
+
+
+
+**2.2 Población Muestra y Muestreo:**
+
+Para la realización de este dataset se consideró información de 5 datasets los cuales son Cleveland: 303 observations, Hungarian: 294 observations, Switzerland: 123 observations, Long Beach VA: 200 observations y Stalog (Heart) Data Set: 270 observations. Resultando un dataset completo de 918 observaciones y 12 variables. Sin embargo, para la realización de este proyecto se descartaron 3 variables: Oldpeak, ST_Slope y Colesterol, trabajando únicamente con 918 observaciones y 9 variables.
+
+
+
+**2.3 Variables:**
+
+  *Edad:* Numérica discreta, números positivos enteros a partir de 1 en años.
+
+  *Sexo:* Categórico nominal, femenino o masculino.
+
+  *Tipo* de dolor de pecho: Categórico nominal.
+
+  - Angina típica(TA): Es el dolor de pecho a causa de la débil circulación de la sangre.
+                             
+  -   Angina atípica(ATA.): Es el dolor de pecho  molesto que genera estrés      emocional. 
+    
+  -   Dolor no Anginoso(NAP,): Es el dolor de pecho normal no implica problemas fisiológico.
+    
+  -   Asintomático(ASY): No tiene ningún síntoma de la Angina
+
+  *Presión arterial en reposo:* Numérico continua, número entero positivo a partir de 0 en mm Hg.
+
+  *Electrocardiograma:* Categórica nominal.
+
+  -   Normal.-N o presenta anomalías en las ondas.
+  
+  -   ST(con anomalías en la ondas ST-T ) 
+  
+  -   LVH(que muestra hipertrofia ventricular
+  izquierda probable o definitiva según los criterios.
+  
+  *Frecuencia cardíaca máxima:* Numérica continua, número entero positivo de  60 hasta 202.
+
+  *Angina inducida por ejercicio:* Categórica nominal, Y(si), N(no).
+
+  *Enfermedad del corazón:* Categórica nominal, 1(Enfermedad de corazón) o 0(normal)
+  
+**2.4 Unidad de analisis**
+
+
+![Unidad de analisis](Unidad.jpg)
+
+**2.4 Limpieza de base de datos**
+
+Los datos han sido extraídos de Kaggle. El dataset no presenta datos faltantes, es decir, ya se encuentra limpia.
+
+```{r}
+sum(is.na(BC))
+sum(!is.na(BC))
+
+sum(!complete.cases(BC))
+sum(complete.cases(BC))
+
+#Total de faltantes
+sum(is.na(BC))
+
+#% Faltantes
+round(sum(is.na(BC))*100/prod(dim(BC)),2)
+```
+
+
+## 3. Objetivos:
+
+**3.1 General:** 
+Determinar los principales factores que determinan presentar o no una enfermedad cardiaca 
+
+**3.2 Específico: 8**
+
+- Determinar el rango de edad más común dentro de la data analizando la variable edad de los 5 dataset.
+- Determinar el sexo que predomina en la data mediando el análisis de la variable sexo de los 5 dataset y la relación entre el sexo y la detección de enfermedades cardíacas
+- Determinar la relación entre edad y detección de enfermedad cardíaca
+- Determinar cuál es el dolor más común dentro de los pacientes haciendo uso de la variable tipos de dolor en el pecho de los 5 dataset.
+- Demostrar si determinante el ritmo cardíaco con la edad para contraer suficiencia cardiaca
+- Determinar la influencia de la edad en el dolor de pecho
+
+
+## 4. Analisis descriptivo:
+- **Edad:**
+
+La gráfica nos muestra que la edad de la mayoría de pacientes esta entre 47 - 60 años. No contiene valores atípico y tiene una desviación estándar 9.4. Por tal motivo, la desviación de esta variable es mínima y nos permite trabajar con valores centrados similares, como lo son su media y mediana.
+
+Minimo:
+
+```{r}
+min(BC$Edad) 
+```
+Maximo:
+```{r}
+max(BC$Edad)
+```
+Promedio:
+```{r}
+mean(BC$Edad)
+```
+Mediana:
+```{r}
+median(BC$Edad)
+```
+Desviacion estandar:
+```{r}
+round(sd(BC$Edad), digits = 2)
+```
+
+- **Sexo:**
+
+  - cantidad de varones : 725(78.98%)
+  - cantidad de mujeres: 193(21.02%)
+
+```{r}
+table(BC$Sexo)
+round(table(BC$Sexo)/nrow(BC)*100, digits = 2)  
+barplot(table(BC$Sexo),xlab = "sexo del paciente",ylab = "Cantidad de pacientes",col = c("skyblue","royalblue" ))
+
+
+```
+- **Tipo de dolor:**
+```{r}
+table(BC$TipoDeDolorDePecho)
+round(table(BC$TipoDeDolorDePecho)/nrow(BC)*100, digits = 2)
+
+```
+  - Cantidad de personas con dolor ASY:496(54.03%)
+  - Cantidad de personas con dolor  ATA:173(18.85%)
+  - Cantidad de personas con dolor NAP:203(22.11%)
+  - Cantidad de personas con dolor TA:46(5.01%)
+  
+```{r}
+barplot(table(BC$TipoDeDolorDePecho),xlab = "tipo de dolor",ylab = "Cantidad de pacientes",col = c("royalblue", "skyblue", "violet", "grey"))
+```
+- **Presión Arterial en Reposo:**
+En el gráfico se puede observar que existen datos de 0. Lo cual es imposible por lo cual se toma como dato atipico. Entonces, definimos que los descriptores numéricos de esta variable nos permite trabajar usando tanto la media como la mediana, retirando los datos atípicos.
+
+Minimo:
+```{r}
+min(BC$PresionArterialEnReposo)
+```
+Maximo:
+```{r}
+max(BC$PresionArterialEnReposo)
+```
+Promedio:
+```{r}
+mean(BC$PresionArterialEnReposo)
+```
+Mediana:
+```{r}
+median(BC$PresionArterialEnReposo)
+```
+
+-**Resultados de electrocardiograma en Reposo:**
+
+  - Cantidad de persona que muestra hipertrofia ventricular izquierda(LVH):188(20.48%)
+  -	Cantidad de persona que no presenta anomalías en las ondas(Normal):552(60.13%)
+  -	Cantidad de persona que presenta anomalías en las ondas(ST):178(19.39%)
+
+```{r}
+table(BC$ResultadosDelElectrocardiogramaEnReposo)
+round(table(BC$ResultadosDelElectrocardiogramaEnReposo)/nrow(BC)*100, digits = 2)
+```
+
+```{r}
+barplot(table(BC$ResultadosDelElectrocardiogramaEnReposo),xlab = "Electrocardiograma",ylab = "Cantidad de pacientes",col = c("royalblue", "skyblue", "grey"))
+```
+
+-**Frecuencia cardiaca maxima:**
+ Esta variable tiene mayor cantidad de datos atípicos, lo que se interpreta dentro del contexto como que no todos los pacientes padecen de insuficiencia cardiaca. Los descripores media y mediana estan ligeramente más distanciados; si embargo, aún podemos trabajar con ellos por ser similares.
+
+Minino:
+```{r}
+min(BC$FrecuenciaCardiacaMaximaAlcanzada) 
+```
+Maximo:
+```{r}
+max(BC$FrecuenciaCardiacaMaximaAlcanzada)
+```
+Promedio:
+```{r}
+mean(BC$FrecuenciaCardiacaMaximaAlcanzada)
+```
+Mediana:
+```{r}
+median(BC$FrecuenciaCardiacaMaximaAlcanzada)
+```
+
+```{r}
+barplot(table(BC$FrecuenciaCardiacaMaximaAlcanzada),xlab = "Frecuencia Cardíaca Máxima",ylab = "Cantidad de pacientes",col = c("royalblue" ))
+```
+
+
+- **Angina o dolor inducido por ejercicios:**
+
+  - Cantidad de personas que presentan dolor por ejercicios: 371(40.41)
+    
+	- Cantidad de personas que no presentan dolor por ejercicios: 547(59.59)
+
+
+```{r}
+table(BC$AnginaInducidaPorEjercicio) - round(table(BC$AnginaInducidaPorEjercicio)/nrow(BC)*100, digits = 2)
+```
+
+```{r}
+barplot(table(BC$AnginaInducidaPorEjercicio),xlab = "Dolor inducido por ejercicio",ylab = "Cantidad de pacientes",col = c("skyblue","royalblue" ))
+
+```
+
+- **Enfermedad de corazón.**
+    - Cantidad de pacientes con enfermedad Cardiaca: 508(55.34%)
+    - Cantidad de pacientes que no tienen enfermedad Cardiaca: 410(46.66%)
+```{r}
+table(BC$EnfermedadCardiaca) - round(table(BC$EnfermedadCardiaca)/nrow(BC)*100, digits = 2)
+```
+   
+```{r}
+barplot(table(BC$EnfermedadCardiaca),xlab = "Enfermedad Cardiaca",ylab = "Cantidad de pacientes",col = c("skyblue","royalblue" ))
+```
+
+## Sustentación de objetivos especfícos:
+
+- Determinar el rango de edad más común dentro de la data analizando la variable edad de los 5 dataset.
+
+  Con ayuda de la función summary(), obtenemos los valores máximos y mínimos correspondientes de la variable 'Edad'. Con ello, determinamos que el rango en nuestra base de datos para la variable 'Edad' va de 28-77 años. Mientras, nos apoyamos de su barplot y gráfico de dispersión para determinar que el rango más común de la variable es de aproximadamente 41-65 años.
+
+```{r}
+summary(BC$Edad)
+barplot(table(BC$Edad))
+plot(BC$Edad, main = "Dispersión de variable Edad", 
+     xlab = "Frecuencia de variable edad",
+     ylab = "Edad en años",
+     ylim = c(28,77),
+     xlim = c(0, 918))
+```
+
+- Determinar el sexo que predomina en la data mediando el análisis de la variable sexo de los 5 dataset y la relación entre el sexo y la diagnóstico de enfermedades cardíacas
+
+El sexo que más predomina en nuestra base de datos es el sexo masculino con 78.98% sobre el total de observaciones. Además, al relacionar con la variable 'Enfermedad cardíaca', se ve una distinción entre la variable 'Sexo'. A partir de acá, se evidencia en el gráfico que el sexo Masculino, denotado por M, tiene más detecciones de enfermedad cardíaca que el sexo Femenino, denotado por F. También se ha determinado los porcentajes:
+
+
+```{r}
+table(BC$EnfermedadCardiaca,BC$Sexo)
+barplot(table(BC$EnfermedadCardiaca,BC$Sexo),
+main = "Pacientes con en efermedad Cardíaca segun su género",
+xlab = "Género", ylab = "Cantidad de pacientes", 
+col = c("skyblue","royalblue")
+)
+legend("topleft",
+c("No enfermedad cardiaca","Enfermedad cardiaca"),
+fill = c("skyblue","royalblue")
+)
+
+round(table(BC$EnfermedadCardiaca,BC$Sexo)/nrow(BC)*100, digits = 2)
+
+
+```
+
+
+- Determinar la relación entre la presion y la enfermedad cardíaca
+
+```{r}
+ggplot(BC, aes(x = EnfermedadCardiaca, y = PresionArterialEnReposo)) + geom_boxplot()
+```
+
+- Determinar la relación entre edad y diagnóstico de enfermedad cardíaca
+
+Después de analizar las variables independientemente y su relación mediante la función image() y ggplot(), vemos que existe una alta frecuencia entre las edades 40-65 años que resultaron positivo (1) para enfermedades cardíacas. Por tanto, concluimos que existe un relación directa entre edad y enfermedades cardíacas.
+
+```{r}
+library(ggplot2)
+
+image(x = 27:77, y = 1:2,table(sort(BC$Edad), BC$EnfermedadCardiaca), xlab = "edad", ylab = "enfermedad cardiaca")
+
+
+ggplot(BC, aes(x = EnfermedadCardiaca, y = Edad)) + geom_boxplot()
+
+```
+
+- Determinar cuál es el dolor más común dentro de los pacientes haciendo uso de la variable tipos de dolor en el pecho de los 5 dataset.
+
+Realizando un barplot con la variable 'Tipo de dolor de pecho', vemos la incidencia por pacientes. Por ello, vemos que  496 presentan ASY; 173, ATA; 203, NAP; 46, TA. Entonces, según la gráfica y los datos, los pacientes describen su sensación como ASY, que significa asintomático. Entonces, la mayoría de los pacientes son asíntomáticos para los dolores que manifiestan las enfermedades cardíacas. 
+
+```{r}
+table(BC$TipoDeDolorDePecho)
+barplot(table(BC$TipoDeDolorDePecho),
+        main = "Frecuencia de Tipo de dolor de pecho",
+        sub = "Dolor más común en los pacientes",
+        xlab = "Tipo de dolor de pecho",
+        ylab = "Cantidad de pacientes",
+        ylim = c(0,600),
+        col = c("cadetblue1", "dodgerblue1", "blue", "blue3"),
+        legend.text = c("ASY", "ATA", "NAP", "TA"))
+```
+- Demostrar si determinante el ritmo cardíaco con la edad para contraer suficiencia cardiaca
+
+Respecto al gráfico de frecuencia cardiaca y edad se observa que no existe correlación entre ambas variables lo que significa que la edad no necesariamente define el ritmo de la frecuencia cardiaca por lo que ambas variables son independientes.
+La correlación entre las dos variables es -0.3820447.
+
+```{r}
+plot(BC$Edad,BC$FrecuenciaCardiacaMaximaAlcanzada,
+     ylab="Frecuencia Cardiaca",xlab="Edad",
+     main = "Relacion entre frecuencia cardiaca y Edad")
+
+```
+
+
+- Determinar la relación entre la cantidad de pacientes y el tipo de angina
+
+Hay una mayor probabilidad de presentar alguna enfermedad cardíaca si presentas (ASY) asintomáticas.
+```{r}
+table(BC$EnfermedadCardiaca,BC$TipoDeDolorDePecho)
+barplot(table(BC$EnfermedadCardiaca,BC$TipoDeDolorDePecho),
+main = "Pacientes con en efermedad Cardíaca segun angina",
+xlab = "Tipo de dolor en el pecho", ylab = "Cantidad de pacientes", 
+col = c("skyblue","royalblue")
+)
+legend("topleft",
+c("No enfermedad cardiaca","Enfermedad Cardiaca"),
+fill = c("skyblue","royalblue")
+)
+
+```
+
+
+
+- Determinar la influencia de la edad en el dolor de pecho
+  
+Según el boxplot realizado, se determina la relación de la edad por cada tipo de dolor de pecho que describen los pacientes.
+
+```{r}
+boxplot(BC$Edad~BC$TipoDeDolorDePecho, 
+        main = "Influencia de la edad en dolor de pecho", 
+        sub = "Boxplot de variables Edad y Tipo de dolor en pecho",
+        horizontal = TRUE,
+        ylab = "Tipo de dolor de pecho",
+        xlab = "Edad",
+        col = c("royalblue"),
+        las = 2,
+        )
+
+```
+
+- Determinar relación entre diagnóstico de enfermedad cardíacada con la frecuencia máxima alcanzada. 
+ 
+```{r}
+table(BC$EnfermedadCardiaca,BC$FrecuenciaCardiacaMaximaAlcanzada)
+barplot(table(BC$EnfermedadCardiaca,BC$FrecuenciaCardiacaMaximaAlcanzada),
+main = "Pacientes con en efermedad Cardíaca segun la frecuencia cardíaca máxima alcanzada",
+xlab = "Frecuencia cardiaca", ylab = "Cantidad de pacientes", 
+col = c("skyblue","royalblue")
+)
+legend("topleft",
+c("No enfermedad cardiaca","Enfermedad Cardiaca"),
+fill = c("skyblue","royalblue")
+)
+
+ggplot(BC, aes(x = EnfermedadCardiaca, y = FrecuenciaCardiacaMaximaAlcanzada)) + geom_boxplot()
+```
+
+- Objetivo por el siguiente scatterplot
+
+```{r}
+#Scatterplot edad vs frecuencia 
+ggplot(data = BC, aes(x = Edad, y = FrecuenciaCardiacaMaximaAlcanzada)) + 
+  geom_point()+
+  stat_regline_equation(label.x=30, label.y=310)+
+  geom_smooth(method = "lm", se = FALSE)+
+  stat_cor(aes(label=..rr.label..), label.x=30, label.y=290)
+
+cor(BC$Edad, BC$FrecuenciaCardiacaMaximaAlcanzada)
+```
+- Scatterplot
+
+```{r}
+#Scatterplot Edad vs Presion 
+ggplot(data = BC, aes(x = Edad, y = PresionArterialEnReposo)) + 
+  geom_point()+
+  stat_regline_equation(label.x=30, label.y=310)+
+  geom_smooth(method = "lm", se = FALSE)+
+  stat_cor(aes(label=..rr.label..), label.x=30, label.y=290)
+
+cor(BC$Edad, BC$PresionArterialEnReposo)
+```
+- Scatterplot:
+
+```{r}
+#Scatterplot Frecuencia vs Presion 
+ggplot(data = BC, aes(x = FrecuenciaCardiacaMaximaAlcanzada, y = PresionArterialEnReposo)) + 
+  geom_point()+
+  stat_regline_equation(label.x=30, label.y=310)+
+  geom_smooth(method = "lm", se = FALSE)+
+  stat_cor(aes(label=..rr.label..), label.x=30, label.y=290)
+
+```
+
+
+## Resumen de resultados
+
+- Resultados:
+  La mayoría de pacientes está entre 47 - 60 años.
+  El sexo predominante es el masculino 
+  El dolor más común es el ASY (asintomático)
+  Las personas con enfermedad cardíaca presentan dolor al ejercitarse 
+  Las personas con una menor frecuencia cardíaca presentan mayor probabilidad de tener una     en enfermedad cardíaca
+  
+## Análisis Probabilístico
+
+### Probabilidad frecuentista
+
+**Con relación de tipo de dolor de pecho y los resultados del electro cardiograma. Cual es la probabilidad de que:**
+
+-   Al escoger aleatoriamente, el paciente tenga el dolor TA.
+-   Al escoger aleatoriamente, el paciente tenga el dolor ATA y su electrograma sea normal.
+-   Al escoger aleatoriamente, el paciente tenga el dolor NP o su electrogama indique STD.
+-   Al escoger aleatoriamente, el paciente no tenga el dolor ASY ni su electrograma indique normal.
+-   Al escoger un apciente con dolor ATA, el paciente tenga en su electrograma LVH.
+
+
+```{r}
+
+table(BC$TipoDeDolorDePecho,BC$ResultadosDelElectrocardiogramaEnReposo)
+A = table(BC$TipoDeDolorDePecho,BC$ResultadosDelElectrocardiogramaEnReposo)
+ASY = sum(A[1,1],A[1,2],A[1,3])
+ATA =sum(A[2,1],A[2,2],A[3,3])
+NAP = sum(A[3,1],A[3,2],A[3,3])
+TA=sum(A[4,1],A[4,2],A[4,3])
+LVH=sum(A[1,1],A[2,1],A[3,1],A[4,1])
+Normal=sum(A[1,2],A[2,2],A[3,2],A[4,2])
+ST=sum(A[1,3],A[2,3],A[3,3],A[4,3])
+
+Total = sum(A)
+
+```
+-   Al escoger aleatoriamente, el paciente tenga el dolor TA. 
+
+$\ P(TA)$
+```{r}
+
+round((TA/Total)*100, digits = 2)
+
+```
+Existe un 5.01% de que el paciente escogido tenga el dolor TA.
+
+-   Al escoger aleatoriamente, el paciente tenga el dolor ATA y su electrograma sea normal.
+
+$\ P(ATA \cap Normal)$
+```{r}
+round((A[2,2]/Total)*100, digits = 2)
+```
+Existe un 13.4% de probabilidad de que el paciente tenga dolor de pecho tipo ATA y en su electrograma tenga un resultado normal.
+
+-   Al escoger aleatoriamente, el paciente tenga el dolor NAP o su electrogama indique ST.
+
+$\ P(NAP \cup ST) = P(NAP) + P(ST) - P(NAP \cap ST )$
+```{r}
+round((NAP/Total + ST/Total- A[3,3]/Total)*100, digits = 2)
+```
+Existe un 37% de que el paciente tenga dolor de pecho tipo NAP o su electrograma presente ST
+
+-   Al escoger aleatoriamente, el paciente no tenga el dolor ASY ni su electrograma indique normal.
+
+$\ P(ASY^{c} \cap Normal^{c}) =P(ASY \cup Normal)^{2} = 1 - P(ASY \cup Normal) = 1- P(ASY) + P(Normal) - P(AY\cap Normal )$
+```{r}
+round((1 - ((ASY/Total) + (Normal/Total) -  (A[1,2]/Total)))*100, digits = 2)
+```
+Existe la posibilidad de que el paciente no tenga ni el dolor ASY ni en su electrograma indique resultados normales.
+
+-   Al escoger un paciente con dolor ATA, el paciente tenga en su electrograma LVH.
+
+$\ P(LVH/ATA) = P(LVH \cap ATA)/P(ATA)$
+```{r}
+round(((A[2,1]/Total)/(ATA/Total))*100, digits = 2)
+```
+Existe el 12.85% de probabilidad de que un paciente con dolor ATA, tenga su electrograma LVH.
+
+
+
+
+
+**Con relación a la edad y los tipos de dolor. Cual es la probabilidad de que:**
+
+-   Si se escoge aleatoriamente, El paciente tenga 50 años y no tenga enfermedad cardiaca:
+-   Si el paciente tiene 60 años, A cual de las opciones(Con Enfermedad y sin enferemdad) tiene mayor probabilidad de pertenecer.
+-   Si el paciente tiene enferemdad cardiaca, ¿cual es la posibilidad de que tenga 60 años?
+-   Si se escoge aleatoriamente, Cual es la probabilidad de que el paciente tenga 71 años y tenga enfermedad o tenga 30 años y no tenga la enfermedad
+
+
+```{r}
+
+
+B = table(cut(BC$Edad, breaks = 7),BC$EnfermedadCardiaca)
+B
+Desde28_35 = sum(B[1,1],B[1,2])
+Desde35_42 = sum(B[2,1],B[2,2])
+Desde42_49 = sum(B[3,1],B[3,2])
+Desde49_56 = sum(B[4,1],B[4,2])
+Desde56_63 = sum(B[5,1],B[5,2])
+Desde63_70 = sum(B[6,1],B[6,2])
+Desde70_77 = sum(B[7,1],B[7,2])
+
+SiEnfermedad = sum(B[1,1],B[2,1],B[3,1],B[4,1],B[5,1],B[6,1],B[7,1])
+NoEnfermedad = sum(B[1,2],B[2,2],B[3,2],B[4,2],B[5,2],B[6,2],B[7,2])
+```
+-   Si se escoge aleatoriamente, El paciente tenga 50 años y si tenga enfermedad cardiaca:
+
+$P(E50 \cap Y)$
+```{r}
+round((B[4,2]/Total)*100, digits = 2)
+```
+Existe el 14% de probabilidad de que el paciente tenga 50 años y tenga la enferemdad cardiaca.
+
+-   Si el paciente tiene 60 años, A cual de las opciones( sin enferemdad y Con Enfermedad ) tiene mayor probabilidad de pertenecer.
+
+$\ P(N/E60) = P(N \cap E60)/P(E60)$
+
+$\ P(Y/E60) = P(Y \cap E60)/P(E60)$
+```{r}
+round((B[5,1]/Desde56_63)*100, digits = 2)
+round((B[5,2]/Desde56_63)*100, digits = 2)
+```
+Si el paciente tiene 60 años tiene más posibilidad de tener la enfermedad en un 72.02%. Mientras la probabilidad de no tener solo es de 27.98%.
+
+
+
+-   Si el paciente tiene enferemdad cardiaca, ¿cual es la posibilidad de que tenga 60 años?
+
+$\ P(E60/Y) = P(E60 \cap Y)/P(Y)$
+```{r}
+
+round((B[5,2]/SiEnfermedad)*100, digits = 2)
+```
+Si el paciente tiene la enfermedad cardiaca, tiene el  42.68% de que tenga 60 años
+
+-   Si se escoge aleatoriamente, Cual es la probabilidad de que el paciente tenga 71 años y tenga enfermedad o tenga 30 años y no tenga la enfermedad
+
+$\ P(P1 \cup P2) = P(E71\cap Y) +P(30\cap N )$
+```{r}
+round(((B[7,2]/ Total)+(B[1,1]/ Total) )*100, digits = 2)
+```
+Existe la probabilidad de 4.14% de que el paciente tenga 71 años y tenga enferemdad o tenga 30 años y no tenga la enfermedad cardiaca
+
+
+- Fitting para Frecuencia Máxima Alcanzada
+```{r}
+######### Fit a distribution Weibul #####
+
+ggplot(BC, aes(x=FrecuenciaCardiacaMaximaAlcanzada)) + 
+  geom_histogram(color="black", fill="white")
+
+fw <- fitdist(BC$FrecuenciaCardiacaMaximaAlcanzada, "weibull")
+fg <- fitdist(BC$FrecuenciaCardiacaMaximaAlcanzada, "gamma")
+fln <- fitdist(BC$FrecuenciaCardiacaMaximaAlcanzada, "lnorm")
+
+par(mfrow = c(2, 2))
+plot.legend <- c("Weibull", "lognormal", "gamma")
+denscomp(list(fw, fln, fg), legendtext = plot.legend)
+qqcomp(list(fw, fln, fg), legendtext = plot.legend)
+
+summary(fw)
+
+
+alpha = 6.117584
+beta = 147.293190
+
+curve(dweibull(x, shape=alpha, scale = beta), from=60, to=200)
+
+
+```
+- Usando los gráficos anteriores y las siguientes funciones, buscamos determinar cuál es la probabilidad de que un paciente tenga menos de 100 de Frecuencia Cardiaca Máxima Alcanzada:
+
+```{r}
+pweibull(100,shape=alpha,scale=beta)*100
+```
+
+- Podemos comprobar que nuestra aproximación probabilística es correcta porque nos da un resultado similar al real.
+
+```{r}
+df1 <- BC %>% filter(FrecuenciaCardiacaMaximaAlcanzada<=100)
+(nrow(df1)/nrow(BC))*100
+
+```
+
+- Fitting para Presion Arterial en Reposo
+
+```{r}
+
+library(sf)
+
+#Hacemos filtros de las observaciones
+df_p <- BC %>% filter(PresionArterialEnReposo>50)
+ggplot(df_p, aes(x=PresionArterialEnReposo)) + 
+  geom_histogram(color="black", fill="white")
+
+#Guardamos los filtros
+fw <- fitdist(df_p$PresionArterialEnReposo, "weibull")
+fg <- fitdist(df_p$PresionArterialEnReposo, "gamma")
+fln <- fitdist(df_p$PresionArterialEnReposo, "lnorm")
+
+par(mfrow = c(2, 2))
+
+plot.legend <- c("Weibull", "lognormal", "gamma")
+denscomp(list(fw, fln, fg), legendtext = plot.legend)
+qqcomp(list(fw, fln, fg), legendtext = plot.legend)
+
+summary(fln)
+# Obtenemos nuestros parámetros para poder graficar
+meanlog_= 4.8779014
+sdlog_ = 0.1336242
+
+```
+- Buscamos la probabilidad que un paciente tenga Presion Arterial en Reposo menor a 170:
+
+```{r}
+plnorm(170, meanlog = meanlog_, sdlog = sdlog_, lower.tail = TRUE, log.p = FALSE)
+```
+
+- Podemos comprobar que la aproximación realizada es correcta, ya que dan resultados similares a los reales.
+
+```{r}
+
+df2 <- df_p %>% filter(PresionArterialEnReposo<=170)
+(nrow(df2)/nrow(df_p))
+```
+
+OBJETIVO
+Determinar la probabilidad de que exactamente  6 de las 80 personas elegidas aleatoriamente presenten el tipo de dolor de pecho AT(Angina Atipica)
+
+DISTRIBUCION BINOMIAL
+
+En siguiente modelo tiene como objetivo determinar la probabilidad que 6 de una muestra de 80 tengan el dolor de pecho tipo TA.
+
+El  modelo presenta distribución binomial porque presenta elementos con reposición, ademas la probabilidad es la misma para todas.
+
+```{r}
+table(BC$TipoDeDolorDePecho)
+```
+
+
+Valor esperado: 4 personas
+Se espera que 4 personas tengan el dolor de pecho tipo TA.
+
+
+X: 6 personas 
+n: muestra de la población obtenida 80 personas de 918
+p:probabilidad de éxito 46/918
+
+x tiene una probabilidad Binomial con 80 ensayos y 0.050109 de probabilidad
+Sea X ~ B(n=80; p=46/918)
+
+```{r}
+dbinom(6,80,46/918)
+```
+
+
+CONCLUSION:
+
+La probabilidad que 6 personas tengan el tipo de dolor de pecho TA es de 0.11
+
+
+## Conclusiones
+
+Luego de analizar el dataset podemos concluir que la más altas probabilidades de sufrir una enfermedad cardíaca se da en hombres de edad avanzada, en este sentido, esta sería la respuesta a nuestra pregunta inicial planteada. Al igual que Pérez Fernández, nuestra mayor incidencia en probabilidad de enfermedades cardíacas radica en personas de sexo masculino y de edades superiores a 50 años, es así que podemos corroborar lo hallado en su trabajo de investigación. Del mismo modo, podemos validar los estudios realizados por Baena Díez puesto que su afirmación referente a la edad media cuadra con lo hallado en nuestro trabajo y lo expuesto por Pérez Fernández. Por otro lado, otra característica resaltante es que existe una gran diferencia porcentual entre el dolor más común, representando una variable determinante por su alto grado: Asintomáticos. Asimismo, determinamos que la frecuencia cardíaca es menor en pacientes con enfermedad cardíaca respecto a los que nos presentan y que una señal de alerta es sentir dolor al ejercitarse.     
+
+## Referencias bibliograficas:
+
+[Vega Abascal, J., Guimará Mosqueda, M., & Vega Abascal, L. (2011). Riesgo cardiovascular, una herramienta útil para la prevención de las enfermedades cardiovasculares. Revista Cubana de Medicina General Integral, 27(1). http://scielo.sld.cu/scielo.php?pid=S0864-21252011000100010&script=sci_arttext&tlng=en ]
+
+[Baena Díez, J. M., del Val García, J. L., Tomàs Pelegrina, J., Martínez Martínez, J. LMartín Peñacoba, R., González Tejón, I., Raidó Quintana, E. M., Pomares Sajkiewicz, M., Altés Boronat, A., Álvarez Pérez, B., Piñol Forcadell, P., Rovira España, M., & Oller Colom, M. (2005). Epidemiología de las enfermedades cardiovasculares y factores de riesgo en atención primaria. Revista Española de Cardiología, 58(4), 367–373. https://doi.org/10.1157/13073893 ]
+
+[Pérez Fernández, Y., & Soto García, A. (2017, junio). FACTORES DE RIESGO DE LAS ENFERMEDADES CARDIOVASCULARES. UNIVERSIDAD COMPLUTENSE DE MADRID. http://147.96.70.122/Web/TFG/TFG/Memoria/ANA%20SOTO%20GARCIA.pdf ]
+
+Actualización de estadísticas sobre enfermedades cardíacas y ataques o derrames cerebrales, año 2022. (2022). American Heart Association, 43(7), 545-549. https://www.heart.org/-/media/PHD-Files-2/Science-News/2/2022-Heart-and-Stroke-Stat-Update/Translated-Materials/2022-Stat-Update-at-a-Glance-Spanish.pdf
+
+[Equipo NO-KO de Federación Aturiana de Empresarios (2022)FRECUENCIA CARDÍACA MÁXIMA: ¿QUÉ ES? ¿COMO CALCULARLA? 
+http://fadesaludable.es/2017/02/23/frecuencia-cardiaca-maxima-que-es-como-calcularla/]
+

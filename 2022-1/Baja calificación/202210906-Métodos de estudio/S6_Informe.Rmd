@@ -1,0 +1,702 @@
+---
+title: "S6_informe"
+date: "24 de junio del 2022"
+output: 
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: journal
+---
+
+# Introducción
+Las técnicas de estudio consisten en aplicar diversos métodos con el principal objetivo ayudar al estudiante a lograr una mayor concentración al estudiar y al mismo tiempo incrementar su capacidad para retener información, así como su motivación para seguir aprendiendo, estás estrategias se pueden aplicar en cualquier área de estudio porque nos ayuda administrar el tiempo de forma más eficiente, retener información con mayor facilidad y definir prioridades para estudiar de manera más organizada.
+
+Basandonos en estudios anteriores y en los resultados obtenidos de la presente investigación llegamos a la conclusión de que resultados  obtenidos tienen una relación directa, significativa entre los métodos y técnicas de estudio y el rendimiento de los estudiantes de la UTEC.
+Es por ello que se decidió investigar los métodos de estudio de los alumnos de la UTEC frente a una evaluación y de qué manera el uso de estos, impacta en sus notas académicas.
+
+El presente informe de estudio es de tipo correlacional, el cual tiene un diseño de investigación no experimental y de corte transversal.
+
+## Planificación
+
+## Diagrama de Gantt
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidyr)
+library(lubridate)
+
+df <- data.frame(Stage = c("Busqueda y seleccion de 3 posibles temas","Pre-entrega del proyecto" , "Eleccion del tema y elaboracion de la encuesta", "Recoleccion de datos","Limpieza de datos y elaboracion de la introduccion","Elaboracion de grafica de Gantt,descriptores y R presentation","P1-Entrega del proyecto","Segunda entrega del proyecto","Correcccion de entregas previas del proyecto","Elaboracion de modelos Estadisticos")
+                 , Start = c("2022-03-28", "2022-03-28"
+                           , "2022-04-10", "2022-04-22"
+                           , "2022-04-27", "2022-05-04"
+                           , "2022-04-08", "2022_04-19"
+                           ,"2022-05-23","2022-05-27")
+                 
+                 ,End = c("2022-04-02","2022-04-08"
+                          , "2022-04-15", "2022-04-29"
+                          , "2022-05-04", "2022-05-08"
+                          , "2022-05-06", "2022-06-24"
+                          ,"2022-06-22","2022-06-22")
+                 , Complete = c(TRUE, TRUE, TRUE , TRUE , TRUE , TRUE , TRUE , TRUE, TRUE,TRUE))
+
+df$Start <- ymd(df$Start)
+df$End <- ymd(df$End)
+
+df.melt <- df%>%
+  tidyr::pivot_longer(col = c(Start,End))
+
+pl <- ggplot(df.melt, aes(x = value, y = Stage, colour = Complete ))
+pl <- pl + geom_line( alpha = 0.2, size = 10)
+pl <- pl + geom_text(aes(label = format(value, "%d %b")), vjust = -0.5, angle = 45, size = 3, color = "black")
+pl <- pl +   theme_classic()
+pl <- pl + labs(title = "Diagrama de Gantt")
+pl <- pl + labs(x = "Fecha")
+pl <- pl + labs(y = "Proyecto")
+pl <- pl + scale_color_manual(values = c("purple", "blue"))
+pl <- pl + theme(legend.position = "none")
+pl <- pl + theme(panel.background = element_rect(color = "orange"))
+pl <- pl + scale_x_date(name = "Fecha"
+                        ,  date_labels = "%d %b"
+                        ,  date_breaks = "1 week"
+                        , minor_breaks = "1 day")
+pl
+```
+
+
+
+# Datos
+La recolección de datos se realizará mediante un tipo de muestreo no probabilístico - por conveniencia, debido a que realizaremos una encuesta y la enviaremos mediante el correo de la UTEC a todos los alumnos.
+Se tomó esta forma de recolección de datos, porque la obtención de la muestra es la más rápida.
+La condición para realizar la recolección de datos, fue la dificultad de poder llegar a los 200 alumnos de la UTEC, sin embargo, esto se solucionó mediante una estrategia planteada entre todos que era llegar a la población mediante un sorteo enviando las encuestas por los medios virtuales.
+
+## Población
+Nuestra población es la universidad UTEC, en donde la unidad muestral son los alumnos de la comunidad. 
+El tamaño de la muestra será de 200 alumnos
+
+
+ + Variables de estudio
+    + |Variable | Tipo        | Escala      | Restricción |
+|---------------|-------------|-------------|-------------|
+|Edad |Numérica|Discreta|Entero no negativo - mayor igual a 18
+|Género|Categórica|Nominal| Solo puede marcar las opciones dadas
+|Carrera|Categórica|Nominal|Solo puede marcar las opciones dadas
+|Lugar de residencia|Categórica|Nominal|Solo puede marcar las opciones dadas
+|Ciclo|Categórica|Nominal|Solo puede marcar las opciones dadas
+|Método de estudio|Categórica|Nominal|Solo puede marcar las opciones dadas
+|Zona de estudio|Categórica|Nominal|Solo puede marcar las opciones dadas
+|Tiempo que le dedica a estudiar en horas al día|Numérica|Discreta|Entero no negativo
+|Método de manera virtual o física|Categórica|Nominal|Solo puede marcar las opciones dadas
+|Cantidad de días que estudia a la semana|Numérica|Discreta|Entero no negativo
+|Días de anticipación para estudiar ante un examen|Numérica|Discreta|Entero no negativo
+|Promedio general del ciclo regular anterior|Numérica|Continua|Entero no negativo
+|Moda de notas en los exámenes del ciclo regular anterior|Numérica|Continua|Entero no negativo
+|Autodidacta|Categórica|Nominal|Solo puede marcar las opciones dadas
+|Estudia de manera grupal o individual|Categórica|Nominal|Solo puede marcar las opciones dadas
+
+## Limpieza de la base de datos
+
+Para este proceso las consideraciones para la limpieza de la base de  datos fueron:
+
+- Información irrelevante para el estudio.
+- Datos confusos.
+- Tomar en cuenta que las respuestas de los encuestados vayan de acuerdo al tipo de variable que corresponda, finalmente podríamos decir que los datos ya se encuentra limpios ya que se pudo realizar un análisis sistemático en R el cual funcionó correctamente sin ningún problema de datos errados.
+
+
+
+```{r}
+# Carga de Librerias
+library(readr)
+library(dplyr)
+library(stringr) 
+library(car)
+```
+
+```{r}
+P1<- read.csv("BaseDatos.csv", header=T, sep=',')
+```
+
+```{r}
+names(P1)
+```
+
+```{r}
+P1 <- rename(P1, Edad = "Edad..aÃ.os.cumplidos." , Genero = "GÃ.nero" , Metodos = "Â.QuÃ..mÃ.todo.de.estudio.usas.con.mÃ.s.frecuencia.", Apuntes = "Â.De.quÃ..manera.prefiere.realizar.sus.apuntes.para.un.examen.", Zona = "Â.Que.zona.es.de.su.preferencia.para.aplicar.su.mÃ.todo.de.estudio.", Autodidacta = "Â.Eres.autodidacta.", Estudiar_solo_o_amigos = "Â.Prefieres.estudiar.solo.o.con.un.grupo.de.amigos." , Dias_de_anticipacion = "DÃ.as.de.anticipaciÃ³n.que.tomas.para.rendir.un.examen" , Dias_a_la_semana = "Â.CuÃ.ntos.dÃ.as.sueles.estudiar.a.la.semana..fuera.de.clases" , Tiempo = "Tiempo.que.le.dedica.a.estudiar.en.horas.al.dÃ.a...Ej..1.o.15..solo.el.nÃºmero.de.horas." , Moda = "Moda.de.notas.en.los.exÃ.menes.del.ciclo.regular.anterior..Ej..14.o.14.5..mÃ.ximo.1.decimal.", Promedio = "Promedio.general.del.ciclo.regular.anterior..Ej..13.o.13.5..mÃ.ximo.1.decimal.")
+names(P1)
+```
+
+```{r}
+T1<-table(P1$Carrera) 
+
+P1 %>% mutate(Carrera = 
+        ifelse(Carrera == "AdministraciÃ³n y negocios digitales", "Administracion y negocios digitales",
+        ifelse(Carrera == "BioingenierÃ­a", "Bioingenieria",
+        ifelse(Carrera == "Ciencia de la computaciÃ³n", "Ciencia de la computacion",
+        ifelse(Carrera == "Ing. de la energÃ­a", "Ing. de la energia",
+        ifelse(Carrera == "Ing. ElectrÃ³nica", "Ing. Electronica",
+        ifelse(Carrera == "Ing. de la energÃ­a", "Ing. de la energia",       
+        ifelse(Carrera == "Ing. MecÃ¡nica", "Ing. Mecanica",
+        ifelse(Carrera == "Ing. MecatrÃ³nica", "Ing. Mecatronica", 
+        ifelse(Carrera == "Ing. QuÃ­mica", "Ing. Quimica", 
+        ifelse(Carrera == "Ing.Civil", "Ing. Civil", Carrera
+        ))))))))))) -> P1
+
+unique(P1$Carrera)
+```
+
+```{r}
+T2 <- table(P1$Lugar.de.residencia)
+
+P1 %>% mutate(Lugar.de.residencia = 
+        ifelse(Lugar.de.residencia == "Balneareos del Sur (Pta. Hermosa, Pucusana, Pta. Negra, San Bartolo, Sta. MarÃ­a)", "Balneareos del Sur ta. Hermosa, Pta. Negra, San Bartolo, Sta. Maria)",
+        ifelse(Lugar.de.residencia == "Central (Cercado, San Luis, BreÃ±a, La Victoria, RÃ­mac, Lince, San Miguel, JesÃºs MarÃ­a, Magdalena, Pblo. Libre)", "Central (Cercado, San Luis, Breña, La Victoria, Rímac, Lince, San Miguel, Jesús María, Magdalena, Pblo. Libre)",
+        ifelse(Lugar.de.residencia == "Norte(AncÃ³n, Pte. Piedra, Sta. Rosa, Carabayllo, Comas, Los Olivos, Independencia, S.M. Porres)", "Norte(Ancón, Pte. Piedra, Sta. Rosa, Carabayllo, Comas, Los Olivos, Independencia, S.M. Porres)",Lugar.de.residencia
+        )))) -> P1
+
+unique(P1$Lugar.de.residencia)
+```
+
+```{r}
+T3 <- table(P1$Metodos)
+
+P1 %>% mutate(Metodos = 
+        ifelse(Metodos == "ResÃºmenes escritos", "Resumenes Escritos",
+        ifelse(Metodos == "No tengo un mÃ©todo de estudios", "No tengo",
+        ifelse(Metodos == "Active Recall : Explicar claramente un tema como si lo estuvieras enseÃ±ando a otra persona. Se repite el proceso hasta comprenderlo totalmente.", "Active Recall",
+        ifelse(Metodos == "Escucha activa : escuchar activamente la clase y repasando Ãºnicamente en el salÃ³n, estar listo para el examen", "Escucha activa",
+        ifelse(Metodos == "ResÃºmenes grÃ¡ficos (mapas mentales, diagramas)", "Resumenes Graficos", Metodos
+        )))))) -> P1
+
+unique(P1$Metodos)
+```
+
+```{r}
+T4<-table(P1$Apuntes)
+
+P1 %>% mutate(Apuntes = 
+        ifelse(Apuntes == "FÃ­sico", "Fisico",Apuntes
+        )) -> P1    
+unique(P1$Apuntes)
+
+```
+
+```{r}
+T5<-table(P1$Zona)
+
+P1 %>% mutate(Zona = 
+        ifelse(Zona == "CafeterÃ­a", "Cafeteria",Zona
+        )) -> P1
+unique(P1$Zona)
+
+```
+##Determinamos lo casos efectivos 
+
+```{r}
+TOTALDATOS=sum(!is.na(P1))+sum(is.na(P1))
+TOTALDATOS
+
+```
+## Descriptores Númericos
+
+Según el resultado nuestras 200 encuestas son correctas, dado que obtuvimos el 100% de datos completos.
+
+## Determinamos si las variables tienen datos atípicos,con el fin de poder identificar a que varibles podemos calcular sus descriptores numéricos, ya que en las gráficas de caja, el simbolo * o °  identifica los valores atípicos. Estos valores atípicos son observaciones que están a por lo menos 1.5 veces el rango intercuartil (Q3 – Q1) del borde de la caja.
+
+ --> *Edad* 
+ 
+```{r}
+ boxplot(P1$Edad, 
+        main = "Edad",
+        boxwex = 0.5,col="blue")
+```
+ A partir del resultado del boxplot, obtuvimos que 1 dato de la variable edad son atípicos es decir son muy diferentes significativamente en valor en relación a los demás datos, por lo que no es viable calcular el promedio. 
+
+
+*Descriptores de la variable edad:*
+
+```{r}
+
+cat('Mediana:',round(median(P1$Edad),2),'\n') #calcula la mediana de la edad
+
+cat('Desviación Estándar:',round(sd(P1$Edad),2),'\n') #calcula la desviación estándar de la edad
+
+cat('Rango:',round(range(P1$Edad),2),'\n') #calcula el rango de la edad
+
+cat('Rango Intercuartílico:',round(IQR(P1$Edad),2),'\n') #calcula el rango intercuartílico de la edad
+
+cat('Coeficiente de Variación:', round((sd(P1$Edad)/mean(P1$Edad))*100,2),'\n')
+
+```
+
+ --> *Tiempo que le dedica a estudiar en horas al día*
+ 
+```{r}
+ boxplot(P1$Tiempo, 
+        main = "Tiempo que le dedica a estudiar en horas al día",
+        boxwex = 0.5,col="pink")
+```
+ A partir del resultado del boxplot obtuvimos que 2 datos de la variable Tiempo son atípicos es decir son muy diferentes significativamente en valor en relación a los demás datos, por lo que no es viable calcular el promedio o media aritmética, más si calcular otros descriptores como mediana, desviación estándar, rango, rango intercuartílico y coeficiente de variación.
+
+
+*Descriptores de la variable tiempo que le dedica a estudiar al día*
+
+```{r}
+
+cat('Mediana:',round(median(P1$Tiempo),2),'\n') #calcula la mediana de tiempo que le dedica a estudiar al día
+
+cat('Desviación Estándar:',round(sd(P1$Tiempo),2),'\n') #calcula la desviación estándar de tiempo que le dedica a estudiar al día
+
+cat('Rango:',round(range(P1$Tiempo),2),'\n') #calcula el rango de tiempo que le dedica a estudiar al día
+
+cat('Rango Intercuartílico:',round(IQR(P1$Tiempo),2),'\n') #calcula el rango intercuartílico de tiempo que le dedica a estudiar al día
+
+cat('Coeficiente de Variación:', round((sd(P1$Tiempo)/mean(P1$Tiempo))*100,2),'\n')
+
+```
+
+ --> *Cantidad de días que estudia a la semana* 
+ 
+```{r}
+ boxplot(P1$Dias_a_la_semana, 
+        main = "Cantidad de días que estudia a la semana",
+        boxwex = 0.5,col="orange")
+```
+
+A partir del resultado del boxplot obtuvimos que 0 datos de la variable Dias_a_la_semana  son atípicos es decir no existen  diferencia entre los datos, por lo que es viable calcular el promedio o media aritmética, así mismo  calcular otros descriptores como mediana, desviación estándar, rango, rango intercuartílico y coeficiente de variación.
+
+*Descriptores de la variable cuantos dias estudia a la semana*
+
+```{r}
+cat('Media:',round(mean(P1$Dias_a_la_semana),2),'\n') #calcula el promedio de cuantos dias estudia a la semana
+
+cat('Mediana:',round(median(P1$Dias_a_la_semana),2),'\n') #calcula la mediana de cuantos dias estudia a la semana
+
+cat('Desviación Estándar:',round(sd(P1$Dias_a_la_semana),2),'\n') #calcula la desviación estándar de cuantos dias estudia a la semana
+
+cat('Rango:',round(range(P1$Dias_a_la_semana),2),'\n') #calcula el rango de cuantos dias estudia a la semana
+
+cat('Rango Intercuartílico:',round(IQR(P1$Dias_a_la_semana),2),'\n') #calcula el rango intercuartílico de cuantos dias estudia a la semana
+
+cat('Coeficiente de Variación:', round((sd(P1$Dias_a_la_semana)/mean(P1$Dias_a_la_semana))*100,2),'\n')
+
+```
+--> *Días de anticipación para estudiar ante un examen* 
+ 
+```{r}
+ boxplot(P1$Dias_de_anticipacion, 
+        main = "Días de anticipación para estudiar ante un examen",
+        boxwex = 0.5,col="red")
+```
+
+
+A partir del resultado del boxplot obtuvimos que 0 datos de la variable Dias_de_anticipacion son atípicos es decir no existen  diferencia entre los datos, por lo que es viable calcular el promedio o media aritmética, asi mismo  calcular otros descriptores como mediana, desviación estándar, rango, rango intercuartílico y coeficiente de variación.
+
+
+ *Descriptores de la variable Días de anticipación para rendir un examen:*
+
+```{r}
+cat('Media:',round(mean(P1$Dias_de_anticipacion),2),'\n') #calcula el promedio de Dias de anticipacion para rendir un examen
+
+cat('Mediana:',round(median(P1$Dias_de_anticipacion),2),'\n') #calcula la mediana de Dias de anticipacion para rendir un examen
+
+cat('Desviación Estándar:',round(sd(P1$Dias_de_anticipacion),2),'\n') #calcula la desviación estándar de Dias de anticipacion para rendir un examen
+
+cat('Rango:',round(range(P1$Dias_de_anticipacion),2),'\n') #calcula el rango de Dias de anticipacion para rendir un examen
+
+cat('Rango Intercuartílico:',round(IQR(P1$Dias_de_anticipacion),2),'\n') #calcula el rango intercuartílico de Dias de anticipacion para rendir un examen
+
+cat('Coeficiente de Variación:', round((sd(P1$Dias_de_anticipacion)/mean(P1$Dias_de_anticipacion))*100,2),'\n')
+
+```
+
+--> *Promedio general del ciclo regular anterior* 
+
+```{r}
+ boxplot(P1$Promedio, 
+        main = "Promedio general del ciclo regular anterior",
+        boxwex = 0.5,col="purple")
+```
+
+
+A partir del resultado del boxplot obtuvimos que 2 datos de variable Promedio   son atípicos uno el cual es un valor superior y otro el cual es inferior a diferencia entre los datos, por lo que no  es viable calcular el promedio o media aritmética, pero si se podría  calcular otros descriptores como mediana, desviación estándar, rango, rango intercuartílico y coeficiente de variación.
+
+
+*Descriptores de la variable promedio general del ciclo regular anterior*
+
+```{r}
+
+cat('Mediana:',round(median(P1$Promedio),2),'\n') #calcula la mediana de 
+
+cat('Desviación Estándar:',round(sd(P1$Promedio),2),'\n') #calcula la desviación estándar de 
+
+cat('Rango:',round(range(P1$Promedio),2),'\n') #calcula el rango de 
+
+cat('Rango Intercuartílico:',round(IQR(P1$Promedio),2),'\n') #calcula el rango intercuartílico de 
+
+cat('Coeficiente de Variación:', round((sd(P1$Promedio)/mean(P1$Promedio))*100,2),'\n')
+
+```
+
+
+--> *Moda de notas en los exámenes del ciclo regular anterior* 
+ 
+```{r}
+ boxplot(P1$Moda, 
+        main = "Moda de notas en los exámenes del ciclo regular anterior",
+        boxwex = 0.5,col="yellow")
+```
+A partir del resultado del boxplot obtuvimos que 4 datos de variable Moda son atípicos, 2 son  un valor superior y los otros 2 son   inferiores a diferencia de la gran mayoría de  datos, por lo que no  es viable calcular el promedio o media aritmética, pero si se podría  calcular otros descriptores como mediana, desviación estándar, rango, rango intercuartílico y coeficiente de variación..
+
+
+*Descriptores de la variable moda de notas en los exámenes del ciclo regular anterior*
+
+```{r}
+
+cat('Mediana:',round(median(P1$Moda),2),'\n') #calcula la mediana de notas en los exámenes del ciclo regular anterior
+
+cat('Desviación Estándar:',round(sd(P1$Moda),2),'\n') #calcula la desviación estándar de notas en los exámenes del ciclo regular anterior
+
+cat('Rango:',round(range(P1$Moda),2),'\n') #calcula el rango de notas en los exámenes del ciclo regular anterior
+
+cat('Rango Intercuartílico:',round(IQR(P1$Moda),2),'\n') #calcula el rango intercuartílico de notas en los exámenes del ciclo regular anterior
+
+cat('Coeficiente de Variación:', round((sd(P1$Moda)/mean(P1$Moda))*100,2),'\n')
+
+```
+
+
+##  Descriptores Gráficos
+
+```{r}
+tabla_edad=table(P1$Edad)
+barplot(tabla_edad,col = 'pink', main = "Distribución de la Edad de los encuestados", xlab = "Edad", ylab = "Frecuencia")
+```
+
+En la gráfica se muestra la distribución de las personas encuestadas según su edad. Se encuestaron alumnos de 18 a 25 años aprox. Se puede observar que la gráfica tiene un sesgo hacia la derecha por la cola larga en el lado derecho, y esto se confirma debido a que la mediana es menor que la media y por ello, se puede decir que la distribución es asimétrica. Interpretando la gráfica, nos podemos dar cuenta que hay una mayor cantidad de alumnos con 28 años y una minoría con 24 y 25 años. Considerando que la edad es una variable numérica discreta que va desde 0 hasta 98 aproximadamente y que nuestra muestra abarca de 18 a 25 se concluye que los datos son dispersos.
+
+```{r}
+tabla_ciclo=table(P1$Ciclo)
+barplot(tabla_ciclo,col = 'skyblue', main = "Distribución de ciclo de los encuestados", xlab = "Ciclo", ylab = "Frecuencia")
+```
+
+En la gráfica se muestra la distribución de las personas encuestadas según el ciclo que están cursando. Se han encuestado alumnos del primer hasta el décimo ciclo Se puede observar que la gráfica tiene un sesgo hacia la derecha por la cola larga en el lado derecho, y esto se confirma debido a que la mediana es menor que la media y por ello, se puede decir que la distribución es asimétrica. Analizando la gráfica, apreciamos que hay más alumnos cursando en el 3er ciclo y la minoría se encuentra en el 1er ciclo. 
+
+```{r}
+tabla_promedio=table(P1$Promedio)
+barplot(tabla_promedio,col = 'purple', main = "Promedio de los encuestados", xlab = "Promedio", ylab = "Frecuencia")
+```
+En la gráfica podemos apreciar el promedio de las notas de los alumnos de la UTEC. Esta variable es de suma importancia, ya que nos ayudará a saber qué método es el más eficiente de las múltiples opción. De está gráfica se puede interpretar que el promedio de los alumnos de UTEC más sacado es 15. Además se puede decir que es del tipo de distribución simétrica,ya que la línea vertical que pasa por su media, divide a su representación gráfica en dos partes simétricas. Ello equivale a decir que los valores equidistantes de la media, a uno u otro lado, presentan la misma frecuencia.
+
+```{r}
+tabla_moda=table(P1$Moda)
+barplot(tabla_moda,col = 'yellow', main = "Moda de los encuestados", xlab = "Moda", ylab = "Frecuencia")
+```
+En la gráfica podemos apreciar la moda de notas en los exámenes del ciclo regular anterior de los alumnos de UTEC, donde se ve que la mayor moda de las notas es 15, al igual que el promedio de notas de la gráfica anterior.
+
+# Diagramas de dispersión
+
+## Diagrama de dispersión días a la semana y Tiempo
+```{r}
+cor(P1$Tiempo,P1$Dias_a_la_semana)
+plot(P1$Tiempo,P1$Dias_a_la_semana)
+```
+En este diagrama de dispersión de los días que estudia a la semana y Tiempo que le dedica a estudiar en horas al día, se puede apreciar que no tiene un tipo de relación entre variables, ya que van en linea recta, por lo que cada variable es independiente.
+
+## Diagrama de dispersión días a la semana y promedio
+```{r}
+cor(P1$Dias_a_la_semana,P1$Promedio)
+plot(P1$Dias_a_la_semana,P1$Promedio)
+```
+
+En este diagrama de dispersión de los días que estudia a la semana y promedio de notas de los alumnos de UTEC, se puede apreciar, esto se puede interpretar que mientras estudia más cantidad de días a la semana, el promedio de las notas aumente también, es decir si tienen una relación fuerte entre  variables, ya que están juntas, es decir,cuantos más días estudia a la semana, su promedio también aumenta. Sin embargo, también se puede ver un valor atípico, y esto significa que este valor es muy diferente o esta alejado a los demás datos, por lo que afectaría en los resultados.
+
+## Diagrama de dispersión días de anticipación y promedio
+```{r}
+cor(P1$Dias_de_anticipacion,P1$Promedio)
+plot(P1$Dias_de_anticipacion,P1$Promedio)
+```
+
+
+En este diagrama de dispersión de promedio de las notas de los estudiantes y los días de anticipación que estudian para un examen se puede apreciar una fuerte relación entre variables , ya que estan juntos y esto quiere decir que cuanto más días de anticipación mayor es su promedio de notas. Sin embargo , también se halla un valor atípico, lo cual podría afectar los resultados, ya que esta muy alejado a los demás valores.
+
+# Graficos para poder resolver los objetivos
+
+## Gráfico de barras Género, promedio y Metodo
+
+```{r}
+ggplot(P1,aes(x=Genero, y=Promedio, fill=Metodos))+ geom_bar(position = "dodge", stat = "identity")+coord_flip()+ theme_minimal()
+```
+
+En este gráfico de barras donde se relacionan las variables Género, promedio y método se puede apreciar que a los varones con el método de resúmenes escritos les favorece con un mejor promedio de notas, y en las mujeres el Active Recall favorece en sus promedios, teniendo un sesgo a la izquierda, confirmando que la mediana el mayor a la media.
+
+## Gráfico de barras Género, promedio y estudiar_solo_o_amigos
+
+```{r}
+
+ggplot(P1,aes(x=Genero, y=Promedio, fill=Estudiar_solo_o_amigos))+geom_bar(position = "dodge", stat = "identity")+ theme_minimal() #el comando dodge es para colocar las barras una al lado de la otra 
+```
+En este gráfico de barras donde se relacionan las variables Género, promedio y si estudian solos , con amigos o ambos, se puede apreciar que el género masculino y estudiando de ambas maneras , tanto solo como con amigos, es la mejor opción según los encuestados ya que alcanzan un mayor promedio.Además se puede ver que en la parte femenina tiene un sesgo a la izquierda, confirmando que la mediana el mayor a la media. Y en lo masculino un sesgo a la derecha,y esto se confirma debido a que la mediana es menor que la media y por ello, se puede decir que la distribución es asimétrica.
+
+
+```{r}
+library(pheatmap)
+library(tmap)
+library(colorspace)
+library(ggplot2)
+library(grid)
+```
+
+## Conclusiones
+
+ + Como conclusión a nuestros 3 objetivos:
+
+     - El método de estudio más usado es el resumen escrito, sin embargo el método más eficiente es el active recall.
+     
+     - El género masculino obtiene mayor moda al estudiar solo, sin embargo el genero femenino se mantiene en el mismo nivel tanto estudiando solo como ambos.Se concluye también que con amigos es la forma más deficiente de poder estudiar.
+     
+     - Los métodos más efectivos de cada carrera según sus promedios e identificándolos mediante una gráfica de calor: 
+     
+## Gráfico mapa de calor de las variables métodos, carrera y Promedio
+```{r}
+a1<-P1[,c(3,6,15)]
+a1$Carrera<-as.factor(a1$Carrera)
+a1$Metodos<-as.factor(a1$Metodos)
+
+library(ggplot2)
+ggplot(a1, aes((x = Carrera), y = Metodos, fill = Promedio)) + geom_tile()
+
+
+```
+En este gráfico de mapa de calor donde se relacionan las variables promedio, métodos y carrera, se puede apreciar que el color más claro de azul significa que tienen mayor promedio a los que están oscuros, a partir de ello se puede responder nuestro tercer objetivo e identificamos que el método más efectivo según su promedio de cada carrera serían: 
+
+ + |Carrera | Método más usado|
+|---------------|-------------|
+|Ing. Química| Escucha activa
+|Ing. Mecatrónica|Flashcards y escucha activa
+|Ing. Mecánica| Escucha activa
+|Ing. Industrial| Resúmenes escritos
+|Ing. Electrónica|No tiene un método de estudios
+|Ing. de la energía|Resúmenes escritos
+|Ing. Civil|Resúmenes escritos
+|Ing. Ambiental|Escucha activa
+|Ciencia de la computación|Active recall
+|Ciencia de datos|Active recall
+|Bioingeniería|Resúmenes escritos
+|Administración y negocios digitales|Resúmenes escritos
+
+
+## Análisis Probabilístico
+
+```{r}
+##Tablas Cruzadas (Genero según carrera que estudia)
+tab1<-table(P1$Carrera,P1$Genero)
+tab1
+```
+
+```{r}
+pro.tab1<-prop.table(tab1)
+pro.tab1
+```
+
+```{r}
+##probabilidades
+#1 Probabilidad de que un estudiante sea Hombre y estudie Ingeniería Ambiental
+p1<-pro.tab1["Ing. Ambiental","Masculino"]
+p1
+
+#2 Probabilidad de que un estudiante sea Mujer y estudie Ingeniería Civil
+p2<-pro.tab1["Ing. Civil","Femenino"]
+p2
+
+##3 Probabilidad de que  no estudie Ciencia de datos ni sea Mujer
+p3<-1-pro.tab1["Ciencia de datos","Femenino"]
+p3
+
+#4 Probabilidad de que un estudiante sea hombre o estudie Ingeniería Mecánica
+p4<-sum(pro.tab1[,"Masculino"])+sum(pro.tab1["Ing. Mecanica",])-pro.tab1["Ing. Mecanica","Masculino"]
+p4
+
+##Probabilidad de que estudie Mecánica si se sabe que es mujer
+p5<-pro.tab1["Ing. Mecanica","Femenino"]/sum(pro.tab1[,"Femenino"])
+p5
+
+##5 Probabilidad que sea hombre si se sabe que estudia Bioingenieria
+p5<-pro.tab1["Bioingenieria","Masculino"]/sum(pro.tab1["Bioingenieria",])
+p5
+
+#6 Probabilidad de que estudie  Ingeniería dela Energía
+p6<-sum(pro.tab1[5,])
+p6
+
+##7 Probabilidad de que estudie alguna Ingeniería y sea hombre
+p7<-sum(pro.tab1[2,2],pro.tab1[5,2],pro.tab1[6,2],pro.tab1[7,2],pro.tab1[8,2],pro.tab1[9,2],pro.tab1[10,2],pro.tab1[11,2],pro.tab1[12,2])
+p7
+
+##8 Probabilidad de que no estudie Ingeniería y sea mujer
+p8<-1-p7
+p8
+
+##9 Probabilidad de que estudie Ingeniería Mecánica o Ciencia de datos y ademas sea mujer
+p9<-sum(pro.tab1["Ing. Mecanica",1],pro.tab1["Ciencia de datos",1])
+p9
+
+##10 Probabilidad de que estudie Ingeniería Química o Ambiental si se sabe que es hombre
+p10<-sum(pro.tab1["Ing. Quimica",2],pro.tab1["Ing. Ambiental",2])/sum(pro.tab1[,2])
+p10
+```
+
+## Modelos Probabilisticos
+
+**Distribución binomial**
+
+Una distribución binomial es una distribución donde esta asociada una probabilidad fija y un tamaño de muestra, el tamaño de muestra lo escogemos en este caso es 22 y la probabilidad es fija de 0.210 por que esa es la proporción de estudiantes que le gusta las clases virtuales.
+
+```{r}
+##Binomial; Supongamos que la variable "alumnos que les gusta las clases virtuales se distribuye Binomial"
+ap<-table(P1$Apuntes)
+ap
+x<-prop.table(table(P1$Apuntes))
+p<-0.210
+n<-22
+#Si tenemos una muestra aleatoria de 22 estudiantes
+#Hallar la probabilidad de que  de los 22 a 7 les gusten las clases virtuales
+p1<-dbinom(7,n,p)
+p1
+```
+```{r}
+##Hallar la probabilidad de que a mas de 5 les guste las clases virtuales
+p2<-pbinom(5,n,p,lower.tail=FALSE)
+p2
+```
+
+```{r}
+plot(dbinom(0:22,n,p),type="h",xlab="X",ylab="P(X=x)",main="Funcion de Probabilidad B(22,0.215)")
+```
+
+**Distribución Hipergeometrica**
+
+Una distribución Hipergeométrica es cuando yo cuento con una población n en este caso la población es de 200 y en esa población tengo subconjuntos o subpoblaciones con cierta característica, en este caso por ejemplo tengo ciertos estudiantes que les gusta estudiar en la biblioteca, otra cantidad que les guste estudiar en la cafetería y otra cantidad que le gusta estudiar en su casa y otra en el parque. Si tengo 4 subgrupos cada una con un valor distinto entonces la hipergeométrica se trata de que si de esos 200 yo tomo una muestra n en este caso nuestra muestra es de 25 cuál es la probabilidad de que de esos 25 por ejemplo 15 les gusta estudiar en la biblioteca igual sucede si de esos 25 cuál es la probabilidad de que a 10 les gusta estudiar en la cafetería y así se sacamos mas probabilidades con la hipergeométrica.
+
+```{r}
+##Hipergeometrica; tomemos la variable "Zona de estudio"
+H<-table(P1$Zona)
+H
+#Si tenemos una muestra aleatoria de 25 estudiantes
+n<-25
+k<-137
+N<-sum(H)
+
+```
+```{r}
+plot(dhyper(0:25,n,N-n,k),type = "b",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad H(200,25,137)")
+
+```
+
+```{r}
+#Probabilidad de que 20 prefieran estudiar en casa
+h1<-dhyper(20,n,N-n,k)
+h1
+```
+
+
+```{r}
+##Probabilidad de que como máximo a 5 les guste estudiar en la biblioteca
+k<-54
+h2<-phyper(5,n,N-n,k)
+h2
+```
+
+```{r}
+##La cantidad esperada de estudiantes que les guste estudiar en la cafetería
+k<-7
+
+e<-n*k/N
+e
+```
+
+
+**Distribución Poisson**
+
+La distribución Poisson, esta distribución de probabilidad se usan siempre usando solamente un parámetro que es el promedio o la taza en un intervalo de tiempo o en un intervalo de área o de superficie. En este caso calculamos el promedio de las horas que estudia un estudiante en un día, porque es la cantidad o la tasa que se estudia en un determinado tiempo, en este caso el tiempo está dado por un día.
+El promedio de las horas que estudia un estudiante en un día es 4.0875 ya con este parámetro podemos declarar las probabilidades.
+
+```{r}
+##Poisson: Supongamos que la tasa de horas de estudio de un estudiantes es de L por día
+
+L<-mean(P1$Tiempo)
+L
+```
+
+
+```{r}
+##Probabilidad de dedicar 2 horas de estudio al día
+p1<-dpois(2,L)
+p1
+```
+
+```{r}
+##Probabilidad de dedicar mas de 6 horas de estudio en un día
+p2<-ppois(6,L,lower.tail = FALSE)
+p2
+```
+
+```{r}
+##Probabilidad de estudiar menos de 6 horas en 2 días
+L2<-2*L
+p3<-ppois(5,L2)
+p3
+```
+
+```{r}
+plot(dpois(0:15,L),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad P(4.0875)")
+
+```
+
+**Distribución Normal**
+
+La distribución normal, en este caso solamente vamos a suponer que el promedio de las notas se distribuye de manera normal, porque para demostrar que está variable se distribuye de manera normal tenemos que hacer una prueba que se llama Shapiro Wilk. Entonces vamos a suponer que el promedio de notas se distribuye de manera normal, tenemos que la nota promedio en este caso fue 14.99445 puntos y la desviación estándar 1.722291 ya con estos parámetros se empieza a declarar las probabilidades de notas por ejemplos la probabilidad de que un estudiante tenga menos de 12 puntos de promedio y así sucesivamente declaramos mas probabilidades.
+
+
+```{r}
+#Normal: Supongamos que la nota promedio de los estudiantes se distribuyen de manera normal
+
+mu<-mean(P1$Promedio)
+sig<-sd(P1$Promedio)
+plot(dnorm(5:25,mu,sig),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad N(14.99, 2.01)")
+```
+
+```{r}
+##Probabilidad de que un estudiante tenga menos de 12 puntos de promedio
+N1<-pnorm(12,mu,sig)
+N1 
+```
+
+```{r}
+##Probabilidad de que un alumno tengas mas de 14 puntos de promedio
+N2<-pnorm(14,mu,sig,lower.tail = FALSE)
+N2
+```
+
+```{r}
+##Probabilidad de que tenga nota entre 13 y 19 puntos de promedio
+N3<-pnorm(19,mu,sig)-pnorm(13,mu,sig)
+N3
+```
+
+
+# Bibliografia
+
+[*Ramos (2020) determina si "las técnicas de estudio, motivación, hábitos de estudio y el rendimiento académico se asocian al puntaje obtenido en la ENAM"(p.1).* ](http://repositorio.unsa.edu.pe/bitstream/handle/UNSA/10895/MCrasuj.pdf?sequence=1)
+
+
+[*Freiberg Hoffmann, A., Ledesma, R., & Fernández Liporace, M. (2017). Estilos y estrategias de aprendizaje en estudiantes universitarios de Buenos Aires. Revista de Psicología (PUCP).*](http://www.scielo.org.pe/scielo.php?script=sci_arttext&pid=S0254-92472017000200005)
+
+
+[*Murcia Valenzuela, L. C., Rodriguez Franco, A. S., & Sanchez Rodriguez, D. L. (2017). Métodos de aprendizaje de estudiantes de la Universidad de Ciencias Aplicadas y Ambientales u.d.c.a que presentaron el examen de ciencias básicas en los periodos de 2016–1 a 2017–1. Universidad de ciencias aplicadas y ambientales U.D.C.A.*](https://repository.udca.edu.co/bitstream/handle/11158/846/Metodos%20de%20aprendizaje%20.pdf?sequence=1&isAllowed=)

@@ -1,0 +1,381 @@
+---
+title: "S3_Informe"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(fitdistrplus)
+```
+
+# Análisis de la morfología corporal de los estudiantes becados en UTEC.
+
+***INTRODUCCIÓN***
+ 
+### Relevancia 
+
+- La relevancia del estudio es alta debido a la coyuntura actual de el estudio virtual. El estudio virtual esta generando, entre los estudiantes, hábitos dañinos para la salud. Entre estos hábitos podemos encontrar el sedentarismo y la falta de actividad física. En este estudio nos enfocaremos en los estudiantes becados. Los estudiantes becados será el grupo que particularmente encontrará este estudio relevante debido a que este grupo cuenta con una presión extra de tener buenas notas y mantener los apoyos que se les ofrecen. Esta presión puede generar que los estudiantes estén mas horas frente al computador y dejen de lado la actividad  física. Esto a su vez puede generar que exista problemas de obesidad y consecuentemente problemas de salud. 
+
+### Alcance del proyecto
+
+- El proyecto hará un análisis descriptivo, tanto numérica como gráficamente, de las relaciones entre el  ejercicio, IMC y obesidad en estudiantes becados.
+
+### Parámetros del estudio.
+
+- El estudio se basará en la clasificación de obesidad según el IMC. Esta información es recopilada del la OMS ( Organización mundial de la salud) y usaremos el IMC como principal índice.
+
+- **Población**: Estudiantes de UTEC. 
+- **Unidad muestral**: Estudiante encuestado.
+- **Muestreo**: Muestreo por conveniencia.
+- **Tamaño de la muestra**: El  tamaño de la  muestra es 203 observaciones.
+
+## Manejo de datos
+### Recolección de datos
+
+- La Recolección de datos se desarrolló por medio de una encuesta vía
+google forms. El equipo considero que era el mejor medio para llevar a cabo una encuesta
+de satisfacción, debido a que nos permite asignar preguntas de opción múltiple, además de permitirnos tener toda la información organizada en hojas de cálculo de excel. Para poder llegar a nuestra población objetivo, procuramos enviar el link de la encuesta a grupos conformados por estudiantes de UTEC mediante las redes sociales.
+
+
+
+### Variables
+##### Categórica nominal:
+
+- ***Género***
+- ***Carrera***
+- ***Departamento de origen***
+- ***Es Becado***
+- ***Entidad que financia la beca***
+- ***Tipo de beca***
+- ***Carrera***
+- ***Impacto económico de la beca en la situación financiera del estudiante***
+
+
+##### Categórica ordinal
+- ***Año de ingreso***: Restricción: Colocar el año de su ingreso a la universidad, sin guiones(ejm.2020).
+- ***Ciclo***: Restricción: marcar una de las opciones.
+
+
+#####  Numérica discreta
+- **Edad**: Restricción: marcar cualquiera de las opciones.
+- **Horas** semanales que realiza alguna actividad física.
+- **Años de becario**
+
+##### Numérica continua
+- **Estatura**: Restricción: ingresar como separador decimal el punto y aproximar a dos decimales.
+- **Peso**: Restricción: ingresar como separador decimal el punto y aproximar a dos decimales.
+
+### LIMPIEZA DE DATOS 
+
+La encuesta que se realizó fue directa y se limitó la entrada de los encuestados. Todos los campos tenían opciones múltiples y en los valores numéricos no se registró valores mal ingresados. Se realizó cambio en el nombre de las variables para mejor manejo.
+
+```{r include=FALSE}
+DD <- read_csv("DFFinal.csv")
+```
+
+```{r echo=FALSE}
+head(DD)
+```
+
+### VARIABLE: PROBABILIDAD DE QUE N ESTUDIANTES SEAN SALUDABLES EN UNA MUESTRA
+
+#### DEFINICION DEL PROBLEMA
+
+Una problemática común en la vida estudiantil es la adopción de malas practicas alimenticias, lo cual genera desbalances en el cuerpo y puede causar enfermedades. Uno de los indicadores de salud en los estudiantes es la relación entre su peso y su altura. 
+
+Son conocidos los rangos de pesos ideales para las diferentes alturas y edades. El calculo del peso ideal para fines médicos requiere del conocimiento de muchos factores.
+
+Para esta variable aleatoria, usaremos la estatura del estudiante para determinar si su peso esta en el rango ideal. Para esto, nos hemos basado en tablas de altura-peso con un indicador y hemos determinado que:
+
+- La relación Peso/Altura en hombres debe estar entre 35 y 45
+- La relación Peso/Altura en mujeres debe estar en 30 y 40
+
+Esto se cumple para pesos en kilogramos y estaturas en metros. Cabe mencionar que estos valores no son médicamente exactos sino aproximaciones.
+
+Para hallar cuantos estudiantes en la data recolectada cumplen con estas condiciones, hemos creado la función CalcularSalud, la cual utiliza condicionales para determinar si el estudiante es "saludable" o no, tomando en cuenta las relaciones Peso/Altura mencionadas anteriormente.
+
+```{r include=FALSE}
+CalcularSalud <- function(DD) {
+  saludable <- c()
+  len <- 0
+  for(i in seq(nrow(DD))){
+    estatura <- DD[[i,3]]
+    peso <- DD[[i,4]]
+    sexo <- DD[[i,1]]
+    len = len+1
+    saludable[len] = FALSE
+    if(sexo == "Femenino"){
+      if(estatura*30 < peso && peso < estatura*40){
+        saludable[len] = TRUE
+      } 
+    } else {
+      if(estatura*35 < peso && peso < estatura*45){
+        saludable[len] = TRUE
+      } 
+    } 
+  }
+  return(saludable)
+}
+saludables <- CalcularSalud(DD)
+saludables
+```
+
+```{r echo=FALSE}
+barplot(table(saludables), ylim=c(0,180), main="Cantidad de estudiantes saludables", ylab="Conteo", xlab="Estado", col = "lightblue", names.arg = c("No saludable", "Saludable"))
+
+```
+
+Esto nos permite calcular la probabilidad de un experimento de bernoulli de que un estudiante sea saludable
+
+```{r}
+p <- round(length(which(saludables==TRUE))/length(saludables),2)
+p
+```
+
+Por lo cual podemos decir que, segun la data recolectada, el 73% de los estudiantes de esta muestra cumple con las relaciones Peso/Altura correctas para ser considerado saludable.
+
+Continuando, es util saber cual es la probabilidad de que un numero de estudiantes de una muestra sean saludables, ya que se podría saber la esperanza de cuantos estudiantes por aula, o por curso, cumplirían con esta métrica.
+
+#### DEFINICION DE LA VARIABLE
+
+Para ello, definimos una variable aleatoria BINOMIAL:
+
+- **Numero de estudiantes saludables por aula**
+
+Con parámetros
+
+- p: 0.73
+- n: 40
+
+Considerando que un aula de clases cuenta con 40 alumnos.
+
+```{r echo=FALSE}
+x <- rbinom(100000, 40, 0.73)
+hist(x, breaks=22, main="Numero de estudiantes saludables en un aula de 40", ylab="Probabilidad", xlab="N de estudiantes", col = "lightblue")
+axis(1)
+par(new = TRUE)
+boxplot(x, horizontal = TRUE, axes = FALSE,
+        lwd = 2, col = rgb(0, 0, 0, alpha = 0.2))
+```
+
+
+#### CASOS DE USO
+
+Esta variable se puede usar para diferentes tamaños de muestra en la universidad, dependiendo del tamaño del aula o curso a analizar.
+
+A) Probabilidad de que en mi aula de 40 alumnos haya 28 personas saludables
+
+```{r echo=FALSE}
+round(dbinom(28, 40, 0.73),2)
+```
+
+B) Probabilidad de que en el aula de 40 alumnos haya hasta 30 personas saludables
+
+```{r echo=FALSE}
+round(pbinom(30, 40, 0.73),2)
+```
+c) Probabilidad de que en un curso de 100 alumnos haya hasta 25 NO saludables
+
+```{r echo=FALSE}
+1-round(pbinom(75, 100, 0.73),2)
+```
+
+
+### VARIABLE: PROBABILIDAD DE QUE LA ESTATURA SEA X
+
+#### DEFINICION DEL PROBLEMA
+
+La altura de un estudiante puede significar muchas cosas en la vida estudiantil. A pesar de que para muchos es irrelevante, a muchos jóvenes, especialmente menores, les puede causar inseguridad su altura y pueden sentirse incómodos por ello. 
+
+Por ello, decidimos tomar en cuenta la variable continua de Estatura, la cual se definiría de la siguiente manera:
+
+#### DEFINICION DE LA VARIABLE
+
+- **Estatura de los estudiantes**
+
+Esta variable la encontramos ilustrada en nuestra data recolectada, por lo cual, para determinar a que modelo probabilistico se aproxima más, la graficamos:
+
+```{r echo=FALSE}
+y <- DD$Estatura
+hist(y, breaks=15, main="Estatura de estudiantes", ylab="Probabilidad", xlab="Estatura", col = "lightgreen")
+axis(1) 
+par(new = TRUE)
+boxplot(y, horizontal = TRUE, axes = FALSE,
+        lwd = 2, col = rgb(0, 0, 0, alpha = 0.2))
+```
+
+La variable estatura parece tener una distribución normal, aunque no tiene el pico más alto con gran diferencia a los demás, podemos observar que la mayor cantidad de estudiantes entre el rango de 1.55 a 1.74, eso también nos lo indica el boxplot que realizamos.
+
+
+- **Peso de los estudiantes**
+
+```{r echo=FALSE}
+a <- DD$Peso
+hist(a, breaks=15, main="Peso de estudiantes", ylab="Probabilidad", xlab="Peso", col = "lightgreen")
+axis(1) 
+par(new = TRUE)
+boxplot(a, horizontal = TRUE, axes = FALSE,
+        lwd = 2, col = rgb(0, 0, 0, alpha = 0.2))
+```
+Y con respecto a la variable peso la gráfica tiene la forma de una distribución normal y como podemos observar, esta gráfica si tiene las probabilidades más altas en aproximadamente el peso por 57kg.
+
+
+## Regresión lineal con relación estatura-peso
+
+
+Correlación entre estatura y peso
+```{r}
+cor(DD$Estatura,DD$Peso)
+```
+
+```{r}
+modelo1 <- lm(DD$Estatura~DD$Peso)
+plot(DD$Estatura~DD$Peso)
+abline(lm(DD$Estatura~DD$Peso))
+summary(modelo1)
+```
+
+Ya que en el histograma no se puede determinar con claridad si esta variable se aproxima o no a un modelo especifico, usaremos la función **descdist** para visualizar a que modelo se aproxima la data.
+
+```{r echo=FALSE}
+descdist(y,  discrete=FALSE)
+```
+
+Aquí podemos observar que la data recolectada de la estatura de los estudiantes se aproxima a una distribución uniforme continua, pero también es relativamente similar a una normal.
+
+Para efectos de este proyecto, asumiremos que la estatura de los estudiantes se comporta como una variable normal continua, por lo cual calculamos los parámetros
+
+La media y la desviación estándar, que serán las variables mu y sigma respectivamente.
+
+```{r}
+m <- mean(y)
+desv <- sd(y)
+m
+desv
+```
+
+Por lo tanto, asumimos que la variable se comporta como una NORMAL con parámetros:
+
+- mu: 1.647
+- sigma: 0.09
+
+
+
+#### CASOS DE USO
+
+Esta variable se puede usar para calcular la probabilidad de que un estudiante tenga cierta altura.
+
+A) Probabilidad de que un estudiante mida hasta 1.70 metros
+
+```{r echo=FALSE}
+round(pnorm(1.7, m, desv),2)
+```
+
+B) Probabilidad de que un estudiante mida mas de 1.8 metros
+
+```{r echo=FALSE}
+1-round(pnorm(1.8, m, desv),2)
+```
+c) Probabilidad de que un estudiante mida hasta 1.55 metros
+
+```{r echo=FALSE}
+round(pnorm(1.55, m, desv),2)
+```
+
+### VARIABLE: PROBABILIDAD DE QUE EL ESTUDIANTE N SEA DEPORTISTA
+
+#### DEFINICION DEL PROBLEMA
+
+La vida universitaria puede causar problemas emocionales como estrés y depresión, los cuales a su vez conllevan a malos hábitos alimenticios y problemas de salud. Una de las formas de combatir estos malestares es realizando actividades deportivas.
+
+Queremos conocer cuantos alumnos tengo que conocer para llegar a encontrar uno que sea deportista. Esto podría permitir asegurar conocer a un compañero que puede apoyarme a conseguir mejores hábitos y mejorar mi vida.
+
+Para esto, usaremos la variable **Horas de Ejercicio** recolectada en la encuesta.
+
+```{r echo=FALSE}
+z <- DD$HorasEjercicio
+hist(z, breaks=7, main="Horas de ejercicio", ylab="Probabilidad", xlab="Horas de ejercicio", col = "lightgreen")
+axis(1) 
+par(new = TRUE)
+boxplot(z, horizontal = TRUE, axes = FALSE,
+        lwd = 2, col = rgb(0, 0, 0, alpha = 0.2))
+```
+
+
+Esta variable es discreta y nos indica cuantas horas a la semana ha realizado ejercicio cada estudiante.
+Esto nos permitirá definir un experimento bernoulli de éxito-fracaso, en donde:
+
+- Éxito: Hace mas de 4 horas de ejercicio a la semana
+- Fracaso: Hace 4 o menos horas de ejercicio a la semana
+
+Para continuar, calcularemos la probabilidad de que se de éxito en nuestra muestra:
+
+```{r}
+p <- round(length(which(z>4))/length(z),2)
+p
+```
+
+Por lo tanto pasamos a definir la variable aleatoria.
+
+#### DEFINICION DE LA VARIABLE
+
+- **Numero de estudiantes que debo conocer hasta encontrar uno que sea deportista**
+
+Esta se comporta por definicion como una variable discreta GEOMETRICA, con parametros:
+
+- p: 0.32
+
+La graficamos para visualizar su naturaleza:
+
+```{r echo=FALSE}
+a <- rgeom(10000, 0.32)
+hist(a, breaks=22, main="Numero de estudiantes saludables en un aula de 40", ylab="Probabilidad", xlab="N de estudiantes", col = "lightblue")
+axis(1)
+par(new = TRUE)
+boxplot(a, horizontal = TRUE, axes = FALSE,
+        lwd = 2, col = rgb(0, 0, 0, alpha = 0.2))
+```
+De esta variable podemos extraer un dato relevante, la esperanza, la cual seria 1/p
+
+```{r}
+1/p
+```
+
+Lo que significa que, en promedio, tengo que conocer a 3.125 alumnos para encontrar a uno deportista. Pero como no puedo conocer a la décima parte de un alumno, esto se puede aproximar a 4.
+
+#### CASOS DE USO
+
+Esta variable se puede usar para calcular la probabilidad de que un estudiante tenga cierta altura.
+
+A) Probabilidad de encuentre al primer alumno deportista al 4to intento
+
+```{r echo=FALSE}
+round(dgeom(4, p),2)
+```
+
+B) Probabilidad de que encuentre al primer deportista al solo conocer 3 o menos
+
+```{r echo=FALSE}
+round(pgeom(3, p),2)
+```
+
+c) Probabilidad de que recién al conocer mas de 5 alumnos encuentre uno deportista
+
+```{r echo=FALSE}
+1-round(pgeom(5, p),2)
+```
+
+
+
+
+
+
+

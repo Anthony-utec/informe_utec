@@ -1,0 +1,646 @@
+---
+title: "Relación Calidad-Precio entre los tipos de mascarillas"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Librerias
+library(readr)
+library(dplyr)
+library(stringr)
+library(car)
+library(ggthemes)
+library(modeest)
+library(ggplot2)
+```
+
+```{r echo=FALSE, results='hide',message=FALSE}
+Datos <- read_csv("Encuesta.csv")
+```
+
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Cambio de nombre de las variables
+
+names(Datos) # Vemos el nombre de las variables ---> ANTES <---
+
+Datos <- rename(Datos, Edad='Edad (años cumplidos) Ej. 19 (solo colocar el número y tener 18 o más)', MascarillaFrecuencia='¿Qué mascarilla usas con más frecuencia?', Promedio_uso='¿En promedio después de cuántos días desechas una mascarilla?', Promedio_costo='¿En promedio cuánto pagas por una mascarilla? (redondea a una cifra)',Tiras='¿Prefieres las mascarillas con las tiras que se sostienen en las orejas o las que se sostienen alrededor de la cabeza?',Color='¿De qué color prefieres llevar tu mascarilla? (Si ingresa el color inicie con mayúscula)',Proteccion_kn95='¿Qué tan protegido/a te sientes cuando usas la mascarilla KN95?',Proteccion_tela='¿Qué tan protegido/a te sientes cuando usas la mascarilla de tela?',Protecccion_kf94='¿Qué tan protegido/a te sientes cuando usas la mascarilla KF94?',Proteccion_quirurgica='¿Qué tan protegido/a te sientes cuando usas la mascarilla Quirúrgica?',Proteccion_ffp3='¿Qué tan protegido/a te sientes cuando usas la mascarilla FFP3?',Proteccion_n95='¿Qué tan protegido/a te sientes cuando usas la mascarilla N95?',Proteccion_seleccion='¿Qué tan protegido/a te sientes con tu selección de mascarilla?')
+
+names(Datos) # Vemos el nombre de las variables ---->  DESPUÉS   <----
+```
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Visualizamos que tipos de datos tenemos
+table(Datos$Edad)
+table(Datos$Género)
+table(Datos$`Nivel de instrucción`)
+table(Datos$`Lugar de residencia`)
+table(Datos$MascarillaFrecuencia)
+table(Datos$Promedio_uso)
+table(Datos$Promedio_costo)
+table(Datos$Tiras)
+table(Datos$Color)
+table(Datos$Proteccion_kn95)
+table(Datos$Proteccion_tela)
+table(Datos$Protecccion_kf94)
+table(Datos$Proteccion_quirurgica)
+table(Datos$Proteccion_ffp3)
+table(Datos$Proteccion_n95)
+table(Datos$Proteccion_seleccion)
+```
+
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Limpiando datos
+
+#MascarillaFrecuencia   tela --> Tela  ,  Es una mascarilla de tela pero....  --> Na
+
+## Cambiamos tela a Tela
+
+Datos %>% mutate(MascarillaFrecuencia = 
+                   ifelse(MascarillaFrecuencia =="tela","Tela",MascarillaFrecuencia )) -> Datos
+
+## Filtramos la fila donde se encuentra 'Es una mascarila....' y no la consideramos para nuestro nueva variable Datos
+
+Datos <-filter(Datos,MascarillaFrecuencia!="Es una mascarilla de tela pero por dentro viene para colocar el material de una mascarilla KN95")
+
+## Comprobamos
+
+table(Datos$MascarillaFrecuencia)
+
+```
+
+
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Lugar de residencia 
+
+Datos %>% mutate(`Lugar de residencia` = 
+                   ifelse(`Lugar de residencia` =="Balneareos del Sur (Pta. Hermosa, Pucusana, Pta. Negra, San Bartolo, Sta. María)","Balneareos del Sur",
+                   ifelse(`Lugar de residencia` == "Central (Cercado, San Luis, Breña, La Victoria, Rimac, Lince, San Miguel, Jesús María, Magdalena, Pblo. Libre)","Central",
+                   ifelse(`Lugar de residencia` ==  "Central Sur (Barranco, Miraflores, Surco, San Borja, Surquillo, San Isidro, Chorrillos)","Central Sur",
+                   ifelse(`Lugar de residencia` == "Este (S. J. de Lurigancho, Sta. Anita, Cieneguilla, Ate Vitarte, La Molina, Chaclacayo, Lurigancho, El Agustino)","Este",
+                   ifelse(`Lugar de residencia` == "Norte (Ancón, Pte. Piedra; Sta. Rosa, Carabayllo, Comas, Los  Olivos, Independencia, S. M. Porres)","Norte",
+                   ifelse(`Lugar de residencia` =="Sur (S. J. de Miraflores, V.M. de Triunfo, Villa el Salvador, Lúrin y Pachacamac)","Sur",`Lugar de residencia`
+                  
+                  ))))))) -> Datos
+table(Datos$`Lugar de residencia`)
+```
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Tiras
+
+Datos %>% mutate(Tiras = 
+                   ifelse(Tiras =="Mascarillas con las tiras que se sostienen en las orejas.","Tiras_Orejas",
+                   ifelse(Tiras =="Mascarillas que se sostienen alrededor de la cabeza.","Tiras_Cabeza",Tiras 
+                    ))) -> Datos
+table(Datos$Tiras)
+```
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Colores
+
+## Eliminamos la fila donde se encuentra 'Es una mascarila....'
+
+Datos <-filter(Datos,Color!="negra o gris")
+table(Datos$Color)
+```
+
+```{r echo=FALSE,results='hide',message=FALSE}
+#ciclos de edad 
+Datos$Ciclo_edad<-recode(Datos$Edad, "18:26 ='18 a 26'; 27:59 = '27 a 59';60:100 = '60 a más'")
+Datos
+```
+
+
+## Introducción
+
+**Relevancia:**
+
+Gracias a la pandemia, hoy en día somos dependientes de las mascarillas. Por ende, ahora encontramos en el  mercado diferentes tipos, modelos y colores, como la KN95 que es la mascarilla recomendada por el MINSA, ya que tiene proteje en un 95%,  otra es la Quirúrgica, la KF94, la FFP3, la N95 y la de tela. Al realizar encuestas, buscamos encontrar la mascarilla que para las personas cumplen con la mejor relación calidad-precio en la ciudad de Lima Metropolitana. Por lo cual el el equipo creyó conveniente plantear los siguientes objetivos:
+
+**Objetivos**
+
+1.- Determinar el tipo de mascarillas más utilizadas por las personas según la zona de Lima Metropolitana en abril del 2022.  
+2.- Contrastar el tiempo de duración de las mascarillas con el tipo de mascarillas más utilizadas en Lima Metropolitana en abril del 2022 por tipo de mascarilla.
+3.- Comparar la mascarilla que más se usa y la que más protege según la población de Lima Metropolitana en abril del 2022.  
+4.- Contrastar la mascarilla que más protege según el MINSA y la que más utilizan las personas de Lima Metropolitana en abril del 2022.  
+5.- Determinar si la edad influye en la elección respecto al tipo de tiras de las mascarillas que utilizan las personas  de Lima Metropolitana en abril del 2022.  
+
+**Planificación:**
+
+```{r echo=FALSE}
+#install.packages("ggplot2")
+Participacion <- data.frame(Encargado = c('Todos', 'Todos', 'Natalia', 'Natalia','Todos','Natalia, Drussila,Rosalin','Daniel y Hernan','Daniel','Natalia','Rosalin','Hernán','Daniel'),
+Semanas= c(2, 4, 5, 5.2,5.6,7,7,10,11,12,11,13),
+finalizacion = c(3.57, 4.5, 5.2, 5.5,7.4,7.4,7.4,11,12,13,13,14.8),
+Trabajo= c('Delimitción de 3
+temas posibles Y Enrega','Elección de tema y Formato
+(Encuesta - Informe- Experimento)','Formular Posibles
+Pregutas','Realizacion de
+Encuesta piloto',
+'Recolección de Información','Avance del Informe
+P1','Avance del codigo
+en R','Correccion del P1', 'realizar las tablas cruzadas','Declarar eventos a estudiar','Codificacion de los eventos','Codificacción y proponer objetivos
+de las distribuciones notales'))
+
+ggplot(Participacion, aes(x=Semanas, xend=finalizacion, y=Encargado, yend=Encargado, color=Trabajo)) +
+  theme_bw()+
+  geom_segment(size=8) + 
+  labs(title='Planificación del proyecto', x='Semanas', y='Participación')
+```
+
+
+**Datos**
+
+- Proceso de recolección de datos:
+
+**Paso a paso:**
+
+Primero, para la entrega P0 escogimos las variables para cada tema propuesto y además las preguntas para cada una de ellas. Luego de seleccionar el tema determinamos que la mejor manera de recolectar datos sería mediante una encuesta. Creamos un cuestionario usando google forms, el cual se dividía en aspectos generales y específicos, dentro se encontraban las respectivas preguntas para cada variable. (Enlace del formulario: https://forms.gle/JUGdRZeYHVPwT8dA8). Después recolectamos los datos enviando las encuestas por diversos medios.   El primer medio por el cual lo enviamos fue por correo electrónico a alumnos de la universidad  UTEC. Luego lo mandamos por medio de redes sociales como: grupos de WhatsApp,  Telegram, publicaciones en Instagram y Facebook.
+
+**¿Por qué se hizo de esta manera?**
+
+La recolección se hizo de esta manera porque las redes sociales nos permitieron llegar a diversas personas de Lima Metropolitana, la cual corresponde a nuestra población de estudio. Además el cuestionario creado en google forms es una herramienta que nos permitió obtener de manera sencilla y eficaz las respuestas de diversas personas de manera online.
+
+**Las condiciones para realizar la recolección fueron las siguientes:**
+
+1.- Que la persona encuestada radique en Lima Metropolitana y que use frecuentemente cualquier tipo de mascarilla. Al estar aún en pandemia nos resultó sencillo conseguir lo segundo.  
+2.- Que las personas encuestadas cuenten con la mayoría de edad para así no tener inconvenientes legales en cuanto a la información brindada.  
+
+**Para llegar a la población consideramos lo siguiente:**
+
+1.- Usar los medios de comunicación que suelen frecuentar actualmente las personas para obtener un mayor alcance, como por ejemplo: Instagram, correo electrónico, WhatsApp y Telegram.  
+2.- Asegurarnos que residan en Lima metropolitana. Para ello, nos comunicamos con personas de nuestro entorno.  
+3.- Que nuestra encuesta no sea pesada a la vista y que las preguntas sean sencillas, ya que esto nos aseguraba que las personas estén dispuestas a completarlas.  
+4.- Para obtener las respuestas más acertadas colocamos imágenes que puedan guiar el reconocimiento de las opciones que planteamos en cuanto a las mascarillas.
+
+**Población, muestra y muestreo:**
+
+1.- Población de estudio: Personas  con mayoría de edad que usan mascarillas y residen en Lima Metropolitana.  
+2.- Unidad muestral: Una persona con mayoría de edad que usa mascarilla y reside en Lima Metropolitana.  
+3.- Tamaño muestra: 275 personas con mayoría de edad que utilizan mascarillas en Lima Metropolitana.  
+4.- Representatividad de la muestra: Una muestra representativa es un conjunto de población que busca reflejar las características de la población investigada. Por ello, la muestra investigada es representativa porque, además de tener una gran variedad de personas que viven en las diferentes zonas de Lima metropolitana: Norte, Este, Sur, Central, Central Sur y Balnearios del Sur.  También se pueden identificar una diversidad de edades que van desde los 18 hasta los 65 años. Así mismo, la proporción de respuestas en cuanto al género maculino y femenino es bastante parecida.   
+5.- Tipo de muestreo: El tipo de muestreo empleado es no probabilístico, ya que nuestras encuestas fueron realizadas a personas de nuestro entorno como: amigos, compañeros y familiares de diversas zonas de Lima Metropolitana.
+
+**Variables:**
+
+1)Edad: Variable numérica discreta. Número entero mayor o igual a 18   
+2)Género: Variable categórica nominal. Se restringe a solo dos opciones, femenino y masculino    
+3)Nivel de instrucción académica: Variable categórica ordinal. Se restringe a 6 opciones, van desde Educación primaria hasta  Doctorado.   
+4)Lugar de residencia: Variable categórica nominal Se restringe solo a las 6 zonas que comprenden los distritos de Lima Metropolitana.   
+5)Tipo de mascarilla usada con mayor frecuencia: Variable categórica nominal. Se restringe a los tipos de mascarillas que se usan frecuentemente en Lima Metropolitana.    
+6)Promedio de días de uso por mascarilla : Variable numérica discreta. No puede ser negativo y/o decimal.    
+7)Precio aproximado de unidad de mascarilla : Variable numérica discreta. Debe ser entero y no negativo.  
+8)Tipo de elástico: Variable categórica nominal. Se restringe a los dos tipos de tiras que se usan en las mascarillas.    
+9)Color de mascarilla: Variable categórica nominal. Restringido a un solo color por mascarilla.   
+10)Nivel de protección por cada tipo de mascarilla: Variable categórica ordinal. Restringido a un entero en el intervalo de 1 a 10.    
+11)Nivel de protección del tipo de  mascarilla elegida: Variable categórica ordinal Restringido a un entero en el intervalo de 1 a 10.   
+
+**Limpieza de base de datos:**
+
+La base de datos nos ayuda para cumplir con los objetivos del proyecto, debido a que  las variables que hemos usado tienen relación con los objetivos propuestos para el proyecto. Por ejemplo, uno de los objetivos es la comparación entre el precio de las mascarillas de determinado tipo y la zona de residencia de la persona en Lima Metropolitana, en abril del 2022. Las dos variables se encuentran en la base de datos, al igual que todas las otras variables por investigar que se encuentran en los once objetivos del proyecto.   
+La base de datos final está limpia ya que las preguntas que usamos en las encuestas son cerradas. A su vez, fueron bien especificadas para que con ello podamos recolectar respuestas sin caer en diferentes interpretaciones en vez de solo una. Finalmente, cada uno de los datos recolectados cumple con las restricciones establecidas en cada variable.
+
+**Análisis descriptivo**
+
+**DESCRIPTORES NUMÉRICOS**
+
+## Variables Categóricas
+Solo se puede conseguir la moda debido a que son categóricas.
+
+Descriptor de posición a usar : **MODA**
+```{r echo=FALSE}
+cat('¿Qué mascarilla usas con más frecuencia?: ',mfv(Datos$MascarillaFrecuencia),'\n')
+cat('Lugar de residencia: ',mfv(Datos$`Lugar de residencia`),'\n')
+cat('¿Qué tan protegido/a te sientes cuando usas la mascarilla KN95? (Del 1 al 10): ',mfv(Datos$Proteccion_kn95),'\n')
+```
+
+## Variables Numéricas
+Como son variables numéricas no hay restricción de usar descriptores de posición.
+
+**" Edad (años cumplidos) Ej. 19 (solo colocar el número y tener 18 o más) " **
+
+*Analizando la variable*
+
+```{r echo=FALSE}
+cat('Desviación estandar : ',round(sd(Datos$Edad),2),'\n')
+boxplot(Datos$Edad,horizontal=TRUE)
+```
+
+Interpretación: Hay demasiados datos atípicos y la dispersión de los datos es grande
+
+```{r echo=FALSE}
+cat('Moda : ',mfv(Datos$Edad),'\n' )
+cat('Mediana : ',median(Datos$Edad),'\n' )
+cat('Rango : ',range(Datos$Edad),'\n' )
+```
+
+Se usa la mediana para hallar la media debido a que hay muchos datos atípicos y porque la desviación estándar se aleja mucho del 0
+
+**" ¿En promedio después de cuántos días desechas una mascarilla? ( De 1 a 10 días) "**
+
+*Analizando la variable*
+
+```{r echo=FALSE}
+boxplot(Datos$Promedio_uso)
+cat('Desviación estandar : ',round(sd(Datos$Promedio_uso),2),'\n')
+```
+
+Interpretación: No existe datos atípicos y la dispersión de los datos no es alta debido a que la desviacion estandar se acerca al 0
+
+```{r echo=FALSE}
+cat('Moda : ',mfv(Datos$Promedio_uso),'\n')
+cat('Promedio : ',round(mean(Datos$Promedio_uso),2),'\n')
+cat('Rango intercuartil : ',round(IQR(Datos$Promedio_uso),2),'\nEste representa el 50% central de los datos')
+```
+Debido a la escasez de datos atípicos es apropiado usar el promedio como media. 
+
+
+**DESCRIPTORES GRÁFICOS**
+- Objetivo 1:
+
+### Determinar el tipo de mascarillas más utilizadas por las personas según la zona de Lima Metropolitana en abril del 2022. 
+
+```{r echo=FALSE}
+g = ggplot(Datos, aes(`Lugar de residencia`, fill=MascarillaFrecuencia) ) +
+  labs(title = "Tipo de mascarillas vs zona de Lima Metropolitana")+ylab("") +
+  theme(plot.title = element_text(size = rel(2), colour = "black"))
+
+g+geom_bar(position="dodge") + scale_fill_manual(values = alpha(c("orange", "blue", "red", "green", "purple"), 1)) +
+  theme(axis.title.x = element_text(face="bold", size=10))
+```
+
+Conclusión: Como podemos observar en el gráfico el tipo de mascarilla más utilizada en Balnearios del Sur es la KF94 y la quirúrgica las dos con una respuesta. En Central y en Norte la mascarilla más usada es KN95, mientras que en Central Sur, Este y Sur la mascarilla quirúrgica es la más usada. En general las mascarillas más utilizadas en Lima metropolitana son la KN95 y la quirúrgica.
+
+- Objetivo 2:
+
+### Contrastar el tiempo de duración de las mascarillas con el tipo de mascarillas más utilizadas en Lima Metropolitana en abril del 2022 por tipo de mascarilla.
+
+```{r echo=FALSE}
+Rosalin <- mutate(Datos, dias_cambio = factor(Datos$Promedio_uso, 
+                                        labels = c("1", "2","3", "4", "5","6", "7","8", "9", "10")))
+k = ggplot(Rosalin, aes(`dias_cambio`,fill=MascarillaFrecuencia)) +  labs(title = "Promedio de uso por tipo de mascarillas") + theme(plot.title = element_text( colour = "red")) 
+k + geom_bar(position="dodge") + scale_fill_manual(values = alpha(c("orange", "blue", "red", "green", "purple"), 1))
+```
+
+Conclusión: Se puede observar que quienes cambian mascarillas entre 1 y 5 días   utilizan mayormente del tipo Quirúrgicas o KN95, mientras que quienes utilizan por más de 7 días en su mayoría utilizan del tipo KN95.
+
+- Objetivo 3:
+
+### Comparar la mascarilla que más se usa y la que más protege según la población de Lima Metropolitana en abril del 2022. 
+
+```{r echo=FALSE}
+Proteccion <- select(Datos, starts_with("Protecc")) #Este comando selecciona a toda aquella variable que empieza con "Proteccion"
+
+Proteccion <- rename(Proteccion, KN95="Proteccion_kn95",Tela='Proteccion_tela',N95='Proteccion_n95',Quirurgica='Proteccion_quirurgica',KF94='Protecccion_kf94',FFP3='Proteccion_ffp3',Seleccionada="Proteccion_seleccion") 
+
+boxplot(Proteccion, main="Nivel de Protección",ylab="Nivel de Protección",xlab="Tipo de Mascarilla")
+```
+
+Se visualiza que la mascarillas kn95 protege mas debido a que su dispersion es cercana a su mediana y que estan en rangos altos.
+
+```{r echo=FALSE}
+barplot(table(Datos$MascarillaFrecuencia),col=c("royalblue","seagreen","purple","grey"), main="Frecuencia de uso de las mascarillas",ylab="Nivel de frecuencia",xlab="Tipo de mascarillas")
+```
+
+En esta gráfica nos damos cuenta que la mascarilla quirúrgica es la mas usada.
+
+Conclusión: Pese a que la mascarilla quirúrgica es la más usada, su nivel de protección por parte de la población es inferior a la KN95. Además, este también tiene buen porcentaje de uso. Por ello, se concluye que la mascarilla más usada y la que más protege es la " KN95 ".
+
+- Objetivo 4:
+
+### Contrastar la mascarilla que más protege según el MINSA y la que más utilizan las personas de Lima Metropolitana en abril del 2022.
+
+Según el [MINSA](https://www.gob.pe/8804-presidencia-del-consejo-de-ministros-coronavirus-recomendaciones-para-el-uso-de-mascarillas), la mascarilla que mejor prote es la KN95 o usar doble mascarilla quirurgica y según el [INS](https://web.ins.gob.pe/index.php/es/prensa/noticia/covid-19-que-tipo-de-mascarilla-protege-mejor-y-en-cuanto-tiempo-debes-desecharla#:~:text=El%20especialista%20sostuvo%20que%20las,part%C3%ADculas%20expelidas%20por%20el%20individuo.), la KN95 y N95 protegen en un 95% y usar una mascarilla quirúrgica más una de tela te protegen en un 85%. Además según nuestra encuesta las personas en Lima Metropolitana prefieren usar las mascarillas quirúrgicas.
+
+```{r echo=FALSE, results='hide',message=FALSE}
+table(Datos$MascarillaFrecuencia) #Primero busco la cantidad de personas que usan determinada mascarilla
+
+Mascarillas_n_Personas <- data.frame(Mascarillas = c('KF94', 'KN95', 'N95', 'Quirúrgica', 'Tela'),
+Inicio= c(0, 0, 0, 0, 0),
+Cantidad_de_personas = c(52, 102, 2, 113, 6),
+Cantidad= c('Personas'))
+```
+
+```{r echo=FALSE}
+ggplot(Mascarillas_n_Personas, aes(x=Inicio, xend=Cantidad_de_personas, y=Mascarillas, yend=Mascarillas, color=Cantidad)) +
+  theme_bw()+
+  geom_segment(size=8) +
+  labs(title='Mascarilla que más utilizan en Lima Metropolitana', x='N° Personas', y='Mascarillas') +
+  scale_colour_manual(values = c('blue')) +
+  theme_economist() + 
+  theme(axis.title = element_text())
+```
+
+Conclusión: si bien la mascarilla que mejor proteje es la KN95 y la N95, la poblacion prefiere usar las mascarillas quirúrgicas
+
+- Objetivo 5:
+
+### Determinar si la edad influye en la elección respecto al tipo de tiras de las mascarillas que utilizan las personas  de Lima Metropolitana en abril del 2022.
+
+```{r echo=FALSE,results='hide',message=FALSE}
+Datos$Edad_Grupos<-recode(Datos$Edad, "18:23 ='18 a 23'; 24:29 = '24 a 29';30:35 = '30 a 35'; 36:41 = '36 a 41'; 42: 47 = '42 a 47'; 48: 53 = '48 a 53'; 49:54 = '49 a 54'; 55:60= '55 a 60'; 61:66='61 a 66'")
+Datos
+```
+
+```{r echo=FALSE}
+g = ggplot(Datos, aes(Edad_Grupos, fill=Tiras) ) +
+  labs(title = "Edad vs Tipo de tiras")+ylab("") +
+  theme(plot.title = element_text(size = rel(2), colour = "black"))
+
+g+geom_bar(position="dodge") + scale_fill_manual(values = alpha(c("green","purple","turquoise"), 1)) +
+  theme(axis.title.x = element_text(face="bold", size=10))
+
+```
+
+Conclusión:  
+De esta gráfica podemos decir que en todos los grupos de edad existe una notable preferencia por las mascarillas con tiras que van en las orejas y que existe escasa preferencia por las mascarillas con tiras que van en la cabeza.
+
+**Análisis probabilístico**
+
+
+```{r echo=FALSE,results='hide',message=FALSE}
+DatosB <- Datos
+```
+
+```{r echo=FALSE,results='hide',message=FALSE}
+tabla_1 <- table(DatosB$`Lugar de residencia`, DatosB$MascarillaFrecuencia) # Tabla de frecuencia
+tabla_1/nrow(DatosB)
+```
+
+
+E1: Probabilidad que de que una persona sea del norte y use mascarilla KN95 <-- P(N ∩ KN95)
+
+```{r echo=FALSE}
+P_NyKN95 <- 0.050909091
+(Rpta1<- P_NyKN95)
+```
+
+E2: Probabilidad que sea del sur o sea de central sur y use mascarilla quirúrgica <-- P((S U Cs) ∩ Q) =  P((Q ∩ S) U (Q ∩ Cs))
+Eventos:
+P_QyS: Probabilidad que usen mascarilla quirúrgica y que sea del Sur.
+P_QySc: Probabilidad que usen mascarilla quirúrgica y que sea de Central Sur.
+
+```{r echo=FALSE}
+P_QyS <- 0.032727273  
+P_QySc <- 0.200000000
+(Rpta2<- P_QyS+P_QySc)
+```
+
+E3: Probabilidad que sea del norte, sabiendo que usa mascarilla de tela <-- P(N/T) = P(N ∩ T)/P(T)
+Eventos:
+P_NyT : Probabilidad que sea del Norte y use mascarilla de tela.
+P_T: Probabilidad que use mascarilla de tela
+
+```{r echo=FALSE}
+P_NyT <- 0.003636364
+P_T <-   0.000000000 + 0.003636364 + 0.01090909 + 0.003636364 + 0.003636364 + 0.000000000
+(Rpta3 <- P_NyT/P_T)
+```
+
+E4: ¿Es más probable conseguir a una persona con estudios secundarios usando mascarilla quirurgica que una con estudios superiores?  
+P(Es ∩ Q ) ,  P((EsT U EsU) ∩ Q) = p(EsT ∩ Q ) U P(EsU ∩ EsU)
+Eventos:
+p_EstxQ: Probabilidad que tenga estudios técnicos y use mascarilla quirúrgica.
+P_EsUxQ: Probabilidad que tenga estudios universitarios y use mascarilla quirúrgica.
+
+```{r echo=FALSE}
+p_EstxQ <- 0.047272727
+P_EsUxQ <- 0.276363636
+(Rpta4 <- p_EstxQ + P_EsUxQ )
+```
+
+E5: Segun indicaciones de la universidad, es obligatorio llevar 2 mascarillas quirúrgicas o una KN95. ¿Cuan probable es que las personas con estudios universitarios no usen la mascarilla KN95?  <-- P(U ∩ KN95') = P(U) - P(U ∩ KN95)
+Eventos:
+P_U: Probabilidad que tenga estudios universitarios
+P_UyKN95: Probabilidad que tenga estudios universitarios y que use mascarilla KN95
+
+```{r echo=FALSE}
+P_U <- 0.123636364 + 0.254545455 + 0.003636364 + 0.276363636 + 0.007272727
+P_UyKN95 <- 0.254545455
+(Rpta5 <- P_U - P_UyKN95)
+```
+
+E6: Según el INS la mascarilla (KN95 y N95) son las que mas protege. ¿Cuán probable es encontrar a personas no usen estos tipos de mascarillas? <-- P(KN95' ∩ N95') = P(KN95 U N95)' =  1 - P(kn95 u N95)
+Eventos:
+PN95: Probabilidad que use mascarilla N95 
+PKN95: Probabilidad que use mascarilla KN95 
+
+```{r echo=FALSE}
+PN95 <-  0.003636364 + 0.003636364
+Pkn95 <- 0.021818182 + 0.058181818 + 0.090909091 + 0.029090909 + 0.029090909 + 0.014545455 + 0.032727273 + 0.007272727 + 0.010909091 + 0.076363636
+(Rpta6 <- 1 - (PN95 + Pkn95))
+```
+
+```{r echo=FALSE}
+tabla4<-table(DatosB$Ciclo_edad,Datos$MascarillaFrecuencia)
+tabla4/nrow(DatosB)
+```
+
+E7: Juventud: 18 a 26 años - Adultez: 27 a 59 años - Persona mayor: 60 años a más
+¿Que tan probable es encontrar a un joven y a un adulto con mascarilla quirúrgica? <-- P((J ∩ A) ∩ Q) = P(J) * P(A) * P(Q)  
+Eventos:
+P_J: Probabilidad que sea joven 
+P_A: Probabilidad que sea adulto
+P_Q: Probabilidad que use mascarilla quirúrgica.
+
+```{r echo=FALSE}
+P_J <- 0.127272727 + 0.334545455 + 0.003636364 + 0.309090909 + 0.007272727
+P_A <- 0.050909091 + 0.036363636 + 0.003636364 + 0.094545455 + 0.014545455
+P_Q <- 0.309090909 + 0.094545455 + 0.007272727
+(Rpta7 <-P_J * P_A * P_Q)
+```
+
+E8: En La Universidad se le recomienda usar 1 mascarilla KN95 o 2 mascarillas Quirurgicas, cual es la probabilidad que cumpla con usar mascarilla KN95 sabiendo que son jovenes  <-- P(KN95/J) =  P(KN95 ∩ J) / p(J)
+Eventos:
+P_KN95yJ: Probabilidad que use mascarilla KN95 y que sea joven.
+P_J: Probabilidad que sea joven.
+
+```{r echo=FALSE}
+P_KN95yJ <- 0.334545455
+P_J <- 0.127272727 + 0.334545455 + 0.003636364 + 0.309090909 + 0.007272727
+(Rpta8 <- P_KN95yJ / P_J)
+```
+
+E9: Cual es la probabilidad que un no joven use mascarilla de tela <- P(J' ∩ Tela) = P(Tela) - P(J ∩ Tela)
+Eventos: 
+P_Tela: Probabilidad que use mascarilla de tela
+P_JyTela: Probabilidad que sea joven y use mascarilla de tela
+
+```{r echo=FALSE}
+P_Tela <- 0.007272727 + 0.014545455 + 0.000000000
+P_JyTela <- 0.007272727
+(Rpta <- P_Tela - P_JyTela)
+```
+
+E10: Cual es la probabilidad que una persona use Mascarilla Quirúrgica o use de tela <-- P( Q U Tela)= P(Q) + P(tela) 
+Eventos:
+P_quirurgica: Probabilidad que use mascarilla quirúrgica
+P_Tela: Probabilidad que use mascarilla de tela
+
+```{r echo=FALSE}
+P_quirurgica <- 0.309090909 + 0.094545455 + 0.007272727
+P_Tela <- 0.007272727 + 0.014545455 + 0.000000000
+(Rpta <- P_quirurgica +P_Tela)
+```
+
+
+
+Geometrica:
+En un grupo de personas se busca que la 3era sea mujer, sabiendo que la probabilidad de de que esta sea mujer es de 52,72727%
+planteamiento
+P(x=3) P(X = x) = dgeom(x − 1, p)
+
+```{r}
+table(DatosB$Género)
+(p_fem <- (145/275))
+```
+```{r}
+dgeom(2,0.5272727)
+```
+
+```{r}
+table(DatosB$MascarillaFrecuencia)
+(P_KN95 <- 102/275)
+```
+En una muestra se busca que la 1era persona use mascarilla KN95, sabiendo que la probabilidad que usen dicha mascarilla es de 0.3709091
+
+```{r}
+dgeom(1,0.3709091)
+```
+
+
+```{r}
+nrow(DatosB)
+ncol(DatosB)
+```
+de un grupo de 275 personas se busca formar un grupo de 20 personas, cual es la probabilidad de que 7 de ellos sean hombres
+
+El tiempo promedio de uso de una mascarilla Kn95 es de 
+```{r}
+table(DatosB$Promedio_uso)
+```
+
+
+Hipergeométrica:
+
+Pregunta de la encuesta a usar : ¿Que tipo de TIRAS usas? 
+
+```{r}
+table(Datos$Tiras)
+```
+
+
+¿Cuan probable es encontrar de 10 personas de Lima Metropolitana que mas de la mitad usen mascarillas con tiras en la oreja ? 
+
+X : Número de personas que usan mascarillas en las orejas
+
+Éxito (p) : Persona que use mascarilla con tiras en las orejas
+
+Recorrido : {0,1,2,3,4,5,6,7,8,9,10}
+
+Población : 275 personas  ---> N
+Muestra : 10 personas   --> n
+Número de exitos en nuestra población: 205  --> M
+
+P(X>5)
+
+Recordar:
+P(X>5) = 1-P(X≤4)
+P(X≤x) = phyper(x,M,N-M,n) 
+
+En tal caso debemos hacer :
+P(X>5) = 1-P(X≤4)    , donde P(X≤4) = phyper(4,205,275-205,10)
+
+```{r}
+1-phyper(4,205,70,10)
+```
+¿De 10 personas en Lima Metropolitana, cual es el numero esperado de personas que usen mascarillas con tiras en las orejas?
+
+Valor esperado :
+
+Para una Hipergeometrica es -->   E(X)= nM / N
+
+```{r}
+((10*205)/275)
+```
+
+Con BINOMIAL 
+
+
+```{r}
+barplot(table(Datos$Tiras))   # Poner el porciento arriba de las graficas
+table(Datos$Tiras)
+
+```
+
+Selección aleatoria : 
+
+La opinion es INDEPENDIENTE
+
+Porcentajes : 
+Tiras en las orejas -->  205/275  = 0.745455  --> 75 %
+Tiras en la cabeza --> 29/275 = 0.105455 --> 11 %
+Me es indiferente ---> 41/275 = 0.1490909 --> 15 %
+ 
+
+X ; Numero de personas que opina usar mascarillas con tiras en las orejas
+n = 10     MUESTRA
+p = 0.745455  ( opinion tiras en las orejas)
+
+Rx : {0,1,2,3,4,5,6,7,8,9,10}
+
+X  --> B(n=10 , p=0.75)
+
+¿Qué tan probable es que mas de la mitad opine usar las mascarillas con tiras en las orejas
+
+P(X>5) = 1-P(X≤4)
+
+```{r}
+1-pbinom(4,10,0.75)
+```
+
+
+Binomial:
+
+```{r}
+table(Datos$Edad_Grupos, Datos$Promedio_costo)
+```
+
+
+Se cree que las personas que tienen más edad gastan más dinero.
+
+¿De 20 peronas cuanta es la probabilidad de que 5 personas gasten más de 4 soles por mascarilla?
+```{r}
+table(Datos$Promedio_costo)
+```
+
+P_5: P(x = 5) (Probabilidad de que gaste 5 soles)
+```{r}
+P_5<-(25/275)
+dbinom(5,20,P_5)
+```
+
+
+¿la probabilidad de que 1 persona que se encuntre en el rango de personas que tienen entre 30 a 41 años gasten lo menos posible por mascarilla?
+
+```{r}
+table(Datos$Edad_Grupos)
+```
+
+```{r}
+table(Datos$Promedio_costo)
+```
+P_1: P(x = 1) (Probabilidad de que gaste 1 sol)
+```{r}
+P_1<-(98/275)
+dbinom(1,8,P_1)
+```
+
+
+
+

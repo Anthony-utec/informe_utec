@@ -1,0 +1,847 @@
+---
+title: "Asistencia en modelo híbrido"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+    html_document:
+        toc: true
+        toc_float:
+            collapsed: no
+            smooth_scroll: yes
+        number_sections: false
+---
+
+# Objetivos
+
+1. Determinar si la modalidad híbrida es un sistema de clases adecuado de acuerdo al nivel de satisfacción del estudiante
+1. Conocer cuales son los principales factores que animan o desaniman al estudiante a asistir a las clases presenciales en el modelo híbrido
+1. Elaborar una tabla cruzada con probabilidades frecuentistas haciendo uso de axiomas de probabilidad.
+1. Identificar el comportamiento similar de algunas variables con los modelos estadísticos estudiados.
+
+# Introducción
+
+## Relevancia
+
+El modelo híbrido aplicado en UTEC consiste en la asistencia a clases presenciales manteniendo en parte la modalidad virtual. Los estudiantes son libres de escoger si prefieren tomar todas sus clases virtuales, con la excepción en casos del laboratorio, o pueden asistir cuando les toque. La relevancia de este proyecto radica en que es importante saber si este modelo resulta cómodo para los estudiantes, ya que se debe buscar su bienestar para un buen rendimiento académico y personal. Gracias a este estudio podremos conocer las preferencias de los estudiantes con respecto a las clases virtuales y presenciales, además de las razones por las cuales tienen esas preferencias, y finalmente, si prefieren la mantenencia del modelo, o prefieren uno distinto.
+
+# Datos
+
+## Proceso de recolección de datos
+
+Los datos fueron recolectados mediante encuestas online difundidas por correo electrónico y redes sociales a estudiantes de la Universidad de Ingeniería y Tecnología.
+
+Durante la recolección de datos se presentaron problemas no previstos. Uno de los principales fue quedarnos sin nuestro medio de recolección de datos principal: el correo, ya que se iba a sancionar a los estudiantes por spam masivo.
+
+Frente a esto, recurrimos a nuestro segundo medio de difusión: Las redes sociales en las que compartimos contacto con los estudiantes de UTEC. Fue gracias a esto que logramos alcanzar las 200 observaciones necesarias para el estudio, aunque se dio de forma más lenta.A la hora de distribuir las encuestas tuvimos en consideración incluir y encuestas a los estudiantes de las diferentes carreras para que de esta manera la información obtenida sea verídica.
+
+## Población, muestra y muestreo
+
+-   Población: Estudiantes de UTEC
+
+-   Muestreo: Por estratos. Se divide a la población en grupos que comparten ciertas características, en nuestro caso, por carreras
+
+-   Muestra: 206 Estudiantes de UTEC de diferentes carreras
+
+## Variables
+
+|                                                   |                      |                                                        |
+|---------------------------|-----------------|-----------------------------|
+| **Variable**                                      | **Tipo de variable** | **Restricción**                                        |
+| Edad                                              | Numérica discreta    | Entero mayor a 15                                      |
+| Sexo                                              | Categórica nominal   | Masculino o Femenino                                   |
+| Carrera                                           | Categórica nominal   | Carrera de la UTEC                                     |
+| Ciclo                                             | Categórica ordinal    | Número del 1 al 10                                     |
+| Lugar de Nacimiento                               | Categórica nominal   | Departamento del Perú o país extranjero                |
+| Situación Laboral                                 | Categórica nominal   | Opción múltiple                                        |
+| Gasto en Transporte                               | Numérica continua    | Número no negativo                                     |
+| Gasto en alimentación                             | Numérica continua    | Número no negativo                                     |
+| Preferencia de tipo de clases                     | Categórica nominal   | Múltiple opción: Híbrido, presencial, virtual          |
+| Cantidad de horas de clase presenciales                    | Numérica discreta    | Entero no negativo                                     |
+| Cantidad de horas de clase virtuales                       | Numérica discreta    | Entero no negativo                                     |
+| Justificación de asistencia a clases presenciales | Categórica nominal   | Múltiple opción, con opción extra para respuesta corta |
+| Justificación de asistencia a clases virtuales    | Categórica nominal   | Múltiple opción, con opción extra para respuesta corta |
+
+## Limpieza de base de datos
+
+-   Datos incorrectos, datos repetidos, datos incompletos:
+    -   Para obtener los datos se realizó una encuesta, en dicha encuesta había preguntas en la que los encuestados debían responder con variables numéricas o categóricas. Sin embargo, no todos los datos obtenidos se pueden utilizar para realizar un análisis estadístico. Esto se debe a que algunos encuestados llenaron la encuesta más de una vez (las mismas respuestas), no respondieron todas las preguntas o respondieron con datos estrepistosamente atípicos.
+-   Corrección de títulos:
+    -   Se eliminan las tildes de los nombres de las variables con el comando rename de la librería dplyr.
+
+# Análisis descriptivo
+
+Cargamos las librerías usadas en el documento
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require(readr)) {
+  install.packages("readr")
+}
+if (!require(car)) {
+  install.packages("car")
+}
+if (!require(dplyr)) {
+  install.packages("dplyr")
+}
+if (!require(carData)) {
+  install.packages("carData")
+}
+if (!require(knitr)) {
+  install.packages("knitr")
+}
+if (!require(EnvStats)) {
+  install.packages("EnvStats")
+}
+```
+
+Importamos la base de datos
+
+```{r}
+Encuesta <- read_csv("Encuesta.csv")
+```
+
+Asignamos un nombre a las variables con las que trabajamos y creamos un nuevo data.frame
+
+```{r}
+Edad <- Encuesta$`Edad (Coloque su respuesta en años cumplidos. Ej. 22)`
+Sexo <- Encuesta$`Sexo:`
+Carrera <- Encuesta$`Carrera:`
+Ciclo <- Encuesta$`Ciclo de estudios:`
+LNacimiento <- Encuesta$`Lugar de Nacimiento:`
+SLaboral <- Encuesta$`¿Cuál es tu situación laboral?`
+GTransporte <- Encuesta$`¿Cuánto gastas por día en transporte en un día de clases presencial? (Ej. 10) Dejar en blanco si no vas a clases presenciales`
+GAlimentacion <- Encuesta$`¿Cuánto gastas en alimentación en un día de clases presenciales? (Ej. 25) Dejar en blanco si no vas a clases presenciales`
+Preferencia <- Encuesta$`¿Preferirías regresar a la virtualidad, presencialidad  o seguir con el modelo híbrido de clases?`
+CursosP <- Encuesta$`¿Qué cursos tomas de manera presencial?`
+RazonP <- Encuesta$`¿Por qué asistes a esos cursos de manera presencial?`
+CursosV <- Encuesta$`¿Qué cursos tomas de manera virtual?`
+RazonV <- Encuesta$`¿Por qué asistes a esos cursos de manera virtual?`
+HorasP <- Encuesta$`¿Cuántas horas semanales asistes a la universidad en el grupo que te corresponde (A-B) de manera presenciales ? (Ej. 3)`
+HorasV <- Encuesta$`¿Cuántas horas de clase virtual tienes al día? (Ej. 3)`
+```
+
+```{r}
+EncuestaL <- data.frame(Edad, Sexo, Carrera, Ciclo, LNacimiento, SLaboral, GTransporte, GAlimentacion, Preferencia, CursosP, RazonP, CursosV, RazonV, HorasP, HorasV)
+```
+
+Tratamos los datos faltantes Para el caso de los gastos en alimentación y transporte, un dato faltante representa que la persona no gasta en transporte, debido a que no va a clases presenciales, y para el caso de la alimentación, no consume alimento. Para el caso de las razones por las que asiste a clases presenciales, un dato faltante representa que la persona no asiste a clases presenciales; y por ende, no tiene razones por la cuál asiste, asi que se le asignará un valor de "Ninguno".
+
+```{r}
+EncuestaL$GTransporte[is.na(EncuestaL$GTransporte)] <- 0
+EncuestaL$GAlimentacion[is.na(EncuestaL$GAlimentacion)] <- 0
+EncuestaL$RazonP[is.na(EncuestaL$RazonP)] <- "Ninguno"
+```
+
+Por último se tienen 2 datos faltantes en la variable "ciclo", como no se puede saber de que ciclo es la persona, entonces estos 2 datos serán eliminados, terminando con 204 observaciones de las 206 iniciales. Así, se ha terminado con la limpieza de los datos.
+
+```{r}
+EncuestaL <- na.omit(EncuestaL)
+sum(complete.cases(EncuestaL))
+sum(is.na(EncuestaL))
+```
+
+## Descripción de variables
+
+### Numéricas
+
+#### Edad
+
+Con solo ver los datos ordenados, podemos decir que 15 es el puntaje mínimo y 25 el puntaje máximo.
+También podemos encontrar la mediana, que es el valor medio de las observaciones.
+
+El primer cuartil (25%) es 18, por el cual un cuarto de los valores de las observaciones ordenadas están por debajo.
+
+El tercer cuartil (75%) es 21, dicho valor es por el cual  pasan por debajo tres cuartos valores de las observaciones.
+
+
+```{r}
+summary(EncuestaL$Edad)
+knitr::kable(table(EncuestaL$Edad), col.names = c("Edad", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 1: Frecuencias Edad" = 2))
+```
+
+```{r}
+Edad_Sin_Outliers <- !(EncuestaL$Edad %in% boxplot(EncuestaL$Edad, main = "Diagrama de caja de Edad")$out)
+```
+
+```{r}
+boxplot(EncuestaL[Edad_Sin_Outliers, ]$Edad, ylab = "Edad", main = "Diagrama de caja de Edad sin outliers")
+hist(EncuestaL$Edad, main = "Histograma de Edad")
+```
+
+#### Gasto en transporte
+
+Con solo ver los datos ordenados, podemos decir que 0 es el puntaje mínimo y 50 el puntaje máximo.
+También podemos encontrar la mediana, que es el valor medio de las observaciones. 
+
+El primer cuartil (25%) es 2.5, por el cual un cuarto de los valores de las observaciones ordenadas están por debajo.
+
+El tercer cuartil (75%) es 10, dicho valor es por el cual  pasan por debajo tres cuartos valores de las observaciones.
+
+
+```{r paged.print=TRUE}
+summary(EncuestaL$GTransporte)
+GTransporte_Sin_Outliers <- !(EncuestaL$GTransporte %in% boxplot(EncuestaL$GTransporte)$out)
+boxplot(EncuestaL[GTransporte_Sin_Outliers, ]$GTransporte)
+hist(EncuestaL$GTransporte, breaks = seq(0, 60, 3))
+```
+
+#### Gasto en alimentación
+
+Con solo ver los datos ordenados, podemos decir que 0 es el puntaje mínimo y 60 el puntaje máximo.
+También podemos encontrar la mediana, que es el valor medio de las observaciones.
+
+El primer cuartil (25%) es 8, por el cual un cuarto de los valores de las observaciones ordenadas están por debajo.
+
+El tercer cuartil (75%) es 18.50, dicho valor es por el cual  pasan por debajo tres cuartos valores de las observaciones.
+
+
+```{r paged.print=TRUE}
+summary(EncuestaL$GAlimentacion)
+GAlimentacion_Sin_Outliers <- !(EncuestaL$GAlimentacion %in% boxplot(EncuestaL$GAlimentacion)$out)
+boxplot(EncuestaL[GAlimentacion_Sin_Outliers, ]$GAlimentacion)
+hist(EncuestaL[GAlimentacion_Sin_Outliers, ]$GAlimentacion, breaks = seq(0, 40, 3), main = "GAlimentacion sin outliers")
+```
+
+#### Cantidad de horas de clase presenciales
+
+Con solo ver los datos ordenados, podemos decir que 0 es el puntaje mínimo y 18 el puntaje máximo.
+También podemos encontrar la mediana, que es el valor medio de las observaciones.
+
+El primer cuartil (25%) es 4.75, por el cual un cuarto de los valores de las observaciones ordenadas están por debajo.
+
+El tercer cuartil (75%) es 14, dicho valor es por el cual  pasan por debajo tres cuartos valores de las observaciones.
+
+
+Vemos que las horas de clase presenciales no tienen datos atípicos
+
+```{r paged.print=TRUE}
+summary(EncuestaL$HorasP)
+boxplot(EncuestaL$HorasP)
+hist(EncuestaL$HorasP, breaks = seq(0, 20, 2))
+```
+
+#### Cantidad de horas de clase virtuales
+
+Con solo ver los datos ordenados, podemos decir que 0 es el puntaje mínimo y 12 el puntaje máximo.
+También podemos encontrar la mediana, que es el valor medio de las observaciones.
+
+El primer cuartil (25%) es 3, por el cual un cuarto de los valores de las observaciones ordenadas están por debajo.
+
+El tercer cuartil (75%) es 6, dicho valor es por el cual  pasan por debajo tres cuartos valores de las observaciones.
+
+
+```{r paged.print=TRUE}
+summary(EncuestaL$HorasV)
+boxplot(EncuestaL$HorasV)
+hist(EncuestaL$HorasV)
+```
+
+### Categóricas
+
+#### Ciclo
+
+Volvemos factores a la variable Ciclo para poder analizarla fácilmente y vemos que la mayoría de los estudiantes que respondieron a la encuesta son de tercer ciclo
+
+```{r}
+EncuestaL$Ciclo <- as.numeric(as.roman(EncuestaL$Ciclo))
+boxplot(EncuestaL$Ciclo, main = "Distribución EncuestaL$Ciclo")
+hist(as.numeric(EncuestaL$Ciclo), main = "Frecuencias EncuestaL$Ciclo", breaks = seq(1, 10, 1))
+```
+
+#### Carrera
+
+```{r}
+knitr::kable((table(EncuestaL$Carrera)), col.names = c("Carrera", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 2: Frecuencias Carrera" = 2))
+```
+
+Podemos observar que las carreras que más respondieron fueron Ing. Mecatrónica, Ing. Civil e Ing. Industrial, mientras que las carreras que menos respondieron fueron Ciencia de datos, Administración y Negocios Digitales e Ing. de la energía.
+
+#### Sexo
+
+```{r}
+table(EncuestaL$Sexo)
+prop.table(table(EncuestaL$Sexo)) %>% round(2)
+```
+
+Aproximadamente el 60% de las personas que respondieron son de sexo Masculino y el 40% de sexo Femenino.
+
+#### Lugar de Nacimiento
+
+```{r}
+knitr::kable((table(EncuestaL$LNacimiento)), col.names = c("Departamento", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 3: Frecuencias Lugar de Nacimiento" = 2))
+```
+
+La mayor parte de los estudiantes que respondieron nacieron en Lima, y se tiene a 3 alumnos que son extranjeros.
+
+#### Situación Laboral
+
+```{r}
+knitr::kable(table(EncuestaL$SLaboral), col.name = c("Situación", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 4: Frecuencias Situación Laboral" = 2))
+```
+
+La mayor parte de los encuestados (150 alumnos), solo se dedican a estudiar, y el resto (54 alumnos) posee un empleo a la vez que estudian.
+
+#### Preferencia
+
+Realizamos una tabla para saber cuántos alumnos prefieren el modelo híbrido, presencial y virtual.
+
+```{r}
+knitr::kable(table(EncuestaL$Preferencia), col.names = c("Preferencia", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 5: Frecuencias Preferencia" = 2))
+datospref <- data.frame(table(EncuestaL$Preferencia))
+```
+
+A partir de estos datos realizamos un gráfico de barras.
+
+```{r}
+library(ggplot2)
+Modelo <- c("Hibrido", "Presencial", "Virtual")
+M <- datospref$Var1
+Cantidad_Alumnos_total <- datospref$Freq
+
+ggplot(data.frame(table(EncuestaL$Preferencia)), aes(x = M, y = Cantidad_Alumnos_total, fill = Modelo)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme_minimal() +
+  ylim(0, 110) +
+  ggtitle("Modelo preferido por los alumnos") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+De manera general, la mayoría de alumnos prefiere continuar con el modelo híbrido.
+
+#### Cursos presenciales
+
+```{r}
+CGP <- length(grep("Ciencias Generales", EncuestaL$CursosP))
+HACSP <- length(grep("HACS", EncuestaL$CursosP))
+GESTP <- length(grep("Gestión", EncuestaL$CursosP))
+PTRP <- length(grep("PI, TESIS Y RLE", EncuestaL$CursosP))
+ESPP <- length(grep("Cursos específicos de carrera", EncuestaL$CursosP))
+NINP <- sum(EncuestaL$CursosP == "Ninguno")
+
+Cantidad_presencial <- c(rep("Ciencias Generales", CGP), rep("HACS", HACSP), rep("Gestion", GESTP), rep("PI Tesis Y RLE", PTRP), rep("Espefico de carrera", ESPP), rep("Ninguno", NINP))
+
+
+knitr::kable(table(Cantidad_presencial), col.names = c("Curso", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 6: Frecuencias Cursos Presenciales" = 2))
+```
+
+#### Razones cursos presenciales
+
+```{r}
+
+RazonP1 <- length(grep("Son cursos en los que se aprenden de mejor manera de forma presencial", EncuestaL$RazonP))
+RazonP2 <- length(grep("Son cursos de laboratorio que requieren de la infraestructura de la universidad", EncuestaL$RazonP))
+RazonP3 <- length(grep("Las consultas con el profesor se pueden realizar de manera más directa", EncuestaL$RazonP))
+RazonP4 <- length(grep("Puedo interactuar con mis compañeros en trabajos en grupo", EncuestaL$RazonP))
+RazonP5 <- length(grep("La calidad de las clases virtuales no es buena", EncuestaL$RazonP))
+RazonP6 <- length(grep("Tengo problemas de conexión en mi casa cuando he llevado cursos virtuales", EncuestaL$RazonP))
+```
+
+Agrupamos la cantidad de personas por razón en una tabla
+
+```{r}
+RP <- c(rep("Son cursos en los que se aprenden de mejor manera de forma presencial", RazonP1), rep("Son cursos de laboratorio que requieren de la infraestructura de la universidad", RazonP2), rep("Las consultas con el profesor se pueden realizar de manera más directa", RazonP3), rep("Puedo interactuar con mis compañeros en trabajos en grupo", RazonP4), rep("La calidad de las clases virtuales no es buena", RazonP5), rep("Tengo problemas de conexión en mi casa cuando he llevado cursos virtuales", RazonP6))
+RazonesP <- data.frame(RP)
+knitr::kable(table(RazonesP), col.names = c("Razón", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 7: Frecuencias Razones cursos presenciales" = 2))
+```
+
+#### Cursos virtuales
+
+```{r}
+CGV <- length(grep("Ciencias Generales", EncuestaL$CursosV))
+HACSV <- length(grep("HACS", EncuestaL$CursosV))
+GESTV <- length(grep("Gestión", EncuestaL$CursosV))
+PTRV <- length(grep("PI, TESIS Y RLE", EncuestaL$CursosV))
+ESPV <- length(grep("Cursos específicos de carrera", EncuestaL$CursosV))
+NINV <- sum(EncuestaL$CursosV == "Ninguno")
+
+Cantidad_virtual <- c(rep("Ciencias Generales", CGV), rep("HACS", HACSV), rep("Gestion", GESTV), rep("PI Tesis Y RLE", PTRV), rep("Espefico de carrera", ESPV), rep("Ninguno", NINV))
+
+knitr::kable(table(Cantidad_virtual), col.names = c("Curso", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 8: Frecuencias Cursos virtuales" = 2))
+```
+
+#### Razones cursos virtuales
+
+```{r}
+RazonV1 <- length(grep("Resido en provincia", EncuestaL$RazonV))
+RazonV2 <- length(grep("Resido en el exterior", EncuestaL$RazonV))
+RazonV3 <- length(grep("El tiempo que necesito para ir y venir es muy alto, puedo ocupar ese tiempo para hacer tareas, estudiar, etc.", EncuestaL$RazonV))
+RazonV4 <- length(grep("Siento que los cursos que llevo no son necesarios llevarlos en presencialidad", EncuestaL$RazonV))
+RazonV5 <- length(grep("Me siento más cómodo/a estudiando en mi casa", EncuestaL$RazonV))
+```
+
+```{r}
+RV <- c(rep("Resido en provincia", RazonV1), rep("Resido en el exterior", RazonV2), rep("El tiempo que necesito para ir y venir es muy alto, puedo ocupar ese tiempo para hacer tareas, estudiar, etc.", RazonV3), rep("Siento que los cursos que llevo no son necesarios llevarlos en presencialidad", RazonV4), rep("Me siento más cómodo/a estudiando en mi casa", RazonV5))
+RazonesV <- data.frame(RV)
+(knitr::kable(table(RazonesV), col.names = c("Razón", "Frecuencia"))) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 9: Frecuencias Razones cursos virtuales" = 2))
+```
+
+## Analisis bivariado
+
+### Preferencias por Ciclo
+
+Dividimos los ciclos en 3 grupos: Del ciclo 1 al 3, como Ciclos Menores; del ciclo 4 al 6, como Ciclos Intermedios; y del ciclo 7 al 10, como Ciclos Mayores.
+
+```{r}
+Ciclos_Menores <- which(1 == EncuestaL$Ciclo | 2 == EncuestaL$Ciclo | 3 == EncuestaL$Ciclo)
+```
+
+```{r}
+Ciclos_Intermedios <- which(4 == EncuestaL$Ciclo | 5 == EncuestaL$Ciclo | 6 == EncuestaL$Ciclo)
+```
+
+```{r}
+Ciclos_Mayores <- which(7 == EncuestaL$Ciclo | 8 == EncuestaL$Ciclo | 9 == EncuestaL$Ciclo | 10 == EncuestaL$Ciclo)
+```
+
+A partir de los 3 grupos, obtenemos las preferencias por el tipo de clase en cada grupo.
+
+```{r}
+Pref_CMen <- EncuestaL$Preferencia[Ciclos_Menores]
+knitr::kable((table(Pref_CMen)), col.names = c("Preferencia Ciclos Menores", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 10: Frecuencias Preferencia Ciclos Menores" = 2))
+CMeP <- sum(data.frame(Pref_CMen) == "Presencialidad")
+CMeH <- sum(data.frame(Pref_CMen) == "Continuar con el modelo híbrido")
+CMeV <- sum(data.frame(Pref_CMen) == "Regresar a la modalidad 100% virtual")
+```
+
+```{r}
+Pref_CInt <- EncuestaL$Preferencia[Ciclos_Intermedios]
+knitr::kable(table(Pref_CInt), col.names = c("Preferencia Ciclos Intermedio", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 11: Frecuencias Preferencias Ciclos Intermedios" = 2))
+CInP <- sum(data.frame(Pref_CInt) == "Presencialidad")
+CInH <- sum(data.frame(Pref_CInt) == "Continuar con el modelo híbrido")
+CInV <- sum(data.frame(Pref_CInt) == "Regresar a la modalidad 100% virtual")
+```
+
+```{r}
+Pref_CMay <- EncuestaL$Preferencia[Ciclos_Mayores]
+knitr::kable(table(Pref_CMay), col.names = c("Preferencia Ciclos Mayores", "Frecuencia")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("Tabla 12: Frecuencias Ciclos Mayores" = 2))
+CMaP <- sum(data.frame(Pref_CMay) == "Presencialidad")
+CMaH <- sum(data.frame(Pref_CMay) == "Continuar con el modelo híbrido")
+CMaV <- sum(data.frame(Pref_CMay) == "Regresar a la modalidad 100% virtual")
+```
+
+```{r}
+Preferencias <- c(rep("Presencialidad", 3), rep("Hibrido", 3), rep("Virtualidad", 3))
+Ciclos <- rep(c("Ciclos Menores", "Ciclos Intermedios", "Ciclos Mayores"), 3)
+Cantidad_alumnos <- c(CMeP, CInP, CMaP, CMeH, CInH, CMaH, CMeV, CInV, CMaV)
+CicVsPref <- data.frame(Preferencias, Ciclos, Cantidad_alumnos)
+```
+
+Graficamos la cantidad de alumnos que prefieren el modelo híbrido, presencial o virtual, según el ciclo estratificado.
+
+```{r}
+ggplot(CicVsPref, aes(x = Ciclos, y = Cantidad_alumnos, fill = Preferencias)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme_minimal() +
+  ylim(0, 60) +
+  ggtitle("Preferencia por modelo según Ciclo") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Podemos observar que en todos los casos la Preferencia es por el modelo Híbrido. En los ciclos mayores e intermedios se ve una preferencia casi igualitaria entre la presencialidad y la virtualidad, mientras que en los ciclos menores hay una preferencia de la presencialidad sobre la virtualidad. Podemos decir que para todos los ciclos el modelo híbrido es aceptado.
+
+### Principal Razon Virtual vs Preferencias
+
+Del análisis inicial de la variable "Razones cursos virtuales", tenemos la tabla de frecuencias de las razones por la cual los estudiantes prefieren llevar sus cursos de manera virtual. Ahora, seleccionamos la razón más frecuente para compararla con las preferencias sobre la modalidad de estudio de los estudiantes que la seleccionaron.
+
+```{r}
+RV3 <- grep("El tiempo que necesito para ir y venir es muy alto, puedo ocupar ese tiempo para hacer tareas, estudiar, etc.", EncuestaL$RazonV)
+datos <- data.frame(table("Preferencia_tiempo" = EncuestaL$Preferencia[RV3]))
+```
+
+```{r}
+Pref <- c(rep(datos$Preferencia_tiempo, datos$Freq))
+Tiempo_alto <- data.frame(Pref)
+Tiempo1 <- data.frame(table(Tiempo_alto))
+prop.table(table(Tiempo_alto))
+```
+
+```{r}
+ModeloV <- c("Hibrido", "Presencial", "Virtual")
+V <- Tiempo1$Tiempo_alto
+Cantidad_Alumnos_virtual <- Tiempo1$Freq
+```
+
+Acortamos el nombre a "Se puede ocupar el tiempo de transporte para otras cosas"
+
+```{r}
+ggplot(Tiempo1, aes(x = V, y = Cantidad_Alumnos_virtual, fill = ModeloV)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme_minimal() +
+  ylim(0, 70) +
+  ggtitle("Se puede ocupar el tiempo de transporte para otras cosas") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+La mayor parte de los alumnos que votó como razón principal sobre las clases virtuales el usar el tiempo para otras cosas como estudiar o tareas, prefiere continuar con el modelo híbrido, en el gráfico se nota una gran diferencia entre la preferencia por el modelo híbrido y la preferencia por la presencialidad o la virtualidad, teniendo estos 2 valores muy bajos.
+
+### Principal Razon Presencial vs Preferencias
+
+Del análisis inicial de la variable "Razones cursos presencial", tenemos la tabla de frecuencias de las razones por la cual los estudiantes prefieren llevar sus cursos de manera presencial. Ahora, seleccionamos la razón más frecuente para compararla con las preferencias sobre la modalidad de estudio de los estudiantes que la seleccionaron.
+
+```{r}
+RP1 <- grep("Son cursos en los que se aprenden de mejor manera de forma presencial", EncuestaL$RazonP)
+datosp1 <- data.frame(table("Preferencia_tiempo" = EncuestaL$Preferencia[RP1]))
+
+PrefP1 <- c(rep(datosp1$Preferencia_tiempo, datosp1$Freq))
+Tiempo_altoP1 <- data.frame(PrefP1)
+Tiempo2 <- data.frame(table(Tiempo_altoP1))
+prop.table(table(Tiempo_altoP1))
+```
+
+```{r}
+ModeloP <- c("Hibrido", "Presencial", "Virtual")
+P <- Tiempo2$Tiempo_altoP1
+Cantidad_Alumnos_presencial <- Tiempo2$Freq
+```
+
+Acortamos el nombre a "Se aprende mejor de manera presencial"
+
+```{r}
+ggplot(Tiempo2, aes(x = P, y = Cantidad_Alumnos_presencial, fill = ModeloP)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme_minimal() +
+  ylim(0, 70) +
+  ggtitle("Se aprende mejor de manera presencial") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+La mayor parte de los alumnos que votó como razón principal de ir a clases presenciales el que se aprende de mejor manera en la presencialidad, prefiere continuar con el modelo híbrido, una cantidad muy cercana de alumnos prefiere la presencialidad y muy pocos la virtualidad.
+
+Los alumnos tienen 2 grandes razones para preferir el asistir a clases virtuales o clases presenciales; sin embargo, el modelo híbrido parece ser el más aceptado, ya que no tienen que ir a todos los cursos de manera presencial y pueden utilizar el tiempo para sus estudios, a su vez de asistir a los cursos en los que requieren de mayor atención.
+
+### Gasto en Alimentación vs Horas presenciales
+
+Compararemos el gasto en Alimentación con las horas presenciales que pasa en la semana los alumnos para saber si hay una relación acerca de que si un alumno permanece más tiempo en la universidad, su gasto en alimentación es mayor. Esta podría ser un factor que haga que los alumnos no vayan a la universidad, debido a que en sus casas podrían comer sin gastar un adicional.
+
+```{r}
+cov(EncuestaL$GAlimentacion, EncuestaL$HorasP)
+cor(EncuestaL$GAlimentacion, EncuestaL$HorasP)
+```
+
+```{r}
+Horas_Presenciales_Semanales <- EncuestaL$HorasP
+Gasto_Diario_Promedio_Alimentacion_Soles <- EncuestaL$GAlimentacion
+plot(Gasto_Diario_Promedio_Alimentacion_Soles, Horas_Presenciales_Semanales)
+GastVsTiem <- lm(Horas_Presenciales_Semanales ~ Gasto_Diario_Promedio_Alimentacion_Soles)
+summary(GastVsTiem)
+abline(GastVsTiem, col = "blue")
+```
+
+Tenemos una correlación de aproximadamente 0.25, esto es una correlación baja y positiva, que sea positiva nos indica que ambas variables aumentan o disminuyen a la vez, entonces a mayor tiempo en la universidad, más se gastará en alimentación; sin embargo, la correlación es baja al ser tan pequeña, y este aumento es bajo y poco fiable. Se puede apreciar que los datos no están distribuidos tan uniformemente, sino que están dispersos, por lo cual se puede entender el porqué la correlación es baja.
+
+No podemos indicar de manera segura que a mucho mayor tiempo en la universidad, el gasto en alimentación es mayor, probablemente sea variado según cada alumno.
+
+# Probabilidades frecuentistas
+## Cantidad horas virtuales vs Ciclo
+Empezaremos con una tabla cruzada de las variables "Cantidad de horas de clase virtuales" y "Ciclo".
+Para esto, nos ayudaremos de las variables Ciclos_Menores, Ciclos_Intermedio y Ciclos_Mayores creadas anteriormente.
+
+Hallamos la cantidad de estudiantes por ciclo que tienen menos de 4 horas de clases virtuales
+```{r}
+Tabla1 <- data.frame(c("Menores (1-3)", "Intermedios (4-6)", "Mayores (7-10)", "Total"))
+Tabla1$de0a4 <- c(
+  length(which(EncuestaL[Ciclos_Menores, ]$HorasV <= 4)),
+  length(which(EncuestaL[Ciclos_Intermedios, ]$HorasV <= 4)),
+  length(which(EncuestaL[Ciclos_Mayores, ]$HorasV <= 4)),
+  length(which(EncuestaL$HorasV <= 4))
+)
+```
+Hacemos lo mismo entre 4 y 9
+```{r}
+Tabla1$de4a9 <- c(
+  length(which(EncuestaL[Ciclos_Mayores, ]$HorasV > 4 & EncuestaL[Ciclos_Mayores, ]$HorasV < 9)),
+  length(which(EncuestaL[Ciclos_Intermedios, ]$HorasV > 4 & EncuestaL[Ciclos_Intermedios, ]$HorasV < 9)),
+  length(which(EncuestaL[Ciclos_Menores, ]$HorasV > 4 & EncuestaL[Ciclos_Menores, ]$HorasV < 9)),
+  length(which(EncuestaL$HorasV > 4 & EncuestaL$HorasV < 9))
+)
+```
+Y finalmente, para los que llevan mas de 9 horas de clases virtuales
+```{r}
+Tabla1$de9amas <- c(
+  length(which(EncuestaL[Ciclos_Menores, ]$HorasV >= 9)),
+  length(which(EncuestaL[Ciclos_Intermedios, ]$HorasV >= 9)),
+  length(which(EncuestaL[Ciclos_Mayores, ]$HorasV >= 9)),
+  length(which(EncuestaL$HorasV >= 9))
+)
+```
+Agregamos los totales finales
+```{r}
+Tabla1$Total <- rowSums(Tabla1[, -1])
+```
+
+Organizamos las cantidades en una tabla cruzada:
+
+```{r}
+kable(Tabla1, col.names = c("Ciclo", "0-4", "4-9", "9 a más", "Total"), escape = F) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("", "Cantidad de horas de clase virtuales" = 3, "")) %>%
+  kableExtra::add_header_above(c("Tabla 13: Gasto en alimentacion y Cantidad de horas de clase presenciales" = 5))
+```
+
+¿Cuál es la probabilidad de elegir aleatoriamente un estudiante que se encuentre en ciclos intermedios y asista entre 4 a 8 horas virtuales?
+
+A: Estudiante de Ciclos Intermedios
+
+B: Estudiante que asista entre 4 a 8 horas virtuales
+
+$P(A\cap B)$
+
+```{r}
+27 / 204
+```
+
+La probabilidad de elegir aleatoriamente un estudiante que se encuentre en ciclos intermedios y asista entre 4 a 8 horas virtuales es de 0.1323529.
+
+
+¿Cuál es la probabilidad de elegir aleatoriamente un estudiante que se encuentre en ciclos mayores o asista a más de 9  horas virtuales?
+
+A: Estudiante de Ciclos Mayores
+
+B: Estudiante que asiste a más de 9 horas virtuales
+
+
+$P(A\cup B) = P(A)+P(B)-P(A\cap B)$
+
+
+```{r}
+(27 + 11 - 1) / 204
+```
+La probabilidad de elegir aleatoriamente un estudiante que se encuentre en ciclos mayores o asista a más de 9  horas virtuales es de 0.1813725.
+
+
+¿Cuál es la probabilidad de elegir aleatoriamente un estudiante que se encuentre en ciclos menores, si se sabe que estudia hasta 4 horas virtualmente ?
+
+A: Estudiante de Ciclos Menores
+
+B: Estudiante que asiste hasta 4 horas virtuales
+
+$P(A\backslash B) = P(A\cap B)/P(B)$
+
+
+```{r}
+59 / 111
+```
+
+La probabilidad de elegir aleatoriamente un estudiante que se encuentre en ciclos menores, si se sabe que estudia hasta 4 horas virtualmente es de 0.5315315.
+
+## Preferencia de tipo de clase vs Gasto en transporte
+Ahora, usando las variables "Preferencia de tipo de clase" y "Gasto en transporte" realizamos la misma tabla de probabilidades:
+
+Primero, hallamos la cantidad de estudiantes que prefieren la modalidad virtual que gastan de S/. 0 a S/. 5, de S/. 5 a S/. 10, y más de S/. 10 en transporte
+```{r}
+Tabla2 <- data.frame(c("de 0 a 5", "5 a 10", "más de 10", "Total"))
+PVirtual <- EncuestaL[EncuestaL$Preferencia == "Regresar a la modalidad 100% virtual", ]
+Tabla2$Virtual <- c(
+  PVirtual %>% filter(GTransporte <= 5) %>% nrow(),
+  PVirtual %>% filter(GTransporte > 5 & GTransporte <= 10) %>% nrow(),
+  PVirtual %>% filter(GTransporte > 10) %>% nrow(),
+  PVirtual %>% nrow()
+)
+```
+Hacemos lo mismo para los estudiantes que prefieren la presencialidad 
+```{r}
+PPresencial <- EncuestaL[EncuestaL$Preferencia == "Presencialidad", ]
+Tabla2$Presencial <- c(
+  PPresencial %>% filter(GTransporte <= 5) %>% nrow(),
+  PPresencial %>% filter(GTransporte > 5 & GTransporte <= 10) %>% nrow(),
+  PPresencial %>% filter(GTransporte > 10) %>% nrow(),
+  PPresencial %>% nrow()
+)
+```
+
+Finalmente para los que prefieren el modelo híbrido
+```{r}
+PHibrido <- EncuestaL[EncuestaL$Preferencia == "Continuar con el modelo híbrido", ]
+Tabla2$Hibrido <- c(
+  PHibrido %>% filter(GTransporte <= 5) %>% nrow(),
+  PHibrido %>% filter(GTransporte > 5 & GTransporte <= 10) %>% nrow(),
+  PHibrido %>% filter(GTransporte > 10) %>% nrow(),
+  PHibrido %>% nrow()
+)
+```
+Agregamos los totales restantes
+```{r}
+Tabla2$Total <- rowSums(Tabla2[, -1])
+```
+
+Lo organizamos en una tabla cruzada
+```{r}
+kable(Tabla2, col.names = c("Gasto en transporte (S/.)", "Virtual", "Presencial", "Híbrido", "Total"), escape = F) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  kableExtra::add_header_above(c("", "Preferencia de modelo" = 3, "")) %>%
+  kableExtra::add_header_above(c("Tabla 14: Preferencia de tipo de clase y Gasto en transporte" = 5))
+```
+
+
+¿Cuál es la probabilidad de elegir aleatoriamente un estudiante que no prefiera el modelo híbrido y gaste en promedio hasta 5 soles en transporte ?
+
+A: Estudiantes que prefieren el modelo híbrido
+
+B: Estudiantes que gastan en promedio hasta 5 soles en transporte
+
+$P(A^c\cap B)=P(B)-P(A\cap B)$
+
+```{r}
+(107 - 47) / 204
+```
+
+La probabilidad de elegir aleatoriamente un estudiante que no prefiera el modelo híbrido y gaste en promedio hasta 5 soles en transporte es de 0.2941176.
+
+¿Cuál es la probabilidad de elegir aleatoriamente un estudiante que no prefiera el modelo virtual ni gaste más de 10 soles en transporte ?
+
+A: Estudiantes que prefieren el modelo virtual
+B: Estudiantes que gastan en promedio más de 10 soles en transporte
+
+
+$P(A^c\cap B^c)=1-P(A\cup B) = 1-(P(A)+P(B)-P(A\cap B))$
+
+
+```{r}
+1 - (40 + 37 - 9) / 204
+```
+
+La probabilidad de elegir aleatoriamente un estudiante que no prefiera el modelo virtual ni gaste más de 10 soles en transporte es de 0.6666667.
+
+¿Es más probable elegir aleatoriamente un estudiante que prefiera el modelo presencial si se sabe que gasta más de 5 soles pero menos de 10 soles transporte o un estudiante que gasta más de 5 soles pero menos de 10 soles transporte si se sabe que prefiere el modelo presencial?
+
+A: Estudiantes que prefieren el modelo presencial
+B: Estudiantes que gastan en promedio más de 5 soles pero menos de 10 soles en transporte
+
+$P(A\backslash B) = P(A\cap B)/P(B)$
+
+```{r}
+12 / 60
+```
+$P(B \backslash A) = P(B\cap A)/P(A)$
+
+
+```{r}
+12 / 56
+```
+Es más probable elegir un estudiante que que gaste más de 5 soles pero menos de 10 soles transporte si se sabe que prefiere el modelo presencial, a un estudiante que prefiera el modelo presencial si se sabe que gasta más de 5 soles pero menos de 10 soles transporte.
+
+# Modelos
+## Exponencial en variable Gasto en Transporte
+
+Recordemos el histograma de la variable Gasto en Transporte
+
+```{r}
+hist(EncuestaL$GTransporte, breaks = seq(0, 60, 3))
+```
+
+Podemos modelar al Gasto en Transporte como una función exponencial, tomamos la media de Gasto de Transporte y la igualamos a 1/$\lambda$, entonces lambda valdría 1/media.
+
+$\lambda= \frac{1}{\textrm{media}}$
+
+Entonces podemos usar el modelo exponencial con este valor de lambda para determinar probabilidades.
+
+$X \rightarrow \textrm{Exp}(\lambda = \frac{1}{7.066225})$
+
+¿Cuál es la probabilidad de seleccionar un estudiante aleatoriamente y que este gaste más de 1 sol pero 5 soles o menos?
+
+$P(1<X\le5)$
+
+```{r}
+pexp(5, 1 / mean(EncuestaL$GTransporte)) - pexp(1, 1 / mean(EncuestaL$GTransporte))
+```
+La probabilidad de seleccionar un estudiante aleatoriamente y que este gaste más de 1 sol pero 5 soles o menos es de 0.3752095.
+
+
+¿Qué es más probable, seleccionar aleatoriamente a un estudiante que gaste 4 soles o menos, o un estudiante que gaste más de 4 soles?
+
+$P(X\le4)$
+
+$P(X>4)$
+
+```{r}
+pexp(4, 1 / mean(EncuestaL$GTransporte))
+1 - pexp(4, 1 / mean(EncuestaL$GTransporte))
+```
+
+Es más probable seleccionar a un estudiante que gaste más de 4 soles que un estudiante que gaste 4 soles o menos.
+
+## Triangular en variable Cantidad de horas virtuales
+
+Revisando el histograma de la variable "Cantidad de horas de clase virtuales"
+```{r}
+hist(EncuestaL$HorasV)
+```
+
+Podemos modelar la cantidad de horas de clase virtuales a las cuáles atienden los estudiantes como una distribución triangular, para esto tomamos el mínimo, máximo y moda de la variable. A partir tenemos que el mínimo (a) sería 0, el máximo (b) sería 12 y la moda (c) sería 4.
+
+a = 0
+b = 12
+c = 4
+
+$X \rightarrow \textrm{Tri}(a=0; b=12; c=4)$
+
+¿Cuál es la probabilidad de seleccionar aleatoriamente un estudiante  que lleve más de 6 horas de clases virtuales?
+
+$P(X \ge 6)$
+
+```{r}
+1 - ptri(6, 0, 12, 4)
+```
+La probabilidad de seleccionar aleatoriamente un estudiante  que lleve más de 6 horas de clases virtuales es de 0.375.
+
+## Uniforme en Cantidad de horas de clase presenciales
+
+Revisamos el histograma de la variable "Cantidad de horas de clase presenciales"
+```{r}
+hist(EncuestaL$HorasP)
+```
+
+Podemos modelar la cantidad de Horas Presenciales a las cuáles atienden los estudiantes como una distribución uniforme, para esto tomamos el mínimo y máximo de la variable. A partir de esto tenemos que el mínimo (a) sería 0 y el máximo (b) sería 18.
+
+a=0
+b=18
+
+$X \rightarrow \textrm{U}(a=0;b=8)$
+
+¿Cuál es la probabilidad de seleccionar aleatoriamente un estudiante que atienda a  4 horas en presencialidad o menos?
+
+$P(X\le4)$
+
+```{r}
+punif(4, 0, 18)
+```
+
+La probabilidad de seleccionar aleatoriamente un estudiante que atienda a  4 horas en presencialidad o menos es de 0.2222222.
+
+
+# Conclusiones
+
+1. Después de haber realizado el gráfico de barras sobre el modelo preferido por los alumnos  podemos concluir que el modelo preferido por los ciclos menores, intermedios y mayores en  UTEC es el híbrido, por ello se considera que es el más adecuado para las clases.
+
+1. De acuerdo a los factores que influyen en la asistencia a clases presenciales concluimos en:
+    1. El principal factor que motiva a los estudiantes a asistir a las clases presenciales es el hecho de que de esa manera tienen una mejor calidad de aprendizaje. 
+    
+    1. La gran cantidad de tiempo que toma ir a la universidad es el factor principal por el cuál los alumnos prefieren las clases virtuales, pues estas dan más tiempo para realizar otras actividades como estudiar o hacer tareas.
+    
+    1. El gasto en alimentación no resulta ser un factor relevante por el cual los alumnos no asisten a clases presenciales al no haber correlación entre este y el la cantidad de horas en las que asisten.
+    
+1. Algunas variables de nuestro estudio siguieron la conducta aproximada de tres modelos distintos: exponencial (Gasto en transporte), triangular (Horas virtuales) y uniforme (Horas presenciales). Esto de acuerdo a los histogramas elaborados con los datos de la encuesta.
+
+1. Por último la elaboración de tablas cruzadas contribuyeron al reconocimiento de la relación entre variables, haciendo uso de probabilidades y axiomas vistos en clase como: unión, intersección, entre otras. 
