@@ -1,0 +1,810 @@
+---
+title: "Informe"
+date: "2022-11-25"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r, echo=FALSE,include=FALSE,message=FALSE}
+library("readr")
+library("dplyr")
+library("ggplot2")
+library("ggthemes")
+library("fivethirtyeight")
+library("scales")
+```
+
+```{r, echo=FALSE}
+DF <- read_csv("Salud Mental - UTEC.csv", show_col_types = FALSE)
+r <- function(x){
+  return(round(x,digits = 2))
+}
+```
+
+# __PG2__  
+
+### __Motivación__  
+El proyecto de curso tiene por objetivo dar en conocimiento a la comunidad sobre la situación actual respecto a la salud mental y los diversos factores que toman relevancia el presente año. El principal punto de interés es probar si existe un cambio  positivo o perjudicial en la salud mental de nuestros estudiantes a partir del retorno a las clases presenciales.
+
+## __Contenido__
+
+- __Relevancia__  
+Brindar información sobre los principales factores que influyen en la salud mental de los estudiantes, especialmente en este periodo donde nos encontramos atravesando una reincorporación a la presencialidad de las clases. Asimismo, mantener en cierto nivel la virtualidad también aporta más contraste en la información recolectada. Al final del estudio, tendremos en conocimiento las relaciones más relevantes que existen entre la salud mental de nuestros estudiantes y la presencialidad de las sus actividades en la universidad.
+
+- __Planificación__  
+Como grupo, elaboramos un diagrama de Gantt que tiene como objetivo delimitar las metas, actividades y tareas  tanto a corto como mediano y largo plazo en términos de semanas, tal como se muestra a continuación.
+
+```{r,echo=FALSE}
+namee <- factor(c('Delimitar tema de proyecto', 'Establecer variables','Crear herramienta de recolección', 'Recolectar datos', 'Limpiar base de datos', 'Análisis descriptivo','Corrección del informe','Explorar relaciones entre variables','Comparar gráficos','Revisión de avance','Análisis probabilístico','Definir experimentos aleatorios','Establecer modelos y parámetros','Contrastar modelos y resultados','Conclusiones finales'),levels = c('Conclusiones finales','Contrastar modelos y resultados','Establecer modelos y parámetros','Definir experimentos aleatorios','Análisis probabilístico','Revisión de avance','Comparar gráficos','Explorar relaciones entre variables','Corrección del informe', 'Análisis descriptivo','Limpiar base de datos','Recolectar datos','Crear herramienta de recolección','Establecer variables','Delimitar tema de proyecto'))
+```
+
+```{r,echo=FALSE}
+data <- data.frame(name = sort(namee,decreasing = TRUE),
+start = c(1, 2, 3, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 14.5),
+end =   c(2, 4, 4, 6, 7, 8, 9, 10, 11, 11, 13, 15, 15,15,15)
+)
+rm(namee)
+```
+
+```{r, echo=FALSE}
+ggplot(data, aes(x=start, xend=end, y=name, yend=name, color=NULL)) +
+  theme_bw()+
+  geom_segment(size=6)+
+  labs(title='Diagrama de Gantt', x='Semana', y=NULL) +
+  theme_fivethirtyeight() + 
+  theme(axis.title = element_text()) +
+  scale_x_continuous(breaks=seq(1,15,1))
+```
+
+## __Datos__
+
+- __Proceso de recolección de datos__  
+Los datos fueron obtenidos mediante la herramienta de recolección en la nube llamada [*Google Forms*](https://docs.google.com/forms). Aunque existen muchas otras, elegimos [*Google Forms*](https://docs.google.com/forms) porque es la más versátil, convencional e intuitiva al momento de diseñar las preguntas. Mientras se tenga  mucho cuidado con las restricciones establecidas para cada pregunta planteada al encuestado, lo cual recae en las manos del grupo de proyecto, la herramienta es de gran utilidad. Para llegar a la población, decidimos enviar un URL acortado de la encuesta a nuestros compañeros de la universidad y al mismo tiempo decidimos estar presencialmente en la universidad solicitando llenar la [*encuesta*](https://forms.gle/kMCkq3X7939nGjaC9) a nuestros a lo largo de todos los ambientes y horarios de la universidad.
+
+- __Población__  
+Para el presente proyecto, se considera a la población como la comunidad de estudiantes de la Universidad de Ingeniería y Tecnología - UTEC en el periodo actual que son aproximadamente __NÚMERO__. Mientras que la unidad muestral es de __`r nrow(DF)`__ estudiantes, seleccionados mediante un muestreo aleatorio simple dentro de la universidad. Aunque es extremadamente posible estar libre de todo sesgo, el equipo trató de lograr dentro de lo posiblemente humano  que todas las personas encuestadas dentro de la universidad hayan tenido la misma probabilidad de haber sido seleccionadas.
+
+- __Variables__  
+Para definir cada variable dentro del estudio primero se crea un "data frame" que almacena las variables con nombres claros, concisos y creativos. A continuación cada variable con su definición y unidades
+
+```{r, echo=FALSE,message=FALSE}
+DF <- data.frame(Nombre=DF$`Nombre completo`,Edad=DF$Edad,Carrera=DF$Carrera,Ciclo=DF$`Según la definición de UTEC ¿En qué ciclo te encuentras actualmente?`,HorasU=DF$`¿Cuántas horas a la semana pasa dentro de la universidad?`, TraFuer=DF$`¿Se encuentra trabajando o desarrollando algún proyecto fuera de la universidad?`,HorasDuer=DF$`¿Cuántas horas al día duerme?`,AgotDia=DF$`En una escala del 1 al 5, ¿Qué tan agotado se siente durante el día?`,Cursos222=DF$`¿Cuántos cursos en total estás llevando en este periodo 2022-2?`,Cursos221=DF$`¿Cuántos cursos en total llevaste en el periodo 2022-1?`,CursosVirt=DF$`¿En cuántos cursos en modalidad virtual te encuentras matriculado?`,CursosPresen=DF$`¿En cuántos cursos en modalidad presencial te encuentras matriculado?`,CursosHib=DF$`¿En cuántos cursos en modalidad híbrida te encuentras matriculado?`,Preferencia=DF$`¿De las anteriores, qué modalidad se acomoda más a ti?`,HorasEstuFuer=DF$`¿Cuántas horas al día le dedica al estudio fuera de su horario de clase?`,DistanciaU=DF$`¿Qué tan lejos (Km) vive de la universidad?`,Escala=DF$`¿En qué escala de pagos de la universidad se encuentra?`,Alcohol=DF$`¿Es consumidor de alcohol actualmente?`,Tabaco=DF$`¿Es consumidor de tabaco actualmente?`,SustanciaNat=DF$`¿Consume algún tipo de sustancia no mencionada anteriormente? ¿Cuál? [Sustancia natural]`,SustanciaSint=DF$`¿Consume algún tipo de sustancia no mencionada anteriormente? ¿Cuál? [Sustancias sintéticas]`,CambAnimo=DF$`¿Ha sentido cambios abruptos en el estado de ánimo durante este periodo 2022-2  ?`,ESCDepre222=DF$`En una escala del 1 al 5, qué tan deprimido/infeliz se ha sentido durante el periodo 2022-2`,ESCDepre221=DF$`En una escala del 1 al 5 ¿Qué tan deprimido/infeliz se ha sentido durante el periodo 2022-1`,PersHog=DF$`¿Vive sólo? En caso de convivir con personas, ¿Cuántas personas viven en su hogar?`,Discusiones=DF$`En una escala del 1 al 5, cuán frecuentes son las discusiones en su hogar`,Animo222=DF$`Durante este ciclo ¿Qué tal es su estado de ánimo en general? (Marque solo 3)`,CicloRelac=DF$`Durante este ciclo ¿Se han visto afectadas sus relaciones con respecto a la universidad?`,Sueño222=DF$`¿Ha experimentado problemas de sueño durante este periodo 2022-2?`,Transtorno=DF$`¿Padece algún trastorno mental diagnosticado por un profesional?`)
+
+NombresVariables <- colnames(DF)
+```
+
+Las preguntas de la herramienta de recolección de datos fueron las siguientes
+
+|Pregunta|Variable|Descripción|
+|:------:|:------:|:------:|
+|Nombre completo|Nombre|Nombre completo del estudiante que respondió la encuesta|
+|Edad|Edad|La edad actual del estudiante|
+|Carrera|Carrera|Carrera universitaria que estudia|
+|Según la definición de UTEC ¿En qué ciclo te encuentras actualmente?|Ciclo|Ciclo en que se encuentra de acuerdo a la malla estudiantil de la universidad UTEC|
+|¿Cuántas horas a la semana pasa dentro de la universidad?|HorasU|Cantidad de horas que se encuentra estudiando dentro de la universidad UTEC|
+|¿Se encuentra trabajando o desarrollando algún proyecto fuera de la universidad?|TraFuer|Realiza algún trabajo o desarrolla un proyecto fuera de la universidad|
+|¿Cuántas horas al día duerme?|HorasDuer|Cantidad de horas que duerme durante el día|
+|En una escala del 1 al 5, ¿Qué tan agotado se siente durante el día?|AgotDia|El seleccionara en que escala se encuentra agotado que en lo cual significa 1 (Casi nunca) y 5 (Todos los días)|
+|¿Cuántos cursos en total estás llevando en este periodo 2022-2?|Cursos222|Cantidad de cursos que está llevando este periodo 2022-2|
+|¿Cuántos cursos en total llevaste en el periodo 2022-1?|Cursos221|Cantidad de cursos que llevó en el periodo 2022-1|
+|¿En cuántos cursos en modalidad virtual te encuentras matriculado?|CursosVirt|Cantidad de cursos en modalidad virtual está matriculado|
+|¿En cuántos cursos en modalidad presencial te encuentras matriculado?|CursosPresen|Cantidad de cursos en modalidad presencial está matriculado|
+|¿En cuántos cursos en modalidad híbrida te encuentras matriculado?|CursosHib|Cantidad de cursos en modalidad híbrida está matriculado|
+|¿De las anteriores, qué modalidad se acomoda más a ti?|Preferencia|Modalidad de preferencia de acuerdo al estudiante encuestado|
+|¿Cuántas horas al día le dedica al estudio fuera de su horario de clase?|HorasEstuFuer|Cantidad de horas de estudio al día que se encuentra fuera del horario de clase|
+|¿Qué tan lejos (Km) vive de la universidad?|DistanciaU|Distancia en Km de su hogar hasta la universidad UTEC|
+|¿En qué escala de pagos de la universidad se encuentra?|Escala|Escala financiero que se encuentra dentro de la universidad UTEC|
+|¿Es consumidor de alcohol actualmente?|Alcohol|Si es consumidor de alcohol actualmente|
+|¿Es consumidor de tabaco actualmente?|Tabaco||Si es consumidor de tabaco actualmente|
+|¿Consume algún tipo de sustancia no mencionada anteriormente? ¿Cuál? [Sustancia natural]|SustanciaNat|Si consume algun tipo de sustancia natural u otra|
+|¿Consume algún tipo de sustancia no mencionada anteriormente? ¿Cuál? [Sustancias sintéticas]|SustanciaSint|Si consume algun tipo de sustancia sintética u otra|
+|¿Ha sentido cambios abruptos en el estado de ánimo durante este periodo 2022-2?|CambAnimo|Estado de ánimo durante el periodo 2022-2|
+|¿Ha experimentado problemas de sueño durante este periodo 2022-2?|Sueño222|Problemas de sueño durante el periodo 2022-2|
+|En una escala del 1 al 5 ¿Qué tan deprimido/infeliz se ha sentido durante el periodo 2022-1|ESCDepre221|Estado deprimido durante el periodo 2022-1 en una escala de 1 a 5, que en lo cual significa 1 (Nada deprimido) y 5 (Extremadamente deprimido)|
+|En una escala del 1 al 5, qué tan deprimido/infeliz se ha sentido durante el periodo 2022-2|ESCDepre222|Estado deprimido durante el periodo 2022-2 en una escala de 1 a 5, que en lo cual significa 1 (Nada deprimido) y 5 (Extremadamente deprimido)|
+|¿Vive sólo? En caso de convivir con personas, ¿Cuántas personas viven en su hogar?|PersHog|Cantidad de personas que habitan en su hogar|
+|En una escala del 1 al 5, cuán frecuentes son las discusiones en su hogar|Discusiones|Discuciones en el hogar en una escala de 1 a 5, que en lo cual significa 1 (Casi nunca) y 5 (Todos los días)| 
+|Durante este ciclo ¿Qué tal es su estado de ánimo en general? (Marque solo 3)|Animo222|Estado de ánimo general durante el periodo 2022-2|
+|Durante este ciclo ¿Se han visto afectadas sus relaciones con respecto a la universidad?|CicloRelac|Relaciones afectadas durante el periodo 2022-2| 
+|¿Padece algún trastorno mental diagnosticado por un profesional?|Transtorno|Transtorno mental diagnosticado por un profesional|
+
+##### __Variables para el estudio__
+
+|Nombre de Variable|Tipo |Restricción|
+|:------------------:|:-----:|:-----------:|
+|`r NombresVariables[1]`|Categórica nominal|-|
+|`r NombresVariables[2]`|Numérica discreta|Entero positivo|
+|`r NombresVariables[3]`|Categórica nominal|-|
+|`r NombresVariables[4]`|Categórica ordinal|-|
+|`r NombresVariables[5]`|Numérica discreta|Entero positivo|
+|`r NombresVariables[6]`|Categórica nominal|-|
+|`r NombresVariables[7]`|Numérica discreta|Entero positivo|
+|`r NombresVariables[8]`|Categórica ordinal|-|
+|`r NombresVariables[9]`|Categórica nominal|-|
+|`r NombresVariables[10]`|Categórica nominal|-|
+|`r NombresVariables[11]`|Categórica nominal|-|
+|`r NombresVariables[12]`|Categórica nominal|-|
+|`r NombresVariables[13]`|Categórica nominal|-|
+|`r NombresVariables[14]`|Categórica nominal|-|
+|`r NombresVariables[15]`|Numérica discreta|Entero positivo|
+|`r NombresVariables[16]`|Numérica continua|Número positivo|
+|`r NombresVariables[17]`|Categórica ordinal|-|
+|`r NombresVariables[18]`|Categórica nominal|-|
+|`r NombresVariables[19]`|Categórica nominal|-|
+|`r NombresVariables[20]`|Numérica discreta|-|
+|`r NombresVariables[21]`|Categórica nominal|-|
+|`r NombresVariables[22]`|Categórica nominal|-|
+|`r NombresVariables[23]`|Categórica nominal|-|
+|`r NombresVariables[24]`|Categórica ordinal|-|
+|`r NombresVariables[25]`|Categórica ordinal|-|
+|`r NombresVariables[26]`|Numérica discreta|Numero positivo|
+|`r NombresVariables[27]`|Categórica ordinal|-|
+|`r NombresVariables[28]`|Categórica nominal|-|
+|`r NombresVariables[29]`|Categórica nominal|-|
+|`r NombresVariables[30]`|Categórica ordinal|-|
+
+- __Limpieza de base de datos__  
+
+Hasta este punto ha sido necesario tratar algunas variables 
+
+En las siguientes líneas se explica el proceso de limpieza, el cual se realiza con el objetivo de tener una base de datos final limpia y lista para empezar a elaborar un correcto análisis descriptivo del proyecto.
+
+Empezamos por corroborar que el "**data frame**" distingue correctamente las variables categóricas de las numéricas.
+
+```{r, echo =FALSE,include=FALSE,message=FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE, message=FALSE}
+which(DF$Nombre == "Jackelin Yesenia Guzman Baños")
+```
+```{r, echo =FALSE,message=FALSE,include=FALSE}
+DF <- DF[-33,]
+DF <- DF[-60,]
+```
+
+```{r, echo =FALSE, include=FALSE,include=FALSE,message =FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which(DF$Nombre == "Leandro Javier Santisteban Arce")
+```
+```{r, echo =FALSE,include=FALSE}
+DF <- DF[-8,]
+DF <- DF[-25,]
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which(DF$Nombre == "Alejandra Díaz Aguirre")
+```
+```{r, echo =FALSE}
+DF <- DF[-2,]
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which(DF$Nombre == "Ana Sofía Barrientos Uriarte")
+```
+```{r, echo =FALSE}
+DF <- DF[-21,]
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which(DF$Nombre == "Angel Fabricio Romani Tafur")
+```
+
+```{r, echo =FALSE,message =FALSE, include=FALSE}
+DF <- DF[-38,]
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which.max(table(DF$Nombre))
+```
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which(DF$Nombre == "Anjali Emily Castro Cassano")
+```
+```{r, echo =FALSE,message =FALSE,include=FALSE}
+DF <- DF[-11,]
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which(DF$Nombre == "Daniel Eduardo Sandoval Rivera")
+```
+
+```{r, echo =FALSE,message =FALSE, include=FALSE}
+DF <- DF[-23,]
+```
+
+```{r, echo =FALSE, include=FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE}
+which(DF$Nombre == "Fabiana Susana Solar Espilco")
+```
+```{r, echo =FALSE}
+DF <- DF[-40,]
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+which(DF$Nombre == "Jhezel Velasquez Rivera")
+```
+
+```{r, echo =FALSE,message =FALSE,include=FALSE}
+DF <- DF[-123,]
+```
+
+```{r, echo =FALSE, include=FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE}
+which(DF$Nombre == "Sofía Reyes Poli")
+```
+```{r, echo =FALSE}
+DF <- DF[-50,]
+```
+
+```{r, echo =FALSE, include=FALSE}
+which.max(table(DF$Nombre))
+```
+
+```{r, echo =FALSE, include=FALSE}
+which(DF$Nombre == "Vasco Andrés Maradiegue Brisigotti")
+```
+```{r, echo =FALSE}
+DF <- DF[-19,]
+```
+
+```{r, echo =FALSE, include=FALSE}
+which.max(DF$Edad)
+```
+
+```{r, echo =FALSE, include=FALSE}
+DF$Edad[127]
+```
+
+```{r, echo =FALSE}
+DF <- DF[-127,]
+```
+
+```{r, echo =FALSE, include=FALSE}
+which.min(DF$Edad)
+```
+
+```{r, echo =FALSE, include=FALSE,message =FALSE}
+DF$Edad[56]
+```
+
+```{r, echo =FALSE}
+DF <- DF[-56,]
+```
+
+```{r,echo=FALSE, include=FALSE}
+which(DF$HorasDuer == 24)
+which(DF$HorasDuer == "N.A")
+```
+```{r,echo=FALSE}
+DF$HorasDuer[93]<-NA
+DF$HorasDuer[172]<-NA
+```
+
+```{r, echo=FALSE, include=FALSE}
+DF$HorasEstuFuer[which(DF$HorasEstuFuer == "10 horas semanales")]<-10
+DF$HorasEstuFuer[which(DF$HorasEstuFuer == "3-4 horas")]<-4
+DF$HorasEstuFuer[which(DF$HorasEstuFuer == "4 horas")]<-4
+DF$HorasEstuFuer[which(DF$HorasEstuFuer == "4 o 5 horas")]<-5
+DF$HorasEstuFuer[which(DF$HorasEstuFuer == "4/5")]<-5
+DF$HorasEstuFuer[which(DF$HorasEstuFuer == "Depende, en promedio 5h diarias")]<-5
+```
+
+```{r,echo=FALSE, include=FALSE}
+DF$PersHog[which(DF$PersHog=="5 o superior")]<- 5
+DF$PersHog[which(DF$PersHog=="Vivo sólo")]<- 1
+```
+
+```{r,echo=FALSE, message=FALSE,include=FALSE}
+DF$HorasU <- as.integer(DF$HorasU)
+DF$HorasDuer <- as.integer(DF$HorasDuer)
+DF$AgotDia <- as.character(DF$AgotDia)
+DF$HorasEstuFuer <- as.integer(DF$HorasEstuFuer)
+DF$ESCDepre222 <- as.character(DF$ESCDepre222)
+DF$ESCDepre221 <- as.character(DF$ESCDepre221)
+DF$PersHog <- as.integer(DF$PersHog)
+DF$Discusiones <- as.character(DF$Discusiones)
+```
+
+```{r,echo=FALSE}
+summary(DF)
+```
+
+
+```{r,echo=FALSE,include=FALSE,message =FALSE}
+which(DF$TraFuer=="no")
+which(DF$TraFuer=="No")
+which(DF$TraFuer=="No:(")
+```
+```{r,echo=FALSE}
+DF$TraFuer[1:18]<-"Ninguno"
+```
+
+Según la data trabajada y limpiada dentro de  RStudio hasta este punto, hay `r nrow(DF) ` observaciones, `r ncol(DF)` variables, de las cuales `r length(select_if(DF,is.numeric))` son numéricas. Del total de información, el `r round((sum(is.na(DF))*100)/(sum(is.na(DF))+sum(!is.na(DF))), digits =2)`% son datos faltantes y el `r round((sum(!complete.cases(DF)))*100/(nrow(DF)),digits=2)` % son casos incompletos, las variables con más datos faltantes son __`r names(which(colSums(is.na(DF)) ==  max(colSums(is.na(DF)))))[1]`__ y __`r names(which(colSums(is.na(DF)) ==  max(colSums(is.na(DF)))))[2]`__ con `r max(colSums(is.na(DF)))` datos vacíos. De igual manera, la observación con más datos faltantes es la número `r which.max(rowSums(is.na(DF)))` y tienen un total de `r rowSums(is.na(DF[which.max(rowSums(is.na(DF))),]))` datos vacíos.
+
+```{r, echo=FALSE}
+write.csv(DF,"Tidy_Mental.csv",row.names = F,na="")
+```
+
+## __Análisis Descriptivo__
+
+### Descriptores numéricos
+
++ De los encuestados, podemos observar que en promedio tienen `r round(mean(DF$Edad),digits=0)` años de edad. Asimismo, la mediana obtenida fue `r median(DF$Edad)`. En el caso de los cuantiles, se determinaron los siguientes: `r quantile(DF$Edad,na.rm=TRUE)`. Además, `r max(DF$Edad)` resulta ser el máximo valor, mientras que el `r min(DF$Edad)` es el valor mínimo.
+
+```{r, echo=FALSE}
+aaa <- DF[complete.cases(DF$Edad&DF$HorasU),]
+```
+
++ Los valores del rango de la variable edad es de `r range(DF$Edad)`, por tanto, el rango es la diferencia de esos valores, `r range(DF$Edad)[2] - range(DF$Edad)[1]`. La desviación estándar es `r r(sd(DF$Edad))`, lo cual tiene sentido, ya que representa una población de jóvenes universitarios de ciclos bajos, con edades muy cercanas. Por último, el rango intercuartíl resulta ser `r IQR(DF$Edad,na.rm=TRUE)`. Asimismo la desviación estándar de la variable HorasU es `r r(sd(DF$HorasU,na.rm=TRUE))` y la covarianza entre Edad y HorasU es `r r(cov(DF$Edad,DF$HorasU))` por lo cual podemos identificar una leve relación negativa entre las variables.
+
+```{r,echo=FALSE}
+rm(aaa)
+```
+
+
+
++ Para determinar el rango, se adquiere el valor mínimo junto con el valor máximo, por lo que, se deben restar para obtener el rango. Los valores del rango de la variable HorasU es de `r range(DF$HorasU)`, entonces se restan los valores, `r range(DF$HorasU)[2] - range(DF$HorasU)[1]`. Asimismo, se presenta una varianza de `r r(var(DF$HorasU))` y la desviación estándar muestral es `r r(sd(DF$HorasU))`, lo cual es susceptible, ya que representa una muestra de cantidad de horas empleadas en la universidad. Finalmente, el rango intercuartíl es `r IQR(DF$HorasU,na.rm=TRUE)`.
+
+
+
+### Descriptores gráficos
+
+```{r}
+plot(table(DF$Edad),  col ="red", xlab= "Edad", ylab="Frecuencia",main="Edades de los estudiantes encuestados")
+axis(1, at = seq(15, 30, by = 1))
+```
+
+El histograma de la variable edad de los alumnos de UTEC, demuestra la frecuencia de cada valor, de esta forma, se obtiene fácilmente la moda, ya que el dato que más se repite, son los 18 años, claramente. Por tanto, se podría afirma que la mayorìa de los encuestados resultan ser de 1er o 2do ciclo.
+
+```{r}
+boxplot(DF$HorasU, breaks=60, col = rgb(1,0,0,0.8),xlab="Horas en la universidad",horizontal = TRUE)
+```
+
+El boxplot de la variable HorasU de los alumnos de UTEC, el primer cuartil que representa el 25%, allí se observa que esa cantidad de datos se encuentra entre el valor mínimo y el cuartil inferior. Adicionalmente, se observa la mediana claramente, la cual está ubicada en el 20. El valor máximo, se encuentra en el extremo superior, mientras que el valor mínimo se encuentra en el extremo inferior.
+
+```{r}
+barplot(table(DF$SustanciaNat),xlab="¿Es consumidor de  sustancias?", ylab="Frecuencia",col= rgb(0,1,0,1))
+```
+
+En el diagrama barplot de la variable SustanciaNat, refleja los conteos de frecuencia del consumo de alguna sustancia natural en los alumnos de UTEC. Por lo que se puede afirmar que en el rango de 0 a 150+ los alumnos respondieron que "no" consumen sustancias naturales.
+
+Se muestra esta información debido a que puede ser interesante para el lector, tratándose de un estudio respecto a la salud mental. Posiblemente el uso de sustancias influya, así como en cualquier aspecto de la vida diaria. Sin embargo, a causa de que la recolección de información para esta pregunta no es fiable por no haber tomado las precauciones necesarias para obtener respuestas con el menor sesgo posible, se decidió no tocar más  el tema de sustancias a partir de este punto.
+
+### Relaciones entre variables
+
+```{r}
+mosaicplot(DF$Transtorno ~ DF$PersHog,las=2,col=c("yellow","red","blue","green","purple"),main="Padecimiento de transtornos vs. cantidad de personas en el hogar",xlab ="¿Presenta trastorno?",ylab="Cantidad de personas en el hogar")
+```
+
+Aqui podemos ver que hay poca o ninguna relación entre la cantidad de personas dentro del hogar y el padecimiento de trastornos mentales
+
+```{r}
+boxplot(DF$HorasU ~ DF$Escala,col=c("yellow","red","blue","green","purple"),xlab="Escala de pagos en la universidad",ylab="Horas que emplean dentro del campus")
+```
+
+Primero revisamos que carrera tuvo mayor presencia en nuestra encuesta
+
+```{r}
+par(mar = c(4, 4,1, 4))
+barplot(sort(table(DF$Carrera)),las = 2,col=c(rgb(1,0,0,0),rgb(1,0,0,0),rgb(1,0,0,0.2),rgb(1,0,0,0.2),rgb(1,0,0,0.3),rgb(1,0,0,0.4),rgb(1,0,0,0.5),rgb(1,0,0,0.6),rgb(1,0,0,0.65),rgb(1,0,0,0.7),rgb(1,0,0,0.85),rgb(1,0,0,0.9),rgb(1,0,0,1)),xaxt = "n",ylab="Frecuencia",xlab="Carrera")
+text(x = 1:length(table(DF$Carrera)),
+     y = par("usr")[1] - 0.45,
+     labels = names(table(DF$Carrera)),
+     xpd = NA,
+     ## Rotate the labels by 35 degrees.
+     srt = 22.5,
+     cex = 1,
+     adj=-0.001)
+
+```
+
+Sobresaliendo así la carrera de Ing. industrial
+
+A su vez , revisamos de que ciclos nos escriben mas 
+
+
+```{r}
+barplot(table(DF$Ciclo)[c("Primero","Segundo","Tercero","Cuarto","Quinto","Sexto","Séptimo","Octavo","Noveno","Décimo")], las=2, col ="yellow", main = "En qué ciclos se encuentran los encuestados", ylab="Frecuencia")
+```
+
+En este diagrama se puede observar que la mayoría de estudiantes que respondieron la encuesta se encuentran en segundo y sexto ciclo. A través del gráfico podemos obtener la moda ya que el dato que más se repite según la frecuencia es el segundo ciclo.
+
+Ahora analizaremos el sueño de nuestra muestra en base a su edad 
+
+```{r}
+boxplot(DF$Edad ~ DF$HorasDuer, las = 1, xlab = "Horas de sueño", ylab = "Edad",col=c(rgb(1,0,0,0.7), rgb(0,1,0,0.7), rgb(0,0,1,0.7), rgb(1,0,1,0.7), rgb(1,1,0,0.7), rgb(1,1,1,0.7), rgb(0,1,1,0.7), rgb(0,0,0,0.7)))
+```
+
+Analizamos la escala de depresion en el ciclo 2022-1 cruzado con la edad 
+
+```{r}
+boxplot(DF$Edad ~ DF$ESCDepre221, xlab = "En una escala del 1 al 5 ¿Qué tan deprimido/infeliz se ha sentido durante el periodo 2022-1?", ylab = "Edad",col= rgb(0,0,0,0.7))
+```
+
+Adicionalmente analizamos la escala de depresión en el ciclo 2022-2 cruzando con la edad 
+
+```{r}
+boxplot(DF$Edad ~ DF$ESCDepre222,las = 1, xlab = "En una escala del 1 al 5 ¿Qué tan deprimido/infeliz se ha sentido durante el periodo 2022-2?", ylab = "Edad",col=rgb(0,1,1,0.7))
+```
+
+Cruzamos trastornos con edades para ver la incidencia en función a la edad 
+ 
+```{r}
+par(mar = c(5, 4, 1, 1))
+medianas <- reorder(DF$Transtorno, DF$Edad, median)
+boxplot(DF$Edad ~ medianas,las = 2, xlab = "¿Padece algún trastorno mental diagnosticado por un profesional?", ylab = "Edad",col=rgb(1,1,0,0.7),xaxt = "n")
+text(x = 1:length(table(DF$Transtorno)),
+     y = par("usr")[3] - 0.45,
+     labels = names(table(DF$Transtorno)),
+     xpd = NA,
+     ## Rotate the labels by 35 degrees.
+     srt = 15,
+     cex = 0.8)
+```
+
+adicional a ello revisamos la horas dentro de la universidad y como los alumnos de diferentes ciclos permanecen dentro de la universidad
+
+```{r}
+ordenciclo<-factor(DF$Ciclo, levels = c('Primero','Segundo','Tercero','Cuarto','Quinto','Sexto','Septimo','Octavo','Noveno','Decimo'))
+
+
+par(mar = c(5, 4, 1, 1))
+boxplot(DF$HorasU ~ ordenciclo,las = 2, xlab = "Ciclo", ylab = "Horas dentro de la universidad",col=c(rgb(1,0,0,0.7), rgb(0,1,0,0.7), rgb(0,0,1,0.7), rgb(1,0,1,0.7), rgb(1,1,0,0.7), rgb(1,1,1,0.7), rgb(0,1,1,0.7), rgb(0,0,0,0.7)), xaxt="n")
+text(x = 1:length(table(ordenciclo)),
+     y = par("usr")[3] - 0.45,
+     labels = names(table(ordenciclo)),
+     xpd = NA,
+     ## Rotate the labels by 35 degrees.
+     srt = 45,
+     cex = 1)
+```
+```{r}
+#Exportamos la base datos limpia para ser utilizada en la presentación. El archivo solo será creado solo si no existe en el directorio de trabajo
+if(!file.exists("Data_Presentacion.csv")){write_csv(DF,"Data_Presentacion.csv")}
+```
+
+<br>
+<br>
+
+# __Análisis Probabilístico__
+
+<br>
+
+Cada variable relevante y cada par o conjunto de variables que interactúen, deben de tener una descripción en términos de las probabilidades de ocurrencia de cada evento, se debe analizar y justificar las condiciones para que dichas probabilidades funcionen y tenga sentido el calculo de cada una. En caso se realice categorización de variables para este proceso, se deberá justificar el porqué.
+
+Se debe de identificar al menos 3 modelos de distribuciones de probabilidad (discreto o continuo), en esta sección se debe de justificar: el proceso de identificación del modelo, los casos de cálculo con los modelos identificados y los resultados obtenidos.
+
+Para empezar  el análisis probabilístico es primordial dar el primer paso haciendo hincapié nuestras variables de interés para este apartado. Estas variables son __¿Qué tan deprimido se ha encontrado durante el año 2022?__, __¿Qué tan deprimido se ha encontrado durante el año 2022?__, __¿Qué tan agotado se siente durante el día?__, __¿Cuántas horas al día duerme?__, __¿Ha sentido cambios abruptos en el estado de ánimo durante este periodo 2022-2?__, __¿Padece algún trastorno mental diagnosticado por un profesional?__ y __Carrera en la que se encuentra__.
+
+<br>
+<br>
+
++ Cuál es la probabilidad de haber estado en una escala 5 de depresión (extremadamente deprimido) en el año 2021, y que prefiera solo clases presenciales
+
+Tablas cruzadas, Estado de depresión en el 2021 según preferencia
+
+```{r, echo=FALSE}
+Prob <- table(DF$ESCDepre221,DF$Preferencia)
+Prob
+```
+
+Tabla marginal a partir de la tabla anterior
+
+```{r, echo=FALSE}
+prop.table(Prob)
+```
+
+Tenemos entonces que la probabilidad de que un alumno se haya encontrado extremadamente deprimido y que solo prefiera clases presenciales durante el año 2021 es del __`r r(prop.table(Prob)["5","Presencial"]*100)`__% y esto puede significar que desde que debido a que la pandemia, y por lo tanto las restricciones físicas empezaron en el año 2020, los estudiantes se hayan logrado adaptar y ser indiferentes en cierta medida a la situación de confinamiento. Si a esto le sumamos la probabilidad de haber tenido una escala 4 de depresión (muy deprimido), tendríamos una probabilidad resultante del __`r r((prop.table(Prob)["5","Presencial"]+ prop.table(Prob)["4","Presencial"])*100) `__%. 
+
+<br>
+
++ Qué tan probable es estar en una escala 5 de depresión (extremadamente deprimido) durante el año 2022 y solo preferir clases virtuales
+
+Tablas cruzadas, Estado de depresión en el 2022 según preferencia
+
+```{r, echo=FALSE}
+Prob2 <- table(DF$ESCDepre222,DF$Preferencia)
+Prob2
+```
+
+Tabla marginal a partir de la tabla anterior
+
+```{r, echo=FALSE}
+prop.table(Prob2)
+```
+
+Tenemos que la probabilidad es del __`r r(prop.table(Prob2)["5","Virtual"]*100)`__% y esto contrasta con la probabilidad de estar dentro de la escala 4 y 5 de depresión  y preferir clases presenciales en el año 2022 que es del __`r r((prop.table(Prob2)["5","Presencial"]+ prop.table(Prob2)["5","Presencial"])*100)`__% y al mismo tiempo se ha visto previsiblemente reducida en comparación con el año 2021.
+
+<br>
+
++ Dado que alguien se encuentra muy deprimido (escala 4) en el año 2022, qué tan probable es que se encuentre  agotado (marcó 4 o 5 en la escala) durante el día
+
+```{r}
+#Hallamos la probabilidad de la siguiente manera
+Prob3 <- table(DF$AgotDia,DF$ESCDepre222)
+Prob3N <- r((prop.table(Prob3)["4","5"]+prop.table(Prob3)["5","5"])/sum(prop.table(Prob3)[,"4"]))
+#RESPUESTA
+percent(Prob3N)
+```
+
+<br>
+
++ Dado que duerme 5 horas al día y pasa 10 horas al día dentro del campus, cuán probable es que haya presentado cambios abruptos en el estado de ánimo
+
+```{r}
+#Hallamos la probabilidad de la siguiente manera
+Prob4 <- table(DF$HorasDuer,DF$HorasU,DF$CambAnimo)
+Prob4N <- prop.table(Prob4)["5","10","Sí"]/sum(prop.table(Prob4)["5","10",])
+#RESPUESTA
+percent(Prob4N)
+```
+
+<br>
+
++ Cuál es la probabilidad de presente una enfermedad mental diagnosticada, dado que estudia ingeniería mecánica y además duerma 5 horas al día
+
+```{r}
+Prob5 <- table(DF$Transtorno,DF$Carrera,DF$HorasDuer)
+Prob5N <- prop.table(Prob5)["Sí","Ingeniería Mecánica","5"]/sum(prop.table(Prob5)[,"Ingeniería Mecánica","5"])
+#RESPUESTA
+percent(Prob5N)
+```
+<br>
+
+### Modelos
+
+<br>
+
+__BINOMIAL__
+
+```{r,echo=FALSE,include=FALSE}
+BinomPres <- table(DF$Preferencia)
+p <- (prop.table(BinomPres)["Presencial"])
+n <- 22
+```
+
+$$X \text{~} Bin(n,p)$$
+
+Para seguir un modelo binomial. Tenemos que definir el experimento aleatorio como tomar una muestra de 20 (n = `r n`)alumnos que hayan respondido la encuesta y contamos el número de alumnos que prefieran llevar clases presenciales. Tomando en cuenta que tienen una probabilidad fija p=`r r(p)`.
+
+Probabilidad de que exactamente 5 alumnos de la muestra, prefieran solamente clases presenciales
+
+$$P(X = 5)$$ 
+
+```{r}
+#RESPUESTA
+percent(dbinom(5,n,p))
+```
+
+<br>
+
+Probabilidad de que más de 5 alumnos prefieran las clases presenciales
+
+$$P(X > 5)$$
+
+```{r}
+#RESPUESTA
+percent(pbinom(5,n,p,lower.tail = FALSE))
+```
+<br>
+
+```{r}
+plot(dbinom(0:20,n,p),type="h",xlab="X",ylab="P(X=x)",main="Funcion de Probabilidad",col=rainbow(20),xlim=c(-1,20))
+#Los colores son puramente estéticos
+```
+
+<br>
+<br>
+
+__HIPERGEOMÉTRICA__
+
+$$X \text{~} Hyper(r,N-r,k)$$
+
+```{r,echo=FALSE,include=FALSE }
+N <- sum(table(DF$Transtorno))
+r1 <- table(DF$Transtorno)["Sí"]
+r2 <- table(DF$Transtorno)["No"]
+r3 <- table(DF$Transtorno)["Probablemente sí, pero no he consultado"]
+```
+
+Tenemos una población N = `r N` y contamos con subpoblaciones de __r__ alumnos que cuentan con una enfermedad mental diagnosticada __(r1 = `r r1`)__, no cuentan con ninguna enfermedad __(r2 = `r r2`)__, y otros que sospechan que cuentan con una enfermedad mental pero no han sido diagnosticados profesionalmente __(r3 = `r r3`)__. Tomamos una muestra de tamaño 40 __(k = 40)__ sin reemplazo para cada caso presente y hallamos las siguientes probabilidades.
+
+```{r}
+plot(dhyper(0:40,r1,N-r1,40),type = "b",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad - Con Diagnóstico", col=rainbow(10))
+```
+
+$$P(X = 5)$$
+
++ La probabilidad de que exactamente 5 estudiantes presenten transotornos mentales diagnosticados por un profesional es de __`r percent(dhyper(5,r1,N-r1,40))`__
+
+<br>
+
+```{r}
+plot(dhyper(0:40,r2,N-r2,40),type = "b",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad - Sin diagnístico", col=rainbow(10))
+```
+
+$$P(X =27)$$
+
++ La probabilidad de que 27 estudiantes no presenten transotornos mentales diagnosticados por un profesional es de __`r percent(dhyper(27,r2,N-r2,40))`__
+
+<br>
+
+```{r}
+plot(dhyper(0:40,r3,N-r3,40),type = "b",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad - Sospechan requerir diagnostico", col=rainbow(10))
+```
+
+$$P(X <= 5)$$
+
++ La probabilidad de que a lo mucho 5 estudiantes no presenten transotornos mentales diagnosticados por un profesional pero sospechen que sí es de __`r percent(phyper(5,r3,N-r3,40,lower.tail=TRUE))`__
+
+<br>
+<br>
+
+__POISSON__
+
+$$X \text{~} Pois(λ)$$
+
+La distribución de Poisson cuenta el número de eventos que ocurren en una tasa de tiempo promedio λ con unidades __$\frac{\text{Horas de sueño}}{\text{Día}}$__. Calculamos entonces el promedio de horas que duerme un estudiante que se encuentre muy o extremadamente deprimido, es decir, marcó en la escala de depresión 4 o 5.
+
+```{r}
+#Filtramos las observaciones de interés 
+λ <- filter(DF,ESCDepre222=="4" | ESCDepre222=="5")
+#Asignamos a la variable lambda la tasa de de tiempo promedio
+λ <- mean(λ$HorasDuer,na.rm = TRUE)
+```
+
+Tenemos entonces λ= __`r r(λ)`__ $\frac{\text{Horas de sueño}}{\text{Día}}$
+
+```{r}
+plot(dpois(0:15,λ),type = "h",xlab="X",ylab="P(X=x)",main="Funcion de probabilidad y Probabilidad acumulada",ylim = c(0,1),col=rainbow(10))
+lines(ppois(0:15,λ),col=rgb(0,1,1,0.7))
+```
+
+<br>
+
+Entonces, de los alumnos que se encuentran muy o extremadamente deprimidos podemos encontrar las siguientes probabilidades:
+
++ Probabilidad de dedicar 5 o menos horas de sueño al día
+
+$$P(X<=5)$$
+```{r}
+#RESPUESTA
+percent(ppois(5,λ,lower.tail = TRUE))
+```
+
+<br>
+
++ Probabilidad de que los alumnos duerman exactamente 8 horas al día, puesto que es la cantidad de horas de sueño recomendadas:
+
+$$P(X = 8)$$
+```{r}
+#RESPUESTA
+percent(dpois(8,λ))
+```
+
+<br>
+
++ Probabilidad de dormir 46 horas en una semana
+
+$$P(Y = 46)$$
+```{r}
+#RESPUESTA
+percent(dpois(46,7*λ))
+```
+
+<br>
+<br>
+
+__NORMAL__
+
+$$X \text{~} Nor(μ,σ^2)$$
+
+El modelo Normal se ajusta a todo tipo de variable aleatoria continua cuyo valor se deba al resultado de muchísimos factores. Definimos pues, la variable aleatoria Distancia a la que un alumno que haya respondido la encuesta vive de la universidad. Pero dentro del conjunto de alumnos que respondieron la encuesta, observamos el __subonjunto__ de alumnos que pasen 24 horas o más en la universidad por semana y al mismo tiempo presenten cambios abruptos en el estado de animo. Además, queremos resaltar que existen pruebas de bondad de ajuste como el Test de Shapiro Wilk (entre otros) para determinar si nuestra distribución se ajusta a un modelo Normal. Sin embargo, supondremos que los valores presentes se distribuyen de manera normal.
+
+<br>
+
+```{r}
+#Creamos la variable de interés que pertenece al subconjunto delimitado
+DistNorm <- filter(DF,CambAnimo=="Sí")
+DistNorm <- filter(DistNorm,HorasU >= 25)
+```
+
+```{r, echo=FALSE,include=FALSE,message=FALSE}
+#La limpieza de datos nunca termina...
+#Nos contactamos con el alumno Jordan Ciril Enriquez Cachuan
+DistNorm[32,16] <- 26
+```
+
+<br>
+
+Para una dsitribución normal se necesita la __Media $μ$__ y la __Varianza $σ^2$__ donde $σ$ es la desviación estándar. Por lo tanto:
+
+```{r}
+#Cargamos los valors de la media y varianza
+μ <- mean(DistNorm$DistanciaU,na.rm = TRUE)
+σ <- sd(DistNorm$DistanciaU,na.rm = TRUE)
+```
+
+<br>
+
+Podemos estandarizar la distribución normal, pero convenientemente R nos permite ingresar los parámetros que tenemos y hallar los valores deseados sin necesidad de dicho proceso.
+
+Tenemos entonces la siguiente distribución normal
+
+```{r}
+xs <- seq(-30,60,0.1)
+HorDist<-function(x){dnorm(x,mean=μ,sd=σ)}
+```
+
+```{r}
+plot(xs,HorDist(xs),type='l',xlab="X",ylab="P(X=x)",main="Funcion de probabilidad",col=rgb(1,0,0,1),xlim=c(-40,60))
+abline(v=0,lty=2)
+xxx <- seq(-30,0,0.01)
+polygon(x=c(c(xxx),0,0,0),y=c(HorDist(xxx),HorDist(0),0,0),density = NULL,angle=45,col=rgb(0,1,0,1))
+legend("topright", legend = "Físicamente imposible", col=rgb(0,1,0,1),lty = 1,cex=0.9,inset=.02,pch=15)
+```
+
+<br>
+
+$$P(x \geq 10)$$
+
++ La probabilidad de que un estudiante del __subconjunto__ definido previamente viva a más de 10km de distancia de la universidad es de `r percent(pnorm(10,mean=μ,sd=σ,lower.tail = FALSE))`
+
+<br>
+
+$$P(0 \leq x \leq 10)$$
+
++ La probabilidad de que un estudiante del subconjunto viva a menos de 10Km de distancia de la universidad es de `r percent(pnorm(10,mean=μ,sd=σ,lower.tail = TRUE)-pnorm(0,mean=μ,sd=σ,lower.tail = TRUE))`
+
+<br>
+
+$$V(\mathbb{X})=\sigma^{2}$$
+
++ La varianza de la variable aleatoria es `r r(σ^2)`
+
+<br>
+<br>
+
+# Bibliografía
+
+[Distribuciones de probabilidad. (2018). En Introducción a la teoría de la probabilidad (pp. 51–72). Editorial Universidad del Norte.
+](https://seeing-theory.brown.edu/probability-distributions/es.html)
+
+[Xie, Y; Allaire, J; Grolemund, G. (2022). R Markdown: The Definitive Guide. ](https://bookdown.org/yihui/rmarkdown/)
+
+[OpenIntro statistics. (2022). Openintro.org.](https://www.openintro.org/book/os/)
+
+[Peng, R. D. (2015). Exploratory data analysis with R. Leanpub.](https://leanpub.com/exdata)
+
+[Peng, R. D. (2014). R programming for data science. Leanpub. ](https://leanpub.com/rprogramming)
