@@ -1,0 +1,1046 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(stringi)
+library(car)
+```
+
+```{r}
+DF <- read_csv("Respuestas.csv")
+DF
+
+#limpieza
+
+DF[13,]
+
+filas_inservibles <- which(rowSums(is.na(DF)) >= 1)
+filas_inservibles
+DF[-filas_inservibles,] -> DF
+
+DF
+```
+
+```{r}
+edad  <- DF$`¿Cuántos años tienes?`
+
+horas_de_estudio_por_persona_al_dia <- DF$`Horas de estudio fuera de clases.  ¿ Cuanto tiempo le dedicas a las tareas, repasos e investigación ?
+
+Nota:  
+-  1.5 horas  =  1 hora y 30 minutos
+-  2.5 horas  =  2 horas y 30 minutos
+                      ...
+-  8.5 horas  =  8 horas y 30 minutos.`
+                      
+                      
+nivel_de_estres_a_escala <-  DF$`Nivel de estrés. De la escala del 1 al 10 ¿ Cuál consideras que es tu nivel de estrés promedio durante un ciclo universitario  ?`
+
+promedio_de_cant_cursos <- mean(DF$`Numero de cursos. ¿ Cuántos cursos estas llevando ?`, na.rm=TRUE)
+                       
+                      
+                      
+horas_de_sueño <- DF$`Horas de sueño. ¿ Cuántas horas sueles dormir al día en una semana de clases ?
+
+Nota:  
+-  2.5 horas  =  2 hora y 30 minutos
+-  3.5 horas  =  3 horas y 30 minutos
+                      ...
+-  8.5 horas  =  8 horas y 30 minutos.`
+                      
+                      
+horas_de_ocio <-  DF$`Horas de ocio.  ¿ Cuántas  horas al día  realizas otras cosas externas al estudio y relacionadas al entretenimiento ?
+
+Nota:  
+-  1.5 horas  =  1 hora y 30 minutos
+-  2.5 horas  =  2 horas y 30 minutos
+                      ...
+-  8.5 horas  =  8 horas y 30 minutos.`
+                      
+                                      
+
+intensidad_de_los_cursos <-  DF$`De la escala del 1 al 5, ¿ qué tan dificiles consideras los cursos que te encuentras llevando  durante este ciclo ?`
+                      
+ciclo_academico <-  DF$`Ciclo académico. ¿En que ciclo te encuentras ahora?`
+
+
+                      
+cantidad_De_cursos <-  DF$`Numero de cursos. ¿ Cuántos cursos estas llevando ?`
+
+
+
+
+Distancia_UTEC_entre_CASA <- DF$`Distancia entre tu casa y la universidad. ¿  A cuántos kilómetros aproximadamente se encuentra tu casa a la universidad ?
+
+Nota: 
+- Ingrese su respuesta en decimales, empleando el  punto "."`
+
+
+
+tiempo_de_traslado_entre_casa_y_utec <-  DF$`Tiempo de traslado entre su domicilio y UTEC.  ¿ Cuánto tiempo (en minutos) te demoras en trasladarte de tu domicilio a la universidad ?
+
+Nota: 
+
+- 60 minutos = 1 hora
+
+- 90 minutos = 1 hora y 30 minutos
+
+- 120  minutos = 2 horas
+
+- 150 minutos = 2 horas y 30 minutos
+
+- 160 minutos = 3 horas`
+
+
+calidad_de_educacion_previa <-  DF$`Calidad de educación previa. ¿ Qué tipo de educación previa consideras tener ?`
+
+medio_de_trasporte <- DF$`Tipo de trasporte. ¿ Qué medio de transporte usas a menudo o como te movilizas hacia la universidad ?`
+```
+
+## Introducción
+
+### Relevancia
+
+El estrés es una preocupación creciente en el ámbito académico, y
+comprender sus causas y efectos en esta población específica es
+fundamental para mejorar su bienestar y rendimiento. A través de un
+enfoque probabilístico, es posible identificar los factores de riesgo y
+las variables más influyentes en la manifestación del estrés, así como
+evaluar su impacto en diferentes grupos de estudiantes. En este analisis
+estadístico buscamos encontrar patrones y tendencias, lo que facilita la
+implementación de estrategias de prevención y apoyo específicas.
+
+### Objetivos
+
+-Describir e identificar las situaciones, actividades y características
+propias de la vida universitaria , para así, relacionarlas con el estrés
+estudiantil.
+
+-Relacionar los factores comunes entre los estudiantes que reporten
+mayores o menores niveles de estrés, y así, comparar y determinar el
+nivel en que las distintas variables están generando estrés en ellos.
+
+-Comprender las características de los estudiantes que presentan niveles
+bajos y altos de estrés.
+
+### Contexto
+
+En la vida universitaria, los estudiantes se enfrentan a una serie de
+retos y experiencias que los moldean como profesionales y seres humanos.
+Para el ciclo 2023- 1, la vida universitaria se caracteriza generalmente
+por una carga académica exigente, la necesidad de gestionar el tiempo de
+manera eficiente, la participación en actividades extracurriculares, el
+establecimiento de relaciones sociales y la búsqueda de equilibrio entre
+el estudio y el disfrute de la vida estudiantil.
+
+Este proceso implica que muchos de los estudiantes enfrenten desafíos
+como manejar el estrés, vivir a cierta distancia de la universidad,
+teniendo que enfrentarse al tráfico para cumplir con sus
+responsabilidades académicas y personales. Así también existe una alta
+intensidad y exigencia.
+
+Este estudio nos permite también desarrollar un ámbito probabilístico ya
+que cuando hacemos una distribución de de probabilidad del nivel de
+estrés, podemos modelar el nivel de estrés como la variable aleatoria y
+analizar su distribución de probabilidad. Por otro lado también se
+pueden generar predicciones con la finalidad de que una institución
+educativa se anticipe y afronte la problemática de manera efectiva.
+
+## Probabilidades
+
+### Probabilidad empirica
+
+**1.Niveles de estres de los estudiantes UTEC del 2023-1**
+
+**Experimento** Seleccionar aleatoriamente un participante del estudio
+"Análisis de los factores y actividades propias de la vida
+universitaria, y su relación con el desarrollo del estrés en los
+estudiantes de la UTEC durante el periodo 2023-1".y observar su
+respuesta respecto a cual fue su nivel de estrés durante el periodo
+2023-1.
+
+**Estapacio muestral** Ω={1, 2 ,3 ,4 ,5 ,6, 7, 8, 9, 10}
+
+**Eventos Atómicos** A1: nivel de estres 1 A2: nivel de estres 2 A3:
+nivel de estres 3 A4: nivel de estres 4 A5: nivel de estres 5 A6: nivel
+de estres 6 A7: nivel de estres 7 A8: nivel de estres 8 A9: nivel de
+estres 9 A10: nivel de estres 10
+
+Donde cada evento atómico significa:
+
+**A1** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 1. P(A1)=f(A1)/153.
+
+**A2** -\> : Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 2 .P(A2)=f(A2)/153.
+. **A3** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 3 .P(A3)=f(A3)/153.
+
+**A4** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 4. P(A4)=f(A4)/153.
+
+**A5** -\> : Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 5. P(A5)=f(A5)/153.
+
+**A6** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 6. P(6A)=f(A6)/153.
+
+**A7** -\> : Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 7. P(A7)=f(A7)/153.
+
+**A8** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 8 .P(A8)=f(A8)/153.
+
+**A9** -\> : Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 9. P(9)=f(A9)/153.
+
+**A10** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su nivel de estrés es 10
+.P(A10)=f(A10)/153.
+
+**Probabilidades asociadas a cada evento: P(An)=f(An)/154** Frecuencia
+con la que ocurre el evento según nivel de estrés del 1 al 10
+
+```{r}
+table(nivel_de_estres_a_escala)
+```
+
+En este caso el espacio de resultados teórico sería el conjunto de todas
+las posibles respuestas que las personas han dado en la encuesta sobre
+el nivel de estrés que ellos presentan.
+
+Calculamos la función de probabilidad dividiendo las frecuencias de cada
+nivel de estrés por el total de personas encuestadas (153), hallamos un
+nivel de estrés individual.
+
+P(1) P(2) P(3) P(4) P(5) P(6) P(7) P(8) P(9) P(10) 0.03 0.04 0.06 0.06
+0.08 0.08 0.20 0.20 0.13 0.12
+
+##La probabilidad de que se tome un nivel de estrés 7 y 8 son mayores
+que las demás, ya que presentan un 20%
+
+**2.Número de cursos que llevan los estudiantes UTEC del 2023-1**
+
+**Experimento** Seleccionar aleatoriamente un participante del estudio
+"Análisis de los factores y actividades propias de la vida
+universitaria, y su relación con el desarrollo del estrés en los
+estudiantes de la UTEC durante el periodo 2023-1".y observar su
+respuesta respecto a cual es la cantidad de cursos que esta llevando
+durante el periodo 2023-1.
+
+**Estapacio muestral** Ω={1, 2 ,3 ,4 ,5 ,6, 7, 8}
+
+**Eventos Atómicos** A1:Que lleven 1 curso A2:Que lleven 2 curso A3:Que
+lleven 3 curso A4:Que lleven 4 curso A5:Que lleven 5 curso A6:Que lleven
+6 curso A7:Que lleven 7 curso A8:Que lleven 8 curso
+
+Donde cada evento atómico significa:
+
+**A1** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 1 curso. P(A1)=f(A1)/153.
+
+**A2** -\> : Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 2 cursos. P(A2)=f(A2)/153.
+. **A3** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 3 cursos.
+.P(A3)=f(A3)/153.
+
+**A4** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 4 cursos. P(A4)=f(A4)/153.
+
+**A5** -\> : Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 5 cursos. P(A5)=f(A5)/153.
+
+**A6** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 6 cursos. P(6A)=f(A6)/153.
+
+**A7** -\> : Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 7 cursos. P(A7)=f(A7)/153.
+
+**A8** -\>: Seleccionar un participante del estudio "Análisis de los
+factores y actividades propias de la vida universitaria, y su relación
+con el desarrollo del estrés en los estudiantes de la UTEC durante el
+periodo 2023-1"y observar que su respuesta es 8 cursos .P(A8)=f(A8)/153.
+
+**Probabilidades asociadas a cada evento: P(An)=f(An)/154** Frecuencia
+con la que ocurre el evento según la cantidad de cursos 1 al 8.
+
+```{r}
+table(cantidad_De_cursos)
+```
+
+En este caso el espacio de resultados teórico sería el conjunto de todas
+las posibles respuestas que las personas han dado en la encuesta sobre
+la cantidad de cursos que ellos presentan. Calculamos la función de
+probabilidad dividiendo las frecuencias de cada nivel de estrés por el
+total de personas encuestadas (150), hallamos un nivel de estrés
+individual.
+
+P(1) P(2) P(3) P(4) P(5) P(6) P(7) P(8)\
+0.01 0.02 0.01 0.07 0.27 0.08 0.20 0.01
+
+La probabilidad de que un estudiante de utec seleccione 5 cursos es
+mayor\*
+
+### Probabilidad condicional
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Independientes:
+
+De los datos obtenidos en la encuesta, tenemos un total de 152
+estudiantes, de estos 105 usan transporte público y 48 transporte
+privado, ademas 93 de los estudiantes que van en transporte público
+presentan un nivel de estrés mayor que 5 mientras que los estudian que
+utilizan transporte privado todos presentan un nivel de estrés menor o
+igual a 3. Por otro lado, de los 153 estudiantes, 79 de ellos viven en
+zona sur y 74 en zona norte, además, el nivel de estrés es mayor a 5 en
+53 de los que viven en sur y en 40 de los que viven en zona norte .
+
+##### Primer par
+
+Evento A: El estudiante utiliza el modo de transporte público o privado.
+
+Evento B: El estudiante presenta un nivel de estrés mayor a 5.
+
+Datos proporcionados:
+
+```{r}
+total_estudiantes <- 153
+estudiantes_transportepublico <- 105
+estudiantes_transporteprivado <- 48
+estudiantes_estres_mayor5_publico <- 93
+estudiantes_estres_menor_igual3_privado <- 48
+
+```
+
+Cálculo de probabilidades
+
+```{r}
+P_A <- (estudiantes_transportepublico + estudiantes_transporteprivado) / total_estudiantes
+P_B <- (estudiantes_estres_mayor5_publico + estudiantes_estres_menor_igual3_privado) / total_estudiantes
+P_A_interseccion_B <- estudiantes_estres_mayor5_publico / total_estudiantes
+
+P_B_dado_A <- P_A_interseccion_B / P_A
+
+P_B_dado_no_A <- (estudiantes_estres_menor_igual3_privado) / (total_estudiantes - estudiantes_transportepublico)
+P_no_A <- 1 - P_A
+
+P_B <- P_B_dado_A * P_A + P_B_dado_no_A * P_no_A
+
+P_A_dado_B <- (P_B_dado_A * P_A) / P_B
+```
+
+Resultados:
+
+```{r}
+
+cat("La probabilidad condicional P(B|A) es aproximadamente", round(P_B_dado_A, 3), "\n")
+cat("La probabilidad condicional P(A|B) es aproximadamente", round(P_A_dado_B, 3), "\n")
+```
+
+Por lo tanto, después de aplicar el teorema de Bayes y la probabilidad
+total, validamos los resultados anteriores:
+
+La probabilidad condicional P(B\|A) es igual a 0.608, lo que indica que
+si un estudiante utiliza el modo de transporte público o privado (evento
+A), la probabilidad de que tenga un nivel de estrés mayor a 5 (evento B)
+es del 60.8%.
+
+La probabilidad condicional P(A\|B) es igual a 1, lo que indica que si
+un estudiante tiene un nivel de estrés mayor a 5 (evento B), la
+probabilidad de que utilice el modo de transporte público o privado
+(evento A) es del 100%.
+
+**Gráfico de Dependencia: Transporte y Estrés**
+
+```{r}
+# Crear una tabla de contingencia
+tabla <- matrix(c(estudiantes_estres_mayor5_publico, estudiantes_estres_menor_igual3_privado, 
+                  estudiantes_transportepublico - estudiantes_estres_mayor5_publico, estudiantes_transporteprivado - estudiantes_estres_menor_igual3_privado),
+                nrow = 2, byrow = TRUE)
+
+# Agregar etiquetas a las filas y columnas
+colnames(tabla) <- c("Nivel de Estrés > 5", "Nivel de Estrés <= 3")
+rownames(tabla) <- c("Transporte Público", "Transporte Privado")
+
+# Crear un gráfico de barras apiladas
+barplot(tabla, beside = TRUE, col = c("lightblue", "lightgreen"), legend = rownames(tabla),
+        main = "Relación entre Transporte y Nivel de Estrés",
+        xlab = "Modo de Transporte", ylab = "Cantidad de Estudiantes")
+
+```
+
+El gráfico de barras apiladas muestra la relación entre el modo de
+transporte (público y privado) y el nivel de estrés de los estudiantes.
+Cada barra representa la cantidad de estudiantes en cada categoría. Las
+barras correspondientes a cada modo de transporte y nivel de estrés son
+significativamente diferentes en altura, esto respaldaría la dependencia
+entre los eventos.\
+
+Interpretación: Los resultados sugieren que hay una fuerte relación
+entre el modo de transporte utilizado por los estudiantes y su nivel de
+estrés. Todos los estudiantes que utilizan transporte privado tienen un
+nivel de estrés menor o igual a 3, mientras que una gran proporción de
+los estudiantes que utilizan transporte público presentan un nivel de
+estrés mayor a 5. Esto podría indicar que el transporte público puede
+estar asociado con mayores niveles de estrés en comparación con el
+transporte privado, posiblemente debido a factores como la congestión,
+el tiempo de viaje y la calidad del servicio.
+
+##### Segundo par
+
+Evento A: El estudiante vive en zona sur o zona norte. Evento B: El
+estudiante presenta un nivel de estrés mayor a 5.
+
+Datos proporcionados:
+
+```{r}
+
+total_estudiantes <- 153
+estudiantes_sur <- 79
+estudiantes_norte <- 74
+estres_sur <- 53
+estres_norte <- 40
+```
+
+Cálculo de probabilidades
+
+```{r}
+P_A <- (estudiantes_sur + estudiantes_norte) / total_estudiantes
+P_B <- (estres_sur + estres_norte) / total_estudiantes
+P_A_interseccion_B <- (estres_sur + estres_norte) / total_estudiantes
+
+P_B_dado_A <- P_A_interseccion_B / P_A
+
+P_B_dado_no_A <- 0
+P_no_A <- 0
+
+P_B <- P_B_dado_A * P_A + P_B_dado_no_A * P_no_A
+
+P_A_dado_B <- (P_B_dado_A * P_A) / P_B
+```
+
+Resultados
+
+```{r}
+cat("La probabilidad condicional P(B|A) es aproximadamente", round(P_B_dado_A, 3), "\n")
+cat("La probabilidad condicional P(A|B) es aproximadamente", round(P_A_dado_B, 3), "\n")
+```
+
+Por lo tanto, después de aplicar el teorema de Bayes y la probabilidad
+total, validamos los resultados anteriores:
+
+La probabilidad condicional P(B\|A) es igual a 0.571, lo que indica que
+si un estudiante vive en la zona sur o zona norte (evento A), la
+probabilidad de que presente un nivel de estrés mayor a 5 (evento B) es
+del 57.1%. #La probabilidad condicional P(A\|B) es igual a 1, lo que
+indica que si un estudiante presenta un nivel de estrés mayor a 5
+(evento B), la probabilidad de que viva en la zona sur o zona norte
+(evento A) es del 100%.
+
+**Gráfico de Independencia: Zona de Residencia y Estrés**
+
+```{r}
+# Crear una tabla de contingencia
+tabla <- matrix(c(estres_sur, estudiantes_sur - estres_sur,
+                  estres_norte, estudiantes_norte - estres_norte),
+                nrow = 2, byrow = TRUE)
+
+# Agregar etiquetas a las filas y columnas
+colnames(tabla) <- c("Nivel de Estrés > 5", "Nivel de Estrés <= 5")
+rownames(tabla) <- c("Zona Sur", "Zona Norte")
+
+# Crear un gráfico de barras apiladas
+barplot(tabla, beside = TRUE, col = c("lightblue", "lightgreen"), legend = rownames(tabla),
+        main = "Relación entre Zona de Residencia y Nivel de Estrés",
+        xlab = "Zona de Residencia", ylab = "Cantidad de Estudiantes")
+
+```
+
+El gráfico de barras apiladas muestra la relación entre la zona de
+residencia (sur y norte) y el nivel de estrés de los estudiantes. Cada
+barra representa la cantidad de estudiantes en cada categoría. Las
+barras correspondientes a cada zona de residencia y nivel de estrés son
+aproximadamente iguales en altura, esto respaldaría la independencia
+entre los eventos.\
+
+Interpretación: Los resultados sugieren que hay una relación entre la
+zona de residencia de los estudiantes y su nivel de estrés. Un mayor
+porcentaje de estudiantes que viven en la zona sur presenta un nivel de
+estrés mayor a 5 en comparación con los estudiantes que viven en la zona
+norte.
+
+#### Dependientes:
+
+##### Primer par
+
+Dependientes:
+
+De los datos obtenidos en la encuesta, tenemos un total de 153
+estudiantes, de los cuales 99 reportan altos niveles de estrés. De
+estos, 79 duermen 6 horas o menos. Además, 29 estudiantes se encuentran
+en ciclos avanzados y 94 llevan una alta cantidad de cursos. Se observa
+que de los 79 estudiantes que duermen poco, 45 de ellos llevan una alta
+cantidad de cursos y 15 están en ciclos académicos avanzados.
+
+Evento A: El estudiante tiene una cantidad alta de cursos. Evento B: El
+estudiante duerme menos de 6 horas al día.
+
+Datos proporcionados:
+
+```{r}
+
+total_estudiantes <- 153
+estudiantes_duermenpoco<- 79
+estudiantes_altacantidad <- 94
+estudiantes_duermenpocoaltacantidad <- 45
+
+
+# Cálculo de probabilidades
+P_A <- (estudiantes_altacantidad) / total_estudiantes
+P_B <- (estudiantes_duermenpoco ) / total_estudiantes
+P_A_interseccion_B <- estudiantes_duermenpocoaltacantidad / total_estudiantes
+
+P_B_dado_A <- P_A_interseccion_B / P_A
+
+P_B_dado_no_A <- (estudiantes_duermenpoco - estudiantes_duermenpocoaltacantidad) / (total_estudiantes - estudiantes_altacantidad)
+P_no_A <- 1 - P_A
+
+P_B <- P_B_dado_A * P_A + P_B_dado_no_A * P_no_A
+
+P_A_dado_B <- (P_B_dado_A * P_A) / P_B
+```
+
+Resultados
+
+```{r}
+cat("La probabilidad condicional P(B|A) es aproximadamente", round(P_B_dado_A, 3), "\n")
+cat("La probabilidad condicional P(A|B) es aproximadamente", round(P_A_dado_B, 3), "\n")
+```
+
+La probabilidad condicional P(B\|A) es aproximadamente 0.478, lo que
+indica que si un estudiante tiene una cantidad alta de cursos (evento
+A), la probabilidad de que duerma menos de 6 horas al día (evento B) es
+del 47.8%.
+
+La probabilidad condicional P(A\|B) es aproximadamente 0.570, lo que
+indica que si un estudiante duerme menos de 6 horas al día (evento B),
+la probabilidad de que tenga una cantidad alta de cursos (evento A) es
+del 57%.
+
+Interpretación: Los resultados sugieren que existe una relación entre
+tener una alta cantidad de cursos y dormir menos de 6 horas, y que estos
+eventos no son independientes. Esto podría implicar que la carga
+académica afecta negativamente la calidad del sueño de los estudiantes,
+el cual se sabe que está directamente relacionado con el estrés y la
+salud mental del estudiante.
+
+#### segundo par
+
+Evento A: El estudiante cursa en ciclos académicos avanzados (6 ciclo a
++) Evento B: El estudiante tiene pocas horas de ocio.
+
+Datos proporcionados
+
+```{r}
+
+
+
+total_estudiantes <- 153
+estudiantes_cicloavanzado <- 29
+estudiantes_pocoocio <- 79
+estudiantes_cicloavanzadoestres <- 15
+
+```
+
+Cálculo de probabilidades
+
+```{r}
+
+
+
+P_A <- (estudiantes_cicloavanzado) / total_estudiantes
+P_B <- (estudiantes_pocoocio) / total_estudiantes
+P_A_interseccion_B <- (estudiantes_cicloavanzadoestres) / total_estudiantes
+
+P_B_dado_A <- P_A_interseccion_B / P_A
+
+P_B_dado_no_A <- (estudiantes_pocoocio -estudiantes_cicloavanzadoestres)/(total_estudiantes-estudiantes_cicloavanzado)
+
+P_no_A <- (1-P_A)
+
+P_B <- P_B_dado_A * P_A + P_B_dado_no_A * P_no_A
+
+
+P_A_dado_B <- (P_B_dado_A * P_A) / P_B
+```
+
+Resultados
+
+```{r}
+
+cat("La probabilidad condicional P(B|A) es aproximadamente", round(P_B_dado_A, 3), "\n")
+cat("La probabilidad condicional P(A|B) es aproximadamente", round(P_A_dado_B, 3), "\n")
+```
+
+La probabilidad condicional P(B\|A) es aproximadamente 0.516, lo que
+indica que si un estudiante se encuentra en ciclos académicos avanzados
+(evento A), la probabilidad de que tenga pocas horas de ocio (evento B)
+es del 51.6%.
+
+La probabilidad condicional P(A\|B) es aproximadamente 0.190, lo que
+indica que si un estudiante tiene pocas horas de ocio (evento B), la
+probabilidad de que se encuentre en ciclos académicos avanzados (evento
+A) es del 19%.
+
+Interpretación: Los resultados sugieren que existe una relación entre un
+ciclo académico avanzado y la disponibilidad de tiempo libre, y que
+estos eventos no son independientes. Esto podría indicar que a medida
+que los estudiantes avanzan en su ciclo académico, tienen menos tiempo
+de ocio disponible debido a la carga del trabajo académico y otros
+factores como complejidad conceptual de cursos avanzados, presencia de
+prácticas pre profesionales, etc.
+
+## Variables Discretas
+
+### Primera variable
+
+```         
+```
+
+Definimos un fracaso y un exito para la variable, porque nos interesa
+encontrar a los alumnos mas estresados a apartir de sus habitos de
+sueño.
+
+7 horas o mas para habitos de sueño saludables y menos de 7 para horas
+de sueño no saludables.
+
+```{r}
+TH = table(horas_de_sueño)
+TH
+
+HabitosSueño = as.data.frame(cbind(sum(TH[0:9]),sum(TH[10:14])))
+
+HabitosSueño = rename(HabitosSueño, HabitosPocoSaludables = V1, HabitosSaludables = V2) 
+ 
+probH = HabitosSueño/152
+```
+
+Frecuencias reacomodadas:
+
+```{r}
+HabitosSueño
+```
+
+Probabilidades:
+
+```{r}
+probH 
+```
+
+Entonces definimos una distribucion Binomial : X \~bin(p,n), donde X es
+el numero de exitos y n la cantidad de intentos
+
+Para la primera variable la definimos como: x = \# numero de estudiantes
+de la universidad UTEC del ciclo 2023-1 que poseen habitos de sueño poco
+saludables en un conjunto de 152 estudiantes encuestados del ciclo
+2023-1 de la universidad Utec .
+
+Entonces identificamos los parámetros para la primera variable,X
+\~bin(p,n) donde p es la probabilidad de selecionar una persona con
+habitos de sueño poco saludable y n es el conjunto de 152 estudiantes de
+la utec.
+
+Ahora construimos la funcion de densidad y la cumulativa.
+
+```{r}
+x = 1:152
+
+plot(dbinom(x, 152,as.numeric(probH[1])), ylab = "probabilidad de exito", xlab = "cantidad de alumnos")
+```
+
+Funcion de densidad cumulativa
+
+```{r}
+plot(pbinom(x, 152,as.numeric(probH[1])), ylab = "probabilidad de exito", xlab = "cantidad de alumnos")
+```
+
+Esperanza:
+
+```{r}
+as.numeric(152*probH[1])
+```
+
+Varianza:
+
+```{r}
+as.numeric(152*probH[1]*(1-probH[1]))
+```
+
+Ejemplo:
+
+En un salon de clases de EyP se desea conocer la probabilidad de que mas
+del 75% de los estudiantes presente abitos de sueño saludable.Si asisten
+152 estudiantes.
+
+p es la probabilidad de habitos de sueño saludable n es el la cantidad
+de estudiantes que asiste
+
+```{r}
+1 - pbinom(0.75 * 152, 152, 0.75)
+```
+
+### Segunda variable
+
+Definimos un fracaso y un exito para variable, porque nos interesa
+encontrar a los alumnos mas estresados a apartir de las cantidades de
+cursos que llevan.
+
+5 cursos o menos para estudiantes con una carga de trabajo Ligera y 6 o
+mas para estudiantes con una carga pesada.
+
+```{r}
+TC = table(cantidad_De_cursos)
+
+TC
+CargaCursos = as.data.frame(cbind(sum(TC[0:4]),sum(TC[5:8])))
+
+CargaCursos = rename(CargaCursos, CargaLigera = V1, CargaPesada = V2) 
+ 
+
+probC = CargaCursos/152
+```
+
+Frecuencias reacomodadas:
+
+```{r}
+CargaCursos
+```
+
+Probabilidades:
+
+```{r}
+probC
+```
+
+Para la segunda variable la definimos como: x = \# de estudiantes de la
+utec que tienen una carga de cursos pesada.
+
+Entonces identificamos los parámetros para la segunda variable,
+\~bin(p,n) donde p es la probabilidad de selecionar una persona que
+lleva una carga pesada de cursos y n es el conjunto de los estudiantes
+de la utec.
+
+Ahora construimos la funcion de densidad y la cumulativa.
+
+```{r}
+x = 1:152
+
+plot(dbinom(x, 152,as.numeric(probC[2])), ylab = "probabilidad de exito", xlab = "cantidad de alumnos")
+```
+
+Funcion de densidad cumulativa:
+
+```{r}
+plot(pbinom(x, 152,as.numeric(probC[2])), ylab = "probabilidad de exito", xlab = "cantidad de alumnos")
+```
+
+Esperanza:
+
+```{r}
+as.numeric(152*probC[2])
+```
+
+Varianza:
+
+```{r}
+as.numeric(152*probC[2]*(1-probC[2]))
+```
+
+Ejemplo:
+
+En un salón de clases de la UTEC, se desea conocer la probabilidad de
+que al menos 100 #estudiantes tengan una carga pesada de cursos (6 o más
+cursos) en un conjunto de 152 #estudiantes encuestados. Utiliza la
+distribución binomial para calcular esta probabilidad.
+
+Caso de éxito se define como tener al menos 100 estudiantes con una
+carga pesada de cursos (6 o más cursos) n: Número total de estudiantes =
+152 p: Probabilidad de tener una carga pesada de cursos = probC[2]
+(proporción de estudiantes con carga pesada)
+
+```{r}
+ 1 - pbinom(99, 152, as.numeric(probC[2]))
+```
+
+## Variables continuas
+
+### Primera variable
+
+Escojemos la distancia entre el hogar del estudiante y la utec-
+Distancia_UTEC_entre_CASA
+
+Verificamos que modelo de distribución es
+
+```{r}
+
+hist(Distancia_UTEC_entre_CASA, prob = TRUE, col = "lightgreen", breaks = 30, xlim = c(1, 10), ylim = #c(0, 1/20)
+       )
+
+
+lines(density(Distancia_UTEC_entre_CASA), lwd = 1.5, col = "red")
+
+```
+
+Observamos que no hay una campana. Asi que asumimos un caso en el que si
+lo sea
+
+```{r}
+
+#asumimos una distribucion normal
+sdDistancia = sd(Distancia_UTEC_entre_CASA)
+meanDistancia = mean(Distancia_UTEC_entre_CASA)
+rPromedio <- function(n){
+  X <- rnorm(n, mean = meanDistancia, sd = sdDistancia)
+    return(mean(X))
+}
+Promedios <- replicate(30000, rPromedio(1))
+
+hist(Promedios, prob = TRUE, breaks = 152, xlim = c(-60, 70), ylim = #c(0, 1/20)
+     )
+Xs <- seq(-60, 70, by = 0.1)
+
+lines(Xs, dnorm(Xs, mean = meanDistancia, sd = sdDistancia), col = "red", lwd = 2)
+abline(v = c(17, mean(Promedios)), col = c("blue","red"), lty = 2, lwd = c(3, 1))
+```
+
+Vemos que posee forma de campana.
+
+Realizamos las validaciones de la distrubucion normal a traves de sus
+propiedades.
+
+```{r}
+mean(Promedios)
+median(Distancia_UTEC_entre_CASA)
+
+var(Promedios)
+sd(Distancia_UTEC_entre_CASA)^2
+
+
+weighted.mean(Promedios)
+mean(Distancia_UTEC_entre_CASA)
+
+```
+
+Entonces concluimos que la variable se distribuye de forma
+x\~n(u,o2)donde x es la distancia entre la utec y la casa de los
+estudiantes de la utec. Ya que la media de la variable aleatoria se
+aproxima a la mediana de la variable de la base de datos, la varianza de
+la variable aleatoria se aproxima a la desviacion estandar al cuadrado
+de la varaible original y la esperanza de la variable aleatoria se
+aproxima a la media de la variable de la base de datos.
+
+Los parametros:
+
+-\>X\~N(µ, σ)
+
+```{r}
+µ  = weighted.mean(Promedios)
+σ = var(Promedios)
+
+µ
+σ
+```
+
+Ejemplo:
+
+Si un estudiante de la utec es selecionado al azar cual es la
+probabilidad de que la distancia entre su casa y la universidad sea
+mayor a 10 km
+
+```{r}
+1-pnorm(10, µ, σ)
+```
+
+### Segunda variable
+
+Escojemos la variable tiempo de estudio
+(horas_de_estudio_por_persona_al_dia )
+
+Verificamos que modelo de distribución es.
+
+Variable: tiempo de estudio.
+
+```{r}
+Tiempo_estudio = horas_de_estudio_por_persona_al_dia 
+hist(Tiempo_estudio, prob = TRUE, col = "lightgreen", breaks = 30, xlim = c(1, 10), ylim = #c(0, 1/20)
+    ) 
+lines(density(Tiempo_estudio), lwd = 1.5, col = "red") 
+
+```
+
+Observamos que no hay una campana. Asi que asumimos un caso en el que si
+lo sea.
+
+```{r}
+
+sdTiempo = sd(Tiempo_estudio)
+meanTiempo = mean(Tiempo_estudio)
+rPromedio <- function(n){
+  X <- rnorm(n, mean = meanTiempo, sd = sdTiempo)
+    return(mean(X))
+}
+Promedios <- replicate(30000, rPromedio(1))
+
+hist(Promedios, prob = TRUE, breaks = 152, xlim = c(0, 15), ylim = #c(0, 1/20)
+     )
+Xs <- seq(-1, 15, by = 0.1)
+
+lines(Xs, dnorm(Xs, mean = meanTiempo, sd = sdTiempo), col = "red", lwd = 2)
+abline(v = c(17, mean(Promedios)), col = c("blue","red"), lty = 2, lwd = c(3, 1))
+```
+
+vemos que posee forma de campana.
+
+Realizamos las validaciones de la distrubucion normal a traves de sus
+propiedades.
+
+```{r}
+mean(Promedios)
+median(Tiempo_estudio)
+
+var(Promedios)
+sd(Tiempo_estudio)^2
+
+
+weighted.mean(Promedios)
+mean(Tiempo_estudio)
+```
+
+Vemos que la media de la variable aleatoria y la mediana de la variable
+original son casi iguales, pasando lo mismo con la esperanza de la
+variable aleatoria y la media de la variable de la base de datos y su
+Varianza y desviacion estandar al cuadrado se aproximan tambien, asi que
+se presenta una distribucion normal.
+
+Los parametros:
+
+-\>X\~N(µ, σ)
+
+```{r}
+ µ = mean(Tiempo_estudio)
+ σ = sd(Tiempo_estudio)
+ 
+ µ
+ σ
+```
+
+Ejemplo:
+
+Donde en un estudio sobre el tiempo que los estudiantes tardan en llegar
+desde su hogar a la UTEC, se encuentra que la media de tiempo es de 17
+minutos con una desviación estándar de 11 minutos. Se desea calcular la
+probabilidad de que un estudiante seleccionado al azar tarde menos de 20
+minutos en llegar a la UTEC.
+
+```{r}
+meanTiempo <- 17
+sdTiempo <- 11
+
+probabilidad <- pnorm(20, mean = meanTiempo, sd = sdTiempo)
+
+probabilidad
+```
+
+## Conclusiones
+
+-   Se observa una fuerte dependencia entre la cantidad de cursos y las
+    horas de sueño de los estudiantes de la UTEC. Los estudiantes que
+    llevan una carga alta de cursos tienen una mayor probabilidad de
+    dormir menos de 6 horas al día. Estos hallazgos son relevantes para
+    comprender la relación entre la carga académica y los hábitos de
+    sueño de los estudiantes, lo cual está estrechamente ligado al nivel
+    de estrés que experimentan. A partir de estos resultados, es posible
+    predecir cuántos estudiantes de la UTEC tienen una carga pesada de
+    cursos o presentan hábitos de sueño poco saludables, dos indicadores
+    importantes relacionados con el nivel de estrés de los estudiantes.
+
+-   Se encontró una relación significativa entre el ciclo académico y
+    las horas de ocio de los estudiantes de la UTEC. Los estudiantes en
+    ciclos académicos avanzados tienen una mayor probabilidad de tener
+    pocas horas de ocio. Estos hallazgos sugieren que a medida que los
+    estudiantes avanzan en su ciclo académico, su tiempo libre se ve
+    reducido debido a las demandas académicas. Ademas, Esta relación
+    entre el ciclo académico y las horas de ocio es importante para
+    comprender cómo el avance en la carrera universitaria puede influir
+    en el nivel de estrés de los estudiantes pues el factor de tiempo
+    disponible
+
+-   El modo de transporte utilizado por los estudiantes muestra una
+    fuerte relación con su nivel de estrés, siendo el transporte público
+    asociado a niveles de estrés más altos y el transporte privado a
+    niveles de estrés más bajos. Además, se observa una tendencia en la
+    zona de residencia, donde un mayor porcentaje de estudiantes que
+    viven en la zona sur presentan niveles de estrés mayores a 5 en
+    comparación con los estudiantes que viven en la zona norte. Estos
+    hallazgos sugieren que tanto el transporte utilizado como la zona de
+    residencia pueden influir en el nivel de estrés de los estudiantes.
+
+-   Pudimos encontrar que las variables discretas seleccionadas cumplian
+    con la distribución binomial. Gracias a ello ahora es posible
+    predecir cuantos alumnos dentro de la utec llevan una carga pesada
+    de cursos o presentan habitos de sueño poco saludables, indicadores
+    importantes relacionados al nivel de estres de los mismo alumnos.
+
+-   En el caso de las variables cuantitativas podemos concluir que al
+    realizar el análisis de las variables se puede aplicar
+    probabilidades a nuestras variables, así también que estas variables
+    presentadas son las actividades que realizan los estudiantes del
+    periodo actual, con estas variables podemos formar modelos
+    probabilísticos mediante los diferentes eventos presentados y los
+    ejemplos de aplicación expuestos.

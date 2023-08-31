@@ -1,0 +1,939 @@
+---
+title: "S8 Análisis de la factibilidad de una implementación de bus"
+date: "2023-06-03"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+    toc_depth: 4
+    theme: yeti
+    css: "style.css"
+---
+
+# Introducción
+
+## Relevancia
+
+En Lima, desde hace muchos años existe la congestión vehicular trayendo consigo problemas socioeconómicos. Por ello, en este estudio nos enfocaremos en analizar la viabilidad de implementar un sistema de trasporte para la universidad UTEC basado en la percepción de los mismos estudiantes. Considerando varios aspectos relacionados con la percepción en el gasto en pasaje, tiempo que emplean para trasladarse, el rendimiento académico de los estudiantes y las inasistencias a clases a causa del tipo de transporte que usa. Con este estudio queremos obtener datos relevantes que pueden servir como base para la toma de decisiones por parte de la universidad, como también brindar información a las autoridades para implementar nuevas normas que mejoren la calidad del sistema de transporte en Lima.
+
+## Objetivos
+
+### Generales
+
+Analizar la percepción del estudiante sobre  la implementación del sistema de transporte para los estudiantes de la UTEC en el periodo 2022-2.
+
+### Específicos
+
+1.  Identificar si la implementación de un sistema de transporte por la UTEC disminuiría los gastos en pasaje de los estudiantes según el pasaje que estarían dispuestos a pagar por el servicio de transporte en el periodo 2022-2.
+
+2.  Evaluar la relación del tiempo en transporte de los estudiantes de UTEC para llegar a la universidad con sus horas de sueño y su rendimiento académico en el periodo 2022-2.
+
+3.  Identificar si las faltas a clases debido al transporte afectan el rendimiento académico de los estudiantes (UTEC) en el periodo 2022-2.
+
+4.  Identificar los medios de transporte más comunes utilizados por los estudiantes para llegar a la universidad y cómo estos afectan el tiempo que tardan en llegar a UTEC en el periodo 2022-2.
+
+------------------------------------------------------------------------
+
+# Análisis descriptivo
+
+Instalamos librerias
+
+```{r}
+# Lista de librerías necesarias
+librerias <- c("ggplot2", "readr", "dplyr", "lubridate", "gridExtra", "funModeling", "gmodels", "knitr")
+
+# Verificar si las librerías están instaladas y, si no lo están, instalarlas
+for (libreria in librerias) {
+  if (!requireNamespace(libreria, quietly = TRUE)) {
+    install.packages(libreria)
+  }
+}
+```
+
+```{r}
+library(readr)
+library(knitr)
+library(dplyr)
+library(ggplot2)
+library(funModeling)
+library(gmodels)
+
+```
+
+2.Cargamos data limpia
+```{r}
+DF <- read_csv("Datos_encuesta_limpio.csv", col_types = "nccnccnnnnnncnnnnn")
+DF
+```
+## Análisis univariado
+
+### Medio de transporte
+```{r}
+n.i_trans <- table(DF$Transporte)
+orden <- order(-n.i_trans)
+n.i_Trans <- n.i_trans[orden]
+
+# Colores para todas las barras
+colores <- rep("skyblue", length(n.i_Trans))
+# Color para la barra destacada
+colores[1] <- "red"
+
+# Graficar el gráfico de barras con la barra destacada
+barras <- barplot(n.i_Trans, col = colores,
+        ylab = "Número de alumnos",
+        xlab = "Medio de transporte",
+        main = "Medios de transporte más usados para llegar a la universidad",
+        cex.axis = 0.75, cex.names = 0.5, ylim = c(0, 100),
+        border = "gray1")
+
+text(x=barras, y=n.i_Trans, pos=3, cex=0.8, label=round(n.i_Trans, 4))
+
+```
+
+El gráfico nos indica que el bus es el medio de transporte más usado por los alumnos, mientras que la bicicleta es menos usado. Así mismo, se observa como los alumnos usan en mayor medida transporte publico.
+
+---
+
+### Tiempo en transporte
+
+```{r}
+DF %>% ggplot(., aes(Tiempo_transporte)) + geom_boxplot(fill = "skyblue") + theme_classic() +  xlab("Tiempo en transporte") + ggtitle("Distribución del tiempo en el transporte") 
+```
+
+Al analizar la variable de distribución del tiempo en transporte, podemos notar que no se observan valores atípicos o extremos que puedan sesgar nuestros resultados. En esta situación, la media y la mediana se convierten en medidas descriptivas relevantes para caracterizar esta variable.
+
+Calculando los descriptores mencionados tenemos que:
+* Los encuestados tienen un tiempo promedio de transporte de 58 minutos.
+* El 50% de los encuestados demoran entre 20 y 90 minutos en su viaje hacia la universidad.
+
+---
+
+### Pasaje promedio
+```{r}
+boxplot(DF$Promedio_pasaje, main = "Pasaje promedio en transporte", ylab = "Pasaje promedio", col = "green")
+
+```
+
+Al analizar la variable "pasaje promedio", podemos observar la presencia de valores atípicos, lo cual indica que existen personas que gastan en pasaje diario entre 20 y 30 soles. Esto puede deberse a que estas personas vivan lejos de su lugar de destino y utilicen servicios de transporte como taxis de forma frecuente.
+
+Además, el descriptor más relevante para caracterizar esta variable es la mediana. La mediana nos brinda una medida de tendencia central que nos indica el valor que se encuentra en la mitad de la distribución de los gastos en pasaje promedio:
+
+Calculando los descriptores tenemos que:
+* La mediana de 3.5 soles indica que la mitad de los valores de pasaje promedio se sitúan por encima de ese valor y la otra mitad se sitúa por debajo. Esto significa que 3.5 soles es el punto central de la distribución de los precios de los pasajes. Ademas nos indica que aproximadamente el 50% de los valores de pasaje promedio están por encima de 3.5 soles y el otro 50% están por debajo.
+* El 50% de los encuestados gastan entre 2 y 6 soles en promedio en pasaje
+
+---
+
+## Análisis bivariado
+#### Promedio ponderado- Tiempo en transporte- Horas dormidas
+
+```{r}
+
+# Crear el gráfico pairs con nombres de variables personalizados
+pairs(~ Promedio_ponderado + Tiempo_transporte + Horas_dormidas, data = DF,
+      labels = c("Promedio ponderado", "Tiempo transporte", "Horas dormidas"))
+```
+
+Al analizar la garfica podemos concluir lo siguiente
+
+1. Al analizar la variable 'Promedio ponderado' de los estudiantes y el 'Tiempo en transporte' hasta la universidad, se puede concluir que existe una correlación muy baja entre ambas variables.
+
+2. Al analizar la variable 'Tiempo de transporte hacia la universidad' y 'Horas de descanso' de los estudiantes, se puede concluir que no se observa ninguna relación significativa entre ambas variables.
+
+3. Al analizar la variable 'Promedio ponderado' de los estudiantes y las 'Horas de descanso' de los estudiantes, se puede concluir que entre ambas existe una relación baja.
+
+
+Aunque podría parecer que existe alguna relación entre la variable 'Horas de sueño' de los estudiantes  y 'Tiempo de transporte' hasta la universidad, al analizar los datos se observa que no hay ninguna tipo de conexión entre ambas. Por lo tanto, no podemos concluir que una variable afecte a la otra.
+
+
+# Probabilidades
+
+En esta sección vamos a analizar las variables que hemos considerado necesarias e importantes, teniendo en cuenta si nos proporcionan información que necesitamos.
+
+## Probabilidades empíricas
+
+Para realizar nuestro análisis de probabilidades empíricas seleccionaremos las variables de medio de transporte y tiempo en transporte
+
+Primero categorizamos las variables en rangos o grupos, dependiendo el tipo de variable.
+
+**Transporte**
+
+```{r}
+DF %>% mutate(Tipo1 =
+      ifelse(Transporte %in% c("Bus","Metropolitano","Tren eléctrico","Colectivo","Alimentador"), "Publico",
+      ifelse(Transporte %in% c("Caminando","Bicicleta", "Carro propio","Particular"), "Privado",
+      ifelse(Transporte %in% c("Otros"), "Otro medio", Transporte)))) -> DF
+DF %>% count(Tipo1)
+
+```
+
+**Tiempo en transporte**
+
+
+```{r}
+DF %>% mutate(Tiempo_transporte1 =
+      ifelse(Tiempo_transporte %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9","10","11", "12", "13", "14", "15", "16", "17", "18", "19","20", "21", "22", "23", "24", "25", "26", "27", "28", "29","30"), "1-30 min",
+      ifelse(Tiempo_transporte %in% c("31", "32", "33", "34", "35", "36", "37", "38", "39","40", "41", "42", "43", "44", "45", "46", "47", "48", "49","50","51", "52", "53", "54", "55", "56", "57", "58", "59","60"), "31-60 min",
+      ifelse(Tiempo_transporte %in% c("61", "62", "63", "64", "65", "66", "67", "68", "69","70","71", "72", "73", "74", "75", "76", "77", "78", "79","80","81", "82", "83", "84", "85", "86", "87", "88", "89","90"), "61-90 min",
+      ifelse(Tiempo_transporte %in% c("91", "92", "93", "94", "95", "96", "97", "98", "99","100","101", "102", "103", "104", "105", "106", "107", "108", "109","110","111", "112", "113", "114", "115", "116", "117", "118", "119","120"), "91-120 min",
+      ifelse(Tiempo_transporte %in% c("121", "122", "123", "124", "125", "126", "127", "128", "129","130","131", "132", "133", "134", "135", "136", "137", "138", "139","140","141", "142", "143", "144", "145", "146", "147", "148", "149","150"), "121-150 min",
+      ifelse(Tiempo_transporte %in% c("151", "152", "153", "154", "155", "156", "157", "158", "159","160","161", "162", "163", "164", "165", "166", "167", "168", "169","170","171", "172", "173", "174", "175", "176", "177", "178", "179","180"), "151-180 min", Tiempo_transporte))))))) -> DF
+
+```
+
+```{r}
+DF %>% count(Tiempo_transporte1)
+
+```
+
+Luego ordenamos la variable categórica tiempo de transporte desde el menor a mayor tiempo. Esto se logra mediante la función factor(), que asigna niveles o categorías específicas a los valores de la columna. En este caso, los niveles se definen como "1-30 min", "31-60 min", "61-90 min", "91-120 min", "121-150 min" y "151-180 min".
+
+```{r}
+DF$Tiempo_transporte1 <- factor(DF$Tiempo_transporte1, levels = c("1-30 min", "31-60 min", "61-90 min", "91-120 min", "121-150 min","151-180 min"), ordered = TRUE)
+```
+
+Después generamos una tabla de contingencia que muestra la frecuencia conjunta de las categorías de las variables "Transporte" y "Tiempo_transporte1" en el dataframe DF, proporcionando información sobre la relación entre ambos factores.
+
+Observamos la tabla con la variable "transporte" **sin categorizar**
+
+```{r}
+Tiempo_en_Transporte <- DF$Tiempo_transporte1
+Medios_de_Transporte <- DF$Transporte
+CrossTable(Medios_de_Transporte, Tiempo_en_Transporte, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE)
+```
+
+
+Observamos la tabla con la variable "transporte" **categorizada.**
+
+```{r}
+Tiempo_en_Transporte <- DF$Tiempo_transporte1
+Medios_de_Transporte <- DF$Tipo1
+CrossTable(Tiempo_en_Transporte, Medios_de_Transporte, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE)
+```
+
+### Probabilidad empírica de la variable transporte
+
+1.  **Experimento:** Seleccionar un estudiante de UTEC del ciclo 2022-2 y observar el medio transporte que usa.
+
+2.  **Espacio muestral:** Los posibles resultados son: PUBLICO, PRIVADA Y OTROS
+
+$$\Omega = [Pu, \ \ Pr, \ \ O]$$
+
+3.  **Eventos:**
+
+-   Pu = Seleccionar un estudiante de UTEC del ciclo 2022-2 que use transporte *PUBLICO*
+
+-   Pr = Seleccionar un estudiante de UTEC del ciclo 2022-2 que use transporte *PRIVADO*
+
+-   O = Seleccionar un estudiante de UTEC del ciclo 2022-2 que use transporte *OTRO MEDIO*
+
+4.  **Probabilidad de los eventos:**
+
+Definición de probabilidad:
+
+$$P(Exp) = \frac{n(A)}{n(\Omega)} = \frac {Numero\ \ de\  \ casos\ \ favorables}{Numero\ \ de\ \ casos\ \ posibles}$$
+
+
+Determinamos la probabilidad del tipo de medio de transporte:
+
+```{r}
+("Transporte público")
+cat('P(Pu):',round(123/146,2),'\n')
+```
+
+```{r}
+("Transporte privado")
+cat('P(Pr):',round(21/146,2),'\n')
+```
+
+```{r}
+("Otro medio")
+cat('P(Po):',round(2/146,2),'\n')
+```
+
+Podemos darnos cuenta que existe una mayor probabilidad de que si un estudiante de nuestros encuestados es seleccionado al azar, el medio de transporte que utilice sea público.
+
+------------------------------------------------------------------------
+
+### Probabilidad empírica de la variable tiempo en transporte
+
+1.  **Experimento:** Seleccionar un estudiante de UTEC del ciclo 2022-2 y observar entre que rango de tiempo se encuentra cuando viaje hacia la universidad.
+
+2.  **Espacio muestral:** Los posibles resultados son:1-30,31-60, 61-90, 91-120 121-150, 151-180 en minutos
+
+$$\Omega = [1-30min \ ,\ 31-60min \ , \ 61-90min \ ,\ 91-120min \ , \ 121-150min \ ,\ 151-180min] $$
+
+
+3.  **Eventos:**
+
+-   $T_1$ = Seleccionar un estudiante de UTEC del ciclo 2022-2 que viaja entre el rango *1-30 min*
+
+-   $T_2$ = Seleccionar un estudiante de UTEC del ciclo 2022-2 que viaja entre el rango *31-60 min*
+
+-   $T_3$ = Seleccionar un estudiante de UTEC del ciclo 2022-2 que viaja entre el rango *61-90 min*
+
+-   $T_4$ = Seleccionar un estudiante de UTEC del ciclo 2022-2 que viaja entre el rango *91-120 min*
+
+-   $T_5$ = Seleccionar un estudiante de UTEC del ciclo 2022-2 que viaja entre el rango *121-150 min*
+
+-   $T_6$ = Seleccionar un estudiante de UTEC del ciclo 2022-2 que viaja entre el rango *151-180 min*
+
+4.  **Probabilidad de los eventos:**
+
+Definición de probabilidad:
+
+$$P(Exp) = \frac{n(A)}{n(\Omega)} = \frac {Numero\ \ de\  \ casos\ \ favorables}{Numero\ \ de\ \ casos\ \ posibles}$$
+
+Determinamos la probabilidad de los intervalos de tiempo de transporte:
+
+```{r}
+("Intervalo de  1-30 min")
+cat('P(T_1):',round(50/146,2),'\n')
+```
+
+```{r}
+("Intervalo de  31-60 min")
+cat('P(T_2):',round(47/146,2),'\n')
+```
+
+```{r}
+("Intervalo de 61-90 min")
+cat('P(T_3):',round(15/146,2),'\n')
+```
+
+```{r}
+("Intervalo de 91-120 min")
+cat('P(T_4):',round(21/146,2),'\n')
+```
+
+```{r}
+("Intervalo de 121-150 min")
+cat('P(T_5):',round(10/146,2),'\n')
+```
+
+```{r}
+("Intervalo de 151-180 min")
+cat('P(T_6):',round(3/146,2),'\n')
+```
+
+Podemos darnos cuenta que existe una mayor probabilidad de que si un estudiante de nuestros encuestados es seleccionado al azar, el tiempo que se demore en transporte sea de 1 a 30 minutos con una probabilidad de 0.34.
+
+## Análisis probabilístico
+
+### Análisis probabilistico del rendimiento académico y tiempo de transporte
+
+Generamos una tabla de contingencia que muestra la frecuencia conjunta de las categorías de las variables "Promedio_ponderado" y "Tiempo_transporte1" en el dataframe DF, proporcionando información sobre la relación entre ambos factores.
+
+```{r}
+# Definir los límites de los intervalos
+intervalos <- c(1, 10, 14, 17, 20)
+
+# Agregar la columna "categoria" usando mutate
+DF <- DF %>%
+  mutate(Categorizacion = cut(Promedio_ponderado, breaks = intervalos, labels = c("1-10", "11-14", "15-17", "18-20")))
+
+```
+
+```{r}
+DF %>% count(Categorizacion)
+```
+
+```{r}
+
+Tiempo_en_Transporte <- DF$Tiempo_transporte1
+Medios_de_Transporte <- DF$Tipo1
+CrossTable(Tiempo_en_Transporte, Medios_de_Transporte, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE)
+```
+
+
+#### Pregunta 1: ¿Cuál es la probabilidad de que un estudiante que tenga un promedio ponderado mayor a 17 viaje más de una hora y media para llegar a la universidad?
+
+***Realizamos un nuevo cuadro para ubicar mejor la cantidad de los eventos:***
+
+```{r}
+DF %>% mutate(Eventos_90min =
+      ifelse(Tiempo_transporte1 %in% c("1-30 min", "31-60 min","61-90 min"), "<90min min",
+      ifelse(Tiempo_transporte1 %in% c("91-120 min", "121-150 min","151-180 min"), ">=90min min", Tiempo_transporte1))) -> DF
+
+```
+
+```{r}
+DF %>% mutate(Eventos_18 =
+      ifelse(Categorizacion %in% c("11-14", "15-17"), "<18",
+      ifelse(Categorizacion %in% c("18-20"), ">=18", Categorizacion))) -> DF
+
+```
+
+```{r}
+Tiempo_en_Transporte <- DF$Eventos_90min
+Promedio_ponderado <- DF$Eventos_18
+CrossTable(Tiempo_en_Transporte, Promedio_ponderado, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE)
+
+```
+
+**Identificar los eventos:**
+
+$A$: Estudiantes que tengan un promedio ponderado mayor a 17
+
+$B$: Tiempo en transporte del estudiante sea mayor igual a 90 minutos
+
+**Hallamos la probabilidad total:** 
+La probabilidad total del evento B:
+$$  
+P(B)= P(A)*P(B/A) + P(\overline{A})*P(B/\overline{A}) \\
+P(B)= \frac{24}{144}*\frac{7}{24}+\frac{120}{144}*\frac{27}{120} \\
+P(B)= \frac{34}{144} \\
+P(B)= 0.24
+$$
+
+La probabilidad total de que el tiempo en transporte del estudiante sea mayor a 90 minutos es de 0.24.
+
+**Determinar si los eventos son independientes o dependientes:** 
+
+Vamos a ver si los eventos cumplen con las condiciones de independencia 
+
+$$
+P(A∩B)=P(A)*P(B) \\
+\frac{7}{144}=\frac{24}{144}*\frac{34}{144} \\\
+0.0486 ≠ 0.0394
+$$ 
+Debido a que no se cumple la condición, podeos afirmar que los eventos no son independientes
+
+Recordamos condición de multiplicación de eventos dependientes: 
+$$
+ P(A∩B) = P(A)*P(B/A)
+$$
+
+**Aplicamos teorema de bayes:** 
+$$  
+P(A/B)=\frac{P(A)*P(B/A)}{P(B)} \\
+P(A/B)=\frac{P(A∩B)}{P(B)} \\
+P(A/B)=\frac{\frac{7}{144}}{\frac{34}{144}}\\
+P(A/B)=\frac{7}{34}=0.21
+$$
+
+Entonces, a partir de los hallado, podemos decir que la probabilidad de que un estudiante que tenga un promedio ponderado mayor a 17 viaje más de una hora y media para llegar a la universidad es de 0.21.
+
+### Análisis probabilistico del tiempo de transporte y medio de transporte
+
+Generamos una tabla de contingencia que muestra la frecuencia conjunta de las categorías de las variables "Transporte" y "Tiempo_transporte1" en el dataframe DF1, proporcionando información sobre la relación entre ambos factores.
+
+```{r}
+CrossTable(DF$Transporte,DF$Tiempo_transporte1, prop.r=F,
+prop.c=F, prop.t=F, prop.chisq=F)
+```
+
+#### Preguntas 1 ¿Cuál es la probabilidad de que de un estudiante vaya en bus y su tiempo en transporte sea de 31 a 60 minutos?
+
+**Identificar los eventos:**
+
+$A$: Estudiante va en bus
+
+$B$: Tiempo en transporte sea de 31 a 60 minutos
+
+**Determinar si los eventos son independientes o dependientes:** 
+
+Vamos a ver si los eventos cumplen con las condiciones de independencia 
+
+$$
+P(A∩B)=P(A)*P(B) \\
+\frac{21}{146}=\frac{65}{146}*\frac{47}{146} \\\
+0.14 = 0.14
+$$
+***Debido a que si se cumple la condición, podeos afirmar que los eventos son independientes***
+
+A partir de lo hallado, podemos decir que la probabilidad de que de un estudiante vaya en bus y su tiempo en transporte sea de 31 a 60 minutos es de 0.14.
+
+**Demostración de la aplicación del teorema de bayes para eventos independientes:**
+
+#### Pregunta 2: ¿Cuál es la probabilidad de que un estudiante que vaya en bus dado que su tiempo de transporte de 31 a 60 minutos?
+
+**Identificar los eventos:** 
+$A$: Estudiante va en bus 
+$B$: Tiempo en transporte sea de 31 a 60 minutos
+
+Recordamos propiedades de los eventos independientes: 
+$$  
+P(A/B)=P(A)
+$$
+
+**Aplicación del teorema de Bayes**
+
+$$  
+P(A/B)=\frac{P(A)*P(B/A)}{P(B)} \\
+P(A/B)=P(A) \\
+P(A/B)=\frac{65}{148} \\
+P(A/B) = 0.44
+$$
+
+A partir del resultado, podemos darnos cuenta que el teorema de bayes para eventos independientes resulta en la probabilidad del evento inicial, ya que al ser eventos independientes el suceso el evento B, no afecta en nada al evento en A.
+
+
+
+# Análisis de variables aleatorias
+
+## Variables aleatorias discretas
+
+#### Variable Discreta - Cantidad de faltas a clases por transporte
+
+1. **Definimos que variable se usara**
+
+Analizaremos la falta o no de un alumno a clase debido al medio de transporte. Determinaremos si cierto alumno ha faltado a clase debido al medio de transporte, a partir de la variable 'Cantidad de faltas a clases por transporte', tomando el valor de éxito si la cantidad de faltas es mayor a 0. 
+
+Para esta variable plantearemos una distribución binomial; ya que tenemos un número fijo de ensayos independientes, en este caso, cada alumno es un ensayo independiente y la probabilidad de éxito (faltar a clase debido al transporte) es constante.
+
+2. **Construimos la variable aleatoria**
+
+Identificamos nuestra probabilidad de éxito. Debido a que nuestro estudio se centra en el análisis de la implementacion de bases para el translado de estudiantes UTEC, el conocer la cantidad de alumnos que faltan a clases por el transporte nos ayudara a ver que puede llegar a afectar el transporte en la que toma clases.
+
+  
+*Definición de la variable aleatorias*
+
+* x ~ número de alumnos de UTEC que falten a clase, debido al medio de transporte, dentro del estudio que se llevo acabo con estudiantes UTEC sobre el periodo 2022-2 con una muestra de 147 estudiantes.
+
+3. **Identificacion de parametros**
+
+Definimos
+
+$$X ~ Bin(n, p)$$
+
+
+Donde:
+
+ * p => P(E): probabilidad de que un alumno de UTEC falte a clase, debido al medio de transporte, durante el periodo 2022-2
+ 
+ * n => tamaño de la muestra de alumnos que faltan y no faltan a clases , debido al medio de transporte, durante dicho ciclo académico.
+
+A continuación, hallamos la probabilidad de éxito:
+
+```{r}
+# Primero, obtenemos el número total de entradas mayores a 0 faltas
+cant_si <- sum(DF$Faltas > 0)
+
+# Seguidamente, obtenemos el número total de entradas del DF
+n_alumnos <- nrow(DF)
+
+# Calculamos la probabilidad
+p <- cant_si / n_alumnos
+
+cat('P(E): ', round(p, 2))
+```
+
+4.**Construcción de densidad**
+
+Continuando con el análisis, podemos calcular la probabilidad de que un número n de los 147 alumnos de la muestra falte a clase a lo largo del ciclo debido al medio de transporte.
+
+***Función de masa de probabilidad***
+
+La función de probabilidad en Rstudio se realiza de la siguiente manera:
+
+$$P(X)=dbinom(0:n , n, p))$$
+
+```{r}
+# Probabilidad de que un número n alumnos falten a clase
+probabilidad_n <- dbinom(0:n_alumnos, n_alumnos, p)
+
+# Gráfico del modelo binomial
+barplot(probabilidad_n, names.arg = 0:n_alumnos,
+        xlab = "Número de alumnos que faltan",
+        ylab = "Probabilidad",
+        main = "Probabilidad de que un número n alumnos falten \n a clase a lo largo del ciclo",
+        col = "blue",
+        ylim = c(0, 0.1))
+```
+
+5. **Validación de propiedades**
+
+***Valor esperado (E(X)):***
+```{r}
+# Valor esperado (E(X))
+ex <- n_alumnos * p
+
+cat('E(X): ', round(ex))
+```
+Se espera que, en promedio, aproximadamente 118 alumnos falten a clase debido al transporte durante el ciclo académico.
+
+
+***Varianza (V(X):***
+```{r}
+# Probabilidad de fracaso en cada ensayo
+q <- 1 - p
+
+# Varianza (V(X))
+varx <- n_alumnos * p * q
+
+cat('V(X): ', round(varx))
+```
+Por lo que, la cantidad de alumnos que faltan a clase debido al transporte puede variar, aproximadamente, alrededor de 26 alumnos respecto al valor esperado.
+
+***Coeficiente de variación (CV(X)):***
+```{r}
+# Desviación estándar (σ)
+sd <- sqrt(varx)
+
+# Coeficiente de variación (CV(X))
+cvx <- (sd / ex) * 100
+
+cat('CV(X): ', round(cvx, 2))
+```
+
+Debido a ello, podemos decir que la dispersión de la cantidad de alumnos que faltan a clase debido al transporte es baja en relación con el valor esperado. 
+
+
+6. **Construcción de ejemplos**
+
+A partir de lo estudiado, podemos cuestionarnos: ¿Cuál es la probabilidad de que más del 50% de los estudiantes encuestados falten a clase debido al medio de transporte, durante el periodo 2022-2? Si se sabe que la muestra es de 147 alumnos.
+
+```{r}
+# Mitad de alumnos
+n_alumnos_mitad <- floor(n_alumnos/2)
+
+# Probabilidad acumulada de que la mitad de los alumnos falten a clase
+probabilidad_menos_del_50 <- pbinom(n_alumnos_mitad, n_alumnos, p)
+probabilidad_mas_del_50 <- 1 - probabilidad_menos_del_50
+
+cat("P( x <=", n_alumnos_mitad, "):", probabilidad_mas_del_50)
+```
+La probabilidad de que más del 50% de los estudiantes encuestados falte a clase debido al medio de transporte, durante un ciclo académico es 1. Por lo que, es muy probable que esto suceda a lo largo del semestre.
+
+
+
+#### Variable Discreta - Horas dormidas
+
+
+1. **Definimos que variable se usara**
+
+En esta sección definimos la variable Horas_dormidas lo cual determina si el estudiante UTEC duerman cierta cantidad de horas.Consideramos analizar esta variable debido a que nos brinda información acerca de como afecta al estudiante de UTEC en las horas de sueño.
+
+Para esta variable plantearemos distribución de poisson debido a que se trata de una variable discreta.
+
+2. **Construimos la variable aleatoria**
+
+Identificamos nuestra probabilidad de éxito: 
+Debido a que nuestro estudio se centra en el análisis de la implementacion de bases para el translado de estudiantes UTEC, el conocer las horas que duerme un estudiante es importante, para saber si esto puede llegar a afectar a su rendimiento académico. Además, de analizar su relación con el medio de transporte.
+
+  
+Definimos la variable aleatoria:
+
+* x ~ horas dormidas de los estudiantes UTEC por día durante el periodo de 2022-2
+
+
+3. **Identificación de parametros**
+
+Definimos
+
+$$X ~ Poisson( λ )$$
+
+
+Donde:
+
+ *  λ  => Promedio de horas de sueño por día de los estudiantes encuestados de la UTEC, durante el periodo 2022-2
+
+
+4.**Construcción de densidad**
+
+A continuación construimos el modelo de Poisson para la variable para lo cual se define el parámetro lambda para la distribución, luego se procede a calcular las probabilidades para los valores de x los cuales representan las horas de sueño y finalmente se gráfica el modelo.
+
+```{r}
+lambda <- mean(DF$Horas_dormidas)
+x <- 0:24
+prob <- dpois(x, lambda)
+barplot(prob, names.arg = x, xlab = "Horas de sueño", ylab = "Probabilidad", main = "Probabilidad de horas de sueño de los estudiantes UTEC\ndurante el periodo 2022-2 según la distribución de Poisson", col ="blue")
+```
+
+
+5. **Validación de propiedades**
+
+***Valor esperado (E(X)):***
+```{r}
+# Valor esperado (E(X))
+ex <- lambda
+
+cat('E(X): ', round(ex))
+```
+Se espera que, en promedio la horas de sueño de los estudiantes encuestados de UTEC sean de 6 horas por día.
+
+
+***Varianza (V(X):***
+```{r}
+
+# Varianza (V(X))
+varx <- lambda
+
+cat('V(X): ', round(varx))
+```
+
+***Coeficiente de variación (CV(X)):***
+```{r}
+# Desviación estándar (σ)
+sd <- sqrt(varx)
+
+# Coeficiente de variación (CV(X))
+cvx <- (sd / ex) * 100
+
+cat('CV(X): ', round(cvx, 2))
+```
+
+Debido a ello, podemos decir que la dispersión de la cantidad de alumnos que faltan a clase debido al transporte es alta en relación con el valor esperado. 
+
+
+
+6. **Construcción de Ejemplos**
+
+En la gráfica se puede observar la probabilidad que los estudiantes duerman cierta cantidad de horas, en la que en su mayoría es más probable que un alumno duerma menos que 8 horas lo que resulta generalmente perjudicial y no es lo optimo.
+
+A continuación se procede a calcular las probabilidades de que se obtenga un valor de x igual a 8, probabilidad la cual podemos ver que es bastante baja.
+
+```{r}
+x<-8
+prob_poisson<-dpois(x,lambda)
+cat('P(x=8): ', round(prob_poisson,2))
+```
+
+Probabilidad que duerman hasta 8 horas en un día:
+```{r}
+x=8
+prob<-ppois(x - 1,lambda)
+cat('P(x<8): ', round(prob,2) )
+```
+
+
+
+
+## Variables aleatorias continuas
+
+#### Primera variable a estudiar de nuestra base de datos: **Promedio ponderado**
+
+Se analizará el promedio ponderado de los estudiantes de UTEC del ciclo académico 2022-2, debido a que queremos saber el comportamiento del rendimiento académico de nuestra muestra, así al momento de realizar análisis no caer es posibles errores en nuestras conclusiones respecto a la relaciones del rendimiento académico con otras variables.
+
+1. **Grasificamos de la variable aleatoria continua**
+
+```{r echo=FALSE, eval=TRUE}
+dx <- density(DF$Promedio_ponderado, na.rm = TRUE)
+plot(dx,main = "Promedio ponderado de los encuestados, estudiante de UTEC en el perido 2022-2",xlab = " ", ylab = " ", cex.main=0.8, col="green", lwd=4,cex=1)
+abline(v= mean(DF$Promedio_ponderado, na.rm = TRUE),col="orange",lwd=5)
+abline(v= median(DF$Promedio_ponderado, na.rm = TRUE),col="purple",lwd=5)
+legend("topright",legend=c("Media","Mediana"),col=c("orange","purple"),lwd=4,cex=1)
+```
+
+2. **Validación de una distribución normal**
+
+Primera validación: Verificar si es una distribución simétrica
+
+ 
+$$  X̅ ≈ Me $$
+$$  X̅ - Me ≈ 0 $$
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+Validacion <- round(mean(DF$Promedio_ponderado, na.rm = TRUE)-median(DF$Promedio_ponderado, na.rm = TRUE),2)
+cat("La variable promedio tiene una distribución simetrica, lo que nos indica que es una ditribución normal, esto debido a que la diferencia de la media y la mediana es un valor aproximado a 0 siendo este:",Validacion)
+```
+
+
+
+Segunda validación: Analizamos las propiedades de la distribución
+
+
+  La esperanza debería ser igual a la media de la base de datos:
+          
+$$ μ(Base\ datos) ≈ E(X) =\sum X * P(X) $$
+
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+y <- c(0:151)
+py <- dnorm(y, mean(DF$Promedio_ponderado, na.rm = TRUE), sd(DF$Promedio_ponderado, na.rm = TRUE))
+esperanza <- (y*py)
+cat('La esperanza de la variable aleatoria X es de: ',round(sum(esperanza),2))
+
+```
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+cat('\nLa media de la variable "Promedio ponderado" es de: ',round(mean(DF$Promedio_ponderado, na.rm = TRUE),2))
+```
+
+
+  La varianza es la variable aleatoria es igual a la desviación estándar de la base de datos.
+
+$$  V(X) ≈ {σ(BD)}^2 = {desviación\ estandar\ base\ datos}^2   $$
+
+Conociendo que la varianza se halla de la siquiente forma, verificamos si cumple o no con la igualdad.
+$$ V(X) = E(X^2) - E(X)^2 $$
+
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+
+e3 <- (y^2*py)
+varianza <- sum(e3)-sum(esperanza)^2
+cat('La varianza de la variable aleatoria X es de: ',round((varianza),2))
+
+```
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+
+desviación_estanda_pro <- sd(DF$Promedio_ponderado, na.rm = TRUE)^2
+cat("\nLa varianza de la variable 'Promedio ponderado' es: ",round((desviación_estanda_pro),2))
+```
+
+
+3. **Identificamos los parámetros**
+
+$$ X \frac{~} \ {N(μ , σ)}$$
+
+```{r echo=TRUE, eval=FALSE}
+
+μ <- mean(DF$Promedio_ponderado, na.rm = TRUE)
+cat("μ = ", round(μ,2))
+
+σ <- sd(DF$Promedio_ponderado, na.rm = TRUE)
+cat("\nσ = ", round(σ,2))
+```
+        *La variable "promedio ponderado" se distribuye como una Normal con medía "μ" y desviación estándar "σ" *
+$$ N(15.22 , 1.65) $$
+        
+        
+4. **Caso hipotético**
+
+- Ejemplo 1: Conociendo que el promedio de los alumnos UTEC en el periodo 2022-2 lleva una distribución normal con una media de 15.22 y una desviación estándar de 1.65. ¿Cuál es la probabilidad de que un estudiante posea un promedio menor que 14?
+
+
+$$  P( X \leq 13)  $$
+
+
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+
+porcentaje <- (pnorm(13,15.22,1.66)) 
+cat("La probabilidad de que un estudiante de los encuentasdos tenga un promedio menor de 14 es de : ", round(porcentaje,2))
+```
+
+- Ejemplo 2: El promedio de los alumnos UTEC en el periodo 2022-2 lleva una distribución normal con una media de 15.22 y una desviación estándar de 1.65. ¿Cuál es la probabilidad de que un estudiante posea un promedio mayor a 17?
+
+
+$$  P( X \geq 18) = 1 -  P( X \leq 17) $$
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+
+porcentaje_1 <- 1-pnorm(17,mean = 15.22, sd =1.65)
+cat("La probabilidad de que un estudiante de los encuentasdos tenga un promedio mayor de 17 es de: ", round(porcentaje_1,2))
+```
+
+#### Segunda variable a estudiar de nuestra base de datos: **Pasaje promedio que están dispuestos a pagar**
+
+
+1. **Graficamos de la variable aleatoria continua**
+
+Para conocer el comportamiento del gasto en promedio que estarían dispuestos a pagar los estudiantes debemos hacer una gráfica de Histograma. Es importante rescatar esta información, ya que puede ser usado por parte de la universidad como un recurso para tomar decisiones de costo por el servicio.
+
+```{r echo=FALSE, eval=TRUE}
+dx <- density(DF$Promedio_pasaje_bus, na.rm = TRUE)
+plot(dx,main = "Pasaje promedio de los encuestados por el transporte de UTEC en el perido 2022-2",xlab = " ", ylab = " ", cex.main=0.8, col="green", lwd=4,cex=1)
+abline(v= mean(DF$Promedio_pasaje_bus, na.rm = TRUE),col="orange",lwd=5)
+abline(v= median(DF$Promedio_pasaje_bus, na.rm = TRUE),col="purple",lwd=5)
+legend("topright",legend=c("Media","Mediana"),col=c("orange","purple"),lwd=4,cex=1)
+```
+
+2. **Validación de una distribución normal**
+
+Primera validación: Verificar si es una distribución simétrica
+
+ 
+$$  X̅ ≈ Me $$
+$$  X̅ - Me ≈ 0 $$
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+Validacion <- round(mean(DF$Promedio_pasaje_bus, na.rm = TRUE)-median(DF$Promedio_pasaje_bus, na.rm = TRUE),2)
+cat("La variable promedio no tiene una distribución simetrica, lo que nos indica que NO es una ditribución normal, esto debido a que la diferencia de la media y la mediana es de un valor de", Validacion)
+```
+
+
+
+Segunda validación: Analizamos las propiedades de la distribución
+
+
+  La esperanza debería ser igual a la media de la base de datos:
+          
+$$ μ(Base\ datos) ≈ E(X) =\sum X * P(X) $$
+
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+y <- c(0:151)
+py <- dnorm(y, mean(DF$Promedio_pasaje_bus, na.rm = TRUE), sd(DF$Promedio_pasaje_bus, na.rm = TRUE))
+esperanza <- (y*py)
+cat('La esperanza de la variable aleatoria X es de: ',round(sum(esperanza),2))
+
+```
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+cat('\nLa media de la variable "Promedio ponderado" es de: ',round(mean(DF$Promedio_pasaje_bus, na.rm = TRUE),2))
+```
+
+
+  La varianza es la variable aleatoria NO es igual a la desviación estándar de la base de datos.
+
+$$  V(X) ≈ {σ(BD)}^2 = {desviación\ estandar\ base\ datos}^2   $$
+
+Conociendo que la varianza se halla de la siguiente forma, verificamos si cumple o no con la igualdad.
+$$ V(X) = E(X^2) - E(X)^2 $$
+
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+
+e3 <- (y^2*py)
+varianza <- sum(e3)-sum(esperanza)^2
+cat('La varianza de la variable aleatoria X es de: ',round((varianza),2))
+
+```
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+
+desviación_estanda_pro <- sd(DF$Promedio_pasaje_bus, na.rm = TRUE)^2
+cat("\nLa varianza de la variable 'Promedio ponderado' es: ", round((desviación_estanda_pro),2))
+```
+Podemos darnos cuenta que no es lo mismo.
+
+Ahora siendo de nuestro conocimiento que no estamos frente a una distribución normal, vamos a asumir que sí para continuar con el estudio.
+
+3. **Identificamos los parámetros**
+
+$$ X \frac{~} \ {N(μ , σ)}$$
+
+```{r echo=TRUE, eval=FALSE}
+
+μ <- mean(DF$Promedio_pasaje_bus, na.rm = TRUE)
+cat("μ = ", round(μ,2))
+
+σ <- sd(DF$Promedio_pasaje_bus, na.rm = TRUE)
+cat("\nσ = ", round(σ,2))
+```
+        *La variable "promedio ponderado" se distribuye como una Normal con medía "μ" y desviación estándar "σ" *
+$$ N(2.45 , 1.21) $$
+
+4. **Caso hipotético**
+
+¿Cuál es la probabilidad de que el estudiante esté dispuesto a pagar por el servicio menos o igual a s/1.00? 
+
+$$  P( X \leq 1)  $$
+
+
+
+```{r echo=F, eval=TRUE,results = 'asis'}
+
+porcentaje <- pnorm(1,3.07,2.67)
+cat("La probabilidad de que un estudiante de los encuestados esté dispuesto a pagar por el servicio menos o igual a s/1.00 es de : ", round(porcentaje,2))
+```
+
+Se obtiene que aproximadamente el 22% de los estudiantes estudiados están dispuestos a pagar un costo menor o igual a 1 sol por el servicio de transporte de UTEC. 
+
+
+#Conclusiones
+
+Finalmente, se puede realizar ciertas observaciones y recomendaciones sobre el presente estudio:
+
+1. Al analizar las variables de gastos en pasaje mínimos y máximos que están dispuestos a pagar los estudiantes por el transporte de UTEC, nos dimos cuenta de que hay aproximadamente el 88% de la muestra que está dispuesto a pagar más de s/. 1.00, lo cual podría ser beneficioso tanto para el sistema de transporte como para los estudiantes en términos de reducción en costos por concepto de pasaje. Además, alrededor de 84% de los estudiantes encuestados usan medio de transporte público, lo cual nos permite saber que es muy probable que los estudiantes opten por usar el servicio de transporte implementado por UTEC. Haciendo una comparación del gasto que pagaban los estudiantes durante el periodo de estudio, el cual es de S/. 3.50, con el nuevo costo de pasaje por el servicio de UTEC podría ayudar a disminuir los gastos en transporte.
+
+2. Hemos determinado que la relación entre el tiempo de transporte de los estudiantes de la UTEC y su rendimiento académico es débil, debido a los resultados obtenidos en nuestro análisis probabilístico y descriptivo. Respecto al análisis probabilístico, obtuvimos que dos eventos, los cuales son un promedio mayor a 17 y un tiempo de transporte de más de una hora, son dependientes por una diferencia de 0.0092, la cual a pesar de ser baja se tiene que tomar en cuenta. Por otra parte, respecto al análisis descriptivo, al momento del análisis bivariado se obtuvo una correlación de 0.09 entre estas dos variables, lo cual indica una correlación muy débil, pero existente.
+
+3. Las faltas a clases debido a problemas de transporte podrían afectar negativamente el rendimiento académico de los estudiantes de la UTEC, ya que se espera que alrededor de 114 estudiantes de la muestra han faltado por lo menos una vez debido al transporte que usa. Si consideramos que el 7% de los estudiantes encuestados se demora más de dos horas en llegar a la universidad, es posible que enfrentan mayores obstáculos para asistir o llegar puntual a clases de manera regular. Esto podría tener un impacto negativo en su aprendizaje y desempeño académico. Por lo tanto, la complementación de un sistema de transporte que garantice la puntualidad y la accesibilidad podría contribuir a reducir las faltas y mejorar el rendimiento de los estudiantes.
+
+

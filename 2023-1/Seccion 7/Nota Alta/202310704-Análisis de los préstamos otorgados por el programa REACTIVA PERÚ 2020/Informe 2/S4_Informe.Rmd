@@ -1,0 +1,1331 @@
+---
+title: "Análisis de los préstamos otorgados por el programa REACTIVA PERÚ 2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Relevancia
+
+La importancia de este tema radica en que el programa REACTIVA PERÚ es una de las medidas económicas más importantes implementadas por el gobierno peruano para mitigar el impacto de la crisis sanitaria en la economía nacional. Por lo tanto, es fundamental evaluar la efectividad de este programa para comprender su impacto en la recuperación y reactivación de la economía peruana.
+
+### Objetivos Específicos
+
+1.  Identificar y analizar la distribución geográfica de los préstamos otorgados por el programa REACTIVA PERÚ, a nivel departamental y sectorial, en el periodo comprendido entre el 1 de abril de 2020 y el 31 de diciembre de 2020, utilizando medidas descriptivas y gráficos apropiados, para comprender la magnitud de la intervención en cada zona y sector de la economía.
+
+2.  Identificar las entidades financieras que otorgaron los préstamos y su distribución geográfica, analizando si existen vínculos sospechosos o conflictos de interés, con el fin de determinar si existe algún tipo de favoritismo o trato preferencial en la asignación de los préstamos.
+
+3.  Realizar un análisis comparativo entre las empresas que lograron pagar el préstamo y las que aún mantienen deudas, a nivel departamental y sectorial, para identificar a las empresas que hacen una mala gestión de los préstamos en relación con las deudas que mantienen.
+
+
+- Previamente debemos importar las librerías necesarias para el desarrollo del proyecto
+```{r}
+library(dplyr)
+library(DT)
+library(ggplot2)
+library(ggalt)
+library(plotly)
+library(lubridate)
+library(readr)
+library(tidyverse)
+```
+
+
+# Datos
+
+## ¿Cómo se procesaron los datos?
+
+Primero cargamos los datos de la base de datos pública del programa REACTIVA PERÚ. Luego, re-nombramos las columnas para que tengan nombres más cortos y fáciles de usar.
+
+```{r}
+data <- read_csv("data_modificado.csv",col_types = "cccccnnccccnc")
+data
+```
+
+
+```{r}
+data %>% rename(NomEmp = `NOMBRE EMPRESA`
+              , Ruc = RUC
+              , Sect = SECTOR
+              , TipEnt = `TIPO DE ENTIDAD OTORGANTE DEL BCP`
+              , NomEnt = `NOMBRE ENTIDAD OTORGANTE DEL BCP`
+              , MonPre = `MONTO PRESTAMO`
+              , MonCo = `MONTO COBERTURA`
+              , Depa = DEPARTAMENTO
+              , TipEmp = `Tipo Empresa`
+              , Cond = Condición
+              , FechInAct = `Fecha Inicio Actividades`
+              , AniAct = `Años Actividad`
+              , CatAmb = categoria_antiguedad
+              ) -> data
+```
+
+
+# Variables
+```{r}
+variables <- data.frame(
+  Variable = c("NomEmp","Sect", "TipEnt", "NomEnt", "MonPre", "MonCo","Depa","TipEmp" , "AniAct"),
+    Restricciones = c("Nombre de las empresas",
+                    "Sector al que pertenecen las empresas",
+                    "Tipo de entidad que otorgó el préstamo",
+                    "Nombre de la entidad que otorgó el préstamo",
+                    "Monto de prestado",
+                    "Monto de cobertura",
+                    "Departamentos",
+                    "Tipo de Empresa",
+                    "Años de actividad"),
+  
+  Tipo = c("Categórica Nominal","Categórica Nominal", "Categórica Ordinal", "Categórica Nominal", "Numérica Continua", "Numérica Continua","Categórica Nominal","Categórica Nominal","Numérica Discreta"))
+variables
+```
+
+# Limpieza de datos
+Para el desarrollo del proyecto solo vamos a emplear las variables necesarias para el logro de los objetivos.
+
+```{r}
+data <- select(data, -c(Ruc, Cond, FechInAct, CatAmb))
+data
+```
+
+# Analisis Descriptivo
+
+Para comenzar analizaremos los montos prestados en total por departamento y sector: 
+```{r}
+descriptivas_departamento <- data %>%
+  group_by(Depa) %>%
+  summarise(Total_Prestamos = sum(MonPre)) %>%
+  arrange(desc(Total_Prestamos))
+
+
+descriptivas_sector <- data %>%
+  group_by(Sect) %>%
+  summarise(Total_Prestamos = sum(MonPre)) %>%
+  arrange(desc(Total_Prestamos))
+
+descriptivas_departamento
+descriptivas_sector
+```
+
+Ahora procedemos con sacar las medidas descriptivas de los departamentos:  
+```{r}
+round(median(descriptivas_departamento$Total_Prestamos),2)
+round(mean(descriptivas_departamento$Total_Prestamos),2)
+round((sd(descriptivas_departamento$Total_Prestamos)/mean(descriptivas_departamento$Total_Prestamos))*100,2)
+```
+Donde se puede concluir en las medidas descriptivas de los departamentos: 
+
+- El promedio del monto prestado de los solicitados por departamento fue de S/21182493 ademas, mediante la tabla se observa que el préstamo menor es S/7555711 perteneciente a Huancavelica y  el Callao es el departamento que mayor monto ha cobrado en total con S/42798250.
+
+- El coeficiente de variación del Total de prestamos en los Departamentos es de 42.26%, cuyo valor señala que el grado de dispersión con respecto la media es moderada, lo que indica una distribución relativamente homogénea alrededor de este valor central.
+
+Descriptivas de los sectores
+```{r}
+summary(descriptivas_sector$Total_Prestamos)
+round((sd(descriptivas_sector$Total_Prestamos)/mean(descriptivas_sector$Total_Prestamos))*100,2)
+```
+
+- Podemos observar que en los sectores que el promedio general en prestamos totales es de S/37825880 y el monto prestado mínimo es S/186968 pertenecientes al sector Intermediación Finaciera y el máximo es de S/241417020, perteneciente al Comercio.
+- El coeficiente de variación es de 168.22% en el total de prestamos de los sectores, eso significa que la dispersión de los datos es alta en comparación con la media, lo que implica una variabilidad considerable en los datos.
+
+
+```{r}
+# Gráfico de barras por departamento
+grafico_departamento <- ggplot(descriptivas_departamento, aes(x = Depa, y = Total_Prestamos)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Departamento", y = "Total de Préstamos") +
+  ggtitle("Total de Préstamos por Region") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Gráfico de barras por sector
+grafico_sector <- ggplot(descriptivas_sector, aes(x = Sect, y = Total_Prestamos)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Sector", y = "Total de Préstamos", title = "Distribución de Préstamos totales por Sector") +
+  theme(axis.text.x = element_text(angle = 70, hjust = 1))
+
+# Mostrar los gráficos
+grafico_departamento
+grafico_sector
+```
+Del 1er gráfico se puede afirmar que es el Callao que más monto de préstamos ha solicitado, pero eso no quiere decir que es la región que mayor cantidad de préstamos ha solicitado.
+
+Por otro lado, observamos que en el 2do gráfico que el sector Comercio es el que más monto de préstamo solicito, ahora analizaremos si es el sector que más cantidad de préstamos ha solicitado a la entidades bancarias.
+
+
+
+## Analizando cual es el Departamento y Sector que mayor cantidad de veces solicito un préstamo.
+
+### Para proceder con el siguiente objetivo, primero aclararemos 2 nuevas variables:
+
+- NumParticipaciones: La cantidad de veces que participo una entidad bancaria en dar un préstamo por Departamento
+
+- SumaPaticipaciones: La suma de todas la NumParticipaciones que hay por departamento
+
+
+Procederemos a analizar el número de participaciones que ha tenido cada entidad con respecto a la distribución geográfica donde otorgaron los préstamos, de mayor a menor participación por departamento y sector.
+```{r}
+participaciones <- data %>%
+  group_by(NomEnt, Depa) %>%
+  count() %>%
+  rename(NumParticipaciones = n) %>%
+  arrange(desc(NumParticipaciones))
+participaciones
+```
+
+```{r}
+participaciones_Sect <- data %>%
+  group_by(NomEnt, Sect) %>%
+  count() %>%
+  rename(NumParticipaciones = n) %>%
+  arrange(desc(NumParticipaciones))
+participaciones_Sect
+```
+
+Ahora hallamos la suma de sus participaciones por departamento y por sector
+```{r}
+participaciones_departamento <- participaciones %>%
+  group_by(Depa) %>%
+  summarise(SumaParticipaciones = sum(NumParticipaciones)) %>%
+  arrange(desc(SumaParticipaciones))
+
+participaciones_departamento
+```
+```{r}
+participaciones_Sector <- participaciones_Sect %>%
+  group_by(Sect) %>%
+  summarise(SumaParticipaciones = sum(NumParticipaciones)) %>%
+  arrange(desc(SumaParticipaciones))
+
+participaciones_Sector
+```
+- Haciendo uso del gráfico de frecuencia
+```{r}
+ggplot(data, aes(x = Depa)) +
+  geom_bar(fill = "lightblue") +
+  labs(x = "Departamento", y = "Frecuencia") +
+  ggtitle("Frecuencia de préstamos por Region") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(data, aes(x = Sect)) +
+  geom_bar(fill = "green") +
+  labs(x = "Sector", y = "Frecuencia") +
+  ggtitle("Frecuencia de cantidad préstamos por sector") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+- Se puede observar que Lima es la región que más se repite con 79 apariciones. Por lo que se concluye que Lima es la moda y es la región que mayor cantidad de préstamos solicito a las distintas entidades bancarias. 
+
+- También se concluye que el comercio es la moda con relación a la cantidad de préstamos solicitados debido a que aparece 631 veces.
+
+
+Analizamos el total de participaciones que ha tenido cada entidad financiera
+```{r}
+suma_total <- participaciones %>%
+  group_by(NomEnt) %>%
+  summarise(SumaTotalParticipaciones = sum(NumParticipaciones)) %>%
+  arrange(desc(SumaTotalParticipaciones))
+
+suma_total
+```
+```{r}
+summary(suma_total$SumaTotalParticipaciones)
+```
+Realizamos un barplot para poder ver la frecuencia de los prestamos otorgados por las entidades bancarias:
+```{r}
+barplot(suma_total$SumaTotalParticipaciones,
+        names.arg = suma_total$NomEnt,
+        main = "Cantidad de Prestamos Otorgados",
+        xlab = "",
+        ylab = "",
+        col = "skyblue",
+        las = 2,
+        cex.names = 0.5)  
+```
+- Diagrama de Caja
+```{r}
+boxplot(suma_total$SumaTotalParticipaciones, horizontal = TRUE, col = "green",
+        main = "Veces que una entidad bancaria otorgo un prestamo")
+```
+- Se observa que en la cantidad de participaciones por entidad hay presente 2 datos atípicos que serían 908 como el más alejado a la derecha y 257, ambos pertenecientes al BCP y BANCO BBVA PERU
+
+- Haciendo un análisis entre la gráfica y el total de participaciones que ha tenido cada entidad, se puede concluir que el CMAC DE HUANCAYO y CRAC RAIZ son las entidades financieras que menos han participado con respecto a otorgar prestamos a las empresas, solo han otorgado un préstamo.
+
+- Mientras que vemos que el BCP es la entidad bancaria que más veces otorgo un préstamo a las empresas, por lo tanto, el BCP es la moda.
+
+Y si se quiere observar a la distribución global de la entidades financieras en los departamento, realizaremos lo siguiente:
+```{r}
+distribucion <- data %>%
+  group_by(Depa, NomEnt) %>%
+  summarise(Count = n()) %>%
+  ungroup()
+distribucion 
+
+ggplot(distribucion, aes(x = Depa, y = Count, fill = NomEnt)) +
+  geom_bar(color = "black", stat = "identity") +
+  scale_fill_viridis_d() +
+  labs(title = "Gráfico apilado de la distribución de Entidades Financieras",
+       x = "Departamento",
+       y = "Cantidad") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+De la tabla y del gráfico se puede concluir que:
+
+- Lima es el departamento donde participaron más entidades bancarias distintas con 79, donde se destacan el BCP con 40 participaciones en Lima y el BANCO BBVA PERU con 21 participaciones.
+
+- Se puede observar que el departamento del Apurímac es el departamento donde menos entidades distintas han participado con 39, donde se destaca al banco BCP con 23 participaciones.
+
+- Se observa que el departamento de Arequipa, es el departamento donde más veces ha recibido un préstamo por parte del BCP con 47 y la región de Loreto, es donde el BANCO BBVA PERU le otorgo más préstamos con 23.
+
+
+Ahora analizaremos a los bancos del BCP y del BBVA, debido a que son las que más destacan por encima del resto, por lo que extraemos al departamento en el que otorgaron más préstamos:
+
+```{r}
+totalidad <- participaciones %>%
+  filter(NomEnt == "BCP") %>%
+  group_by(Depa) %>%
+  summarise(SumaTotalParticipaciones = sum(NumParticipaciones)) %>%
+  arrange(desc(SumaTotalParticipaciones))
+
+dep_con_mas_participaciones_BCP <- totalidad$Depa[1:2]  # Obtenemos el departamento con la suma total más alta
+
+totales <- participaciones %>%
+  filter(NomEnt == "BANCO BBVA PERU") %>%
+  group_by(Depa) %>%
+  summarise(SumaTotalParticipaciones = sum(NumParticipaciones)) %>%
+  arrange(desc(SumaTotalParticipaciones))
+
+dep_con_mas_participaciones_BBVA <- totales$Depa[1]
+
+
+dep_con_mas_participaciones_BCP
+dep_con_mas_participaciones_BBVA
+```
+En las regiones de Arequipa y Moquegua son las 2 regiones que el BCP otorgo más préstamos
+
+Y la región de Loreto es donde el BBVA otorgo más préstamos.
+
+
+## Analizando su distribución geográfica:
+```{r}
+distribucion_bcp <- participaciones %>%
+  filter(NomEnt == "BCP") %>%
+  group_by(Depa) %>%
+  summarise(Count = sum(NumParticipaciones)) %>%
+  ungroup()
+
+porcentajes_bcp <- distribucion_bcp$Count / sum(distribucion_bcp$Count) * 100
+
+
+tabla_porcentajes_BCP <- data.frame(Departamento = distribucion_bcp$Depa, Porcentaje = porcentajes_bcp)
+
+tabla_porcentajes_BCP
+
+#Sacamos su promedio
+mean(tabla_porcentajes_BCP$Porcentaje)
+
+barplot(tabla_porcentajes_BCP$Porcentaje, 
+        names.arg = tabla_porcentajes_BCP$Departamento, 
+        col = gray.colors(nrow(tabla_porcentajes_BCP)),
+        las = 2,
+        cex.names = 0.6)
+```
+- Se deduce mediante la tabla y la gráfica que la distribución de los préstamos por parte del BCP está más equilibrada debido a que se supera por poco el promedio que es de 4%, donde las regiones de Arequipa y Moquegua son las que en más oportunidades han recibido préstamos por parte del BCP con un 5.17% cada una.
+
+```{r}
+#Analizando al BBVA
+distribucion_bbva <- participaciones %>%
+  filter(NomEnt == "BANCO BBVA PERU") %>%
+  group_by(Depa) %>%
+  summarise(Count = sum(NumParticipaciones)) %>%
+  ungroup()
+
+porcentajes_bbva <- distribucion_bbva$Count / sum(distribucion_bbva$Count) * 100
+
+tabla_porcentajes <- data.frame(Departamento = distribucion_bbva$Depa, Porcentaje = porcentajes_bbva)
+
+tabla_porcentajes
+
+#Sacamos su promedio
+mean(tabla_porcentajes$Porcentaje)
+
+barplot(tabla_porcentajes$Porcentaje, 
+        names.arg = tabla_porcentajes$Departamento, 
+        col = gray.colors(nrow(tabla_porcentajes)),
+        las = 2,
+        cex.names = 0.6,
+        xlim = c(0, nrow(tabla_porcentajes) + 1))
+
+```
+- Aquí se observa que la distribución de préstamos, por parte del BBVA, hay más disparidad, donde se está favoreciendo a los departamentos de Loreto, Pasco y Lima, los 3 llegando a un porcentaje mínimo de 8.17%, muy por encima del promedio que es de 4%.
+
+
+Ahora calcularemos la deuda que mantiene cada empresa tras los préstamos realizados, por ello agregaremos una nueva variable que se llamara deuda. 
+
+```{r}
+data <- data %>%
+  mutate(Deuda = MonPre - MonCo)
+data
+```
+
+```{r}
+# Deuda total
+deuda_empresa_depa_sect <- data %>%
+  group_by(NomEmp, Depa, Sect) %>%
+  summarise(DeudaTotal = sum(Deuda)) %>%
+  arrange(desc(DeudaTotal))
+
+deuda_empresa_depa_sect
+```
+
+Ahora filtramos a la empresas que deben millones a los bancos a nivel departamental y sectorial
+```{r}
+deuda_empresa <- data %>%
+  group_by(NomEmp, Depa, Sect) %>%
+  summarise(DeudaTotal = sum(Deuda)) %>%
+  filter(DeudaTotal >= 1000000) %>%
+  arrange(desc(DeudaTotal))
+
+deuda_empresa
+```
+### Observamos las deudas de las empresas
+```{r}
+ggplot(deuda_empresa, aes(x = reorder(NomEmp, -DeudaTotal), y = DeudaTotal)) +
+  geom_bar(stat = "identity", fill = "#0072B2") +
+  labs(x = "Empresa", y = "Deuda Total", title = "Deuda Total por Empresa") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+```
+```{r}
+summary(deuda_empresa$DeudaTotal)
+```
+- Gráfico de puntos
+```{r}
+Deuda<-deuda_empresa$DeudaTotal
+plot(Deuda)
+```
+- De este gráfico concluimos que las deudas de las empresas poseen una mediana y valor máximo de S/ 2000000, por lo que el 50% de las empresas deben esa cantidad. 15 empresas son las que deben S/2000000
+- Mientras que la deuda mínima de una empresa es de S/1183600 perteneciente a CONSTRUCCIONES ELECTROMECANICAS DELCROSA
+
+
+Ahora analizaremos las que han pagado sus deudas o que están próximos a pagar en un rango menor a 1000 soles.
+
+```{r}
+deudas_menores <- data %>%
+  filter(Deuda < 1000) %>%
+  select(NomEmp, Depa, Deuda) %>%
+  arrange(desc(Deuda)) %>%
+  slice(1:(n() - 1))
+
+deudas_menores
+```
+
+```{r}
+boxplot(deudas_menores$Deuda, horizontal = TRUE, col = "green",
+        xlab = "Deuda", ylab = "", main = "Boxplot de Deuda")
+
+summary(deudas_menores$Deuda)
+```
+- Podemos observar que hay una empresa que sí ha pagado su deuda, casi en su totalidad, y es TRANSPORTES TRANSCISCAR S.A.C. que logro disminuir su deuda a S/0.158.	
+
+- Se puede apreciar que el 50% de las empresas tienen una deuda menor o igual a S/340.64 y que la otra mitad tiene es mayor o igual que S/340.64 
+
+- Se observa que 6 empresas son las que poseen una deuda igual a S/600, y que 28 empresas mantienen un deuda menor a S/100.
+
+
+# Probabilidades
+
+## Las variables que consideramos a analizar de forma empírica son:
+- Monto de Cobertura y Monto Prestado
+Debido a que nuestro análisis se centra en los préstamos del programa Reactiva 2020 durante la pandemia y la capacidad de las empresas para cumplir con los pagos mediante el monto de cobertura.
+
+
+## Monto de Cobertura
+
+Experimento Aleatorio: Seleccionar al azar una empresa que se benefició de Reactiva Perú 2020 y observar su monto de cobertura
+
+Ω: {alto, medio y bajo}
+
+Eventos Atómicos:
+
+- A1: Seleccionar una empresa de Reactiva Perú 2020 cuyo monto de cobertura es alto, mayor a 1 millón 
+- A2: Seleccionar una empresa de Reactiva Perú 2020 cuyo monto de cobertura es medio, menor a 1 millón y mayor a medio millón 
+- A3: Seleccionar una empresa de Reactiva Perú 2020 cuyo monto de cobertura es bajo, menor a medio millón 
+
+```{r}
+Evento_A_1 <- data[data$MonCo > 1000000, ]; nrow(Evento_A_1)
+```
+```{r}
+Evento_A_2 <- data[data$MonCo < 1000000 & data$MonCo > 500000,]; nrow(Evento_A_2)
+```
+
+```{r}
+Evento_A_3 <- data[data$MonCo < 500000, ]; nrow(Evento_A_3)
+```
+## Probabilidades empíricas:
+
+Para hallar las probabilidades empíricas debemos emplear los siguiente: $$P(A)  =  n(A) /n(Ω)$$
+
+```{r}
+Prob_A1 <- nrow(Evento_A_1)/(88+67+1326); round(Prob_A1,2)
+```
+
+```{r}
+Prob_A2 <- nrow(Evento_A_2)/(88+67+1326); round(Prob_A2,2)
+```
+```{r}
+Prob_A3 <- nrow(Evento_A_3)/(88+67+1326); round(Prob_A3,2)
+```
+Si los sumamos sin redondeo si nos da 1, caso que si los sumamos con redondeo no.
+```{r}
+Prob_A1+Prob_A2+Prob_A3
+```
+
+Detallamos en tablas:
+```{r}
+columna4 <- c("A1: Alto", "A2: Medio", "A3: Bajo")
+columna1 <- c(88, 67, 1326)
+columna2 <- c(1393, 1414, 155)
+columna3 <- rep(1481, 3)
+
+df <- data.frame(Evento = columna4, 'Tamaño' = columna1, Complemento = columna2, Total = columna3)
+
+tabla_html <- datatable(df, options = list(dom = 't', paging = FALSE), rownames = FALSE, caption = "MonCo") %>%
+  formatStyle(names(df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+tabla_html
+```
+Conclusión:
+
+- Observamos que en un 90% de las empresas de 1481, tienen una cobertura menor a 500 mil.
+- Mientras que 6%  poseen una cobertura  mayor a 1 millón
+- Y 5% de las empresas poseen una cobertura menor a 1 millón pero mayor a 500 mil.
+
+## Monto Prestado:
+
+Experimento Aleatorio: Seleccionar al azar una empresa que se benefició de Reactiva Perú 2020 y observar el monto de préstamo solicitado
+
+Ω: {alto, medio y bajo}
+
+Eventos Atómicos:
+
+- A1: Seleccionar una empresa de Reactiva Perú 2020 cuyo monto de préstamo es alto, mayor a 1 millón 
+- A2: Seleccionar una empresa de Reactiva Perú 2020 cuyo monto de préstamo es medio, menor a 1 millón y mayor a medio millón 
+- A3: Seleccionar una empresa de Reactiva Perú 2020 cuyo monto de préstamo es bajo, menor a medio millón 
+
+```{r}
+evento_A1 <- data[data$MonPre > 1000000, ]; nrow(evento_A1)
+```
+```{r}
+evento_A2 <- data[data$MonPre <= 1000000 & data$MonPre > 500000,]; nrow(evento_A2)
+```
+```{r}
+evento_A3 <- data[data$MonPre <= 500000,]; nrow(evento_A3)
+```
+## Probabilidades empíricas:
+```{r}
+round(nrow(evento_A1)/(97+78+1306),2)
+```
+
+```{r}
+round(nrow(evento_A2)/(97+78+1306),2)
+```
+
+```{r}
+round(nrow(evento_A3)/(97+78+1306),2)
+```
+Detallamos en tablas:
+```{r}
+columna4 <- c("A1: Alto", "A2: Medio", "A3: Bajo")
+columna1 <- c(97, 78, 1306)
+columna2 <- c(1384, 1403, 175)
+columna3 <- rep(1481, 3)
+
+df <- data.frame(Evento = columna4, 'Cantidad' = columna1, Complemento = columna2, Total = columna3)
+
+tabla_html <- datatable(df, options = list(dom = 't', paging = FALSE), rownames = FALSE, caption = "MonPre") %>%
+  formatStyle(names(df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+tabla_html
+
+```
+Conclusión:
+
+- Observamos que en un 88% de las 1481 empresas, solicitaron un préstamo menor a medio millón.
+- Mientras que 7% solicito un préstamo mayor a 1 millón. 
+- Y 5% de las empresas solicito un préstamo menor a 1 millón pero mayor a medio millón.
+ 
+# Probabilidad Condicional
+
+Variables:
+
+- MonPre
+- Sect
+- MonCo
+
+Eventos:
+
+- Evento A:Monto préstamo medio 
+- Evento B:Sector Comercio 
+
+- Evento C: Monto cobertura bajo
+- Evento D: Departamento de Piura
+ 
+Suponemos la dependencia de los eventos A con B, y C con D
+
+
+## Evento A - Evento B:
+
+### Validamos dependencia
+
+$$ P(A /B) = P(A \cap B) / P(B)$$
+Detallamos en tablas:
+```{r}
+columna4 <- c("B", "Bº", "Total")
+columna1 <- c("35", "42", "77")
+columna2 <- c("596", "808", "1404")
+columna3 <- c("631","850","1481")
+
+df <- data.frame(Eventos = columna4, 'A' = columna1, "Aº" = columna2, Total = columna3)
+
+tabla_html <- datatable(df, options = list(dom = 't', paging = FALSE), rownames = FALSE) %>%
+  formatStyle(names(df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+tabla_html
+```
+
+```{r}
+# Cálculo de P(A)
+EventoA <- data[data$MonPre > 500000 & data$MonPre < 1000000, ]
+prob_A <- nrow(EventoA) / nrow(data)
+# Cálculo de P(B)
+EventoB <- data[data$Sect == "COMERCIO", ]
+prob_B <- nrow(EventoB) / nrow(data)
+
+# Cálculo de A complemento
+prob_A_complemento <- 1 - prob_A
+
+# Cálculo de B complemento
+prob_B_complemento <- 1 - prob_B
+
+# Cálculo de P(A ∩ B)
+interseccion_A_B <- data[data$MonPre > 500000 & data$MonPre < 1000000 & data$Sect == "COMERCIO", ]
+prob_interseccion <- nrow(interseccion_A_B) / nrow(data)
+
+# Cálculo de P(A/B)
+prob_A_B <- prob_interseccion / prob_B
+
+round(prob_A_B,2)
+```
+## Probabilidad condicional
+```{r}
+prob_condicional <- prob_A_B
+round(prob_condicional,2)
+```
+
+Empleando la regla general de la multiplicación: $$ P(A \cap B) = P(B) * P(A/B)$$
+```{r}
+prob_total <- prob_B * prob_condicional
+round(prob_total,2)
+```
+## Verificamos si sale lo mismo
+```{r}
+round(prob_interseccion,2)
+```
+Como nos dan lo mismo, entonces los eventos son dependientes, ahora procederemos con más calculos para confirmarlo.
+
+
+Ahora por teorema de Bayes calculamos P(B/A)
+
+$$ P(B/A) = (P(A/B) * P(B)) / P(A)$$
+```{r}
+prob_B_A <- (prob_condicional * prob_B) / prob_A
+
+round(prob_B_A,2)
+```
+
+
+Ahora calculamos la P(A) mediante la probabilidad total
+$$P(A) = P(A/B) * P(B) + P(A/¬B)) * P(¬B)$$
+$$ P(A \cap ¬B) = P(¬B) * P(A/¬B)$$
+```{r}
+# Cálculo de P(A ∩ B)
+interseccion_A_B <- data[data$MonPre > 500000 & data$MonPre < 1000000 & data$Sect == "COMERCIO", ]
+prob_interseccion <- nrow(interseccion_A_B) / nrow(data)
+
+# Cálculo de P(A ∩ ¬B)
+prob_A_interseccion_noB <- 42/1481
+
+# Cálculo de P(A)
+prob_A <- prob_B * prob_condicional + prob_A_interseccion_noB
+round(prob_A,2)
+```
+Lo comparamos con P(A)
+```{r}
+# Cálculo de P(A)
+EventoA <- data[data$MonPre > 500000 & data$MonPre < 1000000, ]
+prob_A <- nrow(EventoA) / nrow(data)
+round(prob_A,2)
+```
+Y comprobamos que los eventos si son dependientes.
+
+## Evento C - Evento D:
+
+### Validamos dependencia
+
+$$ P(C /D) = P(C \cap D) / P(D)$$
+Detallamos en tablas:
+```{r}
+columna4 <- c("D", "Dº", "Total")
+columna1 <- c("60", "1266", "1326")
+columna2 <- c("9", "146", "155")
+columna3 <- c("69","1412","1481")
+
+df <- data.frame(Evento = columna4, 'C' = columna1, 'Cº' = columna2, Total = columna3)
+
+tabla_html <- datatable(df, options = list(dom = 't', paging = FALSE), rownames = FALSE) %>%
+  formatStyle(names(df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+tabla_html
+```
+
+
+```{r}
+# Cálculo de P(C)
+EventoC <- data[data$MonCo < 500000,]
+Prob_C <- nrow(EventoC)/nrow(data)
+
+# Cálculo de P(D)
+EventoD <- data[data$Depa == "PIURA",]
+Pro_D <- nrow(EventoD)/nrow(data)
+
+# Cálculo del complemento de P(C)
+prob_C_complemento <- 1 - Prob_C
+
+# Cálculo del complemento de P(D)
+prob_D_complemento <- 1 - Pro_D
+
+# Cálculo de P(C ∩ D)
+Interseccion <- data[data$MonCo < 500000 & data$Depa == "PIURA",]
+
+Proba_Inter <- nrow(Interseccion)/nrow(data) 
+
+#Calculo de P(C/D)
+prob_condi <- Proba_Inter/Pro_D
+round(prob_condi,2)
+```
+Empleando la regla general de la multiplicación: $$ P(C \cap D) = P(D) * P(C/D)$$
+```{r}
+prob_total <- Pro_D * prob_condi
+round(prob_total,2)
+```
+Lo comprobamos con su intersección
+```{r}
+round(Proba_Inter,2)
+```
+Como observamos, los eventos si son dependientes.
+
+Aplicamos Bayes para calcular P(D/C): 
+$$ P(D/C) = (P(C/D) * P(D)) / P(C)$$
+```{r}
+# Calculo de P(D/C)
+proba_D_C <- (prob_condi*Pro_D)/Prob_C
+round(proba_D_C,2)
+```
+Ahora calculamos la P(C) mediante la probabilidad total:
+$$P(C) = P(C/D) * P(D) + P(C/¬D)) * P(¬D)$$
+
+```{r}
+# Cálculo de P(C ∩ D complemento)
+prob_C_inter_complemento <- 1266/1481
+
+# Cálculo de P(C)
+prob_C <- Proba_Inter + prob_C_inter_complemento
+round(prob_C,2)
+```
+Lo comparamos:
+```{r}
+# Cálculo de P(C)
+EventoC <- data[data$MonCo < 500000,]
+Prob_C <- nrow(EventoC)/nrow(data)
+round(Prob_C,2)
+```
+Y efectivamente sale lo mismo.
+
+
+Variables:
+
+- Nombre de la entidad otorgante del préstamo
+- Tipo de empresa a la que pertenece
+- Años de actividad
+- Sector
+
+Eventos:
+
+- Evento A: Nombre de la entidad otorgante del préstamo SCOTIABANK
+- Evento B: Tipo de empresa a la que pertenece Soc.Com.Respons. Ltda 
+
+- Evento C: Años de actividad menor a 16
+- Evento D: Sector Comercio
+ 
+ 
+Asumimos la independencia
+
+### Evento A - Evento B
+
+### Validamos su independencia
+$$P(A \cap B)=P(A)*P(B)$$
+$$P(A/B)=P(A)$$
+Detallamos en tablas:
+```{r}
+columna4 <- c("B", "Bº", "Total")
+columna1 <- c("15", "58", "73")
+columna2 <- c("281", "1127", "1408")
+columna3 <- c("296","1185","1481")
+
+df <- data.frame(Evento = columna4, 'A' = columna1, 'Aº' = columna2, Total = columna3)
+
+tabla_html <- datatable(df, options = list(dom = 't', paging = FALSE), rownames = FALSE) %>%
+  formatStyle(names(df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+tabla_html
+```
+
+```{r}
+# Cálculo de P(A)
+prob_A <- sum(data$NomEnt == "SCOTIABANK") / nrow(data)
+# Cálculo de P(B)
+prob_B <- sum(data$TipEmp == "Soc.Com.Respons. Ltda") / nrow(data)
+
+# Cálculo de P(A ∩ B)
+prob_interseccion <- sum(data$NomEnt == "SCOTIABANK" & data$TipEmp == "Soc.Com.Respons. Ltda") / nrow(data)
+
+#Comparación de P(A ∩ B) con P(A)*P(B)
+round(prob_A*prob_B,3)
+round(prob_interseccion,3)
+```
+Comparemos si P(A/B) = P(A):
+```{r}
+# Cálculo de P(A ∩ B)
+prob_interseccion <- sum(data$NomEnt == "SCOTIABANK" & data$TipEmp == "Soc.Com.Respons. Ltda") / nrow(data)
+
+# Cálculo de P(A/B)
+prob_A_condicional_B <- prob_interseccion / prob_B
+
+round(prob_A_condicional_B,2)
+```
+
+```{r}
+# Cálculo de P(A)
+prob_A <- sum(data$NomEnt == "SCOTIABANK") / nrow(data)
+round(prob_A,2)
+```
+Efectivamente sale lo mismo 
+```{r}
+# Cálculo del complemento de A
+prob_A_complemento <- 281/1481
+
+# Cálculo del complemento de B
+prob_B_complemento <- 1127/1481
+```
+
+
+
+Ahora por teorema de Bayes calculamos P(B/A)
+
+$$ P(B/A) = (P(A/B) * P(B)) / P(A)$$
+```{r}
+# Cálculo de P(B/A)
+prob_B_condicional_A <- (prob_A_condicional_B * prob_B) / prob_A
+round(prob_B_condicional_A,2)
+```
+Ahora calculamos la P(A) mediante la probabilidad total
+$$P(A) = P(A/B) * P(B) + P(A/¬B)) * P(¬B)$$
+
+```{r}
+# Cálculo de P(A/B complemento)
+prob_A_condicional_no_B <- (prob_A - (prob_A_condicional_B * prob_B)) / prob_B_complemento
+
+# Cálculo de P(A)
+prob_A_total <- (prob_A_condicional_B * prob_B) + (prob_A_condicional_no_B * prob_B_complemento)
+
+round(prob_A_total,2)
+```
+Comparando:
+```{r}
+# Cálculo de P(A)
+prob_A <- sum(data$NomEnt == "SCOTIABANK") / nrow(data)
+round(prob_A,2)
+```
+
+
+## Evento C - Evento D
+
+### Validamos su independencia
+$$P(C \cap D)=P(C)*P(D)$$
+$$P(C/D)=P(C)$$
+Detallamos en tablas:
+```{r}
+columna4 <- c("D", "Dº", "Total")
+columna1 <- c("544", "704", "1248")
+columna2 <- c("87", "146", "233")
+columna3 <- c("631","850","1481")
+
+df <- data.frame(Evento = columna4, 'C' = columna1, 'Cº' = columna2, Total = columna3)
+
+tabla_html <- datatable(df, options = list(dom = 't', paging = FALSE), rownames = FALSE) %>%
+  formatStyle(names(df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+tabla_html
+```
+
+```{r}
+# Cálculo de P(C): Años de actividad menor a 16
+prob_C <- sum(data$AniAct < 16) / nrow(data)
+# Cálculo de P(D): Sector Comercio
+prob_D <- sum(data$Sect == "COMERCIO") / nrow(data)
+# Cálculo de P(C ∩ D)
+prob_interseccion <- sum(data$AniAct < 16 & data$Sect == "COMERCIO") / nrow(data)
+
+# Cálculo de P(C) * P(D)
+prob_CD <- prob_C * prob_D
+
+#Comparación de P(C ∩ D) con P(C)*P(D)
+round(prob_CD,2)
+
+round(prob_interseccion,2)
+```
+```{r}
+# Cálculo de P(C/D)
+prob_C_condicional_D <- prob_interseccion / prob_D
+
+round(prob_C_condicional_D,2)
+```
+
+```{r}
+# Cálculo del complemento de C
+prob_C_complemento <- 1 - prob_C
+
+# Cálculo del complemento de D
+prob_D_complemento <- 1 - prob_D
+```
+
+
+Aplicamos Bayes para calcular P(D/C): 
+$$ P(D/C) = (P(C/D) * P(D)) / P(C)$$
+
+```{r}
+# Cálculo de P(D/C)
+prob_D_condicional_C <- (prob_C_condicional_D * prob_D) / prob_C
+round(prob_D_condicional_C,2)
+```
+Ahora calculamos la P(C) mediante la probabilidad total:
+$$P(C) = P(C/D) * P(D) + P(C/¬D)) * P(¬D)$$
+
+```{r}
+# Cálculo de P(C/D complemento)
+prob_C_condicional_no_D <- (prob_C - (prob_C_condicional_D * prob_D)) / prob_D_complemento
+
+# Cálculo de P(C)
+prob_C_total <- (prob_C_condicional_D * prob_D) + (prob_C_condicional_no_D * prob_D_complemento)
+
+round(prob_C_total,2)
+```
+comparando:
+```{r}
+# Cálculo de P(C): Años de actividad menor a 16
+prob_C <- sum(data$AniAct < 16) / nrow(data)
+round(prob_C,2)
+```
+
+
+# Variable Discretas
+
+## Distribución geométrica: 
+A. Sector 
+
+```{r}
+table(data$Sect)
+```
+Sabemos que de toda la muestra tomada que el sector Comercio es el que más prestamos pidió al programa de Reactiva Perú durante la pandemia con respecto a los demás sectores. Por ello se modela un experimento que sigue una distribución geométrica, para determinar las selecciones hasta dar con la primera empresa perteneciente al sector Comercio.
+
+
+X: es el número de selecciones hasta dar con la primera empresa perteneciente al sector Comercio.
+
+Hay un total de 1481 empresas de los cuales 631 pertenecen al sector Comercio.
+
+ 
+Hallamos la probabilidad de éxito:
+```{r}
+prob_exito <- sum(data$Sect == "COMERCIO")/nrow(data)
+round(prob_exito,2)
+```
+Como observamos la probabilidad de éxito es de 43% de encontrar a una empresa que pertenezca al sector comercio.
+
+Se modela la distribución geométrica:
+
+$$X ∼ Geom(0.43)$$
+Donde: 
+0.43: es la probabilidad de éxito que se encuentre a la primera una empresa perteneciente al sector Comercio.
+
+Para visualizar gráficamente la distribución realizamos lo siguiente:
+
+```{r}
+x <- 0:10
+p <- 0.43
+
+Probabilidad <- dgeom(x = x, prob = p)
+
+plot(x = x, y = Probabilidad, xlab = "Número de repeticiones", ylab = "Probabilidad",
+     type = 'h', las = 1, lwd = 6)
+
+abline(v = 1/p, col = "yellow", lwd = 3, lty = 2, name = "Esperanza")
+
+desviacion_estandar <- sqrt((1 - p) / p^2)
+abline(v = desviacion_estandar, col = "blue", lwd = 3, lty = 2, name = "Desviación Estándar")
+
+legend("topright", legend = c("Esperanza", "Desviación Estándar"), col = c("yellow", "blue"),
+       lwd = 3, lty = 2)
+
+```
+De esto podemos deducir que la probabilidad de que en una sola repetición se encuentre a una empresa que pertenezca al sector Comercio es relativamente alta. Debido a que la tasa de éxito es de P = 0.43
+
+### Calculamos la esperanza
+```{r}
+esperanza <- 1 / prob_exito
+
+round(esperanza,2)
+```
+Como podemos observar el promedio esperado hasta dar con una empresa que pertenezca al sector Comercio es aproximado a 2.35 repeticiones.
+
+### Calculamos la varianza
+```{r}
+varianza <- (1 - prob_exito) / (prob_exito^2)
+
+round(varianza,2)
+```
+
+### Calculamos la desviacion estandar
+```{r}
+desviacion_estandar <- sqrt(varianza)
+round(desviacion_estandar,2)
+```
+La desviación estándar de 1.78 nos indica que los valores de la distribución tienden a dispersarse alrededor de la esperanza. En este caso, una desviación estándar relativamente menor nos indica una menor variabilidad en el número de ensayos requeridos para obtener el éxito.
+
+
+## Calculando probabilidades
+Supongamos que estás a cargo de un equipo de inspección que evalúa la calidad de los productos fabricados por diferentes empresas. En tu lista de empresas para inspeccionar, se estima que el 43% de ellas pertenecen al sector Comercio.
+
+¿Cual es la probabilidad de que la primera empresa que encuentres pertenezca al sector Comercio en el sexto intento?
+```{r}
+p <- 0.43  # Probabilidad de éxito en cada intento
+k <- 6     # Número de intento
+
+probabilidad <- dgeom(6, prob = p)
+
+round(probabilidad,2)
+```
+Como observamos la probabilidad de éxito es aproximado al 1%
+
+Ahora lo comparamos
+```{r}
+x <- 0:10  
+Probabilidad <- dgeom(x = x, prob = 0.43)
+round(Probabilidad,2)
+```
+Vemos que efectivamente cumple con el caso ejemplificado.
+
+Nota: No se tomaron más intentos mayores a 10 debido a que a partir del intento 7 es que la probabilidad de encontrar una empresa perteneciente al sector Comercio es 0.
+
+
+## Empleando la distribución binomial
+B. Departamentos
+
+Durante la investigación en nuestra primera parte del proyecto se tomo a la provincia constitucional del Callao como si fuera un departamento debido a la cantidad de prestamos que realizo al programa Reactiva 2020. Es por ello que vamos a analizar sobre que empresas presentes en el Callao pidieron un monto prestado menor a 500 mil. Además de ello también analizaremos al departamento de Lima por ser el 2do departamento que solicito más prestamos con un monto menor a 500 mil.
+
+```{r}
+data_callao <- nrow(filter(data, Depa == "CALLAO" & MonPre < 500000))
+
+data_lima <- nrow(filter(data, Depa == "LIMA" & MonPre < 500000))
+
+data_callao 
+
+data_lima
+
+data_callao + data_lima
+```
+Se realiza un filtro donde:
+- 121 empresas pertenecen a ambos departamentos.
+- 57 empresas pertenecen al departamento del Callao .
+- 64 empresas pertenecen al departamento de Lima.
+
+
+X: Seleccionar una empresa del departamento de Lima con un monto de préstamo menor a 500 mil.
+
+## Probabilidad de exito
+```{r}
+probabi_exito <- (data_lima)/nrow(data)
+round(probabi_exito,2)
+```
+Observamos que la probabilidad de éxito es de 4%.
+
+Modelamos:
+ –> $$X ∼ Bin(121, 0.04)$$
+Representamos gráficamente la distribución:
+```{r}
+x <- 0:20
+p <- 0.04
+n <- 121
+
+Probabilidad <- dbinom(x = x, size = n, prob = p)
+
+plot(x = x, y = Probabilidad, xlab = "Número de empresas", ylab = "Probabilidad",
+     type = 'h', las = 1, lwd = 2)
+
+abline(v = n * p, col = "yellow", lwd = 3, name = "Esperanza")
+
+desviacion_estandar <- sqrt(n * p * (1 - p))
+abline(v = desviacion_estandar, col = "blue", lwd = 3, name = "Desviación Estándar")
+
+legend("topright", legend = c("Esperanza", "Desviación Estándar"), col = c("yellow", "blue"),
+       lwd = 3)
+
+
+```
+## Esperanza 
+```{r}
+n <- 121
+p <- 0.04
+
+# Calcular esperanza (media)
+esperanza <- n * p
+esperanza
+```
+La esperanza nos indica que de 121 empresas habrán 4.84 en promedio que pertenezcan al departamento de Lima y hallan solicitado un prestamos menor a 500 mil.
+
+### Desviacion estandar
+```{r}
+n <- 121
+p <- 0.04
+desviacion_estandar <- sqrt(n * p * (1 - p))
+round(desviacion_estandar,2)
+```
+CALCULO DE PROBABILIDADES:
+El departamento del Callao está experimentando un crecimiento económico significativo y muchas empresas en la región están buscando obtener préstamos para financiar sus operaciones. 
+
+Se ha realizado un estudio exhaustivo que involucra una muestra de 121 empresas seleccionadas al azar del departamento del Callao y Lima. ¿Qué tan probable es que más de 10 de estas empresas pertenecientes al Callao hayan solicitado un préstamo menor a 500 mil?
+
+```{r}
+proba_exit <- data_callao/nrow(data)
+round(proba_exit,2)
+```
+```{r}
+round(pbinom(10,size = 121, prob =  0.04),2)
+```
+Como vemos el resultado es prácticamente 1, y eso es debido a que hay presente 57 empresas del Callao de la muestra de 121 empresas con un prestamos solicitado menor a 500 mil.
+
+
+
+# Variables Continuas
+
+## A. Monto de Préstamo
+
+- Realizamos un gráfico que nos ayuda a observar función de densidad:
+```{r}
+hist(data$MonPre, breaks = 50, freq = FALSE, main = "Monto de Préstamo: Distribución", xlab = "Monto de Préstamo en soles", col = "pink")
+
+# Estimación de densidad exponencial
+lines(density(data$MonPre, na.rm = TRUE), col = "orange3", lwd = 2)
+
+# Curva de distribución exponencial
+curve(dexp(x, rate = 1/mean(data$MonPre, na.rm = TRUE)), lwd = 2, col = "green2", add = TRUE)
+
+# Leyenda
+legend("topleft", c("C.O", "C.E.T"), lty = 1, lwd = 2, col = c("orange3", "green2"), bty = "n", cex = 0.8)
+```
+Donde:
+
+- C.E.T: Curva Exponencial Teórica
+- C.O: Curva Observada
+
+Para validar primero calculamos lambda (λ) mediante la media
+```{r}
+# Calcular lambda (λ)
+media <- mean(data$MonPre, na.rm = TRUE)
+lambda <- 1 / media
+lambda
+```
+Ahora que tenemos lambda (λ), calcularemos su media y varianza con ello y comparemos con los comandos del R
+```{r}
+media <- mean(data$MonPre, na.rm = TRUE)
+media
+Media <- 1/lambda
+Media
+```
+```{r}
+varianza <- var(data$MonPre, na.rm = TRUE)
+varianza
+Varianza <- 1 / lambda^2
+Varianza
+```
+Como vemos al momento de hacer la validación, falla en la varianza pero no en la media.
+Por lo tanto no es una exponencial, pero asumiremos que si es debido a la semejanza que hay entre el gráfico de densidad con la de la distribución exponencial y porque el promedio lo valida. 
+
+
+Parámetros:
+
+- El promedio es de S/357570.8 
+
+- lambda = 1/357570.8 = 0.000002796649
+
+X: representa los valores que puede tomar el monto de préstamo
+
+$$X ∼ exp(0.000002796649)$$
+
+
+## Calculo de probabilidades
+
+Supongamos que en un banco se otorgan préstamos y se sabe que el monto de préstamo sigue una distribución exponencial con parámetro λ = 0.000002796649.
+
+a) Calcula la probabilidad de que un préstamo sea menor o igual a S/500,000.
+
+b) Calcula la probabilidad de que un préstamo sea mayor a S/1,000,000.
+
+c) Calcular la probabilidad de que un préstamo seleccionado al azar esté en el rango de 500,000 a 1,000,000.
+
+Para el inciso a) empleamos lo siguiente:
+```{r}
+lambda <- 0.000002796649
+monto <- 500000
+
+probabilidad <- pexp(monto, rate = lambda)
+round(probabilidad,2)
+
+x <- seq(0, 5000000, by = 1000)  
+pdf <- dexp(x, rate = lambda)  
+
+plot(x, pdf, type = "l", lwd = 2, col = "blue",
+     main = "Distribución Exponencial", xlab = "Monto", ylab = "Densidad de probabilidad")
+```
+- Hay alrededor de un 75% de probabilidad de que un préstamo seleccionado al azar sea igual o menor a S/500,000
+- Tambien observamos que la gráfica presenta una tendencia exponencial en decaimento con el lambda que sacamos anteriormente.
+
+
+Para el inciso b):
+```{r}
+lambda <- 0.000002796649
+monto <- 1000000
+
+probabilidad <- pexp(monto, rate = lambda, lower.tail = F)
+round(probabilidad,2)
+```
+Esto nos indica que hay alrededor de un 6% de probabilidad de que un préstamo seleccionado al azar sea mayor a S/1,000,000
+Para el inciso c)
+```{r}
+lambda <- 0.000002796649
+probabilidad <- pexp(1000, rate = lambda) - pexp(500, rate = lambda)
+round(probabilidad,3)
+```
+Y para este caso vemos que solo hay un 0.1% de probabilidad que un préstamo este en el rango de S/500,000 y S/1,000,000
+
+
+## B. MONTO DE COBERTURA
+
+- Realizamos un gráfico que nos ayuda a observar función de densidad:
+```{r}
+hist(data$MonCo, breaks = 50, freq = FALSE, main = "Monto de Cobertura: Distribución Exponencial", xlab = "Monto de Cobertura en soles", col = "pink")
+
+# Estimación de densidad exponencial
+lines(density(data$MonCo, na.rm = TRUE), col = "orange3", lwd = 2)
+
+# Curva de distribución exponencial
+curve(dexp(x, rate = 1/mean(data$MonCo, na.rm = TRUE)), lwd = 2, col = "green2", add = TRUE)
+
+# Leyenda
+legend("topleft", c("C.O", "C.E.T"), lty = 1, lwd = 2, col = c("orange3", "green2"), bty = "n", cex = 0.8)
+```
+Donde:
+
+- C.E.T representa a la curva exponencial teórica.
+- C.O representa a la curva observada.
+
+```{r}
+media_co <- mean(data$MonCo, na.rm = TRUE)
+varianza_co <- var(data$MonCo, na.rm = TRUE)
+```
+
+Primero, calculamos lambda mediante la media:
+```{r}
+lambda_co <- 1/media_co
+lambda_co
+```
+
+Ahora, calculamos su media y varianza con el fin de compararlos con los calculados mediante los comandos de R:
+
+```{r}
+media_co
+MEDIA_co <- 1/lambda_co
+MEDIA_co
+```
+
+```{r}
+varianza_co
+VARIANZA_co <- 1/lambda_co^2
+VARIANZA_co
+```
+Al momento de hacer la validación, coinciden los valores de la media pero no los de la varianza. Por lo tanto, no se trata de una distribución exponencial pero, para poder continuar con el estudio, asumiremos que si lo es.
+Debido a la semejanza que hay entre el gráfico de densidad con la de la distribución exponencial y porque el promedio lo valida.
+
+Entonces, tenemos los siguientes parámetros:
+
+- lambda = 0.000003210047
+
+X: representa los valores que puede tomar el monto de cobertura
+
+$$X ∼ exp(0.000003210047)$$
+
+## Calculo de probabilidades:
+
+Ahora procederemos con dividir la variable MonCo:
+- A1: mayor a 1 millón
+- A2: menor a 500 mil
+
+Por ejemplo, si se asume que el monto de cobertura de las empresas de nuestro estudio siguen el modelo de distribución exponencial, en donde lambda tiene el valor calculado previamente:
+
+- Determine cuan probable es que el monto de cobertura de una empresa sea considerado alto:
+
+```{r}
+MonCoAlto = 1000000
+probabilidad_co1 = pexp(MonCoAlto, rate = lambda_co, lower.tail = FALSE)
+round(probabilidad_co1,2)
+```
+Entonces, se concluye que existe un 4% de probabilidad de que el monto de cobertura de una empresa sea considerado alto, es decir, mayor a un millón de soles.
+
+- Determine cuan probable es que el monto de cobertura de una empresa sea considerado bajo:
+
+```{r}
+MonCoBajo = 500000
+probabilidad_co2 = pexp(MonCoBajo, rate = lambda_co)
+round(probabilidad_co2,2)
+```
+Entonces, se concluye que existe un 80% de probabilidad de que el monto de cobertura de una empresa sea considerado bajo, es decir, menor a medio millón de soles.
+
+
+Conclusiones:
+
+- Durante el análisis de préstamos, se encontró que la región del Callao y el sector Comercio destacaron por la cantidad de préstamos solicitados. El promedio de los montos de préstamos fue de S/21,182,493 en departamentos y S/37,825,880 en sectores. La mediana reveló que el 50% de los departamentos tuvo préstamos de S/19,640,833 o menos, y en sectores fue de S/15,392,835. Estos resultados reflejan la distribución y características de los préstamos por departamento y sector.
+
+- Durante el análisis, se observó un sesgo hacia el departamento de Lima en el programa de préstamos, con una mayor participación de entidades bancarias distintas en comparación con otros departamentos. El Banco de Crédito del Perú (BCP) y el Banco BBVA Perú se destacaron como las entidades con mayor presencia y participación en el programa, con 40 y 21 participaciones respectivamente en el departamento de Lima.
+
+- En la parte del análisis de los prestamos realizados por la empresas, se pudo observar que 15 empresas deben más de 2 millones al estado, y solo se pudo verificar que una empresa ha logrado pagar su préstamo casi en su totalidad que es la empresa "TRANSPORTES TRANSCISCAR S.A.C." que logro disminuir su deuda a S/0.158.
