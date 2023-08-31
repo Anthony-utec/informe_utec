@@ -1,0 +1,1026 @@
+---
+title: "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana, mayo de 2023"
+output:
+  html_document:
+    toc: TRUE
+    number_section: FALSE
+    df_print: paged 
+  html_notebook:
+    toc: TRUE
+    toc_float:
+      collapsed: TRUE
+      smooth_scroll: FALSE
+    number_sections: FALSE
+    theme: journal
+---
+
+```{r, include = FALSE}
+librerias <- c("dplyr", 
+               "funModeling", 
+               "modeest", 
+               "readr", 
+               "reshape", 
+               "stringr")
+
+# Comprobación de librerías
+for (libreria in librerias) {
+  if (!require(libreria, character.only = TRUE)) {
+    install.packages(libreria)
+  }
+  library(libreria, character.only = TRUE)
+}
+
+DF <- read_csv("DatabaseLimpia.csv", col_types = cols(`Nivel de comodidad con el método principal de pago` = col_character(), 
+    `Nivel de creencia de la rapidez de las billeteras digitales` = col_character()))
+
+attach(DF)
+
+DD <- DF # DD y DF se usan indistintamente en este documento. Se realizó esta asignación para evitar conflictos con códigos elaborados para entregas anteriores
+```
+
+## **1. Introducción**
+
+Durante la pandemia del COVID-19, muchos ciudadanos consideraron riesgoso el contacto con otras personas u objetos, debido al temor de ser contagiados. En particular, la acción de dar o recibir dinero se percibía como peligrosa para la salud, ya que no se sabía si la otra persona estaba contagiada o no. A través de este intercambio de dinero, existía la posibilidad de contagio hacia el receptor. Como resultado, surgió la necesidad de encontrar una forma de realizar pagos sin tener que utilizar efectivo, además de ser de fácil uso y accesible para toda la población. Así es como se popularizó el uso de las billeteras digitales, ofreciendo una alternativa acorde a las necesidades que ameritaba el estado de emergencia.
+
+Debido a esta situación, se ha generado la importancia de comprender el impacto de la pandemia en el uso de las billeteras digitales. Su adopción continúa en aumento y se decidió realizar un estudio en Lima Metropolitana para obtener una mayor variedad de distritos y recopilar diversas opiniones al respecto.
+
+### 1.1. Relevancia
+
+Este estudio nos permitirá analizar las razones de por qué las billeteras digitales se volvieron de uso cotidiano en la población de Lima Metropolitana, puesto que las billeteras digitales ahora son parte de nuestro día a día y se utilizan tanto para transferencias como para pagos de servicios. De esta manera, se podrá saber más sobre ello y ver como ha ido evolucionando en el lapso de tiempo de la pandemia.
+
+### 1.2. Objetivos
+
+-   Determinar las razones de por qué las personas no usaban las billeteras digitales antes de la pandemia en Lima Metropolitana, mayo de 2023.
+
+-   Identificar las razones del cambio a las billeteras digitales durante o tras la pandemia en Lima Metropolitana, mayo de 2023.
+
+-   Evaluar los factores predominantes que influyen en la permanencia en el uso de billeteras virtuales tras el término de la pandemia en Lima Metropolitana, mayo de 2023.
+
+### 1.3. Contexto
+
+A inicios de 2020 empezó una pandemia mundial, aislando a la población entera en sus hogares y evitando, en la medida de lo posible, el contacto entre las personas. Esta pandemia empezó a terminar a finales de 2022 y con ello empezó la popularidad de las billeteras digitales que ganaron terreno como medio de pago más usado con respecto al efectivo debido a que este se quedaba obsoleto frente a lo que las billeteras digitales ofrecían a la población.
+
+## **2. Análisis descriptivo**
+
+### 2.1. Tiempo de uso de las billeteras digitales
+
+#### 2.1.1. Diagrama de densidad
+
+```{r, echo=FALSE}
+T1 <- filter(DD, is.na(DD$`Tiempo de utilización de la billetera digital`) == FALSE)
+
+G1 <- plot(density(T1$`Tiempo de utilización de la billetera digital`), 
+     
+     col = "#E84855", 
+     main = "Gráfico 1: Tiempo de utilización de las billeteras digitales",
+     
+     xlab = "Meses de uso",
+     ylab = "Densidad")
+```
+
+**Análisis de la gráfica 1: Una gran mayoría de los encuestados que usan este método de pago tienen un tiempo de uso menor a 30 meses, aproximadamente. En otras palabras, comenzaron a usarlo a finales de la pandemia. Además se puede observar una distribución sesgada hacía la derecha.**
+
+#### 2.1.2. Descriptores de posición Y de dispersión
+
+```{r, echo=FALSE}
+V1 <- mfv(DD$`Tiempo de utilización de la billetera digital`, na_rm = TRUE)
+V2 <- round(sd(DD$`Tiempo de utilización de la billetera digital`, na.rm = TRUE), 2)
+
+coef_var <- function(x, na.rm = FALSE) {
+  sd(x, na.rm = na.rm) / mean(x, na.rm = na.rm)
+}
+
+V3 <- round(coef_var(DD$`Tiempo de utilización de la billetera digital`, na.rm = TRUE), 2)
+```
+
+```{r, echo=TRUE}
+summary(DD$`Tiempo de utilización de la billetera digital`)
+sprintf("La moda es: %d", V1)
+sprintf("La desviación estándar es: %f", V2)
+sprintf("El coeficiente de variación es: %f", V3)
+```
+
+**Análisis: La mayoría de los encuestados tiene un uso de las billeteras digitales de 24 meses, es decir, la utilización de las billeteras digitales empezaron en la finalización de la pandemia ratificando el gráfico 1.**
+
+#### 2.1.3. Boxplot
+
+------------------------------------------------------------------------
+
+Debido a que el coeficiente de variación es alto, la mediana es la que mejor representaría a la población y para un mejor análisis de la variable se utilizaría un boxplot.
+
+------------------------------------------------------------------------
+
+```{r, echo=FALSE}
+G2 <- boxplot(DD$`Tiempo de utilización de la billetera digital`,
+        
+        # Configuración del título
+        main = "Gráfico 2.1: Tiempo de utilización de las billeteras digitales",
+        
+        # Configuración de los ejes
+        ylab = "Tiempo de uso (meses)",
+        
+        # Configuración de los bloques
+          col = "#E84855")
+```
+
+------------------------------------------------------------------------
+
+Como la variable posee valores extremos que nos impiden observar y analizar detalladamente el boxplot, entonces se procederá a eliminar aquellos datos extremos del gráfico.
+
+------------------------------------------------------------------------
+
+```{r, echo=FALSE}
+iqtiempo <- IQR(DD$`Tiempo de utilización de la billetera digital`, na.rm=TRUE)
+
+maxtiempo <- quantile(DD$`Tiempo de utilización de la billetera digital`,0.75,na.rm=TRUE)+1.5*iqtiempo
+  
+DT <- filter(DD, DD$`Tiempo de utilización de la billetera digital` < maxtiempo)
+G2 <- boxplot(DT$`Tiempo de utilización de la billetera digital`,
+        
+        # Configuración del título
+        main = "Gráfico 2.2: Tiempo de utilización de las billeteras digitales",
+        
+        # Configuración de los ejes
+        ylab = "Tiempo de uso (meses)",
+        
+        # Configuración de los bloques
+          col = "#E84855")
+```
+
+**Análisis de la gráfica 2.2: El tiempo de uso de billeteras digitales en la mitad de sus usuarios oscila entre 8 y 24 meses, ratificando que una gran parte de los encuestados empezaron a usar las billeteras digitales en las fechas de la finalización de la pandemia. Además, existe una mayor variación de respuestas en el rango de 24-48 meses, correspondiente a las fechas en las que había pandemia de por medio.**
+
+### 2.2. Comparación entre el conocimiento de la existencia de las billeteras digitales y su utilización (prepandemia)
+
+```{r, echo=FALSE}
+DD1 <- data.frame(`Conocimiento de la existencia de las billeteras digitales antes de la pandemia`, `Utilización de las billeteras digitales antes de la pandemia`)
+
+DD1[is.na(DD1)] <- "No"
+
+T3 <- table(DD1)
+
+G3 <- mosaicplot(T3,
+           
+           # Configuración del título
+           main = "Gráfico 3: Comparación entre el conocimiento de la existencia de las \nbilleteras digitales y su utilización (prepandemia)",
+           
+           # Configuración de los bloques
+           col = c("#E84855", "#0091AD"),
+           
+           # Configuración de los ejes
+           xlab = "Conocimiento",
+           ylab = "Utilización",)
+```
+
+**Analisis de la gráfica 3: La falta de conocimiento sobre las billeteras digitales fue el factor clave que impedía su adopción en el pasado, antes de que la pandemia tuviera lugar.**
+
+### 2.3. Contabilización de la principal razón de la no utilización de billeteras digitales en usuarios que conocían de la existencia de este método de pago (prepandemia)
+
+
+```{r, echo=FALSE}
+T4 <- table(`Principal razón de la NO utilización de las billeteras digitales antes de la pandemia`)
+
+G4 <- barplot(T4, 
+        
+        # Configuración del título
+        main = "Gráfico 4: Principal razón de la NO utilización de billeteras digitales \nprepandemia (usuarios que conocían el método de pago)",
+        cex.main = 1.1,
+        font.main = 2,
+        
+        
+        # Configuración de los ejes
+        ylim = c(0, 25),
+        ylab = "Cant. personas",
+        cex.lab = 0.95,
+        font.lab = 1,
+        
+        # Barras
+        col = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD"),
+        names.arg = FALSE)
+
+legend(x = "bottom",
+       legend = rownames(T4), 
+       fill = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD"), 
+       cex = 0.75,
+       inset = c(0, -0.3),
+       xpd = TRUE)
+
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+
+text(G4, T4 + 1.5, labels = T4)
+```
+
+**Análisis de la gráfica 4: La poca/nula necesidad de las personas para el uso de esta billetera digital prepandemia es la principal razón por la que este medio de pago no era tomado en cuenta para los que no usaban este medio de pago**
+
+### 2.4. Contabilización de los usuarios de billeteras digitales a partir de sus razones iniciales de uso
+
+```{r, echo = FALSE}
+T5 <- table(str_split_fixed(DD$`Razones iniciales de uso`, ", ", 4))[2:6]
+
+G5 <- barplot(T5,
+              
+        # Configuración del título
+        main = "Gráfico 5: Razones iniciales de uso de billeteras digitales",
+        cex.main = 1.1,
+        font.main = 2,
+        
+        # Configuración de los ejes
+        ylim = c(0, 100),
+        ylab = "Cant. personas",
+        cex.lab = 0.95,
+        font.lab = 1,
+        
+        # Barras
+        col = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD", "#55D6BE"),
+        names.arg = FALSE)
+
+legend(x = "bottom",
+       legend = rownames(T5), 
+       fill = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD", "#55D6BE"), 
+       cex = 0.75,
+       inset = c(0, -0.37),
+       xpd = TRUE)
+
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+
+text(G5, T5 + 7, labels = T5)
+```
+
+**Análisis de la gráfica 5: La comodidad y necesidad se presentan como los factores más importantes al momento de empezar a usar las billeteras digitales, además a pesar de la existencia del COVID-19 se puede observar una limitada cantidad de personas que eligieron esta opción como una de las razones por la cual empezaron a usar este medio de pago.**
+
+### 2.5. Factores predominantes que influyen en la permanencia en el uso de billeteras virtuales tras el término de la pandemia en Lima Metropolitana
+
+```{r, echo = FALSE}
+T6 <- table(str_split_fixed(DD$`Razones actuales de uso`, ", ", 4))[2:5]
+
+G6 <- barplot(T6,
+              
+        # Configuración del título
+        main = "Gráfico 6: Razones actuales de uso de billeteras digitales",
+        cex.main = 1.1,
+        font.main = 2,
+        
+        # Configuración de los ejes
+        ylim = c(0, 100),
+        ylab = "Cant. personas",
+        cex.lab = 0.95,
+        font.lab = 1,
+        
+        # Barras
+        col = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD", "#55D6BE"),
+        names.arg = FALSE)
+
+legend(x = "bottom",
+       legend = rownames(T6), 
+       fill = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD", "#55D6BE"), 
+       cex = 0.75,
+       inset = c(0, -0.35),
+       xpd = TRUE)
+
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "gray")
+
+text(G6, T6 + 5.5, labels = T6)
+```
+
+**Análisis del gráfico 5: La comodidad y la necesidad son las principales razones para la permanencia en el uso de billeteras, es decir, las personas priorizaron un fácil acceso a su dinero y estar adaptados a su entorno antes que otras razones como seguridad y costumbre para seguir usando este medio de pago.**
+
+------------------------------------------------------------------------
+
+-   De los gráficos 5 y 6, se puede concluir que el uso de las billeteras digitales se debe a una cuestión de comodidad para el usuario y facilidad para pagar debido a una necesidad de que el entorno del usuario también use en su mayoría las billeteras digitales.
+
+------------------------------------------------------------------------
+
+### 2.6. Comparación entre la comodidad de los encuestados con su método principal de pago y su método principal de pago
+
+```{r, echo=FALSE}
+DD2 <- data.frame(`Nivel de comodidad con el método principal de pago`, `Método principal de pago`)
+
+DD2[is.na(DD2)] <- "Billetera digital"
+
+T7 <- table(DD2)
+
+G7 <- mosaicplot(T7, 
+           
+           # Configuración del título
+           main = "Gráfico 7: Comodidad de los encuestados con su método principal \nde pago",
+           
+           # Configuración de los ejes
+           xlab = "Nivel de comodidad",
+           ylab = "Método principal de pago",
+           
+           # Configuración de los bloques
+           color = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD", "#55D6BE"),
+           las = 1)
+```
+
+**Análisis: La billetera digital en su mayoría ofrece un nivel de comodidad alto (4-5) en comparación de otros métodos de pago, confirmando que para los usuarios de billeteras digitales la comodidad es la principal razón de su uso. El efectivo por su parte presenta una mayor variación con respecto al nivel de comodidad, se observa incremento de usuarios a los cuales les parece que este medio de pago ofrece un nivel de comodidad bajo (1-3).**
+
+### 2.7. Comparación del gasto prepandemia y postpandemia con la billeteras digital más usadas para los usuarios que no las usaban prepandemia
+
+#### 2.7.1. Diagrama de dispersión
+
+```{r, echo=FALSE}
+iqpre <- IQR(DD$`Gasto promedio diario pre-pandemia con método principal de pago`, na.rm=TRUE)
+iqpost <- IQR(DD$`Gasto promedio diario actual con método principal de pago`, na.rm=TRUE)
+
+maxpre <- quantile(DD$`Gasto promedio diario pre-pandemia con método principal de pago`,0.75,na.rm=TRUE)+3*iqpre
+maxpost <- quantile(DD$`Gasto promedio diario actual con método principal de pago`,0.75, na.rm=TRUE)+3*iqpost
+  
+DD3 <- filter(DD, DD$`Gasto promedio diario actual con método principal de pago` < maxpost)
+DD3 <- filter(DD3, DD3$`Gasto promedio diario pre-pandemia con método principal de pago` < maxpost)
+
+
+DD4 <- filter(DD3, (DD3$`Utilización de las billeteras digitales antes de la pandemia`== "No") | (DD3$`Conocimiento de la existencia de las billeteras digitales antes de la pandemia` == "No"))
+
+ColoresG8 = c("#403F4C", "#E84855")
+
+G8 <- plot(x = DD4$`Gasto promedio diario actual con método principal de pago`, 
+     y = DD4$`Gasto promedio diario pre-pandemia con método principal de pago`, 
+     pch = 20,
+     
+     # Configuración del título
+     main = "Gráfico 8: Pre vs postpandemia del promedio del gasto diario de los que usuarios \nactuales de billeteras digitales", 
+     cex.main = 1,
+     
+     # Configuración del subtitulo
+     sub = "* Nota: Usuarios que, prepandemia, no usaban billeteras digitales",
+     cex.sub = 0.8,
+     
+     # Configuración de los ejes
+     xlab = "Postpandemia", 
+     ylab = "Prepandemia",
+     
+     col = ColoresG8[factor(DD4$`Billetera digital más usada`)])
+
+legend(x = "topleft", legend = levels(factor(DD4$`Billetera digital más usada`)), fill = ColoresG8, title = "Billetera digital \n a la que migraron")
+
+```
+
+**Análisis: La mayoría de usuarios que han migrado durante o tras la pandemia manejan cantidades de dinero baja con las billeteras digitales (hasta S/50) y usan aplicativos que son conocidos para transferencias de ese tipo (Yape y Plin). Además, se refleja cierto aumento en la cantidad gastada postpandemia con respecto a la prepandemia.**
+
+#### 2.7.2. Relación lineal
+
+```{r, echo = FALSE}
+DD4P <- filter(DD4, DD4$`Billetera digital más usada`=="Plin")
+DD4Y <- filter(DD4, DD4$`Billetera digital más usada`=="Yape")
+corrP1 <- cor(DD4P$`Gasto promedio diario actual con método principal de pago`, DD4P$`Gasto promedio diario pre-pandemia con método principal de pago`)
+corrY1 <- cor(DD4Y$`Gasto promedio diario actual con método principal de pago`, DD4Y$`Gasto promedio diario pre-pandemia con método principal de pago`)
+```
+
+```{r}
+sprintf("La covarianza de ambas variables para los usuarios de Plin es: %f", corrP1)
+sprintf("La covarianza de ambas variables para los usuarios de Yape es: %f", corrY1)
+```
+
+**Análisis: Tanto para los usuarios de Yape como de Plin actuales que no usaban las billeteras digitales prepandemia se puede afirmar que el gasto postpandemia y gasto prepandemia están relacionados directamente, es decir, para un gasto mayor postpandemia se va a encontrar un gasto mayor prepandemia y viceversa. Además, los usuarios de Yape son los que tienen una mayor tendencia en esta relación que los usuarios de Plin.**
+
+------------------------------------------------------------------------
+
+-   Como el gasto postpandemia es mayor que el prepandemia, se puede afirmar que en su mayoría existirá que hay un mayor gasto postpandemia que prepandemia, por lo que, las billeteras digitales implican un gasto diario mayor.
+
+------------------------------------------------------------------------
+
+### 2.8. Comparación del gasto prepandemia y postpandemia con la billeteras digital más usadas para los usuarios que sí las usaban prepandemia
+
+#### 2.8.1. Diagrama de dispersión
+
+```{r, echo = FALSE}
+
+DD5 <- filter(DD3, DD3$`Billeteras digitales como principal método de pago` == "Sí")
+DD5 <- filter(DD5, DD5$`Utilización de las billeteras digitales antes de la pandemia`== "Sí")
+
+ColoresG9 = c("#403F4C", "#E84855", "#F9DC5C", "#0091AD", "#55D6BE")
+
+G9 <- plot(x = DD5$`Gasto promedio diario actual con método principal de pago`, 
+     y = DD5$`Gasto promedio diario pre-pandemia con método principal de pago`, 
+     pch = 20, 
+     
+     # Configuración del título
+     main = "Gráfico 9: Pre vs postpandemia del promedio del gasto diario de los que usuarios \nactuales de billeteras digitales", 
+     cex.main = 1,
+     
+     # Configuración del subtitulo
+     sub = "* Nota: Usuarios que, prepandemia, usaban billeteras digitales",
+     cex.sub = 0.8,
+     
+     # Configuración de los ejes
+     xlab = "Postpandemia", 
+     ylab = "Prepandemia",
+     
+     col = ColoresG9[factor(DD5$`Billetera digital más usada`)])
+
+legend(x = "topleft", legend = levels(factor(DD5$`Billetera digital más usada`)), fill = ColoresG9, title = "Principal billetera \n digital usada")
+```
+
+**Análisis: La mayoría de los usuarios que usaban billeteras digitales prepandemia tienen un gasto por encima de 50 soles diarios postpandemia y las billeteras digitales más usadas son las que más populares (Yape y Plin). Además, se refleja un aumento considerable en el gasto diario postpandemia con respecto a la prepandemia.**
+
+------------------------------------------------------------------------
+
+-   De las gráficas 8 y 9, se puede concluir que el gasto de dinero postpandemia tuvo un incremento con respecto a la prepandemia para los usuarios que actualmente usan billeteras digitales tanto para los que no las usaban prepandemia como para los que las usaban prepandemia.
+
+------------------------------------------------------------------------
+
+#### 2.8.2. Relación lineal
+
+```{r, echo = FALSE}
+DD5Y <- filter(DD5, DD5$`Billetera digital más usada`=="Yape")
+corrV <- cor(DD5$`Gasto promedio diario actual con método principal de pago`, DD5$`Gasto promedio diario pre-pandemia con método principal de pago`)
+corrY2 <- cor(DD5Y$`Gasto promedio diario actual con método principal de pago`, DD5Y$`Gasto promedio diario pre-pandemia con método principal de pago`)
+```
+
+------------------------------------------------------------------------
+
+Debido a que para las billeteras digitales Apple Wallet y Apple Pay solo constan de 1 usuario y los usuarios de Plin son solo 3, se va a realizar el análisis de relación lineal con los usuarios de Yape y con todas las billeteras digitales en conjunto.
+
+------------------------------------------------------------------------
+
+```{r}
+sprintf("La covarianza de ambas variables para los usuarios de Yape es: %f", corrY2)
+sprintf("La covarianza de ambas variables para todos los usuarios: %f", corrV)
+```
+
+**Análisis: Tanto para los usuarios de Yape como de billeteras digitales en general que usaban las billeteras digitales prepandemia se puede afirmar que el gasto postpandemia y gasto prepandemia están relacionados directamente, es decir, para un gasto mayor postpandemia se va a encontrar un gasto mayor prepandemia y viceversa. Además, los usuarios de Yape son los que tienen una relación más directa.**
+
+------------------------------------------------------------------------
+
+-   Como el gasto postpandemia es mayor que el prepandemia, se puede afirmar que en su mayoría existirá que hay un mayor gasto postpandemia que prepandemia, por lo que, la pandemia tuvo un efecto de mayor consumo en los usuarios de billeteras digitales y por consecuencia un mayor uso de estas para los que anteriormente usaban las billeteras digitales.
+
+------------------------------------------------------------------------
+
+## **3. Análisis probabilístico**
+
+### 3.1. Probabilidad empírica
+
+**Variables:**
+
+-   *Principal razón de la utilización de las billeteras digitales antes de la pandemia*
+
+-   *Nivel de creencia de la rapidez de las billeteras digitales*
+
+**Experimento 1: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" y observar la principal razón por la cual la empezó a utilizar**
+
+0.  Espacio muestral
+
+$$\Omega_1 = \{Accesibilidad, comodidad, necesidad, seguridad\}$$
+
+```{r, include = FALSE}
+T1 <- table(DF$`Principal razón de la utilización de las billeteras digitales antes de la pandemia`)
+Total1 <- sum(T1)
+DF1 <- data.frame(T1)
+```
+
+**Evento 1**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que tiene como razón principal por la cual empezó a utilizar la billetera digital la necesidad.
+
+1.  ¿Cuál es la probabilidad que la razón principal sea la necesidad? $$ P(Necesidad) = \frac{Cant. \hspace{0.1cm} necesidad}{Total}$$
+
+```{r}
+round(sum(filter(DF1, DF1$Var1 == "Necesidad (ej.: Este medio era muy usado en su entorno)")[2])/Total1, 2)
+```
+
+**Evento 2**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que tiene como razón principal por la cual empezó a utilizar la billetera digital la comodidad.
+
+2.  ¿Cuál es la probabilidad que el motivo principal haya sido la comodidad? $$ P(Comodidad) = \frac{Cant. \hspace{0.1cm} comodidad}{Total}$$
+
+```{r}
+round(sum(filter(DF1, DF1$Var1 == "Comodidad (ej.: Integridad con otros medios de pago)")[2])/Total1, 2)
+```
+
+**Evento 3**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que tiene como razón principal por la cual empezó a utilizar la billetera digital la accesibilidad
+
+3.  Probabilidad de que una persona haya tenido como causa primaria de uso la accesibilidad. $$ P(Accesibilidad) = \frac{Cant. \hspace{0.1cm} accesibilidad}{Total}$$
+
+```{r}
+round(sum(filter(DF1, DF1$Var1 == "Accesibilidad (ej.: Realizar transferencias desde el teléfono)")[2])/Total1, 2)
+```
+
+**Evento 4**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que tiene como razón principal por la cual empezó a utilizar la billetera digital la seguridad
+
+4.  Probabilidad de que la seguridad haya sido la razón principal por la que una persona haya comenzado a usar billeteras digitales. $$ P(Seguridad) = \frac{Cant. \hspace{0.1cm} seguridad}{Total}$$
+
+```{r}
+round(sum(filter(DF1, DF1$Var1 == "Seguridad (ej.: Menos riesgo de robo)")[2])/Total1, 2)
+```
+
+------------------------------------------------------------------------
+
+-   Conclusión: Es más probable que una persona use este método de pago por comodidad principalmente, más allá de otros factores de importancia como la seguridad
+
+------------------------------------------------------------------------
+
+**Experimento 2: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" y observar su nivel de creencia de la rapidez de las billeteras digitales**
+
+0.  Espacio muestral:
+
+$$\Omega_2 = \{1, 2, 3, 4, 5\}$$
+
+```{r, include = FALSE}
+T2 <- table(DF$`Nivel de creencia de la rapidez de las billeteras digitales`)
+DF2 <- data.frame(T2)
+Total2 <- sum(DF2$Freq)
+```
+
+**Evento 1**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que presenta un nivel comodidad de 5 en su método principal de pago.
+
+1.  Probabilidad de que las personas crean que la rapidez de las billeteras digitales son un 5/5. $$ P(5 \hspace{0.1cm} de \hspace{0.1cm} 5) = \frac{Cant. \hspace{0.1cm} de \hspace{0.1cm} 5 \hspace{0.1cm}}{Total}$$
+
+```{r}
+round(sum(filter(DF2, DF2$Var1 == "5")[2])/Total2, 2)
+```
+
+**Evento 2**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que presenta un nivel comodidad de 4 en su método principal de pago.
+
+2.  Probabilidad de que las personas crean que la rapidez de las billeteras digitales son un 4/5. $$ P(4 \hspace{0.1cm} de \hspace{0.1cm} 5) = \frac{Cant. \hspace{0.1cm} de \hspace{0.1cm} 4 \hspace{0.1cm}}{Total}$$
+
+```{r}
+round(sum(filter(DF2, DF2$Var1 == "4")[2])/Total2, 2)
+```
+
+**Evento 3**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que presenta un nivel comodidad de 3 en su método principal de pago.
+
+3.  Probabilidad de que las personas crean que la rapidez de las billeteras digitales son un 3/5. $$ P(3 \hspace{0.1cm} de \hspace{0.1cm} 5) = \frac{Cant. \hspace{0.1cm} de \hspace{0.1cm} 3 \hspace{0.1cm}}{Total}$$
+
+```{r}
+round(sum(filter(DF2, DF2$Var1 == "3")[2])/Total2, 2)
+```
+
+**Evento 4**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que presenta un nivel comodidad de 2 en su método principal de pago.
+
+4.  Probabilidad de que las personas crean que la rapidez de las billeteras digitales son un 2/5. $$ P(2 \hspace{0.1cm} de \hspace{0.1cm} 5) = \frac{Cant. \hspace{0.1cm} de \hspace{0.1cm} 2 \hspace{0.1cm}}{Total}$$
+
+```{r}
+round(sum(filter(DF2, DF2$Var1 == "2")[2])/Total2, 2)
+```
+
+**Evento 5**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que presenta un nivel comodidad de 1 en su método principal de pago.
+
+5.  Probabilidad de que las personas crean que la rapidez de las billeteras digitales son un 1/5. $$ P(1 \hspace{0.1cm} de \hspace{0.1cm} 5) = \frac{Cant. \hspace{0.1cm} de \hspace{0.1cm} 1 \hspace{0.1cm}}{Total}$$
+
+```{r}
+round(sum(filter(DF2, DF2$Var1 == "1")[2])/Total2, 2)
+```
+
+------------------------------------------------------------------------
+
+-   Conclusión: Más del 70% creen que las billeteras digitales tienen un alto nivel de rapidez. Esto, de cierta manera, da lugar a que hay un condicionamiento para bien de estas sobre este tipo de método de pago.
+
+------------------------------------------------------------------------
+
+### 3.2. Probabilidad condicional
+
+#### 3.2.1 Eventos independientes
+
+**Comprobación de la independencia**
+
+```{r, include = FALSE}
+mayor <-  c(nrow(filter(DF,DF$`Conocimiento de la existencia de las billeteras digitales antes de la pandemia`=="No" & DF$`Gasto promedio diario actual con método principal de pago` > 100)), nrow(filter(DF,DF$`Conocimiento de la existencia de las billeteras digitales antes de la pandemia`=="Sí"& DF$`Gasto promedio diario actual con método principal de pago`  > 100)))
+
+menor <-c(nrow(filter(DF,DF$`Conocimiento de la existencia de las billeteras digitales antes de la pandemia`=="No" & DF$`Gasto promedio diario actual con método principal de pago` <= 100)), nrow(filter(DF,DF$`Conocimiento de la existencia de las billeteras digitales antes de la pandemia`=="Sí" & DF$`Gasto promedio diario actual con método principal de pago` <= 100)))
+
+a <- c("No","Sí")
+DF1 <- data.frame(a,mayor,menor)
+colnames(DF1) <- c("Conocimiento de la existencia de las billeteras digitales antes de la pandemia", "Gasto diario mayor a 100 soles", "Gasto menor e igual a 100 soles")
+```
+
+```{r}
+# Tabla
+DF1
+```
+
+```{r}
+# Cantidades para cada caso
+nA <- 77 + 66
+nB <- 13 + 66
+nB2 <- 14+ 77
+nAB2 <- 77
+nAB <- 66
+nT <- 170
+```
+
+**Evento A**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que tenga un gasto diario menos a 100 soles.
+
+**Evento B**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que supiera de la existencia de las billeteras digitales prepandemia.
+
+$$\mathbb{P}(A \cap B) = \mathbb{P}(A)*\mathbb{P}(B) $$
+
+```{r}
+# P(A∩B)
+round(nAB/nT,2)
+# P(A)*P(B)
+round(nA*nB/(nT*nT),2)
+```
+
+$$\mathbb{P}(A | B) = \mathbb{P}(A) $$
+
+```{r}
+# P(A|B)
+round(nAB/nB,2)
+# P(A)
+round(nA/nT,2)
+```
+
+$$ P(A|B) = \frac{ P(A \cap B)}{P(B)}$$
+
+```{r}
+# P(A|B)
+round(nAB/nB,2)
+# P(A∩B)/P(B)
+round((nAB/nT)/(nB/nT),2)
+```
+
+Teorema de Bayes $$P(A|B)=\frac{ P(B|A) * P(A)}{P(B)}$$
+
+```{r}
+PBA <- nAB/nA
+PA <- nA/nT
+PB <- nB/nT
+# P(A|B)
+round(nAB/nB,2)
+# P(B|A)*P(A)/P(B)
+round(PBA*PA/PB,2)
+```
+
+Probabilidad total
+
+$$P(A)=P(A|B_1)*P(B_1)+P(A|B_2)*P(B_2)+...P(A|B_k)*P(B_k)$$
+
+```{r}
+PAB1 <- nAB/nB 
+PAB2 <- nAB2/nB2
+PB2 <- nB2/nT
+# P(A)
+round(PA,2)
+# P(A|B1)*P(B1)+P(A|B2)*P(B2)
+round(PAB1*PB + PAB2*PB2, 2)
+
+```
+
+#### 3.2.2 Eventos dependientes
+
+```{r, include = FALSE}
+DF$`Método principal de pago`[is.na(DF$`Método principal de pago`)] <- "Billetera digital"
+DF3 <- data.frame(DF$`Método principal de pago`, DF$`Utilización de las billeteras digitales antes de la pandemia`)
+```
+
+```{r}
+# Tabla
+table(DF3)
+```
+
+```{r}
+# Cantidades para cada caso
+nA <- 25 + 4 + 0 + 6 + 0
+nBi <- 17 + 25 
+nE <- 21 + 4
+nNA <- 0 + 0
+nT <- 5 + 6
+nTB <- 1 + 0
+nABI <- 25
+nAE <- 4
+nANA <- 0
+nAT <- 6
+nATB <- 0
+nTotal <- 17+25+21+4+5+6+1
+```
+
+**Evento A**: Seleccionar una persona del "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que utilizaba las billeteras digitales prepandemia.
+
+**Evento B**: Seleccionar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que actualmente use las billeteras digitales como medio de pago.
+
+$$\mathbb{P}(A \cap B) \space !=  \mathbb{P}(A)*\mathbb{P}(B) $$
+
+```{r}
+#P(A∩B)
+round(nABI/nTotal,2)
+#P(A)*P(B)
+round(nA*nBi/(nTotal*nTotal),2)
+```
+
+$$\mathbb{P}(A | B) \space != \mathbb{P}(A) $$
+
+```{r}
+#P(A|B)
+round(nABI/nBi,2)
+#P(A)
+round(nA/nTotal,2)
+```
+
+Probabilidad condicional: La probabilidad de que un estudiante del estudio utilizase billeteras digitales prepandemia dado que actualmente las use. $$ P(A|B) = \frac{ P(A \cap B)}{P(B)}$$
+
+```{r}
+#P(A|B)
+round(nABI/nBi,2)
+#P(A∩B)/P(B)
+round((nABI/nTotal)/(nBi/nTotal),2)
+```
+
+Teorema de Bayes $$P(A|B)=\frac{ P(B|A) * P(A)}{P(B)}$$
+
+```{r}
+PBA <- nABI/nA
+PA <- nA/nTotal
+PB <- nBi/nTotal
+#P(A|B)
+round(nABI/nBi,2)
+#P(B|A)*P(A)/P(B)
+round(PBA*PA/PB,2)
+```
+
+Probabilidad total
+
+$$P(A)=P(A|B_1)*P(B_1)+P(A|B_2)*P(B_2)+...P(A|B_k)*P(B_k)$$
+
+```{r}
+PAB1 <- nABI/nBi 
+PAB2 <- nAE/nE
+PAB3 <- 0
+PAB4 <- nAT/nT
+PAB5 <- nATB/nTB
+PB1 <- nBi/nTotal
+PB2 <- nE/nTotal
+PB3 <- nNA/nTotal
+PB4 <- nT/nTotal
+PB5 <- nTB/nTotal
+#P(A)
+round(PA,2)
+#P(A|B1)*P(B1)+P(A|B2)*P(B2)
+round(PAB1*PB1 + PAB2*PB2 + PAB3*PB3 + PAB4*PB4 + PAB5*PB5, 2)
+```
+
+### 3.3. Variable discreta
+
+#### Caso 1: Se utilizará una distribución hipergeométrica donde la variable de tiempo de utilización de billeteras puede varias entre 0 y 72
+
+**Éxito**: Encontrar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que el tiempo de utilización de billeteras digitales sea de al menos 12 meses.
+
+**Definición de la variable aleatoria**: *Número de personas encuestadas cuyo tiempo de uso de billeteras digitales sea de al menos 12 meses que formen parte del grupo de personas que usan billeteras digitales*.
+
+```{r, include = FALSE}
+a <- filter(DF,DF$`Tiempo de utilización de la billetera digital` < 12)
+b <- filter(DF, DF$`Tiempo de utilización de la billetera digital` >= 12)
+DF5 <- data.frame(nrow(a), nrow(b))
+colnames(DF5) <- c("Menor a 12 meses", "Mayor e igual a 12 meses")
+DF5
+esperanza <- function(n,r,N) n*r/N
+varianza <- function(n,r,N){
+  a <- n*(r/N)*(1-(r/N))*((N-n)/(N-1))
+  return(a)
+}
+CV <- function(n,r,N){
+  a <- esperanza(n,r,N)/((varianza(n,r,N))^0.5)
+  return(a)
+}
+```
+
+$$X \sim Hiperg(N,r,n)$$
+
+-   **N**: Población; personas del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que usen billeteras digitales como medio de pago
+
+-   **r**: Éxito de la población; número de personas del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que tengan a lo menos 12 meses de uso de las billeteras digitales
+
+-   **n**: Muestra; tamaño de la muestra escogida, sin reemplazo, de la población Identificación de parámetros
+
+```{r}
+#Población (N)
+total <- 45 + 77
+#Exito de la población (r)
+r <- 77
+```
+
+Sabiendo que la población es de 122 personas y dentro de ese grupo, 77 personas usen desde, por lo menos, 12 meses las billeteras digitales y las otras 55 personas lo usen menos de 12 meses
+
+Para una muestra de 30 personas:
+
+```{r}
+# Esperanza
+round(esperanza(30,77,122), 2)
+# Varianza
+round(varianza(30,77,122), 2)
+# CV
+round(CV(30,77,122), 2)
+```
+
+**Gráfica de densidad**:
+
+```{r}
+f <- function(x) dhyper(x,m=77,n=122,k=50)
+x <- 0:30
+fx2 <- f(x)
+plot(x,fx2,xlab= "Número de exitos", ylab = "Densidad", col = "red", pch=1)
+segments(x0=x, y0= 0, x1=x, y1=fx2, col = "red", lwd = 2)
+```
+
+a.  ¿Cuál es la probabilidad de que de una muestra de 30 personas, 15 personas tengan un tiempo de utilización de la billetas digitales de por lo menos 12 meses?
+
+```{r}
+# Muestra (n): 30 personas
+# Éxitos de la muestra (x): 10 personas
+round(dhyper(x=10,m = 77, n = 122,k=20), 2)
+```
+
+b.  ¿Cuál es la probabilidad de que de un grupo de 30 personas, al menos 10 personas hayan utilizado las billeteras digitales por lo menos 12 meses?
+
+```{r}
+#Muestra (n): 30 personas
+#Exitos de la muestra (x): x >= 40
+round(1-phyper(q=9,m=77,n=122,k=30), 2)
+```
+
+#### Caso 2: Distribución de Bernoulli donde la variable que indica la cantidad de familiares que usan este método de pago va de 1 a 10
+
+**Éxito**: Encontrar una persona del estudio "El impacto de la pandemia en el uso de las billeteras digitales en Lima Metropolitana" que tenga 6 o más familiares usando billeteras digitales.
+
+```{r, include = FALSE}
+DF$`Miembros de la familia que utilizan billeteras digitales` <- as.numeric(DF$`Miembros de la familia que utilizan billeteras digitales`)
+c <- filter(DF, DF$`Miembros de la familia que utilizan billeteras digitales` >= 6)
+dim(c)[1]
+n <- dim(DF)[1]
+```
+
+```{r}
+# Tamaño muestra
+n
+```
+**Definición de la variable aleatoria**: *Número de personas con más de 6 familiares que usan billeteras digitales*
+
+$$X \sim Be(p)$$
+
+-   **p**: probabilidad que se dé el evento
+
+Identificación de parámetros:
+
+```{r}
+# Probabilidad (p)
+prob_bern <- 35/170
+
+# Esperanza
+esperanza_ber <- prob_bern
+
+# Varianza
+var_bern <- prob_bern*(1-prob_bern)
+```
+
+**Gráfica de densidad**:
+
+```{r}
+f <- function(x) dbinom(x, 1,  p = 35/170)
+x <- 0:1
+fx2 <- f(x)
+plot(x,fx2,xlab= "Número de éxitos", ylab = "Densidad", col = "red", pch=1)
+segments(x0=x, y0= 0, x1=x, y1=fx2, col = "red", lwd = 2)
+```
+
+a.  Si se escogiese un encuestado al azar, ¿cuál es la probabilidad de que 6 o más de sus familiares usen bill. digitales?
+
+```{r}
+round(dbinom(0:1, 1, p = prob_bern)[2], 2)
+```
+
+### 3.4. Variables continuas
+
+**Análisis 1: Gasto promedio diario pre-pandemia con el método principal de pago**
+
+```{r, include = FALSE}
+df_gasto_manipulado <- filter(DF, DF$`Gasto promedio diario pre-pandemia con método principal de pago` <= 200)
+porcentaje_gasto_manipulado <- dim(df_gasto_manipulado)[1]/dim(DF)[1]
+```
+
+
+```{r}
+round(porcentaje_gasto_manipulado, 2) # Porcentaje de las personas con gasto menor a 200 (para filtrar datos atípicos). De esta manera, corroboramos (por cantidad de personas) la validez del análisis.
+```
+
+Se gráfica la densidad de la variable para observar el comportamiento que tiene y tratar de ver qué modelo es el que mejor se ajusta a lo obtenido.
+
+```{r}
+plot(density(df_gasto_manipulado$`Gasto promedio diario pre-pandemia con método principal de pago`), lwd = 2, col = "red", main = "Densidad mt2")
+```
+
+Partiremos de la base que la gráfica tiene una aproximación a la distribución de probabilidad normal (debido a la forma), ya que no se asemeja ni a una exponencial ni a una uniforme.
+
+
+
+
+Validación de la suposición de partida (corroboración de parámetros):
+
+```{r}
+de <- sd(df_gasto_manipulado$`Gasto promedio diario pre-pandemia con método principal de pago`, na.rm = TRUE)
+media <- mean(df_gasto_manipulado$`Gasto promedio diario pre-pandemia con método principal de pago`, na.rm=TRUE)
+# Media
+round(media, 2)
+# Mediana
+median(df_gasto_manipulado$`Gasto promedio diario pre-pandemia con método principal de pago`, na.rm=TRUE)
+```
+
+- La media y la mediana varían ni tienen un valor relativamente cercano. Por lo tanto, va en contra de una característica principal de una distribución normal (media = mediana).
+
+```{r}
+# Esperanza
+round(integrate(function(x) dnorm(x,mean=media,sd=de)*x, lower=0, upper=200)[[1]][1], 2)
+round(media, 2)
+```
+
+- La esperanza calculada a partir del modelo de distribución normal tiene una pequeña diferencia con el de los datos. Esto puede interpretarse a favor de la suposición que se tomó.
+
+```{r}
+# Varianza
+round(integrate(function(x) dnorm(x,mean=media,sd=de)*((x-de)^2), lower=0, upper=200)[[1]][1], 2)
+round(var(df_gasto_manipulado$`Gasto promedio diario pre-pandemia con método principal de pago`,na.rm=TRUE), 2)
+```
+
+- La varianza calculada a partir de la distribución varía significativamente con la calculado a partir de los datos obtenidos, lo que debilita la suposición inicial.
+
+Tras las validaciones, al ver parámetros que varían notablemente entre el modelo y lo registrado, podemos asumir que la distribución normal no es un modelo que se ajuste fielmente a la variable de estudio.
+
+Como no cumple que sea una distribución normal, entonces se asumirá que la variable se comporta como una para el cálculo de probabilidades.
+
+$$X \sim N(\mu,\sigma)$$
+
+-   **μ**: Esperanza
+-   **σ**: Desviación estándar
+
+a.  Calcular la probabilidad de que el gasto prepandemia diario sea menor que 50 soles
+
+```{r}
+round(pnorm(50, media, de), 2)
+```
+
+b.  Calcular la probabilidad de que el gasto prepandemia diario sea mayor a 100 soles
+
+```{r}
+round(1-pnorm(100,media,de), 2) 
+```
+
+**Análisis 2: Gasto promedio diario actual con el método principal de pago**
+
+```{r, include = FALSE}
+df_gasto_actual_manipulado <- filter(DF, DF$`Gasto promedio diario actual con método principal de pago` <= 200)
+porcentaje_gasto_actual_manipulado <- dim(df_gasto_actual_manipulado)[1]/dim(DF)[1]
+```
+
+```{r}
+round(porcentaje_gasto_actual_manipulado, 2) # Porcentaje de las personas con gasto menor a 200 (para filtrar datos atípicos). De esta manera, corroboramos (por cantidad de personas) la validez del análisis.
+```
+
+```{r}
+plot(density(df_gasto_actual_manipulado$`Gasto promedio diario actual con método principal de pago`), lwd = 2, col = "red", main = "Densidad mt2")
+```
+
+
+Partiremos de la base que la gráfica tiene una aproximación a la distribución de probabilidad normal (debido a la forma), ya que no se asemeja ni a una exponencial ni a una uniforme.
+
+Validación de la suposición de partida (corroboración de parámetros):
+
+```{r}
+de_a <- sd(df_gasto_actual_manipulado$`Gasto promedio diario actual con método principal de pago`, na.rm = TRUE)
+media_a <- mean(df_gasto_actual_manipulado$`Gasto promedio diario actual con método principal de pago`, na.rm=TRUE)
+# Media
+round(media_a, 2)
+# Mediana
+median(df_gasto_actual_manipulado$`Gasto promedio diario actual con método principal de pago`, na.rm=TRUE)
+```
+
+- La media y la mediana varían ni tienen un valor relativamente cercano. Por lo tanto, va en contra de una característica principal de una distribución normal (media = mediana).
+
+```{r}
+# Esperanza
+round(integrate(function(x) dnorm(x,mean=media_a,sd=de_a)*x, lower=0, upper=200)[[1]][1], 2)
+round(media_a, 2)
+```
+
+-   La esperanza calculada a partir del modelo de distribución normal tiene una pequeña diferencia con el de los datos. Esto puede interpretarse a favor de la suposición que se tomó.
+
+```{r}
+# Varianza
+round(integrate(function(x) dnorm(x,mean=media_a,sd=de_a)*((x-de_a)^2), lower=0, upper=200)[[1]][1], 2)
+round(var(df_gasto_actual_manipulado$`Gasto promedio diario actual con método principal de pago`,na.rm=TRUE), 2)
+```
+
+- La varianza calculada a partir de la distribución varía significativamente con la calculado a partir de los datos obtenidos, lo que debilita la suposición inicial.
+
+Tras las validaciones, al ver parámetros que varían notablemente entre el modelo y lo registrado, podemos asumir que la distribución normal no es un modelo que se ajuste fielmente a la variable de estudio.
+
+Como no cumple que sea una distribución normal, entonces se asumirá que la variable se comporta como una para el cálculo de probabilidades.
+
+$$X \sim N(\mu,\sigma)$$
+
+-   **μ**: Esperanza
+-   **σ**: Desviación estándar
+
+a.  Calcular la probabilidad de que el gasto actual diario sea menor que 50 soles
+
+```{r}
+round(pnorm(50, media_a, de_a), 2)
+```
+
+b.  Calcular la probabilidad de que el gasto actual diario sea mayor a 100 soles
+
+```{r}
+round(1-pnorm(100,media_a,de_a), 2)
+```
+
+## **4. Conclusiones**
+
+-   Las razones por las cuales las personas no usaban las billeteras digitales se deben en gran parte al desconocimiento de estos y la poca o nula necesidad de usarlos prepandemia.
+
+-   Se pudo determinar que las principales razones del cambio a las billeteras digitales se debió a la accesibilidad y la comodidad, además, esto se puede corraborar con la probabilidad de encontrar una persona del estudio cuyas razones principales de uso de las billeteras digitales sean accesibilidad y comodidad las cuales son 0.29 y 0.43, respectivamente.
+
+-   Los factores predominantes que influyeron en la permanencia del uso de billeteras digitales se deben al nivel de rapidez que estos presentan, observandose también en el gasto diario promedio donde se pudo determinar que para los encuestados es más probable encontrar a una persona que tenga un gasto diario postpandemia mayor a 100 soles que encontrar a una persona que tenga un gasto diario prepandemia mayor a 100 soles.

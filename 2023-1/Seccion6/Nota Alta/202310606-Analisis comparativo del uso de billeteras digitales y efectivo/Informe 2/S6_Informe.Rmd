@@ -1,0 +1,638 @@
+---
+title: "Informe"
+author: "Billeteras digitales y efectivo"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    theme: cosmo
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+---
+
+```{r, echo=FALSE}
+## En esta sección se está verificando si la librería usado para el archivo se encuentra previamente instalada, en caso de no estarla, se procederá a instalar el paquete con la función install.packages(). Finalmente, se invoca a la librería con la función library().
+if (!require("readr")) {
+  install.packages("readr")
+}
+library(readr)
+if (!require("plyr")) {
+  install.packages("plyr")
+}
+library(plyr)
+if (!require("dplyr")) {
+  install.packages("dplyr")
+}
+library(dplyr)
+if (!require("ggplot2")) {
+  install.packages("ggplot2")
+}
+library(ggplot2)
+if (!require("plotly")) {
+  install.packages("plotly")
+}
+library(plotly)
+
+if (!require("rriskDistributions")) {
+  install.packages("rriskDistributions")
+}
+library(rriskDistributions)
+
+if (!require("fitdistrplus")) {
+  install.packages("fitdistrplus")
+}
+library(fitdistrplus)
+
+```
+
+```{r, echo=FALSE}
+BD<-read.csv("BD_billeteras_limpia_final.csv")
+BD
+ubd<-filter(BD, Billetera_principal!="No uso billeteras digitales")
+nubd<-filter(BD, Billetera_principal=="No uso billeteras digitales")
+```
+# **Tema: Análisis comparativo del uso de billeteras digitales y efectivo en estudiantes de UTEC en el ciclo 2023-I**  
+
+![Billeteras digitales](fondo.jpg)
+
+
+# **Introducción**  
+
+## **Relevancia**  
+En la entrega anterior, se mencionó el fenómeno de las billeteras digitales como un medio alternativo para el pago en efectivo. En este contexto, uno de los objetivos principales de nuestro proyecto es analizar e investigar el uso de las billeteras digitales en comparación con el efectivo. Para esta segunda entrega, buscamos comprender cómo el cambio hacia las billeteras digitales puede afectar nuestra forma de interactuar con el dinero y las transacciones financieras. Por lo tanto, en esta etapa de nuestro proyecto, utilizaremos la probabilidad empírica para conocer la frecuencia con la que ocurre un evento determinado. Del mismo modo, usaremos la probabilidad condicional para comprender cómo ciertos factores podrían influir en la preferencia de las personas en relación al uso de billeteras digitales y efectivo. Estas razones pueden ser dependientes o no de su decisión. Por último, utilizaremos modelos de variables aleatorias relacionados con el uso de billeteras digitales y efectivo. En este sentido, se utilizarán métodos para ajustar los modelos probabilísticos a los datos recopilados y analizar sus características y tendencias.
+
+## **Objetivos**  
+1) Utilizar probabilidad empírica para comprender por qué las personas prefieren usar billeteras digitales y saber si están satisfechas o no al usar una billetera digital.
+2) Utilizar probabilidad condicional y gráficos de mosaico para comprender cómo ciertos factores pueden influir en las preferencias de las personas en relación al uso de las billeteras digitales, lo que nos permitirá comprender mejor qué aspectos o factores son relevantes en la adopción de las billeteras digitales.
+3) Utilizar modelos probabilísticos para comprender las características y tendencias asociadas con el uso de las billeteras digitales en comparación con el efectivo.
+
+## **Contexto**  
+
+Las billeteras digitales son sistemas de pago electrónico que permiten a los usuarios realizar transacciones sin necesidad de efectivo. Estas billeteras digitales ofrecen la posibilidad de pagar en establecimientos físicos mediante tecnologías como los códigos QR. Los usuarios pueden vincular sus tarjetas de crédito o débito a la billetera digital y realizar pagos acercando su dispositivo móvil al terminal de pago o escaneando un código QR.  
+
+Sin embargo, el pago en efectivo sigue siendo ampliamente aceptado debido a que se puede utilizar en cualquier lugar sin depender de la infraestructura de pagos electrónicos. El uso de efectivo también proporciona un nivel de anonimato, privacidad y control sobre el dinero gastado. Además, evita riesgos de seguridad, como los fraudes en línea.
+
+# **Análisis descriptivo**  
+
+```{r, echo=FALSE}
+mosaicplot(table(ubd$Billetera_principal, ubd$Satisfaccion_billetera), ylab="               Nivel satisfacción", xlab= "Billeteras digitales más usadas: Plin y Yape", color=c("#377EB8", "#4DAF4A"), main="Grado de satisfacción de usuarios de billeteras digitales( Yape o Plin)")
+```
+  
+  
+Se observa que la billetera digital Yape tiene un mayor número de usuarios que la billetera digital Plin, lo que podría indicar que más personas prefieren utilizar Yape.
+Se observa una diferencia en las proporciones de nivel de satisfacción dependiendo de si se utiliza Yape o Plin.
+Este último patrón podría indicar una dependencia de eventos desde una perspectiva de análisis probabilístico.
+
+```{r, echo=FALSE}
+mosaicplot(table(ubd$Billetera_principal, ubd$Razon_billetera), color = c("#1F77B4", "#2CA02C", "#FF7F0E"), main="Razones principales para usar una billetera digital(Yape o Plin)", xlab= "Billeteras digitales más usadas: Plin y Yape")
+```
+  
+  
+Se observa que la billetera digital Yape tiene un mayor ancho que la billetera digital Plin, lo que podría indicar que más personas tienen preferencia por utilizar Yape.
+Un patrón notable es que las proporciones de las razones para usar una billetera digital como alternativa al dinero en efectivo se mantienen en ambas aplicaciones.
+Esto último podría indicar independencia de eventos desde una perspectiva de análisis probabilístico.
+```{r, echo=FALSE}
+boxplot(ubd$Gasto_diario_billetera, ylab="Gasto diario promedio en soles", main="Boxplot de la variable gasto diario promedio en soles en billeteras digitales")
+summary(ubd$Gasto_diario_billetera)
+```
+  
+  
+En el boxplot se puede observar que la mediana está ubicada en el valor de 20.
+El tercer cuartil se encuentra en el valor de 25. Esto sirve para establecer un límite superior para el 75% de los datos de menor valor.
+El rango intercuartil es de 15, abarcando desde 10 hasta 25, lo que representa la mitad de los datos y nos proporciona un intervalo de concentración de los mismos.
+El boxplot permite establecer una relación con las probabilidades de nuestros futuros modelos de variable aleatoria, lo que nos permite relacionar nuestros datos experimentales con los valores teóricos aproximados de los modelos y, de esta manera, sustentar o explicar los resultados obtenidos.
+
+# **Análisis probabilístico**
+
+## **Eventos**  
+
+La primera variable a analizar es la "Razón principal por la que una persona usa billeteras digitales".
+
+Justificación y relevancia: Es importante conocer la razón por la que las personas utilizan las billeteras digitales, ya que esto nos proporciona una idea más clara de por qué las personas optan por este medio de pago.
+
+Definición del experimento aleatorio: Seleccionar a un estudiante encuestado de UTEC que sea cliente de billeteras digitales y observar la "razón principal por la que utiliza una billetera digital".
+
+Buscamos los resultados y frecuencias absolutas asociados a esta variable, "razón principal para usar billetera digital".
+
+```{r, echo=FALSE}
+#Buscamos la columna de la base de datos
+#Usaremos solo los que son clientes de billeteras digitales
+table(ubd$Razon_billetera)
+
+```
+### Espacio de resultados  
+
+El espacio muestral asociado al experimento mencionado es el siguiente:  
+
+$$\Omega = \{Más\ costumbre ,\ Rapidez ,\ Registrar\ gastos\}$$ 
+Se definen los siguientes eventos atómicos:
+
+A1: El estudiante seleccionado tiene como razón principal "Más costumbre" para usar billeteras digitales.
+A2: El estudiante seleccionado tiene como razón principal "Rapidez" para usar billeteras digitales.
+A3: El estudiante seleccionado tiene como razón principal "Registrar gastos" para usar billeteras digitales.
+
+Un evento atómico es aquel que está formado por un solo suceso.
+
+### Cálculo de las probabilidades de los eventos atómicos  
+
+La forma de calcular la probabilidad empírica es de la siguiente forma:  
+
+$$P(evento) = \frac{cantidad\ de\ casos\ favorables}{cantidad\ de\ casos \ totales}$$
+
+```{r}
+#Mediante comandos de Rstudio  
+prob_razon_uso_billetera<-data.frame(round(prop.table(table(ubd$Razon_billetera)), 3))
+names(prob_razon_uso_billetera)<-c("Evento atómico", "Probabilidad empírica")
+prob_razon_uso_billetera
+```
+
+Sabemos que la unión de estos 4 eventos atómicos da como resultado el espacio muestral, entonces la probabilidad de la unión de A1, A2 y A3 es igual a 1.  
+
+
+```{r}
+A1=0.117
+A2=0.656
+A3=0.227
+sum(A1+A2+A3)
+```
+
+## Variable: Nivel de satisfacción en billeteras digitales  
+
+La segunda variable a analizar es "Razón principal para usar dinero en efectivo".
+
+Justificación y relevancia: Analizar esta variable es importante para conocer qué tan satisfechas están las personas con las aplicaciones de billeteras digitales.
+
+Buscamos los resultados y frecuencias absolutas asociados a esta variable.  
+
+```{r, echo=FALSE}
+#Buscamos la columna de la base de datos
+table(ubd$Satisfaccion_billetera)
+```
+
+### Espacio de resultados  
+
+El espacio muestral asociado al experimento mencionado es el siguiente:  
+
+$$\Omega = \{satisfecho\ ,\ neutro\}$$
+B1 = El estudiante seleccionado de UTEC que es cliente de billeteras digitales tiene como nivel de satisfacción satisfecho.  
+B2 = El estudiante seleccionado de UTEC que es cliente de billeteras digitales tiene como nivel de satisfacción neutro.  
+
+### Cálculo de las probabilidades de los eventos atómicos  
+
+Se realiza de manera análoga al caso anterior.
+
+```{r, echo=FALSE}
+#Mediante comandos de Rstudio  
+prob_razon_uso_efectivo<-data.frame(round(prop.table(table(ubd$Satisfaccion_billetera)), 3))
+names(prob_razon_uso_efectivo)<-c("Evento atómico", "Probabilidad empírica")
+prob_razon_uso_efectivo
+```
+Sabemos que la unión de estos 2 eventos atómicos da como resultado el espacio muestral, entonces la probabilidad de la unión de B1 y B2 es igual a 1.  
+```{r}
+B1 = 0.211
+B2 = 0.789
+B1+B2
+
+```
+
+
+## **PROBABILIDAD CONDICIONAL.**
+
+### EVENTOS DEPENDIENTES:
+
+
+Se definen los siguientes eventos:  
+Y: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y use **Yape** como billetera digital principal.  
+P: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y use **Plin** como billetera digital principal. 
+N: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y su nivel de satisfacción sea **neutro**.  
+S: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y su nivel de satisfacción sea **satisfecho**.  
+
+Se tiene la siguiente tabla de contingencia:  
+
+```{r, echo=FALSE}
+table(ubd$Billetera_principal, ubd$Satisfaccion_billetera)
+
+```
+
+Se calculas las probabilidades:  
+
+```{r}
+N = nrow(ubd)
+
+Y = nrow(filter(ubd, Billetera_principal=="Yape"))/N
+P = nrow(filter(ubd, Billetera_principal=="Plin"))/N
+
+
+N = nrow(filter(ubd, Satisfaccion_billetera=="Neutro"))/N
+S = nrow(filter(ubd, Satisfaccion_billetera=="Satisfecho"))/nrow(ubd)
+
+
+```
+
+En este caso vamos a demostrar que los eventos **Y** y **S** son dependientes.  
+
+Primero verificamos que no cumplen la condición de independencia: 
+
+$$ P(Y \cap S) = P(Y).P(S) $$ 
+
+
+```{r}
+YUS = nrow(filter(ubd, Billetera_principal=="Yape", Satisfaccion_billetera=="Satisfecho"))/nrow(ubd)
+paste("P(Y): ", round(Y,2))
+paste("P(S): ", round(S,2))
+paste("P(YUS): ", round(YUS,2))
+
+paste("Son independientes: ", round(YUS,2)==round(Y*S,2) )
+
+```
+Comprobamos que no son independientes, por ello, vamos a calcular la probabilidad condicional.
+$$ P(S | Y) = \frac{P(S \cap Y)}{P(Y)} $$ 
+Se lee, La probabilidad de que un estudiante tenga nivel de satisfacción **satisfecho** con la billetera digital que usa, Dado que su principal billetera digital es **yape**.  
+
+```{r}
+paste("P(S|Y): ", round( YUS/Y,2))
+paste("P(S): ", round(S,2))
+paste("Se aprecio la diferencia entre la probabilidad condicional y la probabilidad del evento")
+
+```
+
+Interpretación: Estos eventos llegara ser dependientes, ya que hay varios factores que influyen en la percepción de la satisfacción, por ejemplo, problemas de conexión, estafas, entre otros. Se comprobo lo observabo en el mosaico.
+
+
+### EVENTOS INDEPENDIENTES:
+
+Se definen los siguientes eventos:  
+Y: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y use **Yape** como billetera digital principal.  
+P: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y use **Plin** como billetera digital principal. 
+M: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y su principal razón para usar billeteras digitales es **Más costumbre**.
+R: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y su principal razón para usar billeteras digitales es **rapidez**.
+G: Seleccionar un estudiante de UTEC que es cliente de billeteras digitales y su principal razón para usar billeteras digitales es **registrar gastos**.
+
+Se tiene la siguiente tabla de contingencia:
+
+```{r}
+table(ubd$Billetera_principal, ubd$Razon_billetera)
+```
+
+Se calcula las probabilidades de cada evento 
+```{r}
+N = nrow(ubd)
+
+Y = nrow(filter(ubd, Billetera_principal=="Yape"))/N
+P = nrow(filter(ubd, Billetera_principal=="Plin"))/N
+
+M= nrow(filter(ubd, Razon_billetera=="Más costumbre"))/N
+R=nrow(filter(ubd, Razon_billetera=="Rapidez"))/N
+G=nrow(filter(ubd, Razon_billetera=="Registrar gastos"))/N
+
+```
+
+Vamos a demostrar que el evento **Y** es independiente del evento **R**.
+Para ello planteamos la prueba de independencia: 
+
+$$ P(Y \cap R) = P(Y).P(R) $$
+```{r}
+YUR = nrow(filter(ubd, Razon_billetera=="Rapidez", Billetera_principal=="Yape"))/nrow(ubd)
+paste("Tenemos que la P(Y): ",round(Y,2))
+paste("Tenemos que la P(R): ", round(R,2))
+paste("Tenemos que la P(Y U R): ",round(YUR,2) )
+
+paste("Son independientes: ", round(YUR,2)==round(Y*R,2))
+
+```
+
+De la misma manera determinamos que **Y** es un evento independiente para **G** y **M**
+```{r}
+YUG = nrow(filter(ubd, Razon_billetera=="Registrar gastos", Billetera_principal=="Yape"))/nrow(ubd)
+ 
+YUM = nrow(filter(ubd, Razon_billetera=="Más costumbre", Billetera_principal=="Yape"))/nrow(ubd)
+
+paste("Tenemos que la P(Y): ",round(Y,2))
+paste("Tenemos que la P(G): ", round(G,2))
+paste("Tenemos que la P(Y U G): ",round(YUG,2) )
+
+paste("los eventos Y e G son independientes: ", round(Y*G,3)==round(YUG, 3) )
+
+paste("Tenemos que la P(Y): ",round(Y,2))
+paste("Tenemos que la P(M): ", round(M,2))
+paste("Tenemos que la P(Y U M): ",round(YUM,2) )
+paste("los eventos Y e M son independientes: ", round(Y*M,2)==round(YUM, 2))
+
+```
+
+En este espacio muestral se tiene que los eventos **Y** y **P** son complemento uno del otro, ya que si una persona elige a **yape** no puedo elegir a **plin** como billetera principal. 
+
+Como hemos demostrado de el evento **Y** es independiente de los eventos **R**, **M** y **G**(razones para optar por una billetera digital como medio de pago en vez de efectivo). Entonces el complemente de **Y** que es **P**, también es independiente de esos eventos. Esto se demuestra en el libro Moya, **Probabilidad E Inferencia Estadística**.  
+
+Interpretación: La razón principal por la que una persona llega a usar una billetera digital como medio de pago es independiente de la marca de billetera digital que va usar(yape o plin). Esto está relacionado a que las billeteras digitales tienen las mismas funcionalidades y permiten las mismas actividades económicas, por ello estos eventos llegan a tener esa independencia. Se confirmo lo observado en el mosaico.  
+
+
+## **Variables aleatorias**  
+
+### **Variables aleatorias discretas**  
+
+#### **Análisis de distribución binomial**
+
+**Distribución binomial**
+
+Experimento aleatorio: Escoger una muestra de 159 estudiantes encuestados de UTEC.  
+
+Éxito: estudiante seleccionado que cuenta con al menos una billetera digital.  
+
+**X**: número de personas que cuentan con al menos una billetera digital en 159 encuestados.  
+
+```{r, echo=FALSE}
+#Probabilidad de éxito 
+p= nrow(BD %>% filter(Billetera_principal != "No uso billeteras digitales"))/nrow(BD)
+n= nrow(BD)
+
+rango_valores <-0:nrow(BD)
+
+par(fig = c(0, 1, 0, 1), mar = c(5, 5, 4, 2) + 0.1)
+plot(105:145 , dbinom(105:145, n, p), type = 'h', lwd = 2, xlab = "Número de éxitos", ylab = "Probabilidad", main = "Distribución Binomial")
+```
+
+**Validamos propiedades**
+
+**E(x): valor esperado de la variable aleatoria**
+E(x) para esta distribución se calcula de la siguiente forma: n.p
+
+Por definición:  
+$$
+
+\mathbb{E}(X) = \sum_{x_{i} } xi.p(xi)
+$$
+
+```{r}
+paste("Primer resultado:", n*p)
+paste("Seguno resultado", sum(rango_valores*dbinom(rango_valores, n, p)))
+
+```
+Interpretación: Se espera que haya 127 estudiante encuestados de UTEC que cuenten con al menos una billetera digital.  
+
+**V(x): Varianza de la variable aleatoria**  
+
+Se sabe que V(x) para la distribución binomial es n*p(1-p)
+
+Por otra parte, podemos usar la definición de varianza:
+
+```{r}
+paste("Primer resultado:", round(n*p*(1-p),3))
+
+Ex =sum(rango_valores*dbinom(rango_valores, n, p))
+Ex2 = sum(rango_valores*rango_valores*dbinom(rango_valores, n, p))
+paste("Segundo resultad:", round(Ex2-Ex*Ex,3))
+
+```
+Se observa que los valores coinciden, por ello, la elección del modelo de binomial es correcto.
+
+**Ejemplo ilustrativo**  
+
+¿Cuál es la probabilidad que al encuestas a 159 estudiantes de UTEC (con reposición), el número de alumnos que cuentan con al menos una billetera digital sea menor igual a 110 estudiantes?. Cada ensayo es independiente y con reposición. Se sabe que la probabilidad de encontrar un alumno con al menos una billetera digital sea 80.38 %.
+
+```{r}
+paste("La respuesta sería: ", pbinom(110, 159, 0.8038))
+```
+
+**Distribución Hipergeométrica**
+
+Experimento aleatorio: De una población total de 158 encuestados, escojo 70 alumnos sin reposición.
+
+Definimos la variable aleatoria discreta:  
+
+**X**: Número de personas que usan Yape como billetera digital principal si escojo una muestra de 70 alumnos.
+
+Se toma una muestra de 70 ya que es un valor cercano a la mitad del población, así se aprecio un valor no tan arbitraria.  
+```{r}
+#Identiicamos parametros
+
+#cantidad exitos 
+m = nrow(BD %>% filter(Billetera_principal == "Yape"))
+
+#cantidad fracasos
+n = 158-m
+
+k = 70
+
+```
+
+
+```{r, echo=FALSE}
+rango_valores <- 0:70
+
+par(fig = c(0, 1, 0, 1), mar = c(5, 5, 4, 2) + 0.1)
+plot(5:35, dhyper(5:35 , k , m, n), type = 'h', lwd = 2, xlab = "Cant. personas que usan Yape si escojo una muetra de 70", ylab = "Probabilidad", main = "Distribución Hipergeométrica")
+```
+En la gráfica se puede observar el comporamiento de cómo varía la probabilidad dependiendo del valor que tome la variable aleatoria. 
+
+
+### **Variables aleatorias continuas**  
+
+
+#### **Análisis de distribución normal**  
+
+**Definimos la variable aleatoria continua**  
+
+$$ X = gasto\ diario\ promedio\ en\ soles\ mediante\ billeteras\ digitales\ de\ un\ estudiante\ de\ UTEC $$
+**Rango asociado a esta variable aleatoria**  
+
+$$ Rx \in [1; 44]$$
+
+```{r, echo=FALSE}
+# Cargar la base de datos
+datos <- BD
+# Filtrar los datos de Gasto_diario_billetera
+datos_filtrados <- subset(datos, Billetera_principal != "No uso billeteras digitales")
+gasto_diario <- datos_filtrados$Gasto_diario_billetera
+# Crear la tabla de densidad
+densidad <- density(gasto_diario)
+# Crear un dataframe con los valores de la densidad
+df_densidad <- data.frame(x = densidad$x, y = densidad$y)
+# Crear el gráfico de densidad
+ggplot(df_densidad, aes(x = x, y = y)) +
+  geom_line(color = "#FF4C4C", size = 1.5) +
+  labs(x = "X(gasto diario promedio en soles)", y = "Densidad de probabilidad") +
+  ggtitle("Gráfica de densidad de la variable aleatoria") +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+En la gráfica de densidad de observa un comportamiento acampanado de nuestra variable aleatoria. Esto es un indicio para analizar el modelo de distribución normal  
+
+**Criterios para validar el modelo de distribución normal**  
+
+Antes de validar el modelo de distribución normal se realizarán una serie de cálculo mediante Rstudio.  
+```{r}
+# Se obtiene los valores de media, mediana y desviación estándar relacionadas a la base de datos.
+print("Valores reales asociados a la variable aleatoria")
+paste("Mediana: ", round(median(datos_filtrados$Gasto_diario_billetera),1))
+paste("Media: ", round(mean(datos_filtrados$Gasto_diario_billetera),1))
+paste("Desviación estándar: ", round(sd(datos_filtrados$Gasto_diario_billetera),1))
+
+#Posteriormente, se calculan los valores teoricos que deberian tener en caso de ser un modelo de distribucion normal perfectisimo. Para ello nos apoyamos del comando fitdist y summary 
+
+#FDnorm<-fitdist(datos_filtrados$Gasto_diario_billetera, "norm")
+#summary(FDnorm)
+print("Valores teóricos asociados a la variable aleatoria")
+
+paste("Mediana teorica: ", round(19.49567,1))
+paste("Desviación estándar teórica: ", round(10.25832,1))
+
+```
+
+**Primer criterio**  
+
+Para una distribución normal se debe cumplir que la mediana es similar a la mediana.  
+$$Media \approx Media$$ 
+En base a los cálculos previos tenemos que la media se aproxima a la mediana:  
+$$20 \approx 19.5$$
+Se observa una diferencia insignificativa que se debería a la realización empírica del experimento, sin embargo, al diferir por decimales, estos valores son muy próximos.   
+
+**Segundo criterio**  
+
+La media real asociada a la base de datos debe ser similar a la media teórica que nos muestra Rstudio bajo un modelo de distribución normal perfectísimo. Se tiene lo siguiente en base a los valores cálculados previamente:   
+$$20 \approx 19.5$$
+Se observa una diferencia insignificante de los decimales. Esto no es tan sobresaliente en nuestro análisis del modelo de distribución normal, ya que como se comento se debe a factores como la realización empírica del experimento.  
+
+**Tercer criterio**  
+
+Como último criterio, se va a comparar la desviación estándar obtenida de la base de datos y la desviación estándar proporcionada por Rstudio bajo un modelo de distribución normal perfectísimo. Se tiene lo siguiente en base a los valores cálculados previamente:  
+$$ 10.3 \approx 10.3$$
+Se puede observar un grado de precisión exactísimo para este criterio, lo cual representa un indicio positivo a favor del modelo de distribución normal para esta variable aleatoria.  
+
+A manera de conclusión, se tiene que la variable aleatoria continua cumplió los criterios de comparar descriptores como la mediana, media y desviación estándar, lo cual sugiere analizar el modelo como una distribución normal.  
+
+Comentario: Este análisis se apoyo de la librería `rriskDistributions` para encontrar que esta variable era candidata para presentar un modelo de distribución normal.  
+
+**Interpretación del modelo de distribución normal**  
+
+Para aplicar este modelo de distribución normal se tiene la siguiente forma: 
+
+$$X \sim \mathcal{N}(\mu, \sigma)$$
+En este caso, se toman los siguiente valores(previamente calculados):
+mediana= 20  
+desviación estándar= 10
+
+$$X \sim \mathcal{N}(20, 10.3)$$ 
+**Caso de aplicación**  
+
+¿Cuál es la probablidad de que una alumno de UTEC que es cliente de billeteras digitales tenga un gasto promedio diario mayor a 30 soles?  
+
+```{r}
+
+pnorm(30, 20, 10.3, F)
+```
+
+Se observó en el boxplot de esta variable, mostrado en el análisis descriptivo, que el 75% de los menores datos está por debajo de 25. Lo cual guardaría relación con el resultado de obtener una probabilidad baja de 0.17 de esta variable aleatoria  para P(X>30).  
+
+#### **Análisis de modelos de distribución normal**
+
+**Definimos la variable aleatoria continua**  
+
+$$ X = gasto\ diario\ promedio\ en\ soles\ de\ dinero\ en\ efectivo\ de\ un\ estudiante\ de\ UTEC\ que\ solamente\ usa\ dinero\ en\ efectivo\ $$
+**Rango asociado a esta variable aleatoria**  
+
+$$ Rx \in [3; 45]$$
+
+```{r, echo=FALSE}
+
+gasto_diario <- nubd$Gasto_diario_efectivo
+# Crear la tabla de densidad
+densidad <- density(gasto_diario)
+# Crear un dataframe con los valores de la densidad
+df_densidad <- data.frame(x = densidad$x, y = densidad$y)
+# Crear el gráfico de densidad
+ggplot(df_densidad, aes(x = x, y = y)) +
+  geom_line(color = "#FF4C4C", size = 1.5) +
+  labs(x = "X(gasto diario promedio en soles)", y = "Densidad de probabilidad") +
+  ggtitle("Gráfica de densidad de la variable aleatoria") +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+En la gráfica de densidad de observa un comportamiento acampanado de nuestra variable aleatoria. Esto es un indicio para analizar el modelo de distribución normal.  
+
+**Criterios para validar el modelo de distribución normal**  
+
+Antes de validar el modelo de distribución normal se realizarán una serie de cálculo mediante Rstudio.  
+```{r}
+# Se obtiene los valores de media, mediana y desviación estándar relacionadas a la base de datos.
+print("Valores reales asociados a la variable aleatoria")
+paste("Mediana: ", round(median(nubd$Gasto_diario_efectivo),1))
+paste("Media: ", round(mean(nubd$Gasto_diario_efectivo),1))
+paste("Desviación estándar: ", round(sd(nubd$Gasto_diario_efectivo),1))
+
+#Posteriormente, se calculan los valores teoricos que deberian tener en caso de ser un modelo de distribucion normal perfectisimo. Para ello nos apoyamos del comando fitdist y summary 
+
+#FDnorm<-fitdist(nubd$Gasto_diario_efectivo, "norm")
+#summary(FDnorm)
+print("Valores teóricos asociados a la variable aleatoria")
+
+paste("Mediana teorica: ", round(15.112903	))
+paste("Desviación estándar teórica: ", round(9.038189))
+
+```
+
+**Primer criterio**  
+
+Para una distribución normal se debe cumplir que la mediana es similar a la mediana.  
+$$Media \approx Media$$ 
+En base a los cálculos previos tenemos que la media se aproxima a la mediana:  
+$$12.5 \approx 15.1$$
+Se observa una coincidencia en la primera cifra significativa, el análisis se debe complementar con los siguientes criterios.     
+
+**Segundo criterio**  
+
+La media real asociada a la base de datos debe ser similar a la media teórica que nos muestra Rstudio bajo un modelo de distribución normal perfectísimo. Se tiene lo siguiente en base a los valores cálculados previamente:   
+$$15.1 \approx 15$$
+Se observa una diferencia insignificante de 0.1. No obstante, se cumple este criterior para el modelo.  
+
+**Tercer criterio**  
+
+Finalmente, se va a comparar la desviación estándar obtenida de la base de datos y la desviación estándar proporcionada por Rstudio bajo un modelo de distribución normal perfectísimo. Se tiene lo siguiente en base a los valores cálculados previamente:  
+$$ 9.2 \approx 9$$
+Se puede observar la similitud en una cifra significa, por otro lado, se difiere muy poco en decimales; por ello, se puede considerar que son valores similares.
+
+A manera de conclusión, se tiene que la variable aleatoria continua cumplió los criterios de comparar descriptores como la mediana, media y desviación estándar, lo cual sugiere analizar el modelo como una distribución normal.  
+
+Comentario: Este análisis se apoyo de la librería `rriskDistributions` para encontrar que esta variable era candidata para presentar un modelo de distribución normal.  
+
+**Interpretación del modelo de distribución normal**  
+
+Para aplicar este modelo de distribución normal se tiene la siguiente forma: 
+
+$$X \sim \mathcal{N}(\mu, \sigma^{2})$$
+En este caso, se toman los siguiente valores(previamente calculados):
+media= 15.1  
+desviación estándar= 9.2
+
+$$X \sim \mathcal{N}(15.1, 9.2)$$ 
+**Caso de aplicación**  
+
+¿Cuál es la probabilidad de que una alumno de UTEC que solamente usa dinero en efectivo como medio de pago tenga un gasto promedio diario mayor a 15 soles?  
+
+```{r}
+
+pnorm(15, 15.1, 9.2, F)
+```
+
+Interpretación: Se observa que la probabilidad es casi del 50%. Esta probabilidad es alta y guarda relación con que la media este en el valor de 15.1, ya que eso indicaría que está entre el punto central de los gastos de estas personas y por ello le corresponde alta probabilidad bajo este modelo de distribución normal.  
+
+# Conclusiones
+
+1. Se logró identificar que "Rapidez" es la razón más frecuente por la que una persona decide utilizar una billetera digital, además de expresar la satisfacción de las personas con el uso de las billeteras digitales, haciendo uso de la probabilidad empírica y conceptos como eventos atómicos, espacio muestral y función de probabilidad.
+2. Se utilizaron gráficos como el mosaico para relacionarlos con la identificación de patrones que permitieron la identificación de eventos dependientes e independientes, lo que fue aproximado utilizando la probabilidad condicional y permitió saber las preferencias de las personas.
+3. Se determinaron modelos de distribución para variables aleatorias continuas y discretas, basados en probabilidades empíricas. Estos modelos, bajo criterios de comparación y descriptores como la media, mediana y desviación estándar, permitieron validar ciertos modelos como la distribución normal.

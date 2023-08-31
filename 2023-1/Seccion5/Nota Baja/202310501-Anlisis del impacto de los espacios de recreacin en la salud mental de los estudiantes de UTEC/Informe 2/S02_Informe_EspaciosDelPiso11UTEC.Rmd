@@ -1,0 +1,342 @@
+---
+title: "Análisis del impacto de los espacios de recreación en la salud mental de los estudiantes de UTEC 2023-1"
+author: " "
+date: ""
+output:
+  html_document:
+    toc: yes 
+    df_print: paged 
+  html_notebook:
+    toc: yes                # Crea tabla de contenido al lado superior izquierdo
+    toc_float:             
+       collapsed: yes       # Aparecen solo con los encabezados de nivel superior
+       smooth_scroll: no    # Desplazamientos "animados" en vez de directos
+    number_sections: no    # numerar secciones y subsecciones
+    theme: journal
+---
+
+# <span style="color: red;">Introducción</span>
+
+## Relevancia\
+La universidad impone exigencias y desafíos significativos, con una carga académica intensa y múltiples responsabilidades. Para fomentar el bienestar de los estudiantes, las universidades crean espacios de recreación que les permiten relajarse y desconectar del estrés. En UTEC, existen espacios de recreación, pero se desconoce cómo los estudiantes los valoran y utilizan. ¿Son considerados recursos valiosos para su bienestar emocional? ¿Tienen algún impacto en su rendimiento académico? ¿Cuál es la percepción de los estudiantes hacia estos espacios en UTEC?\
+  
+## Objetivo del estudio\
+El objetivo de este estudio es analizar la perspectiva de los estudiantes sobre los espacios de entretenimiento en UTEC. Para ello, se llevará a cabo una encuesta que explorará la percepción y el uso que los estudiantes hacen de dichos lugares, así como su opinión sobre su impacto en su bienestar emocional. Los resultados de esta investigación proporcionarán una comprensión más profunda de la percepción de los estudiantes sobre los espacios de recreación en UTEC.\
+Resumen:  
+
+* Describir la relación entre la cantidad de cursos  y su salud mental de los estudiantes de UTEC en el ciclo 2023-1 
+* Analizar el nivel de estrés y ansiedad  que sufren los estudiantes de UTEC en el ciclo 2023-1.  
+* Describir el nivel de satisfacción de los espacios de recreación de los estudiantes de UTEC en el ciclo 2023-1.\
+
+# <span style="color: red;">Datos</span>
+## Proceso de recolección de datos\
+Se recopilaron datos mediante una encuesta virtual utilizando Google Formularios. Esta forma de recolección de datos presenta la ventaja de permitir recopilar información de manera sincrónica o asincrónica.\
+
+## Población, muestra y muestreo\
+Nuestra población serán los estudiantes de UTEC que utilizan los diversos espacios de relajación dentro del campus. Nuestra muestra seran los estudiantes que rellenaron el formulario. El método usado es muestreo aleatorio simple.\
+
+## Variables\
+| **Variable** | **Clase** | **Tipo** | **Restricción** |
+|:------------:|:----:|:----------:|:----------:|
+| Edad | Cuantitativa | discreta | Entero positivo |
+| Nivel_Estres | Cualitativa | Ordinal | Toma valores en el intervalo [0,5] |
+| Nivel_Ansiedad | Cualitativa | Ordinal | Toma valores en el intervalo [0,5] |
+| Cantidad_Horas | Cuantitativa | Discreta | Entero positivo |
+## Limpieza de datos\
+```{r}
+library(readr)
+library(dplyr)
+library(funModeling)
+```
+cargamos nuestra base de datos
+```{r}
+data <- read_csv('Data.csv')
+View(data)
+```
+
+```{r}
+data%>% select(-`Marca temporal`, -`Puntuación`)->data
+names(data)<-c("Edad","Sexo","Ciclo","Ncursos","Uso_Espacio","Nivel_Estres","Nivel_Ansiedad","Cantidad_Horas","Calificacion_Espacios")
+```
+Nota: La restricción de las respuestas nos ayudó a no generar NA ni errores en el ingreso de datos.
+    
+# <span style="color: red;">Análisis descriptivo</span>
+  
+## Análisis de los datos en relación a nuestros objetivos\
+  
+- **Objetivo 1**
+```{r}
+par(mfrow = c(2, 2))
+#mosaicplot(data$Nivel_Estres~data$Nivel_Ansiedad, color = c("blue", "red"), main = "estrés y ansiedad", xlab = "estrés", ylab = "Ansiedad")
+# no se pudo usar el mosaico porque contamos con más conponentes y el mosaico no fue util para la visualización de datos
+barplot(table(data$Sexo,data$Nivel_Estres), beside = TRUE, legend.text = TRUE,
+        xlab = "Nivel de Estrés", ylab = "Frecuencia",
+        main = "Distribución de Sexo por Nivel de Estrés")
+barplot(table(data$Sexo,data$Nivel_Ansiedad), beside = TRUE, legend.text = TRUE,
+        xlab = "Nivel de Ansiedad", ylab = "Frecuencia",
+        main = "Distribución de Sexo por Nivel de Ansiedad")
+
+```
+Basándonos en el análisis realizado, llegamos a la conclusión de que las estudiantes mujeres sufren un impacto más significativo en su salud mental en comparación con los estudiantes varones.  
+  
+- **Objetivo 2**  %usar boxplot hora - calificación%
+```{r}
+par(mfrow = c(2, 2))
+pie(table(data$Uso_Espacio), main = "Uso de espacios de UTEC")
+barplot(table(data$Sexo,data$Calificacion_Espacios), beside = TRUE, legend.text = TRUE,
+        xlab = "Calíficación de espacios", ylab = "Frecuencia",
+        main = "Distribución de Sexo por Calíficación de espacios")
+boxplot(data$Cantidad_Horas ~ data$Calificacion_Espacios,
+        main = "Horas usadas de los espacios vs calificación de espacios",
+        xlab = "Calificación",
+        ylab = "Horas usadas")
+
+```
+```{r}
+correlation <- cor(data$Cantidad_Horas, data$Calificacion_Espacios, method = "spearman")
+correlation
+```
+Terminamos nuestro informe abordando el objetivo 3, en el cual se concluye que existe una relación positiva pero debil entre la frecuencia de uso de los espacios de recreación y la calificación otorgada por las personas. En otras palabras, aquellos que utilizan con mayor frecuencia estos espacios tienden a proporcionar una calificación más alta. Sin embargo, es importante destacar que en promedio los estudiantes califican estos espacios con un valor de 2.  
+
+# <span style="color: red;">Análisis probabilístico</span>  
+  
+Variables aleatorias de interés para el estudio propuesto.  
+
+| **Variable aleatoria** | **Tipo** |
+|:------------:|:-----------:|
+| Nivel_Estres | Discreta |
+| Nivel_Ansiedad | Discreta |
+| Cantidad_Horas | Continua |
+| Edad | Continua |  
+  
+Por la falta de más variables cuantitativas continuas, asumimos que la variable "edad" es continua en nuestro análisis. No obstante, es importante reconocer las limitaciones de esta asunción y la posibilidad de que no capte todos los aspectos relevantes de la variable.  
+  
+- **Funciones y librerias**
+```{r}
+r <- function(x){
+  return(round(x, digits = 2)) 
+  #round( ,2) -> redondea a dos decimales
+}
+library(gridExtra)
+
+```
+## Probabilidad empírica  
+  
+- Experimento 1: En este estudio, se seleccionará al azar un alumno matriculado en el ciclo 2023-1 de UTEC para observar y evaluar su nivel de estrés, ansiedad, cantidad de horas dedicadas a estos espacios de recreación y su edad. Este enfoque permitirá analizar su salud mental y su relación con el uso de los espacios de recreación.  
+Determinamos los espacios de resultados con sus respectivas probabilidades para cada variable.  
+  
+- Definiendo los espacios de resultados de los eventos
+```{r, echo=FALSE}
+p3<-data.frame(sort(unique(data$Nivel_Estres)))
+colnames(p3) <- c("Ω del Nivel de estrés (A)")
+p4<-data.frame(sort(unique(data$Nivel_Ansiedad)))
+colnames(p4) <- c("Ω del Nivel de ansiedad (B)")
+p5<-data.frame(sort(unique(data$Cantidad_Horas)))
+colnames(p5) <- c("Ω de Horas de uso (C)")
+rownames(p5)<-c( "C1","C2","C3","C4","C5","C6","C7","C8","C9")
+p6<-data.frame(sort(unique(data$Edad)))
+colnames(p6) <- c("Ω de edad (D)")
+rownames(p6)<-c( "D1","D2","D3","D4","D5","D6","D7","D8","D9","D10")
+grid.arrange(tableGrob(p3), tableGrob(p4),ncol=2)
+
+```
+Definiendo los eventos atómicos  
+  
+Nivel de estrés (A):  
+  
+- A1: Seleccionar un alumno que tiene un nivel de estres 1, en la base de datos recolectada.  
+- A2: Seleccionar un alumno que tiene un nivel de estres 2, en la base de datos recolectada.  
+- A3: Seleccionar un alumno que tiene un nivel de estres 3, en la base de datos recolectada.  
+- A4: Seleccionar un alumno que tiene un nivel de estres 4, en la base de datos recolectada.  
+- A5: Seleccionar un alumno que tiene un nivel de estres 5, en la base de datos recolectada.  
+  
+Nivel de ansiedad (B):  
+  
+- B1: Seleccionar un alumno que tiene un nivel de ansiedad 1, en la base de datos recolectada.  
+- B2: Seleccionar un alumno que tiene un nivel de ansiedad 2, en la base de datos recolectada.  
+- B3: Seleccionar un alumno que tiene un nivel de ansiedad 3, en la base de datos recolectada.  
+- B4: Seleccionar un alumno que tiene un nivel de ansiedad 4, en la base de datos recolectada.  
+- B5: Seleccionar un alumno que tiene un nivel de ansiedad 5, en la base de datos recolectada.  
+  
+```{r, echo=FALSE}
+grid.arrange(tableGrob(p5),tableGrob(p6),ncol=2)
+```
+Hora de uso (C):  
+  
+- C1: Seleccionar un alumno que dedica 0.2 horas al día a usar los espacios de recreación de UTEC, en la base de datos recolectada.  
+- Se muestras los eventos C2,C3,C4,C5,C6,C7,C8 y C9 en la tabla "Ω de Horas de uso (C)" con sus respectivos eventos atómicos.  
+  
+Edad (D):  
+  
+- D1: Seleccionar un alumno que tenga 18 años, en la base de datos recolectada.  
+- Se muestras los eventos D2,D3,D4,D5,D6,D7,D8,D9 y D10 en la tabla "Ω de edad (D)" con sus respectivos eventos atómicos.
+  
+Se calcula las probabilidades asosiadas a los eventos mostrados:
+
+Función probabilidad $P(x) = \frac{\text{frecuencia de } x \text{ en los datos}}{\text{total de observaciones}}$
+```{r, echo=FALSE}
+p3<-data.frame(r((prop.table(table(data$Nivel_Estres)))))
+colnames(p3) <- c("Ω del Nivel de estrés",  "Probabilidad")
+p4<-data.frame(r((prop.table(table(data$Nivel_Ansiedad)))))
+colnames(p4) <- c("Ω del Nivel de ansiedad",  "Probabilidad")
+p5<-data.frame(r((prop.table(table(data$Cantidad_Horas)))))
+colnames(p5) <- c("Ω de Horas de uso",  "Probabilidad")
+p6<-data.frame(r((prop.table(table(data$Edad)))))
+colnames(p6) <- c("Ω de edad",  "Probabilidad")
+grid.arrange(tableGrob(p3), tableGrob(p4),ncol=2)
+```
+
+
+```{r, echo=FALSE}
+grid.arrange(tableGrob(p5),tableGrob(p6),ncol=2)
+```
+## Probabilidad combinacional  
+Se seleccionaron las siguientes relaciones: ansiedad con edad del alumno y estrés con la cantidad de horas dedicadas al uso de espacios de recreación. Estos factores están relacionados con la salud emocional y mental de cada estudiante.  
+  
+Se presentan las tablas correspondiente a las siguientes probabilidades:  
+```{r, echo=FALSE}
+f1c1<-sum(data$Nivel_Estres<3 & data$Cantidad_Horas<4)/nrow(data)
+f2c1<-sum(data$Nivel_Estres<3 & data$Cantidad_Horas>3)/nrow(data)
+f1c2<-sum(data$Nivel_Estres>2 & data$Cantidad_Horas<4)/nrow(data)
+f2c2<-sum(data$Nivel_Estres>2 & data$Cantidad_Horas>3)/nrow(data)
+p_T1<-data.frame(
+  c( r(f1c1), r(f2c1),r(f1c1+f2c1)),
+  c( r(f1c2), r(f2c2),r(f2c2+f1c2)),
+  c( r(f1c1+f1c2),r(f2c1+f2c2),r(f1c1+f1c2+f2c1+f2c2))
+)
+colnames(p_T1)<- c("Estrés < 3", "Estrés > 2","total")
+rownames(p_T1) <- c("Horas < 4",  "Horas >3","total")
+
+f1<-sum(data$Nivel_Ansiedad<3 & data$Edad<22)/nrow(data)
+f2<-sum(data$Nivel_Ansiedad<3 & data$Edad>21)/nrow(data)
+f3<-sum(data$Nivel_Ansiedad>2 & data$Edad<22)/nrow(data)
+f4<-sum(data$Nivel_Ansiedad>2 & data$Edad>21)/nrow(data)
+p_T2<-data.frame(
+  c( r(f1), r(f2),r(f1+f2)),
+  c( r(f3), r(f4),r(f3+f4)),
+  c( r(f1+f3), r(f4+f2),r(f3+f4+f2+f1))
+)
+colnames(p_T2)<- c("Ansiedad < 3", "Ansiedad > 2","total")
+rownames(p_T2) <- c("Edad < 22",  "Edad > 21","total")
+
+grid.arrange(tableGrob(p_T2), tableGrob(p_T1), ncol=2)
+```
+  
+- B = Ansiedad <3 y D = Edad <22 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de ansiedad menor a 3 pero también tenga una edad menor a 22.  
+  
+- B = Ansiedad <3 y D' = Edad >21 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de ansiedad menor a 3 pero también tenga una edad mayor a 21.   
+  
+- B' = Ansiedad >2 y D = Edad <22 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de ansiedad mayor a 2 pero también tenga una edad menor a 22.   
+  
+- B' = Ansiedad >2 y D' = Edad >21 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de ansiedad mayor a 2 pero también tenga una edad mayor a 21.  
+  
+- Independencia $P(B ∩ D) = P(B) * P(D)$
+Entre los eventos Nivel de ansiedad y edad
+```{r, echo=FALSE}
+cat("P(B ∩ D) =",r(f1))
+cat("\nP(B) * P(D)=",r((sum(data$Nivel_Ansiedad<3)/nrow(data))*(sum(data$Edad<22)/nrow(data))))
+cat("\nLos eventos son dependientes.")
+```
+  
+Probabilidad condicional $P(B|D) = P(B ∩ D)/P(D)$  
+Con base en la tabla previamente generada, podemos inferir o concluir lo siguiente:
+```{r,echo=FALSE}
+prop_t2<-0.15/(sum(data$Edad<22)/nrow(data))
+cat("la probabilidad de que un alumno tenga un nivel de ansiedad menor a 3 dado que  tiene menos de 22 años es de",r(prop_t2),"aproximadamente")
+```
+  
+CONDICIONAL A LA INVERSA BAYES $P(D|B) = P(B|D)*P(D)/P(B)$  
+```{r,echo=FALSE}
+pro_inver2<-((prop_t2*(sum(data$Edad<22)/nrow(data)))/(((prop_t2*sum(data$Edad<22)/nrow(data)))+((0.15/(sum(data$Edad>21)/nrow(data)))*(sum(data$Edad>21)/nrow(data)))))
+cat("la probabilidad de que un alumno tenga menos de 22 años dado que tiene un nivel de ansiedad menor a 3  es de",r(pro_inver2),"aproximadamente")
+```
+  
+---
+  
+- A = estrés <3 y C = horas <4 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de estrés menor a 3 pero también dedique menos de 4 horas al uso de espacios de recreación.  
+  
+- A = estrés <3 y C' = horas >3 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de estrés menor a 3 pero también dedique más de 3 horas al uso de espacios de recreación.   
+  
+- A' = estrés >2 y C = horas <4 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de estrés mayor a 2 pero también dedique menos de 4 horas al uso de espacios de recreación.   
+  
+- A' = estrés >2 y C' = horas >3 ,se muestra la probabilidad de que un alumno al azar tenga un nivel de estrés mayor a 2 pero también dedique más de 3 horas al uso de espacios de recreación.
+
+  
+- Independencia $P(A ∩ C) = P(A) * P(C)$  
+  
+Entre los eventos de Nivel de estrés y cantidad de horas
+```{r, echo=FALSE}
+cat("P(A ∩ C) =",r(f1c1))
+cat("\nP(A) * P(C)=",r((sum(data$Nivel_Estres<3)/nrow(data))*(sum(data$Cantidad_Horas<4)/nrow(data))))
+cat("\nLos eventos son Independientes.")
+```
+  
+- Probabilidad condicional $P(A|C) = P(A ∩ C)/P(C)$  
+Con base en la tabla previamente generada, podemos inferir o concluir lo siguiente:
+```{r, echo=FALSE}
+prop_t1<-0.05/(sum(data$Cantidad_Horas<4)/nrow(data))
+cat("la probabilidad de que un alumno tenga un nivel de estrés menor a 3 dado que usa menos de 4 horas los espacios de recreación es de", r(prop_t1),"aproximadamente")
+```
+- CONDICIONAL A LA INVERSA BAYES $P(C|A) = P(A|C)*P(C)/P(A)$ 
+```{r,echo=FALSE}
+pro_inver<-(prop_t1*(sum(data$Cantidad_Horas<4)/nrow(data))/(((prop_t1*sum(data$Cantidad_Horas<4)/nrow(data)))+((0.05/(sum(data$Cantidad_Horas>3)/nrow(data)))*(sum(data$Cantidad_Horas>3)/nrow(data)))))
+cat("la probabilidad de que un alumno use menos de 4 horas los espacios de recreación dado que tiene un nivel de estrés menor a 3  es de",r(pro_inver),"aproximadamente")
+```
+  
+## Variable discreta  
+  
+Definiendo variables aleatorias  X ~ Bn(p,n):
+  
+-  X : # de estudiantes que tienen un nivel de estrés igual a 1 en el ciclo 2023-1 en la muestra de tamaño 163.
+  
+la probabilidad de exito $P(Nestres) = \frac{\text{frecuencia de } Nestres}{\text{total de observaciones}}$
+```{r,echo=FALSE}
+p_est<-prop.table(table(data$Nivel_Estres))
+bin_1<-dbinom(x=10,size=163,prob = p_est["1"])
+cat("P(1)=",p_est["1"],"\n")
+cat("Bn(x,n,p)=", bin_1)
+```
+  
+```{r,echo=FALSE}
+plot(dbinom(0:163,size=163,prob = p_est["1"]),main = "gráfico de densidad", xlab = "cantidad de estudiantes", ylab = "Probabilidad")
+```
+Definiendo variables aleatorias X ~ Geom(p):
+  
+-  X : # de alumnos seleccionados hasta obtener el primero con un nivel de estrés mayor a 3.
+  
+¿Cuántas elecciones harían falta para seleccionar al primer alumno con un nivel de ansiedad mayor a 3?  
+  
+la probabilidad de exito $P(Nansiedad) = \frac{\text{frecuencia de } Nansiedad}{\text{total de observaciones}}$
+```{r,echo=FALSE}
+p_a_a<-sum(data$Nivel_Ansiedad>2)/nrow(data)
+cat("P(Nestrés>3)=",p_a_a,"\n")
+cat("Geom(x,P)=",dgeom(3,p_a_a))
+```
+  
+```{r,echo=FALSE}
+plot(dgeom(0:163,prob = p_a_a),main = "gráfico de densidad", xlab = "cantidad de estudiantes", ylab = "Probabilidad")
+```
+  
+## Variable continua  
+  
+```{r}
+hist(data$Cantidad_Horas,main = "gráfico de la variable", xlab = "cantidad de horas", ylab = "frecuencia")
+```
+- Validando:  
+
+Es una figura normal
+```{r}
+cat("media=",r(mean(data$Cantidad_Horas)),"\n")
+cat("mediana=",r(median(data$Cantidad_Horas)))
+```
+la distribución es casi simétrica debido a que la madia es casi igual a la mediana.
+```{r}
+hist(data$Edad,main = "gráfico de la variable", xlab = "Edad", ylab = "frecuencia")
+```
+- Validando:  
+
+Es una figura exponencial
+```{r}
+cat("esperanza=",r(1/mean(data$Edad)),"\n")
+cat("media=",r(mean(data$Edad)))
+```

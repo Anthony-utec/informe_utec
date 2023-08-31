@@ -1,0 +1,852 @@
+---
+title: "Relación entre el ejercicio, alimentación y rendimiento académico en los estudiantes de UTEC."
+date: "7 Abril, 2023"
+output:
+  html_document:
+      toc: true             
+      toc_depth: 2          
+      number_sections: true 
+      toc_float:           
+        collapsed: false   
+        smooth_scroll: true
+---
+
+```{r, include = FALSE}
+options(repos = "https://cran.rstudio.com/")
+```
+
+```{r, include = FALSE}
+# Instalamos las librerías necesarias para la ejecución del código.
+install.packages("dplyr")
+install.packages("lubridate")
+install.packages("knitr")
+install.packages("readr")
+install.packages("mice")
+install.packages("plyr")
+install.packages("ggplot2")
+install.packages("plotrix")
+install.packages("graphics")
+install.packages("magrittr")
+install.packages("hms")
+install.packages("lubridate")
+install.packages("DescTools")
+install.packages("tidyr")
+install.packages("reshape2")
+```
+
+```{r, include=FALSE}
+#Especificamos su uso
+library(readr)
+library(knitr)
+library(plyr)
+library(dplyr)
+library(graphics)
+library(ggplot2)
+library(plotrix)
+library(magrittr)
+library(hms)
+library(lubridate)
+library(DescTools)
+library(tidyr)
+library(reshape2)
+
+```
+
+# Introducción
+
+## Relevancia
+
+Diversos estudios han demostrado de manera consistente los efectos positivos del ejercicio regular en la capacidad cognitiva, la memoria, la concentración y la atención, así como en la reducción del estrés y la ansiedad. Asimismo, una alimentación equilibrada y saludable proporciona a los estudiantes los nutrientes y la energía necesarios para un adecuado aprendizaje y concentración. En nuestro estudio estadístico, nos proponemos determinar el grado de influencia de estos dos factores en el rendimiento académico de los estudiantes de UTEC. Además, a través de los datos recolectados, podremos conocer los hábitos alimenticios y de ejercicio físico de los alumnos. Dependiendo de los resultados obtenidos, incluso podríamos identificar posibles riesgos de salud futuros en los estudiantes.
+
+**Objetivo general:**
+
+Analizar la relación entre el ejercicio, alimentación y rendimiento académico en los estudiantes de UTEC.
+
+**Objetivos específicos:**
+
+-Identificar el nivel de actividad física y tipo de actividad predominante en los alumnos de UTEC.
+
+-Identificar el tipo de alimentación en los alumnos de UTEC.
+
+-Determinar una posible relación entre la alimentación, el ejercicio y las calificaciones académicas.
+
+-Identificar posibles riesgos de salud en los estudiantes en base a los resultados obtenidos
+
+-Relacionar el nivel de actividad física con el rendimiento académico.
+
+-Analizar si el consumo de diferentes nutrientes (proteínas, vegetales o frutas, grasas, lácteos, cereales o azúcares) se asocia con el rendimiento académico.
+
+# Datos
+```{r}
+dat <- read_csv("Datos.csv")
+```
+```{r, echo=FALSE}
+datos <- select(dat, -`Marca temporal`)
+```
+
+La base de datos obtenida se almacenará en la variable "datos", omitiendo la variable "Marca temporal". Se recolectó un total de 179 observaciones y 16 variables (una vez filtrada "Marca temporal").
+
+## Recolección de datos
+
+Los datos serán recolectados a través de distribución (personal y virtual) de formularios realizados con Google Forms, herramienta que permite visualizar los datos recolectados a través de una interfaz amigable. También permite la descarga de los mismos en un archivo "coma separated values"(.csv).
+
+El formulario fue configurado para limitar una respuesta por persona y solo se puede llenar una vez. Además, los encuestados deben poseer un correo administrado por UTEC para así verificar que fueran alumnos de la universidad. No se recolectaron datos sensibles en la encuesta por no tener relevancia para el estudio, tales como el correo, nombre, código de alumno, etc.
+
+## Población, muestra y muestreo
+
+**Población:** Estudiantes de la UTEC
+
+**Muestra:** 179 estudiantes que fueron seleccionados en las instalaciones de la UTEC.
+
+**Muestreo:** La técnica utilizada fue una selección simple al azar. Solicitamos llenar la encuesta a estudiantes de la UTEC en diferentes horarios y lugares de la universidad. También solicitamos que algunos de ellos reenvíen la encuesta por redes sociales a sus compañeros de la universidad, logrando así generar una muestra representativa.
+
+## Variables
+
+**Generales**
+
+| Pregunta                                        | Nombre de la Variable | Tipo de Variable   | Restricciones                                  |
+|----------------------|---------------|---------------|---------------------|
+| ¿Cuál es tu edad?                               | edad                  | Numérica Discreta  | Números entre 16 y 29                          |
+| ¿Cuál es tu peso? (En kilogramos)               | peso                  | Numérica Continua  | Números entre 28.5 y 150                       |
+| ¿Cuál es tu estatura? (en metros)               | estatura              | Numérica Continua  | Números entre 1.30 y 2.40                      |
+| ¿Que tipo de alimentos consumes principalmente? | alim_principal        | Categórica Nominal | Alimentos procesados o alimentos no procesados |
+| ¿Realizas actividad física?                     | act_fisica            | Categórica Nominal | Sí o no                                        |
+| ¿En qué ciclo te encuentras ahora mismo?        | ciclo                 | Categórica Ordinal | Del primer al décimo ciclo                     |
+
+Dependiendo de lo que seleccione en algunas preguntas, se le añadirán otras, caso contrario seguirá con las generales.
+
+**Si selecciona "alimentos no procesados":**
+
+| Pregunta                                      | Nombre de la Variable | Tipo de Variable   | Restricciones                                |
+|----------------------|---------------|---------------|---------------------|
+| ¿Con qué frecuencia comes proteínas?          | proteinas             | Categórica Ordinal | De 1 vez por semana hasta 7 veces por semana |
+| ¿Con qué frecuencia comes frutas y vegetales? | veg_frut              | Categórica Ordinal | De 1 vez por semana hasta 7 veces por semana |
+| ¿Con qué frecuencia comes grasas y aceites?   | gras_aceit            | Categórica Ordinal | De 1 vez por semana hasta 7 veces por semana |
+| ¿Con qué frecuencia comes lácteos?            | lacteos               | Categórica Ordinal | De 1 vez por semana hasta 7 veces por semana |
+| ¿Con qué frecuencia comes cereales y granos?  | cere_gran             | Categórica Ordinal | De 1 vez por semana hasta 7 veces por semana |
+| ¿Con qué frecuencia comes azúcares y dulces?  | azuc_dul              | Categórica Ordinal | De 1 vez por semana hasta 7 veces por semana |
+
+**Si selecciona "si realizo actividad física":**
+
+| Pregunta                                         | Nombre de la Variable | Tipo de Variable   | Restricciones                                                                                                              |
+|-------------|-------------|-------------|----------------------------------|
+| ¿Qué tipo de actividad física realizas?          | tipo_act              | Categórica Nominal | Fútbol, Básquet, Voley, Natación, Tenis, Gimnasia, Gimnasio/Calistenia/Crossfit, Artes Marciales, Running, Ciclismo, Otros |
+| ¿Con qué frecuencia realizas la/las actividades? | frec_act              | Categórica Ordinal | 1 vez por semana, 2/3 veces por semana, 4/5 veces por semana, 6/7 veces por semana                                         |
+| En general ¿cuánto dura tu actividad física?     | tiem_act              | Numérica Continua  | Valor en formato horas/minutos/segundos                                                                                    |
+
+**Si selecciona una opción diferente a primer ciclo:**
+
+| Pregunta                                               | Nombre de la Variable | Tipo de Variable   | Restricciones                                                                                |
+|----------------|--------------|--------------|-----------------------------|
+| ¿En cuál de estas secciones te encuentras actualmente? | clasificacion         | Categórica Ordinal | Décimo superior, Quinto superior, Tercio Superior, Medio superior, Ninguno de los anteriores |
+
+## Limpieza de Datos
+
+**Renombramiento**
+
+Primero, con este comando renombraremos las columnas (variables) de la tabla
+
+```{r}
+colnames(datos) <- c("edad", "peso", "estatura", "alim_principal", "proteinas", "veg_frut", "gras_aceit", "lacteos", "cere_gran", "azuc_dul", "act_fisica", "tipo_act", "frec_act", "tiem_act", "ciclo", "clasificacion")
+```
+
+**Cambio de tipo de dato**
+
+Luego, verificamos cuál es el tipo que posee cada variable
+
+```{r}
+str(datos)
+```
+
+La variable edad es numérica discreta, pero está especificado como tipo num. Las variables numéricas discretas deberían ser int. Se cambia con el siguiente código
+
+```{r}
+datos$edad <- as.integer(datos$edad)
+```
+
+La variable tiem_act debemos cambiarla a minutos para facilitar su manejo
+
+```{r}
+datos$tiem_act <- as.numeric(as.period(datos$tiem_act, unit = "seconds"))
+```
+
+**Limitación y cambio de datos (post-recolección)**
+
+-   Al cambiar el tipo de dato de la edad, si en algún punto de la actualización de los datos alguien coloca un número decimal, se truncará automáticamente. El máximo y mínimo es limitado en el formulario de Google.
+
+-   Redondearemos a dos decimales cualquier dato con más de dos que pertenezca al peso y/o estatura. El máximo y mínimo es limitado en el formulario de Google.
+
+```{r}
+datos$peso <- round(datos$peso, 2)
+datos$estatura <- round(datos$estatura, 2)
+```
+
+-   Los valores vacíos de las columnas proteinas, veg_frut, gras_aceit, lacteos, cere_gran, azuc_dul, serán reemplazados por 0 veces por semana, ya que esas variables controlan las veces que se consumen los distintos tipos de alimentos no procesados por semana.
+
+```{r}
+datos$proteinas <- ifelse(is.na(datos$proteinas), "0 veces por semana", datos$proteinas)
+datos$veg_frut <- ifelse(is.na(datos$veg_frut), "0 veces por semana", datos$veg_frut)
+datos$gras_aceit <- ifelse(is.na(datos$gras_aceit), "0 veces por semana", datos$gras_aceit)
+datos$lacteos <- ifelse(is.na(datos$lacteos), "0 veces por semana", datos$lacteos)
+datos$cere_gran <- ifelse(is.na(datos$cere_gran), "0 veces por semana", datos$cere_gran)
+datos$azuc_dul <- ifelse(is.na(datos$azuc_dul), "0 veces por semana", datos$azuc_dul)
+```
+
+-   En la variable tipo_act hay una opción disponible llamada otros, donde las personas pueden especificar el tipo de actividad realizada si es que no se encuentra dentro de las opciones ofrecidas. Sin embargo, hay datos que podrían agruparse dentro de una misma categoría, lo cual no ocurre a causa de errores de tipeo o confusiones por parte del encuestado. Google forms ofrece una visualización bastante simple sobre las opciones elegidas que nos ayuda a determinar las opciones añadidas. Modificaremos algunos datos con características particulares:
+
+```{r}
+datos$tipo_act <- ifelse(datos$tipo_act == "Gimnasio en casa, pesas", "Gimnasio/Calistenia/Crossfit", datos$tipo_act)
+datos$tipo_act <- ifelse(datos$tipo_act == "Cardio y gimnasio", "Gimnasio/Calistenia/Crossfit", datos$tipo_act)
+datos$tipo_act <- ifelse(datos$tipo_act == "Calistenia", "Gimnasio/Calistenia/Crossfit", datos$tipo_act)
+datos$tipo_act <- ifelse(datos$tipo_act == "Dance Workout", "Aeróbicos", datos$tipo_act)
+datos$tipo_act <- ifelse(datos$tipo_act == "Bailo", "Danza", datos$tipo_act)
+datos$tipo_act <- ifelse(datos$tipo_act == "aeróbicos", "Aeróbicos", datos$tipo_act)
+```
+
+Los alumnos que colocaron una respuesta que no pudo ser limitada por el formulario, serán reemplazadas por edades de 18 años.
+```{r}
+datos$edad <- ifelse(datos$edad == 11, 18, datos$edad)
+```
+
+-   En las variables tipo_act y frec_act reemplazaremos los valores NA por "No ejercita"
+
+```{r}
+datos$tipo_act <- ifelse(is.na(datos$tipo_act), "No ejercita", datos$tipo_act)
+datos$frec_act <- ifelse(is.na(datos$frec_act), "No ejercita", datos$frec_act)
+```
+
+-   Cambiamos los valores NA de tiem_act a 0
+
+```{r}
+datos$tiem_act <- ifelse(is.na(datos$tiem_act), 0, datos$tiem_act)
+```
+
+-   En caso alguien de Primer Ciclo haya colocado alguna clasificación, lo cambiaremos por 5.Ninguno de los anteriores, debido a que si un alumno es de primer ciclo todavía no es clasificado dentro de su carrera.
+
+```{r}
+datos$clasificacion[datos$ciclo == "Primer Ciclo"] <- "5.Ninguno de los anteriores"
+```
+
+Estos son los únicos valores que habría que filtrar y/o limpiar por el momento.
+
+**Exportar base de datos limpia**
+
+Luego de limpiar todos los datos, exportamos la base ya limpia
+
+```{r}
+write_csv(datos, "DatosDepurados.csv")
+```
+
+Contamos el numero de observaciones completas
+
+```{r, echo = FALSE}
+num_observaciones_completas <- sum(complete.cases(datos))
+print(paste("El número de observaciones completas es:", num_observaciones_completas))
+```
+
+Incluimos el nuevo dataframe en una variable nueva.
+```{r}
+datosdep <- read_csv("DatosDepurados.csv")
+```
+
+# Análisis de descriptores
+
+## Variables, descriptores y gráficos.
+
+```{r, echo=FALSE}
+r <- function(x) {
+  resultado <- round(x, 2)
+  return(resultado)
+}
+
+```
+
+#### Edad:
+
+Con el siguiente gráfico podemos saber que la mayor parte de los encuestados tiene 18 años.
+
+```{r, echo = FALSE}
+#Gráfico de barras:
+
+hist(datosdep$edad, breaks = seq(min(datosdep$edad)-0.5, max(datosdep$edad)+0.5),
+     col = "lightblue", xlab = "Edad", ylab = "Frecuencia", main = "Histograma de Edad")
+```
+
+Gracias al diagrama de cajas también podemos ver que existen valores poco representativos para la edad de los alumnos, que son los valores más alejados (24, 25 años).
+
+```{r, echo=FALSE}
+boxplot(datosdep$edad, col = "lightblue", main = "Boxplot de Edad", ylab = "Edad")
+abline(h = mean(datosdep$edad), col = "blue", lty = 2)
+```
+
+```{r, echo = FALSE}
+promEDAD <- r(mean(datosdep$edad))
+medEDAD <-  median(datosdep$edad)
+modaEDAD <- Mode(datosdep$edad)
+rangoEDAD <- max(datosdep$edad)- min(datosdep$edad)
+desvEDAD <-  r(sd(datosdep$edad))
+coefEDAD <-  r((desvEDAD/promEDAD)*100)
+tablaEDAD <- datosdep %>% count(datosdep$edad)
+tablaEDAD
+print(paste("Promedio:",promEDAD))
+print(paste("Mediana:",medEDAD))
+print(paste("La moda es:",modaEDAD))
+print(paste("Rango:",rangoEDAD))
+print(paste("Desviación estándar:",desvEDAD,"años"))
+print(paste("Coeficiente de variación:",coefEDAD))
+```
+
+A partir del análisis y la siguiente tabla podemos concluir:
+
+-   La mitad de los encuestados tiene una edad mayor o igual que 19 y la otra mitad, menor que 19 (*mediana*).
+
+-   La mayor parte de encuestados tiene 18 años de edad. El gráfico también nos indica que media mediana y moda se encuentran alrededor del mismo valor aproximadamente, por lo que las edades de los estudiantes de UTEC tienden a estar agrupados cerca de su media.
+
+-   Tenemos un coeficiente de variación bajo (de 8.52) que nos indica una dispersión baja, y por consiguiente, datos relativamente homogéneos.
+
+#### Peso (kg):
+
+Con el siguiente gráfico podemos saber que la mayor parte de los encuestados posee un peso entre 60 y 70kg.
+
+```{r, echo=FALSE}
+hist(datosdep$peso, breaks = "Sturges", col = "lightgreen", xlab = "Peso", ylab = "Frecuencia", main = "Histograma de Peso")
+```
+
+Gracias al diagrama de cajas podemos observar que, en comparación a la edad, hay más valores poco representativos (pesos que sobrepasan los 90kg).
+
+```{r, echo=FALSE}
+boxplot(datosdep$peso, col = "lightgreen", main = "Boxplot de peso", ylab = "Peso")
+abline(h = mean(datosdep$peso), col = "blue", lty = 2)
+```
+
+```{r, echo=FALSE}
+promPESO <- r(mean(datosdep$peso))
+medPESO <-  median(datosdep$peso)
+modaPESO <- Mode(datosdep$peso)
+rangoPESO <- max(datosdep$peso)- min(datosdep$peso)
+desvPESO <-  r(sd(datosdep$peso))
+coefPESO <-  r((desvPESO/promPESO)*100)
+tablaPESO <- datosdep %>% count(datosdep$peso)
+tablaPESO
+
+print(paste("El peso promedio es de", promPESO, "kg."))
+print(paste("La mediana es", medPESO))
+print(paste("La moda es", modaPESO))
+print(paste("Rango:", rangoPESO))
+print(paste("Desviacion estándar: ", desvPESO, "kg"))
+print(paste("Coeficiente de variación:", coefPESO))
+```
+
+A partir del análisis, los valores de los descriptores y la siguiente tabla podemos mostrar lo siguiente:
+
+-   La mayor parte de los encuestados posee un peso entre 60 y 70kg.
+
+-   El gráfico nos muestra que media, mediana y moda se encuentran alrededor del mismo valor.
+
+-   Tenemos un coeficiente de variación más alto que el anterior (de 18.88) que nos indica una dispersión más alta, y por consiguiente, datos más dispersos. Es normal considerando que estamos hablando de pesos.
+
+#### Estatura (m):
+
+El histograma nos indica que la mayor parte de los encuestados posee una altura entre 1.65 y 1.70 metros
+
+```{r, echo=FALSE}
+hist(datosdep$estatura, breaks = "Sturges", col = "orange", xlab = "estatura", ylab = "Frecuencia", main = "Histograma de estatura")
+```
+
+Gracias al diagrama de cajas podemos observar que promedio, mediana y moda no presentan una asimetría significativa.
+
+```{r, echo=FALSE}
+boxplot(datosdep$estatura, col = "orange", main = "Boxplot de estatura", ylab = "Estatura")
+abline(h = mean(datosdep$estatura), col = "blue", lty = 2)
+
+
+```
+
+```{r, echo=FALSE}
+promESTATURA <- r(mean(datosdep$estatura))
+medESTATURA <-  median(datosdep$estatura)
+modaESTATURA <- Mode(datosdep$estatura)
+rangoESTATURA <- max(datosdep$estatura)- min(datosdep$estatura)
+desvESTATURA <-  r(sd(datosdep$estatura))
+coefESTATURA <-  r((desvESTATURA/promESTATURA)*100)
+tablaESTATURA <- datosdep %>% count(datosdep$estatura)
+tablaESTATURA
+
+print(paste("Promedio:",promESTATURA))
+print(paste("Mediana:",medESTATURA))
+print(paste("La moda es:",modaESTATURA))
+print(paste("Rango:",rangoESTATURA))
+print(paste("Desviación estándar:",desvESTATURA,"m"))
+print(paste("Coeficiente de variación:",coefESTATURA))
+```
+
+A partir del análisis y la siguiente tabla podemos mostrar lo siguiente:
+
+-   El 50% de los encuestados presentan una estatura menor o igual a 1.69 y la otra mitad mayor o igual a 1.69 metros.
+
+-   La mayor parte de los encuestados posee una altura entre 1.65 y 1.70 metros
+
+-   Tenemos un coeficiente de variación más pequeño que el anterior (5.95), lo que nos indica menor dispersión en los datos.
+
+-   Solo hay un dato que se desvía por completo de los descriptores de posición, el de 2 metros de altura.
+
+-   Hasta ahora esta es la variable más simétrica, pues su media (1.68), moda (1.70) y mediana (1.69) no varían casi nada entre las 3.
+
+#### Alimentación principal.
+
+Conoceremos los hábitos alimenticios de los estudiantes de UTEC.
+
+Determinamos que por amplia mayoría, los encuestados comen principalmente alimentos no procesados.
+
+```{r, echo=FALSE}
+respuestas <- c("No procesados", "Procesados")
+frecuencias <- table(datosdep$alim_principal)
+colores <- c("lightblue", "lightgreen")
+barplot(frecuencias, names.arg = respuestas, col = colores, xlab = "Respuestas", ylab = "Frecuencia", main = "Gráfico de Barras")
+legend("topright", legend = respuestas, fill = colores)
+```
+
+Aquí se concluye que la gran mayoría de los encuestados tiende a comer alimentos no procesados, lo cual indicaría una señal de una alimentción responsable y/o saludable.
+
+#### Tipos de alimentación
+
+De los encuestados podemos determinar las siguientes cosas:
+
+Respecto a las proteínas, es la categoría de alimentos más consumida por semana en los estudiantes.
+
+```{r, echo=FALSE}
+#PROTEINAS
+
+tablaProteinas <- datosdep %>% count(datosdep$proteinas)
+tablaProteinas
+
+niveles <- c("0 veces por semana", "1 veces por semana", "2 veces por semana", "3 veces por semana", "4 veces por semana", "5 veces por semana", "6 veces por semana", "7 veces por semana")
+
+tablaProteinas <- datosdep %>% count(proteinas)
+
+tablaCompleta <- data.frame(proteinas = niveles, n = 0)
+tablaCompleta[niveles %in% tablaProteinas$proteinas, "n"] <- tablaProteinas$n
+
+barplot(tablaCompleta$n, names.arg = tablaCompleta$proteinas, xlab = "Consumo semanal", ylab = "# de personas", col = "tan", main = "Consumo semanal de proteínas")
+```
+
+Las frutas y verduras son mayormente consumidas 5 veces por semana.
+
+```{r, echo=FALSE}
+#FRUTAS Y VERDURAS
+
+tablaFyV <- datosdep %>% count(datosdep$veg_frut)
+tablaFyV
+
+tablaFyV <- datosdep %>% count(veg_frut)
+barplot(tablaFyV$n, names.arg = tablaFyV$veg_frut, xlab = "Consumo semanal", ylab = "# de personas", col = "palegreen", main = "Consumo semanal de frutas y verduras")
+```
+
+Las grasas no son de consumo tan frecuente como las otras categorías. Son consumidas 3 veces por semana.
+
+```{r, echo=FALSE}
+#GRASAS
+
+tablaGrasas <- datosdep %>% count(datosdep$gras_aceit)
+tablaGrasas
+
+tablaGrasas <- datosdep %>% count(gras_aceit)
+barplot(tablaGrasas$n, names.arg = tablaGrasas$gras_aceit, xlab = "Consumo semanal", ylab = "# de personas", col = "yellow", main = "Consumo semanal de grasas")
+```
+
+Los lácteos son mayormente consumidos 5 veces por semana.
+
+```{r, echo=FALSE}
+#LACTEOS
+
+tablaLacteos <-  datosdep %>%count(datosdep$lacteos)
+tablaLacteos
+
+tablaLacteos <- datosdep %>% count(lacteos)
+barplot(tablaLacteos$n, names.arg = tablaLacteos$lacteos, xlab = "Consumo semanal", ylab = "# de personas", col = "lightblue", main = "Consumo semanal de lácteos")
+```
+
+Los cereales si son frecuentemente consumidos. Muchos de los encuestados suelen comer cereales entre 5 a 7 veces por semana.
+
+```{r, echo=FALSE}
+#CEREALES
+
+tablaCereal <-datosdep %>% count(datosdep$cere_gran)
+tablaCereal
+
+tablaCereal <- datosdep %>% count(cere_gran)
+barplot(tablaCereal$n, names.arg = tablaCereal$cere_gran, xlab = "Consumo semanal", ylab = "# de personas", col = "wheat", main = "Consumo semanal de cereales")
+```
+
+Los azúcares tienen un consumo frecuente, de 5 veces por semana en los alumnos de UTEC.
+
+```{r, echo=FALSE}
+#AZUCARES
+
+tablaAzucar <- datosdep %>% count(datosdep$azuc_dul)
+tablaAzucar
+
+tablaAzucar <- datosdep %>% count(azuc_dul)
+barplot(tablaAzucar$n, names.arg = tablaAzucar$azuc_dul, xlab = "Consumo semanal", ylab = "# de personas", col = "lightsalmon", main = "Consumo semanal de azúcares y dulces")
+```
+
+#### Actividad Física
+
+Conoceremos la afición de los estudiantes de UTEC por la actividad física.
+
+La cantidad de estudiantes que realizan actividad física, sobrepasa por muy poco a la cantidad de estudiantes que no se ejercita con frecuencia. Podría ser una mala señal en la salud de los estudiantes a futuro.
+
+```{r, echo=FALSE}
+TabHaceEj <- datosdep %>% count(datosdep$act_fisica)
+TabHaceEj
+
+TabHaceEj <- datosdep %>% count(act_fisica)
+barplot(TabHaceEj$n, names.arg =TabHaceEj$act_fisica, xlab = "Respuestas", ylab = "Frecuencia", col = "lightsalmon", main = "¿Realiza actividad física?")
+```
+
+Como podemos observar a través de las tablas, el deporte más realizado es el de "Gimnasio/Calistenia/Crossfit"
+
+```{r, echo=FALSE}
+#Aquí se muestra una tabla de los datos únicos por separado
+datos_separados <- datosdep %>% separate_rows(tipo_act, sep = ",")
+tabla_tipo_act <- datos_separados %>% count(tipo_act)
+tabla_tipo_act <- tabla_tipo_act %>% arrange(desc(n))
+tabla_tipo_act
+
+```
+
+Podemos observar en esta tabla, que sin importar el deporte que se practique, los encuestados que se ejercitan con frecuencia, en su mayoría suelen entrenar 2/3 veces por semana.
+
+```{r, echo=FALSE}
+#Frecuencia (semanal)
+tabFrecEj <-  datosdep %>% count(datosdep$frec_act)
+tabFrecEj
+
+frecuencias <- table(datosdep$frec_act)
+barplot(frecuencias, xlab = "# de veces", ylab = "Frecuencia", col = "lightsalmon", main = "Actividad física (semanal)")
+```
+
+En esta tabla se observan los tiempos en segundos por día que le dedican las personas a su actividad física.
+
+```{r, echo=FALSE}
+
+#Tiempo (por día, medido en SEGUNDOS) 
+tabTiempoEj <-  datosdep %>%  count(datosdep$tiem_act)
+tabTiempoEj
+```
+
+Quitamos de consideración a los que no ejercitan
+
+```{r, echo = FALSE}
+#Primero, se crea una nueva tabla solo con la variable tiem_act
+NewTiem_act <- select(datosdep, NewTiem_act = tiem_act)
+#Luego, actualizo los datos que omitan la respuesta "0"
+NewTiem_act <- filter(NewTiem_act, NewTiem_act != 0)
+NewTiem_act <- NewTiem_act %>% mutate(NewTiem_act = as.numeric(NewTiem_act))
+NewTiem_act
+
+
+```
+
+```{r, echo=FALSE}
+hist(NewTiem_act$NewTiem_act, col = "gold", xlab = "Tiempo de actividad (segundos)", ylab = "Frecuencia", main = "Histograma de Tiempo de Actividad (Actualizado)")
+```
+
+Descriptores numéricos:
+
+```{r, echo=FALSE}
+promTIEMPO <- r(mean(NewTiem_act$NewTiem_act))
+medTIEMPO <-  median(NewTiem_act$NewTiem_act)
+modaTIEMPO <- Mode(NewTiem_act$NewTiem_act)
+rangoTIEMPO <- max(NewTiem_act$NewTiem_act)- min(NewTiem_act$NewTiem_act)
+desvTIEMPO <-  r(sd(NewTiem_act$NewTiem_act))
+coefTIEMPO <-  r((desvTIEMPO/promTIEMPO)*100)
+tablaTIEMPO <- NewTiem_act %>% count(NewTiem_act)
+tablaTIEMPO
+
+print(paste("Promedio:",promTIEMPO))
+print(paste("Mediana:",medTIEMPO))
+print(paste("La moda es:",modaTIEMPO))
+print(paste("Rango:",rangoTIEMPO))
+print(paste("Desviación estándar:",desvTIEMPO,"seg"))
+print(paste("Coeficiente de variación:",coefTIEMPO))
+```
+
+Con ellos podemos determinar:
+
+-   Existe un grado de variación considerable.
+
+-   Promedio, mediana y moda no se alejan tanto entre sí (mostrado en el boxplot de más adelante).
+
+-   En promedio, los encuestados entrenan por una hora y cuarenta minutos aprox (6222 min)
+
+El boxplot nos indica que hay datos no representativos que se alejan bastante de los valores representativos.
+
+```{r, echo=FALSE}
+boxplot(NewTiem_act$NewTiem_act, col = "lightgreen", main = "Boxplot de tiempo de actividad", ylab = "Segundos de actividad")
+abline(h = mean(NewTiem_act$NewTiem_act), col = "blue", lty = 2)
+
+```
+
+#### Ciclo
+
+La siguiente tabla nos muestra como la mayor parte de los encuestados pertenece al tercer ciclo
+
+```{r, echo=FALSE}
+tablaCICLO <- datosdep %>% count(datosdep$ciclo)
+
+tablaCICLO <- datosdep %>% 
+  count(ciclo) %>%
+  mutate(ciclo = factor(ciclo, levels = c("Primer Ciclo", "Segundo Ciclo", "Tercer Ciclo", "Cuarto Ciclo", "Quinto Ciclo", "Sexto Ciclo", "Séptimo Ciclo", "Octavo Ciclo", "Noveno Ciclo", "Décimo Ciclo")),
+         n = as.numeric(n)) %>%
+  arrange(ciclo)
+
+tablaCICLO
+
+barplot(tablaCICLO$n, names.arg = tablaCICLO$ciclo, col = "lightgreen", 
+        xlab = "Ciclo", ylab = "Frecuencia", main = "Histograma de Ciclo")
+
+
+
+
+```
+
+#### Clasificación
+
+En esta tabla observamos
+
+```{r, echo=FALSE}
+tablaRANKING <- datosdep %>% count(datosdep$clasificacion)
+tablaRANKING
+
+barplot(tablaRANKING$n, names.arg = tablaRANKING$'datosdep$clasificacion', col = "blue4", 
+        main = "Gráfico de Barras - Ranking", xlab = "Clasificación", ylab = "Frecuencia")
+```
+
+## Relaciones entre variables
+
+Analizaremos las relaciones entre las variables que conciernen a nuestro estudio estadístico
+
+#### Relación Peso-Altura
+
+La relación peso estatura es parte de una medida común en la medicina que sirve para guiarse a la hora de determinar el peso saludable de una persona, el IMC. Como podemos ver, existe una correlación de 0.65, un indicio de que tiene un grado considerable de linealidad. A medida que crecemos en estatura, usualmente creceremos en peso también.
+
+```{r, echo=FALSE}
+#PESO-ALTURA
+PesoAltura <-  cor(datosdep$peso,datosdep$estatura)
+print(paste("Grado de correlación:",round(PesoAltura, 2)))
+```
+
+Determinamos el diagrama de dispersión de estas dos variables y como podemos ver, a simple vista pareciera que tienden a formar una línea recta dispersada.
+
+```{r, echo=FALSE}
+plot(datosdep$peso,datosdep$estatura, col = "blue", xlab = "Peso", ylab = "Estatura", main = "Estatura vs Peso")
+```
+
+#### Relación Peso-Alimentación principal
+
+Como podemos observar, las personas que consumen principalmente alimentos no procesados poseen una concentración de población que va desde los 56 kilos hasta los 73 kilos aprox. A pesar de que ellos tengan unos datos no representativos mayores a los que consumen principalmente alimentos procesados, estos últimos poseen un margen superior al anterior y más amplio, parten de los 58/59 kilos hasta los 80.
+
+A su vez, podemos ver como los que consumen alimentos no procesados poseen un sesgo hacia la izquierda, por lo que su promedio es menor que la mediana. Estas características, también las posee la población que consume alimentos procesados.
+
+```{r, echo=FALSE}
+#TIPOALIMENTACION-PESO
+# Gráfico de cajas y bigotes
+boxplot(datosdep$peso ~ datosdep$alim_principal, col = "yellow", 
+        main = "Peso según alimentacion",
+        xlab = "Tipo de alimentacion", ylab = "Peso")
+abline(h=mean(datosdep$peso), col="blue", lty=2)
+```
+
+#### Relación Ranking-Actividad Física
+
+Como se puede observar en el décimo superior, está dividida casi a la mitad la cantidad de estudiantes que hace ejercicio con quienes no. Del quinto al al medio superior, los estudiantes que hacen ejercicio sobrepasan a los que no lo hacen. Dentro de los últimos en el ranking, también parece que están divididos por la mitad, o incluso pareciera que los que no hacen ejercicio superan a los que sí. Entonces se puede notar que mientras un estudiante sí practique ejercicio, es más probable que se encuentre al menos dentro de los 3 últimos rangos de clasificación. Bajo esa observación, podríamos deducir una relación positiva entre el ejercicio y el estudio. Sin embargo, en cuanto al primer rango de clasificación, podemos deducir incluso una relación negativa entre ejercicio y estudio. Esto se puede deber a que una inversión de tiempo en actividad física quita tiempo en lo que respecta para enfocarse más al aspecto académico. Podríamos interpretar lo mismo en cuanto a los estudiantes que no pertenecen a ningún rango, pero como algunos de ellos son de primer ciclo y no están clasificados, no podemos establecer ninguna relación.
+
+```{r, echo = FALSE}
+#EJERCICIO-RANKING
+
+#Como son ambas variables categóricas, nos remitimos a usar el diagrama de mosaicos:
+colores <- c("red", "blue")
+
+EjerRanking <- mosaicplot(table(datos$clasificacion, datos$act_fisica), color = colores, main = "Gráfico de Mosaico", xlab = "Clasificación", ylab = "Act. Física")
+
+```
+
+#### Relación Alimentación Principal-Ranking
+
+La parte superior presenta los alimentos no procesados y la inferior los procesados. Como podemos ver, la diferencia en la alimentación principal es amplia. Sin embargo se presenta de la misma forma en todos los rangos. A pesar de eso, es innegable que los que pertenecen a rangos altos consumen en su mayoría alimentos no procesados. Todo parece indicar que hay una correlación positiva entre la alimentación saludable y el desempeño en la universidad.
+
+```{r, echo = FALSE}
+colores = c("darkgreen", "brown")
+AlimRank <- mosaicplot(table(datosdep$clasificacion, datosdep$alim_principal), color = colores, main = "Alimentacion principal vs Posicion en ranking", xlab = "Ranking", ylab = "Alimentacion")
+```
+
+#### Relación Alimentación-Ejercicio
+
+El gráfico de mosaico nos muestra que los alumnos que realizan ejercicio, cuidan su dieta comiendo alimentos no procesados en su mayoría. A su vez, podemos ver que la mayoría de los que no realizan actividad física, comen principalmente alimentos procesados. A largo plazo, estos hábitos podrían afectar su salud y conllevar a diversas enfermedades. De igual manera, sería bueno reducir incluso más el número de alumnos que comen principalmente alimentos procesados y que a la vez realizan ejercicio. Incluso si realizas ejercicio constante, basar tu dieta en alimentos procesados como principal ingesta puede traer consecuencias en el organismo que a veces pueden no notarse en el físico. Por ejemplo, puede no producirse un aumento abrupto de grasa corporal, pero los niveles de colesterol y triglicéridos pueden subir a niveles riesgosos.
+
+```{r, echo = FALSE}
+colores = c("yellow", "orange")
+ProteinRank <- mosaicplot(table(datosdep$alim_principal, datosdep$act_fisica), color = colores, main = "Alimentacion principal vs Ejercicio", xlab = "Ranking", ylab = "Alimentacion")
+```
+
+#### Relación entre consumo de proteínas y rendimiento académico
+
+```{r, echo=FALSE}
+tablaProtRanking <- table(datos$proteinas, datos$clasificacion)
+tablaProtRanking
+```
+
+Para este análisis hay que tener cuidado, pues se puede observar que los alumnos que están en el décimo superior suelen consumir con más frecuencia alimentos con proteínas. Sin embargo, está que cuando se observan las demás de la clasificaciones, el consumo en todas es casi semanal (5 a 7)). Esto indica que no hay una relación directa o determinante entre el consumo de proteínas y el desempeño académico de los estudiantes. No podemos afirmar que un mayor consumo de proteínas esté asociado necesariamente con un mejor rendimiento académico, ni que un menor consumo esté asociado con un rendimiento más bajo, por mucho que en general pareciera que no fuera así. La relación entre estas variables es débil.
+
+```{r, echo=FALSE}
+dfproteinas <- data.frame(table(datos$proteinas,datos$clasificacion))
+
+GraficoProtRanking <- ggplot(dfproteinas, aes(x = Var2, y = Freq, fill = Var1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Clasificación", y = "Frecuencia", title = "Frecuencia de consumo semanal de proteínas por ranking") +
+  scale_fill_manual(values = c("gray", "orange", "yellow", "green", "blue", "#4B0082", "violet")) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.box = "horizontal")
+
+GraficoProtRanking
+
+```
+
+#### Relación consumo de Frutas y verduras - rendimiento académico
+
+```{r, echo=FALSE}
+tablaFVRanking <- table(datos$veg_frut, datos$clasificacion)
+tablaFVRanking
+```
+
+Este gráfico presenta que la frecuencia más común para en el consumo de frutas y verduras es de 5 a 7 veces a la semana, lo cual tampoco nos indica con total seguridad la existencia de cierta relación con el rendimiento académico.
+
+```{r, echo=FALSE}
+dfFV <- data.frame(table(datos$veg_frut,datos$clasificacion))
+
+GraficoFVRanking <- ggplot(dfFV, aes(x = Var2, y = Freq, fill = Var1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Clasificación", y = "Frecuencia", title = "Frecuencia de consumo semanal de Frutas y verduras por ranking") +
+  scale_fill_manual(values = c( "gray", "red", "orange", "yellow", "green", "blue", "#4B0082", "violet")) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.box = "horizontal")
+
+GraficoFVRanking
+```
+
+#### Relación consumo de grasas y aceites - rendimiento académico
+
+```{r, echo=FALSE}
+tablaGrasasRanking <- table(datos$gras_aceit, datos$clasificacion)
+tablaGrasasRanking
+```
+
+Como bien se sabe, el consumo excesivo de grasas no es muy bueno para la salud y puede hacerse notar en otros aspectos, incluyendo el rendimiento académico. Se ve que los que se encuentran en el décimo superior suelen consumir con baja frecuencia semanal productos que contengan grasas o aceites. La afirmación se refuerza cuando vemos que en el tercio y medio superior, los estudiantes suelen consumir con mayor frecuencia alimentos de este tipo. Podemos decir entonces que existe una asociación o relación inversa entre la frecuencia de consumo de grasas y aceites y la clasificación de los estudiantes. Es decir, a medida que suben de clasificación, la frecuencia en el consumo de grasas y aceites tiende a disminuir.
+
+```{r, echo=FALSE}
+dfGrasas <- data.frame(table(datos$gras_aceit,datos$clasificacion))
+
+GraficoGrasasRanking <- ggplot(dfGrasas, aes(x = Var2, y = Freq, fill = Var1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Clasificación", y = "Frecuencia", title = "Frecuencia de consumo semanal de grasas y aceites por ranking") +
+  scale_fill_manual(values = c( "gray", "red", "orange", "yellow", "green", "blue", "#4B0082", "violet")) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.box = "horizontal")
+
+GraficoGrasasRanking
+```
+
+#### Relación consumo de Lácteos - rendimiento académico
+
+```{r, echo=FALSE}
+tablaLacteosRanking <- table(datos$lacteos, datos$clasificacion)
+tablaLacteosRanking
+```
+
+Esta situación es muy similar al caso de las proteínas, pues en todos los rankings, el consumo suele oscilar entre una frecuencia alta (5 o 6 veces por semana), por lo que tampoco podemos decir con total seguridad que hay una relación directa entre ambas variables.
+
+```{r, echo=FALSE}
+dfLacteos <- data.frame(table(datos$lacteos,datos$clasificacion))
+
+GraficoLacteosRanking <- ggplot(dfLacteos, aes(x = Var2, y = Freq, fill = Var1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Clasificación", y = "Frecuencia", title = "Frecuencia de consumo semanal de lácteos por ranking") +
+  scale_fill_manual(values = c( "gray", "red", "orange", "yellow", "green", "blue", "#4B0082", "violet")) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.box = "horizontal")
+
+GraficoLacteosRanking
+```
+
+#### Relación consumo de cereales y granos - rendimiento académico
+
+```{r, echo=FALSE}
+tablaCerealRanking <- table(datos$cere_gran, datos$clasificacion)
+tablaCerealRanking
+```
+
+Aquí se observa que el consumo de cereales es relativamente alto y constante en todas las clasificaciones, pues en todos predomina el consumo de 5 a 7 veces por semana. Sin embargo, esta conclusión se basa en la frecuencia de consumo, y no se puede determinar una relación directa entre ambas variables (al igual que algunos de las comparaciones anteriores). En términos cotidianos, es muy común (además de recomendable según la pirámide alimenticia) el consumo frecuente de este tipo de alimentos, por lo que no podemos determinar una relación fuerte en el consumo de cereales y el rendimiento de los estudiantes.
+
+```{r, echo=FALSE}
+dfCereales <- data.frame(table(datos$cere_gran,datos$clasificacion))
+
+GraficoCerealesRanking <- ggplot(dfCereales, aes(x = Var2, y = Freq, fill = Var1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Clasificación", y = "Frecuencia", title = "Frecuencia de consumo semanal de cereales y granos por ranking") +
+  scale_fill_manual(values = c( "gray", "red", "orange", "yellow", "green", "blue", "#4B0082", "violet")) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.box = "horizontal")
+
+GraficoCerealesRanking
+```
+
+#### Relación consumo de Azúcares y dulces - rendimiento académico
+
+```{r, echo=FALSE}
+tablaAzucarRanking <- table(datos$azuc_dul, datos$clasificacion)
+tablaAzucarRanking
+```
+
+En el décimo superior es más frecuente el consumo alto de azúcares que el bajo; en quinto superior, la distribución es simétrica pero tiende a un consumo más frecuente (4 o 5 veces por semana); en tercio, el consumo es muy similar al del quinto superior; en medio, predomina el consumo de 3 veces por semana, pero los siguientes valores altos son de consumo mayor (4 a 6). Sin embargo, si se observa con atención, se ve que en las barras de colores azul, índigo y violeta (de 5 a 7 semanal), progresivamente van subiendo conforme se desciende de ranking. Esto parece indicar que la relación entre el consumo de azúcar y dulces con la clasificación tiende a ser directa y negativa. Esto tiene sentido porque el consumo alto de dulces, al igual que las grasas, de alguna u otra forma suele afectar a las personas, incluyendo en su rendimiento académico.
+
+```{r, echo=FALSE}
+dfDulces <- data.frame(table(datos$azuc_dul,datos$clasificacion))
+
+GraficoDulcesRanking <- ggplot(dfDulces, aes(x = Var2, y = Freq, fill = Var1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Clasificación", y = "Frecuencia", title = "Frecuencia de consumo semanal de azúcar y dulces por ranking") +
+  scale_fill_manual(values = c( "gray", "red", "orange", "yellow", "green", "blue", "#4B0082", "violet")) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.box = "horizontal")
+
+GraficoDulcesRanking
+```
+
+# Conclusiones
+
+-   Logramos visibilizar los hábitos físicos y alimenticios de los estudiantes de UTEC, mostrando que la mayoría consume comida no procesada, con predominancia en las proteínas, frutas y verduras, junto con granos y cereales.
+
+-   El estudio mostró que hay prácticamente una división a la mitad entre estudiantes que realizan actividad física y los que no.
+
+-   Determinamos que el ejercicio físico más común es el realizado por el Gimnasio y/o Calistenia. Ambas son disciplinas enfocadas al desarrollo muscular y el incremento de fuerza física.
+
+-   Hemos determinado que, a rasgos generales, la relación entre el peso y estatura de los estudiantes de UTEC sigue una progresión lineal.
+
+-   Hemos averiguado que, en general, los estudiantes posicionados desde el décimo superior hasta el medio superior poseen una dieta con alimentos no procesados principalmente.
+
+-   También, los estudiantes posicionados en esas categorías realizan algún tipo de actividad física en su mayoría.
+
+-   Encontramos también que los alumnos que consumen principalmente alimentos procesados, se concentran en la parte de la población con un peso de entre 60 y 80 kg, teniendo en cuenta que el promedio de estatura en UTEC no es tan alto, esto podría indicar principios de sobrepeso.
+
+-   Los alumnos consumidores frecuentes de alimentos no procesados no realizan actividad física regularmente. Esto genera una alta probabilidad de generar enfermedades derivadas a largo y mediano plazo.
+
+Con estas afirmaciones, cumplimos los objetivos que nos planteamos al inicio de la actividad:
+
+-Identificar el nivel de actividad física y tipo de actividad predominante en los alumnos de UTEC.
+
+-Identificar el tipo de alimentación en los alumnos de UTEC.
+
+-Determinar si la alimentación y el ejercicio son factores importantes en las calificaciones.
+
+-Identificar posibles riesgos de salud en los estudiantes en base a los resultados obtenidos

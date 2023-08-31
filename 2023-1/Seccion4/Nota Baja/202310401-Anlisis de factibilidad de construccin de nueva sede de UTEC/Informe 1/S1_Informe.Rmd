@@ -1,0 +1,392 @@
+---
+title: "S1 Análisis de factibilidad de construcción de nueva sede de UTEC"
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_floact:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+---
+#*En qué zona se le es factible construir a UTEC una nueva sede*
+```{r, include=FALSE}
+packages <- c(
+    "knitr",
+    "stringr",
+    "ggthemes",
+    "dplyr",
+    "readr",
+    "tidyverse",
+    "corrplot",
+    "modeest",
+    "ggplot2",
+    "car",
+    "fitdistrplus",
+    "tidyr"
+    
+)
+
+missing.packages = packages[!(packages %in% rownames(installed.packages()))]
+
+if (length(missing.packages) > 0) {
+    install.packages(missing.packages)
+}
+lapply(packages, library, character.only = TRUE)
+
+```
+
+
+# Introducción
+
+## Relevancia 
+
+La construcción de una nueva sede para la universidad es una solución para expandir su capacidad y permitir un crecimiento futuro. Además, puede ser una oportunidad para establecer objetivos en la construcción de espacios de aprendizaje innovadores y accesibles para todos. Una nueva sede moderna y atractiva también puede mejorar la visibilidad y reputación de la universidad, atrayendo a más estudiantes y profesores talentosos y consolidándose como una de las mejores opciones educativas en la región.
+
+## Objetivos
+
+1. Determinar entre los 3 distritos más votados donde se podría construir una nueva sede de la UTEC.
+2. Identificar cuales serian los beneficios de la nueva sede y como afectaria a los alumnos.
+3. Identificar las estructuras o areas que podría tener la nueva sede para los alumnos, para sus acividades diarias.
+
+## Planificación
+
+Según lo expresado, el proyecto fue diseñado teniendo en cuenta el plan de estudios y las instrucciones proporcionadas en clase. Esto sugiere que se siguió un enfoque estructurado y organizado para desarrollar el proyecto. ![](planificacion.PNG)
+
+# Datos
+
+## Proceso de recoleccion de datos
+
+En la [encuesta](https://docs.google.com/forms/d/e/1FAIpQLSfkRdQ-RcGIb_UFy9kyGnpayPxAZ46nk-ktNSo_JDov-0c8HQ/viewform) realizada se utilizaron métodos digitales y presenciales para difundir la encuesta y se logró recolectar un total de 157 respuestas. Esto se logró compartiendo el enlace directo y el código QR de la encuesta, así como difundiendo la encuesta por medios digitales y en persona con los encuestados dentro del campus.\
+
+## Población, muestra y muestreo
+
+### Población
+
+La población objetivo de este estudio son todos los estudiantes de pregrado que se encuentran actualmente matriculados en el semestre 2023-1 en "UTEC".
+
+### Muestra
+
+La muestra obtenida para este estudio consta de 157 alumnos, lo que indica que se ha obtenido una muestra representativa y adecuada para lograr el análisis de los datos con un buen nivel de precisión y confiabilidad
+
+### Muestreo
+
+El muestreo es de tipo aleatorio simple.
+
+## Variables
+
+### Categóricas (7)
+
+| Variable     | Descripción                                                                                                                                                                                                     |
+|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| C_Economica  | Condición económica con respecto al pago de la universidad. Se trabajará con 3 opciones, las cuales son: Regular (sin apoyo alguno), Becado (beca 18, beca utec, etc.) , Acreditado (ayuda financiera de UTEC). |
+| Carrera      | Carrera a la que pertenece, se pondrá como opciones las 23 carreras para que se pueda escoger.                                                                                                                  |
+| DProcedencia | Lugar de donde procede, se trabajará con 2 opciones para escoger (Lima y Provincia).                                                                                                                            |
+| DResidencia  | Lugar de residencia actual, se trabajará con todos los distritos de Lima Metropolitana (43) y la opción de el Callao (1). Se tendrá 44 opciones.                                                                |
+| DSede        | Distrito donde les gustaría que fuese la nueva sede de UTEC, se trabajará como opciones con todos los distritos de Lima Metropolitana (43).                                                                     |
+| TVivivienda  | Tipo de vivienda donde reside: Alquilado (solo), Alquilado (compartido) y Casa propia.                                                                                                                          |
+| Escala       | Escala económica en la que se encuentra: A, B, C, D Y E.                                                                                                                                                        |
+
+### Numéricas (9)
+
+| Variable            | Descripción                                                                                                                                                               |
+|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| CantTransportes     | Cantidad de transportes que usa para llegar de casa a UTEC, dato numérico entero. Adicional se debe de mencionar que si el alumno viniese caminando debe de poner 0.      |
+| Ciclo               | Ciclo estimado al que pertenece, se pondrá las 10 opciones desde (1ero hasta 10mo ciclo en números)                                                                       |
+| Edad                | Edad en años del encuestado, dato numérico entero ingresado.                                                                                                              |
+| GDiarioTransporte   | Gasto aproximado de gasto diario en transporte (Ida y vuelta).Dato numérico entero, para así evitar confusiones con la coma o punto al hacer el analizas de la data en R. |
+| CADeportivas        | Calificación del 1 al 5 por los espacios deportivos en la nueva sede (considerando 1 malo y 5 alto).                                                                      |
+| CADiscapacidad      | Calificación del 1 al 5 por los espacios de áreas de discapacidad (considerando 1 Bajo y 5 alto),                                                                         |
+| CALugarCentrico     | Calificación del 1 al 5 de que sea un lugar céntrico con respecto a la nueva sede (considerando 1 malo y 5 alto).                                                         |
+| CAMasLugaresEstudio | Calificación del 1 al 5 de que tenga más lugares con respecto a la nueva sede (considerando 1 malo y 5 alto)                                                              |
+| CAVerdes            | Calificación del 1 al 5 por los espacios de áreas verdes en la nueva sede (considerando 1 malo y 5 alto).                                                                 |
+
+## Limpieza de datos
+
+La limpieza de datos en el proyecto es una etapa fundamental en la cual dejaremos lo mas pulcra posible nuestra data para asi realizar el analisis de manera satisfactoria. Inicialmente contamos con una data de 157 observaciones y 18 variables, de lo que despues de un arduo analisis nos queda 150 observaciones y 16 variables utiles y completas para ser utilizadas en nuestro estudio.
+
+Para obtener la data, se realizó una [encuesta](https://docs.google.com/forms/d/e/1FAIpQLSfkRdQ-RcGIb_UFy9kyGnpayPxAZ46nk-ktNSo_JDov-0c8HQ/viewform) a los alumnos de UTEC. Esta se encuentra guardado en "Datos.csv"
+
+```{r, include=FALSE}
+DD<-read_csv("Datos.csv")
+```
+
+[**Inicialmente:**]{style="color: red"}
+```{r, echo=FALSE}
+paste('El número de observaciones es:',nrow(DD)) 
+paste('El número de variables es:',ncol(DD)) 
+```
+Es conveniente hacer un renombramiento de las variables para facilitar el manejo de los datos, puesto que los nombres actuales presentan caracteres que no son convenientes, por otra parte son extensos.
+
+[**Inicialmente:**]{style="color: red"}
+```{r}
+names(DD)
+```
+
+```{r, include=FALSE} 
+DD1 <- DD %>% rename(
+                     Marca="Marca temporal",
+                     Usuario="Nombre de usuario",
+                     Edad="Edad (en años cumplidos)\nEjemplo: 19",
+                     Carrera="Carrera",
+                     Ciclo="Ciclo",
+                     DProcedencia="Lugar de procendencia",
+                     DResidenciau="Distrito de residencia",
+                     DSedeu="¿En qué distrito quisieras que se construya esta sede?",
+                     CAVerdes="¿Cuánto considerarías por áreas verdes a la nueva sede?",
+                     CADiscapacidad="¿Cuánto considerarías accesible para personas con discapacidad a la nueva sede?", 
+                     CALugarCentrico="¿Cuánto considerarías que sea un lugar céntrico  con respecto a la nueva sede?",
+                     CAMasLugaresEstudio="¿Cuánto considerarías que contenga más lugares de estudio  con respecto a la nueva sede?",
+                     CADeportivas= "¿Cuánto considerarías que contenga ambientes deportivos  con respecto a la nueva sede?",
+                     Escala="Escala asignada",
+                     CEconomica= "Condición de alumno\nCondición económica con respecto al pago de la universidad",
+                     GDiarioTransporte= "Gasto en transporte diario en soles. \nGasto aproximado de gasto diario en transporte (Ida y vuelta).\nDato numérico entero",
+                     CantTransportes="¿Cuántos medios de transportes usas para llegar a la UTEC? (Si caminas coloca 0)",
+                     TVivienda="Tipo de vivienda" 
+                     )
+```
+
+[**Luego del renombramiento:**]{style="color: red"}
+```{r}
+names(DD1)
+```
+
+Al observar, se tiene que alrededor de 2 variables no son de utilidad, siendo estos *Marca* y *Usuario*, por lo que se recomienda eliminar.
+
+
+```{r, echo=FALSE}
+#eliminar Marca & Usuario
+Col_elimidas <- names(DD1) %in% c("Marca", "Usuario")
+DD1 <- DD1 [,!Col_elimidas]
+```
+
+Quedan las siguientes variables:
+```{r}
+names(DD1)
+```
+
+Para saber cuantos casos incompletos tenemos, realizamos una suma de NA´s por columna.
+```{r}
+sapply(DD1, function(x) sum(is.na(x)))
+```
+Observamos que se tiene 1 caso incompleto por lo que procederemos a eliminar la fila donde se encuentra este dato.
+```{r}
+pos2 = which(is.na(DD1$CEconomica)) #Da posiciones de filas donde hay NA en esa columna
+DD2=drop_na(DD1)
+```
+Luego, analizamos los limites y restricciones de los datos.
+Observamos que se deben de eliminar datos de las columnas (Edad,CantTransportes,GDiarioTransporte), con los siguientes criterios:
+-Eliminar los que tienen - 15 años & +30 años
+-Eliminar los que tienen # Transportes >10
+-Eliminar los que tienen Gasto transporte >100
+
+```{r}
+#Eliminar los que tienen - 15 años & +30 años
+a<-which(DD2$Edad<15)
+DD3<-DD2[-a,]
+b<-which(DD2$Edad>30)
+DD3<-DD2[-b,]
+
+#Eliminar los que tienen # Transportes >10
+c<-which(DD2$CantTransportes>10)
+DD4<-DD2[-c,]
+
+#Eliminar los que tienen Gasto transporte >100
+d<-which(DD2$GDiarioTransporte>100)
+DD5<-DD2[-d,]
+
+```
+
+Realizamos un renombramiento adicional despues de analizada la data
+Puesto que el encuestado propone el mismo lugar de la sede actual, hacemos el renombramiento con el nombre de la sede actual que "Barranco".
+```{r}
+DD5$DSedeu[DD5$DSedeu == "Ahi está bien, solo que la amplíen más."] <-"Barranco"
+```
+Puesto que el encuestado propone un lugar mas cercano a su lugar de residencia, hacemos el renombramiento con el nombre del lugar de residencia que es "Puente piedra".
+```{r}
+DD5$DSedeu[DD5$DSedeu == "Uno cercano a mi distrito"] <-"Puente piedra"
+```
+Convertimos en minuscula a la data de las columnas DSedeu & Residenciau
+```{r}
+DSede= tolower(DD5$DSedeu)
+DResidencia= tolower(DD5$DResidenciau)
+```
+Agregamos DSede & DResidencia
+```{r}
+DD5<-cbind(DD5,DSede)
+DD5<-cbind(DD5,DResidencia) 
+```
+Eliminamos DSedeu & DResidenciau
+```{r}
+Col_elimidas <- names(DD5) %in% c("DSedeu", "DResidenciau")
+DD5 <- DD5 [,!Col_elimidas]
+```
+Creamos el Archivo de Limpieza de datos CSV con el nombre "DataLimpia.csv"
+```{r}
+write.csv(DD5, "DataLimpia.csv")
+```
+
+# Análisis descriptivo
+
+Este análisis tiene como fin utilizar el lenguaje de programación R y sus numerosas librerías y funciones especializadas para explorar, limpiar, visualizar y analizar conjuntos de datos. R es ampliamente utilizado en el ámbito del análisis de datos debido a su flexibilidad, potencia y capacidad para trabajar con una amplia gama de técnicas estadísticas y de aprendizaje automático.
+
+El proceso de análisis de datos en R generalmente sigue los siguientes pasos:
+
+1. Importación de datos: Se cargan los conjuntos de datos en R desde archivos locales, bases de datos u otras fuentes de datos.
+
+2. Exploración y limpieza de datos: Se exploran los datos para comprender su estructura, se identifican y manejan los valores atípicos y faltantes, se transforman los datos si es necesario y se preparan para el análisis.
+
+3. Análisis exploratorio de datos: Se utilizan técnicas y visualizaciones estadísticas para obtener información sobre los datos, identificar patrones, relaciones y tendencias, y generar hipótesis.
+
+4. Modelado estadístico y aprendizaje automático: Se aplican modelos estadísticos y técnicas de aprendizaje automático para analizar los datos y realizar predicciones o inferencias. Esto puede incluir regresión, clasificación, agrupamiento, análisis de series de tiempo, entre otros.
+
+5. Visualización de datos: Se crean gráficos y visualizaciones para comunicar los resultados del análisis y facilitar la comprensión de los datos.
+
+6. Interpretación y comunicación de resultados: Se interpretan los resultados del análisis, se extraen conclusiones y se comunican los hallazgos de manera clara y efectiva a través de informes, presentaciones u otros medios.
+
+Es importante destacar que el análisis de datos en R es altamente personalizable y se adapta a las necesidades y objetivos específicos de cada proyecto. R ofrece una amplia gama de librerías especializadas para diferentes técnicas y dominios, lo que brinda a los analistas de datos la capacidad de abordar una variedad de problemas y desafíos en su análisis.
+
+**DESCRIPTORES A EVALUAR**
+```{r}
+datos <- read_csv("DataLimpia.csv", col_types = "cnccccccccccnnccc")
+datos
+#print(datos)#para ver la tabla
+```
+
+```{r}
+#definiendo los valores...
+edad <- datos$Edad
+ciclo<-datos$Ciclo
+verde<-datos$CAVerdes
+disca<-datos$CADiscapacidad
+centro<-datos$CALugarCentrico
+estu<-datos$CAMasLugaresEstudio
+depo<-datos$CADeportivas
+trans<-datos$CantTransportes
+diario<-datos$GDiarioTransporte
+sede <- datos$DSede
+res <- datos$DResidencia
+```
+
+```{r}
+#media...
+# Calcular el promedio de la edad
+medad <- mean(edad)
+print("Promedio de la edad de los alumnos encuestados es:")
+print(medad)
+
+#Creando una tabla para más orden de los datos
+XD <- data.frame(table(edad))
+print(XD)
+
+#Creando un gráfico de barras donde se señala las edades de los alumnos encuestados
+colores <- c("blue", "red", "green", "yellow", "orange", "purple")
+
+barplot(table(edad), xlab = "Edad", ylab = "Frecuencia", main = "Distribución de Edades",
+        col = colores)
+
+
+```
+**Interpretación:**
+En este grafico hemos tomado en cuenta la edad para calcular la cantidad de personas que se encuentran en la utec, entre estas son: 17,18 y 19 años
+
+
+MEDIANA
+```{r, include=FALSE}
+#mediana....
+meedad<-median(edad)
+mecentro <- median(centro)
+medisca <- median(disca)
+meverde <- median(verde)
+meciclo <- median(ciclo)
+mediario <-median(diario)
+meestu <- median(estu)
+medepo <- median(depo)
+metrans <- median(trans)
+
+```
+ 
+```{r}
+
+#primero hacemos nuestra funcion moda luego lo usamos para hallar la moda en mis parametros.
+moda <- function(datos) {
+  tabla_frecuencias <- table(datos)
+  moda <- as.numeric(names(tabla_frecuencias)[tabla_frecuencias == max(tabla_frecuencias)])
+  return(moda)
+}
+moedad <- moda(edad)
+mocentro <- moda(centro)
+modisca<-moda(disca)
+moverde<-moda(verde)
+mociclo<-moda(ciclo)
+modiario<-moda(diario)
+moestu<-moda(estu)
+modepo<-moda(depo)
+motrans<-moda(trans)
+moda(residencia)
+print(moedad)
+print(mocentro)
+print(modisca)
+print(moverde)
+print(mociclo)
+print(modiario)
+print(moestu)
+print(modepo)
+print(motrans)
+
+```
+ 
+```{r}
+
+DR <- data.frame(table(sede))
+colores <- rainbow(nrow(DR))
+
+pie(DR$Freq, labels = "", main = "Distrito opcional de sede", col = colores, cex = 0.6)
+
+legend("topright", legend = DR$sede, fill = colores, cex = 0.8)
+
+
+```
+En este gráfico podemos observar en donde los alumnos optan como distrito de sede les sería más factible en San Isidro ya que presentan una zona céntrica.
+
+```{r}
+
+# Crear un dataframe con la tabla de frecuencias
+DR <- data.frame(table(res))
+colores <- rainbow(nrow(DR))
+# Crear el gráfico de barras con nombres del eje x en posición vertical y bajados
+barplot(DR$Freq, names.arg = DR$res, main= "Distrito de residencia de los alumnos",ylab="Cantidad de alumnos", las = 2, col=colores, cex.names = 0.6)
+
+```
+Este gráfico nos proporciona la información correspondiente a la relación de alumnos encuestados que opinan sobre su distrito de residencia.
+
+```{r}
+
+library(RColorBrewer)
+DR <- data.frame(table(sede))
+num_colores <- length(DR$sede)
+colores <- brewer.pal(num_colores, "Set1")
+pie(DR$Freq, labels = DR$sede, main = "Distrito de residencia de los alumnos", col = colores, cex = 0.6)
+legend("topright", legend = DR$sede, fill = colores, cex = 0.8)
+
+```
+
+CONCLUSIONES:
+Según la encuesta realizada, se observa que el distrito con mayor número de votos es Barranco, seguido de Santiago de Surco y Ate. Dado que ya existe una sede en Barranco, sería más factible establecer una segunda sede en Santiago de Surco. Esto se debe a que, en promedio, un estudiante de UTEC utiliza entre 2 y 4 medios de transporte diarios, lo que conlleva un tiempo de viaje de 30 a 40 minutos solo para llegar a la universidad. Esta situación genera pérdida de tiempo y estrés, lo cual puede afectar el rendimiento académico. 
+
+Los beneficios de abrir una segunda sede en Santiago de Surco serían diversos. En primer lugar, se reduciría la pérdida de tiempo en los desplazamientos hacia la universidad. Asimismo, se disminuiría el gasto diario de transporte y alimentación para los estudiantes que viven lejos de la sede actual. Esto es especialmente relevante para aquellos alumnos becados o con limitaciones económicas. Además, contar con una sede más cercana contribuiría a mejorar la seguridad de los estudiantes. Por último, se reduciría el estrés asociado al transporte diario desde el domicilio hacia la universidad y viceversa.
+
+En resumen, se sugiere la apertura de una segunda sede de UTEC en Santiago de Surco debido a la cantidad de estudiantes que utilizan varios medios de transporte para llegar a la universidad. Esta medida beneficiaría a los estudiantes al reducir gastos, tiempo de viaje y estrés, además de proporcionar un entorno más propicio para el estudio y el desarrollo académico.
+
+
+
+
+
+
+
+
+

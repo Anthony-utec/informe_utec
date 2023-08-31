@@ -1,0 +1,191 @@
+---
+title: "Limpieza_Data"
+output: html_document
+date: "2023-07-07"
+---
+
+```{r, include=FALSE}
+packages <- c(
+    "knitr",
+    "stringr",
+    "ggthemes",
+    "dplyr",
+    "readr",
+    "tidyverse",
+    "corrplot",
+    "modeest",
+    "ggplot2",
+    "car",
+    "fitdistrplus",
+    "tidyr"
+    
+)
+
+missing.packages = packages[!(packages %in% rownames(installed.packages()))]
+
+if (length(missing.packages) > 0) {
+    install.packages(missing.packages)
+}
+lapply(packages, library, character.only = TRUE)
+
+```
+## Limpieza de datos
+
+La limpieza de datos en el proyecto es una etapa fundamental en la cual
+dejaremos lo mas pulcra posible nuestra data para asi realizar el
+analisis de manera satisfactoria. Inicialmente contamos con una data de
+157 observaciones y 18 variables, de lo que despues de un arduo analisis
+nos queda 150 observaciones y 16 variables utiles y completas para ser
+utilizadas en nuestro estudio.
+
+Para obtener la data, se realizó una
+[encuesta](https://docs.google.com/forms/d/e/1FAIpQLSfkRdQ-RcGIb_UFy9kyGnpayPxAZ46nk-ktNSo_JDov-0c8HQ/viewform)
+a los alumnos de UTEC. Esta se encuentra guardado en "Datos.csv"
+
+```{r, include=FALSE}
+DD<-read_csv("Datos.csv")
+```
+
+[**Inicialmente:**]{style="color: red"}
+
+```{r, echo=FALSE}
+paste('El número de observaciones es:',nrow(DD)) 
+paste('El número de variables es:',ncol(DD)) 
+```
+
+Es conveniente hacer un renombramiento de las variables para facilitar
+el manejo de los datos, puesto que los nombres actuales presentan
+caracteres que no son convenientes, por otra parte son extensos.
+
+[**Inicialmente:**]{style="color: red"}
+
+```{r}
+names(DD)
+```
+
+```{r, include=FALSE}
+DD1 <- DD %>% rename(
+                     Marca="Marca temporal",
+                     Usuario="Dirección de correo electrónico",
+                     Edad="Edad (en años cumplidos)\nEjemplo: 19",
+                     Carrera="Carrera",
+                     Ciclo="Ciclo",
+                     DProcedencia="Lugar de procendencia",
+                     DResidenciau="Distrito de residencia",
+                     DSedeu="¿En qué distrito quisieras que se construya esta sede?",
+                     CAVerdes="¿Cuánto considerarías por áreas verdes a la nueva sede?",
+                     CADiscapacidad="¿Cuánto considerarías accesible para personas con discapacidad a la nueva sede?", 
+                     CALugarCentrico="¿Cuánto considerarías que sea un lugar céntrico  con respecto a la nueva sede?",
+                     CAMasLugaresEstudio="¿Cuánto considerarías que contenga más lugares de estudio  con respecto a la nueva sede?",
+                     CADeportivas= "¿Cuánto considerarías que contenga ambientes deportivos  con respecto a la nueva sede?",
+                     Escala="Escala asignada",
+                     CEconomica= "Condición de alumno\nCondición económica con respecto al pago de la universidad",
+                     GDiarioTransporte= "Gasto en transporte diario en soles. \nGasto aproximado de gasto diario en transporte (Ida y vuelta).\nDato numérico entero",
+                     CantTransportes="¿Cuántos medios de transportes usas para llegar a la UTEC? (Si caminas coloca 0)",
+                     TVivienda="Tipo de vivienda",
+                     TimeTrans="¿Que tiempo demoras en llegar desde tu casa hacia UTEC? (en minutos)")
+```
+
+[**Luego del renombramiento:**]{style="color: red"}
+
+```{r}
+names(DD1)
+```
+
+Al observar, se tiene que alrededor de 2 variables no son de utilidad,
+siendo estos *Marca* y *Usuario*, por lo que se recomienda eliminar.
+
+```{r, echo=FALSE}
+#eliminar Marca & Usuario
+Col_elimidas <- names(DD1) %in% c("Marca", "Usuario")
+DD1 <- DD1 [,!Col_elimidas]
+```
+
+Quedan las siguientes variables:
+
+```{r}
+names(DD1)
+```
+
+Para saber cuantos casos incompletos tenemos, realizamos una suma de
+NA´s por columna.
+
+```{r}
+sapply(DD1, function(x) sum(is.na(x)))
+```
+
+Observamos que se tiene 1 caso incompleto por lo que procederemos a
+eliminar la fila donde se encuentra este dato.
+
+```{r}
+pos2 = which(is.na(DD1$CEconomica)) #Da posiciones de filas donde hay NA en esa columna
+DD2=drop_na(DD1)
+```
+
+Luego, analizamos los limites y restricciones de los datos. Observamos
+que se deben de eliminar datos de las columnas
+(Edad,CantTransportes,GDiarioTransporte), con los siguientes criterios:
+-Eliminar los que tienen - 15 años & +30 años -Eliminar los que tienen
+\# Transportes \>10 -Eliminar los que tienen Gasto transporte \>100
+
+```{r}
+#Eliminar los que tienen - 15 años & +30 años
+a<-which(DD2$Edad<15)
+DD3<-DD2[-a,]
+b<-which(DD2$Edad>30)
+DD3<-DD2[-b,]
+
+#Eliminar los que tienen # Transportes >10
+c<-which(DD2$CantTransportes>10)
+DD4<-DD2[-c,]
+
+#Eliminar los que tienen Gasto transporte >100
+d<-which(DD2$GDiarioTransporte>100)
+DD5<-DD2[-d,]
+
+```
+
+Realizamos un renombramiento adicional despues de analizada la data
+Puesto que el encuestado propone el mismo lugar de la sede actual,
+hacemos el renombramiento con el nombre de la sede actual que
+"Barranco".
+
+```{r}
+DD5$DSedeu[DD5$DSedeu == "Ahi está bien, solo que la amplíen más."] <-"Barranco"
+```
+
+Puesto que el encuestado propone un lugar mas cercano a su lugar de
+residencia, hacemos el renombramiento con el nombre del lugar de
+residencia que es "Puente piedra".
+
+```{r}
+DD5$DSedeu[DD5$DSedeu == "Uno cercano a mi distrito"] <-"Puente piedra"
+```
+
+Convertimos en minuscula a la data de las columnas DSedeu & Residenciau
+
+```{r}
+DSede= tolower(DD5$DSedeu)
+DResidencia= tolower(DD5$DResidenciau)
+```
+
+Agregamos DSede & DResidencia
+
+```{r}
+DD5<-cbind(DD5,DSede)
+DD5<-cbind(DD5,DResidencia) 
+```
+
+Eliminamos DSedeu & DResidenciau
+
+```{r}
+Col_elimidas <- names(DD5) %in% c("DSedeu", "DResidenciau")
+DD5 <- DD5 [,!Col_elimidas]
+```
+
+Creamos el Archivo de Limpieza de datos CSV con el nombre
+"DataLimpia.csv"
+
+```{r}
+write.csv(DD5, "DataLimpia.csv")
+```

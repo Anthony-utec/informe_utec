@@ -1,0 +1,1222 @@
+---
+title: "GRADO DE DIFICULTAD DE LOS CURSOS GENERALES Y SU RELACIÓN CON LA CANTIDAD DE INGRESANTES (2022-I y 2022-II) DESAPROBADOS Y/O RETIRADOS EN UTEC"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  word_document:
+    toc: yes
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: journal
+    number_sections: yes
+---
+```{r echo=FALSE, include=FALSE}
+lista.paquetes <- c("ggplot2", "ggthemes","readr","dplyr","modeest","funModeling","knitr","kableExtra","tidyr","stringr","lubridate","descr","vcd","tidyverse") # En este vector se escriben los paquetes que deseamos cargar
+nuevos.paquetes <- lista.paquetes[!(lista.paquetes %in% installed.packages()[,"Package"])] # almacena paquetes no instalados
+if(length(nuevos.paquetes)) install.packages(nuevos.paquetes,repos='http://cran.us.r-project.org')
+
+```
+
+# **Introducción**
+
+
+## **Relevancia**
+
+Este proyecto consiste en comprabar si el grado de dificultad de los cursos generales tienen relación con la cantidad de alumnos, en el 2022, desaprobados o retirados de estos en UTEC. 
+
+## **Objetivos**
+
+### **Objetivo general**
+
+Analizar las posibles causas que llevan a un estudiante de primer ciclo a reprobar y/o retirarse de un curso general.
+
+### **Objetivos específicos**
+
+-   **Comprobar** si la nivelación ayudó a afrontar de la mejor manera el primer ciclo.
+-   **Identificar** los cursos que tienen mayor o menor impacto en la tasa de abandono estudiantil.
+-   **Confirmar** la necesidad de más mentores y asesorías en los cursos que se requieran.
+-   **Comparar** los promedios de horas dedicadas de estudio de los estudiantes que sí aprobaron el curso y de los que reprobaron.
+-   **Identificar** el nivel de aprendizaje y dedicación de los alumnos en el curso. 
+
+# **Datos**
+
+```{r echo=FALSE, include=FALSE}
+library(readr)
+library(dplyr)
+library(modeest)
+library(funModeling)
+library(knitr)
+library(tidyr)
+library(stringr)
+library(lubridate)
+library(descr)
+library(vcd)
+library(tidyverse)
+```
+
+```{r message=FALSE, warning=FALSE}
+DF <- read_csv("base_datos_ooo.csv", col_names = TRUE,  locale = readr::locale(encoding = "UTF-8"))
+```
+
+```{r echo=FALSE}
+DF
+```
+
+```{r include=FALSE, echo=FALSE}
+cols <- ncol(DF)
+rows <- nrow(DF)
+```
+
+<br>
+
+## **Proceso de recolección de datos**
+
+Para este  proyecto se optó por recolectar los datos mediante un cuestionario (Google Forms) a los alumnos de UTEC. Se compartió el cuestionario a chicos pertenecientes al ciclo 2022-1 o 2022-2. El mensaje fue enviado junto a un sorteo de 100 soles (incentivo).
+
+## **Población, muestra y muestreo**
+
+1.- Población de estudio: Alumnos de la Universidad de Ingeniería y Tecnología (UTEC) que se encuentran en el ciclo 2022-1 y 2022-2.
+
+2.- Unidad muestral: Alumnos de diferentes ciclos de UTEC.
+
+3.- Tamaño muestra: 150 estudiantes cursando estudios en UTEC.
+
+4.- Representatividad de la muestra: Muestra representativa debido a que muestran las características de la población y existe una variación respecto al estilo de vida que tiene cada uno.
+
+5.- Tipo de muestreo: Muestreo aleatorio por conveniencia.
+
+
+```{r echo=FALSE}
+colnames(DF) <- c("Marca","Ciclo","Correo","Sexo","Codigo","Carrera", "Nivelacion", "Opinion_Nivelacion","Dificultad_progra","Dificultad_calculo","Dificultad_quimica","Dificultad_lab","Veces_retirado","Veces_desaprobado","cursos_desaprobados","horas_jalados","promedio_progra","promedio_calculo","promedio_quimica","promedio_lab","horas_aprobados","asesorias_proga","asesorias_calculo","asesorias_quimica","motivo_asesoria","mentoria","asistencia_mentoria","mentor_hora","mentor_dudas","mentor_horas")
+```
+
+```{r echo=FALSE}
+DF <- select(DF, -Marca, -Correo, -Codigo)
+```
+```{r echo=FALSE}
+names(DF)
+```
+
+```{r echo=FALSE}
+filas_inservibles <- which(rowSums(is.na(DF)) >= 25)
+filas_inservibles
+DF[-filas_inservibles,] -> DF
+```
+
+```{r echo=FALSE}
+table(rowSums(is.na(DF)))
+colSums(is.na(DF))
+```
+
+
+
+```{r echo=FALSE}
+correcion = "no participo"
+DF$Opinion_Nivelacion[is.na(DF$Opinion_Nivelacion)] =correcion
+```
+
+
+```{r echo=FALSE}
+modacursosdes = "Ninguno"
+DF$cursos_desaprobados[is.na(DF$cursos_desaprobados)]=modacursosdes
+```
+
+
+```{r echo=FALSE}
+DF <- DF[!is.na(DF$horas_jalados), ]
+```
+
+
+```{r echo=FALSE}
+DF <- DF[-58, ]
+```
+
+
+```{r echo=FALSE}
+ DF$asistencia_mentoria[is.na(DF$asistencia_mentoria)]=correcion
+```
+
+
+```{r echo=FALSE}
+DF <- DF[-145, ]
+```
+
+```{r echo=FALSE}
+DF$mentor_hora[is.na(DF$mentor_hora)]=correcion
+```
+
+
+```{r echo=FALSE}
+DF$mentor_dudas[is.na(DF$mentor_dudas)]=correcion
+```
+
+
+```{r echo=FALSE}
+DF$mentor_horas[is.na(DF$mentor_horas)]=correcion
+```
+
+<br>
+# ```{r echo=FALSE}
+# write_csv(DF,"C:/Estadistica/datos_depurados100.csv")
+# ```
+
+
+# **Análisis Descriptivo**
+
+```{r echo=FALSE}
+
+# valor numérico de variables
+DF$promedio_quimica <- as.numeric(DF$promedio_quimica)
+DF$promedio_progra <- as.numeric(DF$promedio_progra)
+DF$promedio_calculo <- as.numeric(DF$promedio_calculo)
+DF$Veces_retirado <- as.numeric(DF$Veces_retirado)
+DF$Veces_desaprobado <- as.numeric(DF$Veces_desaprobado)
+```
+
+
+```{r echo=FALSE}
+##*Creamos una nueva columna "promediototal"*
+# Convertimos todas las columnas a juntar en variables numéricas
+DF$promedio_calculo <- as.numeric(DF$promedio_calculo)
+DF$promedio_progra <- as.numeric(DF$promedio_progra)
+DF$promedio_quimica <- as.numeric(DF$promedio_quimica)
+DF$promedio_lab <- as.numeric(DF$promedio_lab)
+
+# Creamos una nueva columna llamada promediototal y calculamos el promedio individual con los valores numéricos diferentes de cero
+DF$promediototal <- apply(DF[, c("promedio_calculo", "promedio_progra", "promedio_quimica", "promedio_lab")], 1, function(x) {
+  num_values <- x[x != 0 & !is.na(x)]
+  if (length(num_values) > 0) {
+    mean(num_values)
+  } else if (all(is.na(x))) {
+    NA
+  } else {
+    0
+  }
+})
+
+```
+
+```{r echo=FALSE}
+##*agregamos una columnas con el numero de cursos aprobados**
+DF$cursos_aprobados_total <- apply(DF[, c("promedio_calculo", "promedio_progra", "promedio_quimica", "promedio_lab")], 1, function(x) {
+  num_zeros <- sum(x == 0, na.rm = TRUE)
+  if (num_zeros > 0) {
+    num_zeros
+  } else if (all(is.na(x))) {
+    NA
+  } else {
+    0
+  }
+})
+
+```
+
+```{r echo=FALSE}
+##agregamos un columnas con el numero de cursos desaprobados
+DF$cursos_desaprobados_total <- apply(DF[, c("promedio_calculo", "promedio_progra", "promedio_quimica", "promedio_lab")], 1, function(x) {
+  num_zeros <- sum(x != 0, na.rm = TRUE)
+  if (num_zeros > 0) {
+    num_zeros
+  } else if (all(is.na(x))) {
+    NA
+  } else {
+    0
+  }
+})
+
+```
+
+```{r echo=FALSE}
+#Creamos una nueva columna "promediototal"
+# Convertimos todas las columnas a juntar en variables numéricas
+DF$promedio_calculo <- as.numeric(DF$promedio_calculo)
+DF$promedio_progra <- as.numeric(DF$promedio_progra)
+DF$promedio_quimica <- as.numeric(DF$promedio_quimica)
+DF$promedio_lab <- as.numeric(DF$promedio_lab)
+
+# Creamos una nueva columna llamada promediototal y calculamos el promedio individual con los valores numéricos diferentes de cero
+DF$promediototal <- apply(DF[, c("promedio_calculo", "promedio_progra", "promedio_quimica", "promedio_lab")], 1, function(x) {
+  num_values <- x[x != 0 & !is.na(x)]
+  if (length(num_values) > 0) {
+    mean(num_values)
+  } else if (all(is.na(x))) {
+    NA
+  } else {
+    0
+  }
+})
+
+```
+```{r echo=FALSE}
+install.packages("ggplot2")
+```
+```{r echo=FALSE}
+
+library(ggplot2)
+```
+
+
+```{r echo=FALSE}
+install.packages("tidyverse")
+
+```
+
+```{r echo=FALSE}
+install.packages("dplyr")
+```
+```{r echo=FALSE}
+library(dplyr)
+```
+
+
+
+```{r echo=FALSE}
+library(conflicted)
+
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+
+```
+
+```{r echo=FALSE}
+# Crear las columnas en el dataframe
+DF$calculo <- grepl("Cálculo", DF$cursos_desaprobados, ignore.case = TRUE)
+DF$quimica <- grepl("Química", DF$cursos_desaprobados, ignore.case = TRUE)
+DF$progra <- grepl("Progra", DF$cursos_desaprobados, ignore.case = TRUE)
+```
+
+```{r echo=FALSE}
+# Reemplazar las observaciones en la variable "cursos_desaprobados"
+DF$cursos_desaprobados <- gsub("Cálculo de una variable", "Cálculo", DF$cursos_desaprobados)
+DF$cursos_desaprobados <- gsub("Química General", "Química", DF$cursos_desaprobados)
+DF$cursos_desaprobados <- gsub("Programación I", "Progra", DF$cursos_desaprobados)
+DF$cursos_desaprobados <- gsub("Laboratorio de Química","lab. quimica",DF$cursos_desaprobados)
+```
+
+
+Se puede observar el promedio que obtuvieron los estudiantes en los diferentes cursos de su primer ciclo, en el eje Y los valores van de 0 hasta 10.4. Nos estamos centrando en aquellos que desaprobaron los 3 cursos mas "importantes" durante el primer ciclo.
+
+```{r}
+# Filtrar los valores cero
+DF_filtrado <- DF[DF$promedio_calculo != 0 & DF$promedio_progra != 0 & DF$promedio_quimica != 0, ]
+
+# Calcular los cuartiles
+q1_vals <- sapply(DF_filtrado[, c("promedio_calculo", "promedio_progra", "promedio_quimica")], quantile, probs = 0.25)
+q3_vals <- sapply(DF_filtrado[, c("promedio_calculo", "promedio_progra", "promedio_quimica")], quantile, probs = 0.75)
+
+# Crear el diagrama de caja
+boxplot(DF_filtrado$promedio_calculo, DF_filtrado$promedio_progra, DF_filtrado$promedio_quimica, 
+        names = c("Cálculo", "Programación", "Química"), 
+        ylab = "Promedio", main = "Diagrama de Caja")
+
+# Calcular la posición de las líneas
+x <- c(1, 2, 3)
+mean_vals <- sapply(DF_filtrado[, c("promedio_calculo", "promedio_progra", "promedio_quimica")], mean)
+median_vals <- sapply(DF_filtrado[, c("promedio_calculo", "promedio_progra", "promedio_quimica")], median)
+
+# Agregar las líneas para la media, mediana y rango intercuartil con un grosor mayor y tipo de línea "dashed"
+segments(x - 0.4, mean_vals, x + 0.4, mean_vals, col = "red", lwd = 2, lty = "solid")
+segments(x - 0.4, median_vals, x + 0.4, median_vals, col = "blue", lwd = 2, lty = "solid")
+segments(x, q1_vals, x, q3_vals, col = "black", lwd = 2, lty = "solid")
+
+# Agregar los valores de media, mediana y rango intercuartil
+text(x, mean_vals, round(mean_vals, 2), pos = 1, offset = 0.3, col = "red") # 2 -> izquierda, 4 -> derecha, 1 -> arriba 3 -> abajo
+text(x, median_vals, round(median_vals, 2), pos = 3, offset = 0.2, col = "blue")
+text(x, q1_vals, round(q1_vals, 2), pos = 1, offset = 0.3, col = "purple")
+text(x, q3_vals, round(q3_vals, 2), pos = 3, offset = 0.2, col = "purple")
+
+```
+Podemos observar que los cursos tienen una mediana de 9. Asimismo, el curso de Química tiene una media de 6.67 y  Cálculo tiene 7.3. Nuestra primera inferencia es que el curso más "difícil" es cálculo y el más "fácil" es Química. 
+
+## OBJETIVO 1
+### Comprobar si la nivelación ayudó a afrontar el primer ciclo.
+
+```{r}
+library(ggplot2)
+data <- data.frame(promedio = DF$promedio_calculo[DF$promedio_calculo != 0],
+                   asistencia = factor(DF$Nivelacion[DF$promedio_calculo != 0]))
+
+data <- na.omit(data)
+#data <- data[!data %in% "no participo"]
+mean_vals <- data %>%
+  group_by(asistencia) %>%
+  summarise(mean_val = mean(promedio),
+            median_val = median(promedio),
+            q1_val = quantile(promedio, 0.25),
+            q3_val = quantile(promedio, 0.75))
+
+ggplot(data, aes(x = asistencia, y = promedio)) +
+  geom_boxplot() +
+  geom_hline(data = mean_vals, aes(yintercept = mean_val), color = "red", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = median_val), color = "blue", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = q1_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_hline(data = mean_vals, aes(yintercept = q3_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = mean_val, label = round(mean_val, 2)), vjust = 2.1, color = "red", size = 3.5) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = median_val, label = round(median_val, 2)), vjust = -0.3, color = "blue", size = 3.5) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q1_val, label = round(q1_val, 2)), vjust = 1.5, color = "purple", size = 3.5) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q3_val, label = round(q3_val, 2)), vjust = -1, color = "purple", size = 3.5) +
+  xlab("Asistencia a la nivelación") +
+  ylab("Promedio") +
+  ggtitle("Relación entre promedio de Cálculo de una variable y asistencia a la nivelación") +
+  facet_wrap(~asistencia, ncol = 2, scales = "free")  # Agregar facetas para separar los boxplots por asistencia
+
+```
+
+**Estudiantes desaprobados que NO fueron a nivelación (Bloxpot1)**
+
+Media -> 9.27
+Mediana -> 10
+Rango intercuartil -> 10.2 - 9.88 = 0.32
+
+**Estudiantes desaprobados que SI fueron a nivelación (Bloxpot2)**
+
+Media -> 9.69
+Mediana -> 9.75
+Rango intercuartil -> 10.05 - 9.38 = 0.62
+
+
+Para los que no asistieron a la nivelación, el IQR es de 0.32, lo que significa que el 50% de los datos se encuentran dentro del rango. En cambio, para los que asistieron a la nivelación, el IQR es de 0.62, lo que implica una mayor dispersión en los promedios de este grupo. Esto sugiere que la asistencia a la nivelación no garantiza necesariamente que **todos** los que fueron parte tengan un promedio similar, puesto que la variabilidad en los resultados es más amplia en comparación con el diagrama de cajas correspondiente a los que no asistieron a la nivelación.
+
+
+```{r}
+
+data <- data.frame(promedio = DF$promedio_quimica[DF$promedio_quimica != 0],
+                   asistencia = factor(DF$Nivelacion[DF$promedio_quimica != 0]))
+
+data <- na.omit(data)
+mean_vals <- data %>%
+  group_by(asistencia) %>%
+  summarise(mean_val = mean(promedio),
+            median_val = median(promedio),
+            q1_val = quantile(promedio, 0.25),
+            q3_val = quantile(promedio, 0.75))
+
+ggplot(data, aes(x = asistencia, y = promedio)) +
+  geom_boxplot() +
+  geom_hline(data = mean_vals, aes(yintercept = mean_val), color = "red", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = median_val), color = "blue", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = q1_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_hline(data = mean_vals, aes(yintercept = q3_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = mean_val, label = round(mean_val, 2)), vjust = 1.3, color = "red", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = median_val, label = round(median_val, 2)), vjust = 1.2, color = "blue", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q1_val, label = round(q1_val, 2)), vjust = 2.4, color = "purple", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q3_val, label = round(q3_val, 2)), vjust = -1, color = "purple", size = 3) +
+  xlab("Asistencia a la nivelación") +
+  ylab("Promedio de química") +
+  ggtitle("Relación entre promedio de Química y asistencia a la nivelación") +
+  facet_wrap(~asistencia, ncol = 2, scales = "free")  # Agregar facetas para separar los boxplots por asistencia
+
+```
+
+**Estudiantes desaprobados que NO fueron a nivelación (Bloxpot1)**
+
+Media -> 8.28
+Mediana -> 10
+Rango intercuartil -> 10.03 - 8.25 = 1.75
+
+**Estudiantes desaprobados que SI fueron a nivelación (Bloxpot2)**
+
+Media -> 9.39
+Mediana -> 9.5
+Rango intercuartil -> 10 - 9 = 1
+
+
+Los estudiantes que no fueron a la nivelación no solamente tienen una mayor dispersión, sino que también tiene datos atípicos. Por lo tanto, se aprecia nuevamente que los estudiantes que Sí fueron a la nivelación tienen un mejor promedio, ya que el 50% de los que pertenecen a este grupo tienen promedio entre 9 y 10, mientras que el resto tiene un promedio entre 8.25 y 10.03.
+
+```{r}
+data <- data.frame(promedio = DF$promedio_progra[DF$promedio_progra != 0],
+                   asistencia = factor(DF$Nivelacion[DF$promedio_progra != 0]))
+
+data <- na.omit(data)
+mean_vals <- data %>%
+  group_by(asistencia) %>%
+  summarise(mean_val = mean(promedio),
+            median_val = median(promedio),
+            q1_val = quantile(promedio, 0.25),
+            q3_val = quantile(promedio, 0.75),
+            interquartile_range = q3_val - q1_val)  # Calcular el rango intercuartil
+
+ggplot(data, aes(x = asistencia, y = promedio)) +
+  geom_boxplot() +
+  geom_hline(data = mean_vals, aes(yintercept = mean_val), color = "red", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = median_val), color = "blue", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = q1_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_hline(data = mean_vals, aes(yintercept = q3_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = mean_val, label = round(mean_val, 2)), vjust = 1.3, color = "red", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = median_val, label = round(median_val, 2)), vjust = -0.8, color = "blue", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q1_val, label = round(q1_val, 2)), vjust = -2, color = "purple", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q3_val, label = round(q3_val, 2)), vjust = -2, color = "purple", size = 3) +
+ 
+  xlab("Asistencia a la nivelación") +
+  ylab("Promedio de progrmación") +
+  ggtitle("Relación entre promedio de programación y asistencia a la nivelación") +
+  facet_wrap(~asistencia, ncol = 2, scales = "free")  # Agregar facetas para separar los boxplots por asistencia
+
+```
+
+
+
+**Estudiantes desaprobados que NO fueron la nivelación (Bloxpot1)**
+
+Media -> 5.67
+Mediana -> 6
+Rango intercuartil -> 9 -2 = 7
+
+**Estudiantes desaprobados que SI fueron la nivelación (Bloxpot2)**
+
+Media -> 10.5
+Mediana -> 10.5
+
+
+Del grupo que desaprobaron el curso de **programación** solo uno fue a la nivelación. Una causa podría ser que muchos estudiantes no llevan el curso durante la etapa escolar, por lo que no conocen la dificultad. En cambio, al llevar cursos de matemática y química durante el colegio se tiene un conocimiento sobre la dificultad, por lo que en dichos cursos hay muchos asistentes. Esta podría ser una explicación para el bloxpot1, debido a que su rango interarticular que es 7, es decir, sus datos están **demasiado** dispersos.
+
+Concluimos que la nivelación es útil para poder sacar un mejor promedio en los cursos de "cálculo de una variable" y "química".
+
+## OBJETIVO 2
+### Identificar los cursos que tienen mayor o menor impacto en la tasa de abandono estudiantil.
+
+```{r}
+# Filtrar las observaciones donde las variables "calculo", "quimica" y "progra" son TRUE
+filtered_calculo <- DF[DF$calculo, ]
+filtered_quimica <- DF[DF$quimica, ]
+filtered_progra <- DF[DF$progra, ]
+
+
+# Calcular la cantidad de desaprobados para cada curso
+desaprobados_calculo <- sum(filtered_calculo$Veces_desaprobado)
+desaprobados_quimica <- sum(filtered_quimica$Veces_desaprobado)
+desaprobados_progra <- sum(filtered_progra$Veces_desaprobado)
+
+# Crear un data frame con las variables de interés
+data <- data.frame(Cursos = c("calculo", "quimica", "progra"),
+                   Veces_desaprobado = c(desaprobados_calculo, desaprobados_quimica, desaprobados_progra))
+
+# Generar el gráfico de barras
+library(ggplot2)
+ggplot(data, aes(x = Cursos, y = Veces_desaprobado, fill = Cursos)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Veces_desaprobado), vjust = -0.5, color = "black", size = 4) +
+  xlab("Cursos") +
+  ylab("Cantidad de desaprobados") +
+  ggtitle("Cursos con mayor cantidad de desaprobados") +
+  scale_x_discrete(labels = NULL)
+
+```
+
+
+
+Agrupamos la cantidad de estudiantes que desaprobaron en un solo grupo. No consideramos Lab. de Química porque no tiene mentoría, ni nivelación.
+
+Podemos afirmar que Cálculo de una Variable tiene mayor impacto en la tasa de abandono estudiantil, ¿Se debería quitar el curso de Cálculo para disminuir la tasa de abandono? 
+
+La respuesta es no, antes de que inicie el ciclo el estudiante tiene la oportunidad de ingresar a una nivelación. Además, durante el inicio de su ciclo tiene la oportunidad de ingresar a las mentorías académicas.
+
+
+```{r}
+
+filtered_data <- DF[!(DF$Veces_retirado == "NA" | DF$Carrera == "NA"), ]
+
+data <- data.frame(repiticiones = filtered_data$Veces_retirado, carrera = filtered_data$Carrera)
+sum_repeticiones <- aggregate(repiticiones ~ carrera, data, sum)
+
+
+library(ggplot2)
+ggplot(sum_repeticiones, aes(x = carrera, y = repiticiones, fill = carrera)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = repiticiones), vjust = -0.3, color = "black", size = 4) +
+  xlab("Carrera") +
+  ylab("Cantidad de estudiantes") +
+  ggtitle("Cantidad de estudiantes que se retiran de los cursos vs Carrera") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
+
+data <- data.frame(repiticiones = filtered_data$Veces_retirado, carrera = filtered_data$Carrera)
+sum_repeticiones <- aggregate(repiticiones ~ carrera, data, sum)
+
+```
+
+
+Podemos observar que Ingeniería Ambiental y Bioingeniería son las carreras con las tasas más altas de abandono estudiantil; mientras que Ingeniería Civil, Industrial y Mecatrónica también presentan un número significativo de estudiantes retirados en los cursos generales. No consideramos Lab. de Química porque no tiene mentoría.
+
+Esta información nos ayuda a responder a nuestro segundo objetivo, ya que podemos plantear futuras soluciones en campos específicos ante el problema del abandono estudiantil. 
+
+
+## OBEJTIVO 3
+### Confirmar la necesidad de más mentores y asesorías en los cursos que requieran.
+ 
+```{r}
+data <- data.frame(promedio = DF$promedio_progra[DF$promedio_progra != 0],
+                   asistencia = factor(DF$mentoria[DF$promedio_progra != 0]))
+
+data <- na.omit(data)
+#data <- data[!data %in% "no participo"]
+mean_vals <- data %>%
+  group_by(asistencia) %>%
+  summarise(mean_val = mean(promedio),
+            median_val = median(promedio),
+            q1_val = quantile(promedio, 0.25),
+            q3_val = quantile(promedio, 0.75),
+            interquartile_range = q3_val - q1_val)  # Calcular el rango intercuartil
+
+ggplot(data, aes(x = asistencia, y = promedio)) +
+  geom_boxplot() +
+  geom_hline(data = mean_vals, aes(yintercept = mean_val), color = "red", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = median_val), color = "blue", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = q1_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_hline(data = mean_vals, aes(yintercept = q3_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = mean_val, label = round(mean_val, 2)), vjust = -1.7, color = "red", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = median_val, label = round(median_val, 2)), vjust = -0.6, color = "blue", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q1_val, label = round(q1_val, 2)), vjust = -1.3, color = "purple", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q3_val, label = round(q3_val, 2)), vjust = -1.1, color = "purple", size = 3) +
+
+  xlab("Asistencia a la mentoría") +
+  ylab("Promedio") +
+  ggtitle("Relación entre Promedio y asistencia a la mentoría - PROGRAMACIÓN") +
+  facet_wrap(~asistencia, ncol = 2, scales = "free")  # Agregar facetas para separar los boxplots por asistencia
+
+```
+
+
+**Estudiantes desaprobados que NO fueron a mentorias (Bloxpot1)**
+
+media -> 3.5
+mediana -> 3.5
+rango intercuartil -> 4.75 - 2.25 = 2.5 
+
+**Estudiantes desaprobados que SI fueron a mentorias (Bloxpot2)**
+
+media -> 9.94
+mediana -> 10.33
+rango intercuartil -> 10.41 - 9.66 = 3.12
+
+En Bloxpot1 podemos ver que la media y la mediana son iguales, lo cual indica que la distribución de datos está equilibrada en torno a un punto central. En este caso, no hay sesgo hacia los valores más altos o más bajos, lo que sugiere una distribución simétrica alrededor de la mediana.
+
+Así mismo, el rango intecuartil es de 2.5, mientras que el rango intercuartil del Bloxpot2 es de 3.12, lo que sugiere una mayor dispersión en el Bloxpot2. Sin embargo, dicha dispersión pasa desapercibida al observar que la media de los que no fueron a las mentorías es de 3.5, mientras que el promedio de los que sí fueron es de 9.94, exhibiendose la diferencia que existe entre ir y no ir a las mentorías del curso de **Programación**. Es decir, para el curso de Programación donde los estudiantes a pesar de haber desaprobado, validan que las mentorías les ayudaron a sacar mejores notas.
+
+
+```{r}
+data <- data.frame(promedio = DF$promedio_calculo[DF$promedio_calculo != 0],
+                   asistencia = factor(DF$mentoria[DF$promedio_calculo != 0]))
+
+data <- na.omit(data)
+#data <- data[!data %in% "no participo"]
+mean_vals <- data %>%
+  group_by(asistencia) %>%
+  summarise(mean_val = mean(promedio),
+            median_val = median(promedio),
+            q1_val = quantile(promedio, 0.25),
+            q3_val = quantile(promedio, 0.75),
+            interquartile_range = q3_val - q1_val)  # Calcular el rango intercuartil
+
+ggplot(data, aes(x = asistencia, y = promedio)) +
+  geom_boxplot() +
+  geom_hline(data = mean_vals, aes(yintercept = mean_val), color = "red", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = median_val), color = "blue", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = q1_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_hline(data = mean_vals, aes(yintercept = q3_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = mean_val, label = round(mean_val, 2)), vjust = -1, color = "red", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = median_val, label = round(median_val, 2)), vjust = -0.3, color = "blue", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q1_val, label = round(q1_val, 2)), vjust = -0.5, color = "purple", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q3_val, label = round(q3_val, 2)), vjust = -1.4, color = "purple", size = 3) +
+
+  xlab("Asistencia a la mentoría") +
+  ylab("Promedio") +
+  ggtitle("Relación entre Promedio y asistencia a la mentoría") +
+  facet_wrap(~asistencia, ncol = 2, scales = "free")  # Agregar facetas para separar los boxplots por asistencia
+
+```
+
+
+**Estudiantes desaprobados que NO fueron a nivelación (Bloxpot1)**
+
+media -> 8.5
+mediana -> 9.75
+rango intercuartil -> 10.15 - 8.5 = 1.65
+
+**Estudiantes desaprobados que SI fueron a nivelación (Bloxpot2)**
+
+media -> 9.88
+mediana -> 10
+rango intercuartil -> 10 - 9.75 = 0.25
+
+
+En este diagrama hay valores atípicos, por lo que tomamos a la mediana como medida de estudio y podemos observar tienen valores casi iguales, siendo 9.75 del grupo que no fueron a la mentoría y 10 de los que sí fueron a la mentoría. Hay una diferencia leve entre estos dos valores, por lo que para este caso tomaremos al valor del rango intercuartil. Este señala que en el Bloxpot1 los promedios del 50% de los estudiantes están mucho más dispersos que en el Bloxpot2. Asimismo, observamos que los datos atípicos del Bloxpot2 no se encuetran demasiado lejos del diagrama de cajas, mientras que en el Bloxpot 1 ocurre lo contrario. Esto puede ser un indicador de que las mentorías ayudaron a resolver las dudas de los estudiantes, pero no fueron suficientes para que todos comprendan los temas en su totalidad.
+
+```{r}
+library(tidyverse)
+
+data <- data.frame(promedio = DF$promedio_quimica[DF$promedio_quimica != 0],
+                   asistencia = factor(DF$mentoria[DF$promedio_quimica != 0]))
+
+data <- na.omit(data)
+#data <- data[!data %in% "no participo"]
+mean_vals <- data %>%
+  group_by(asistencia) %>%
+  summarise(mean_val = mean(promedio),
+            median_val = median(promedio),
+            q1_val = quantile(promedio, 0.25),
+            q3_val = quantile(promedio, 0.75),
+            interquartile_range = q3_val - q1_val)  # Calcular el rango intercuartil
+
+ggplot(data, aes(x = asistencia, y = promedio)) +
+  geom_boxplot() +
+  geom_hline(data = mean_vals, aes(yintercept = mean_val), color = "red", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = median_val), color = "blue", linetype = "solid", size = 1) +
+  geom_hline(data = mean_vals, aes(yintercept = q1_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_hline(data = mean_vals, aes(yintercept = q3_val), color = "purple", linetype = "dashed", size = 0.6) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = mean_val, label = round(mean_val, 2)), vjust = -1, color = "red", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = median_val, label = round(median_val, 2)), vjust = -1, color = "blue", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q1_val, label = round(q1_val, 2)), vjust = 1.5, color = "purple", size = 3) +
+  geom_text(data = mean_vals, aes(x = asistencia, y = q3_val, label = round(q3_val, 2)), vjust = -1, color = "purple", size = 3) +
+  
+  xlab("Asistencia a la mentoría") +
+  ylab("Promedio") +
+  ggtitle("Relación entre Promedio y asistencia a la mentoría") +
+  facet_wrap(~asistencia, ncol = 2, scales = "free")  # Agregar facetas para separar los boxplots por asistencia
+
+```
+
+
+**Estudiantes desaprobados que NO fueron a nivelación (Bloxpot 1)**
+
+media -> 7.89
+mediana -> 9
+rango intercuartil ->  10.05 - 7.5 = 2.55
+
+**Estudiantes desaprobados que SI fueron a nivelación (Bloxpot 2)**
+
+media -> 9.62
+mediana -> 10
+rango intercuartil -> 10 - 9.5 = 0.5
+
+
+Al igual que con los cursos anteriores el promedio de los desaprobados que fueron a las mentorias es mayor que los que no fueron. El rango intercuartil de ambos sugiere que los promedios son mucho más dispersos en el bloxpot1 que en el bloxpot2. Al igual que en el curso de **Cáculo de una variable** los valores atípicos de los que sí fueron a la mentoría de cálculo solamente llegan a 9, mientras que en el grupo de los que no fueron llegan hasta 2, mostrando nuevamente que si un estudainte asiste a las mentorias tiene una mayor probabilidad de sacar mejor promedio que los no asistentes.
+
+Las mentorias ayudan a los estudiantes a mejorar sus calificaciones, principalmente en el curso de **Programación I**.  Por lo que, si aumentamos el número de mentores ayudaría a aumentar la cantidad de estudiantes que logren aprobar o por lo menos subir sus promedios. Sin embargo, si se llega a aumentar la cantidad de mentores, estos tienen que tener la facilidad de poder explicar muy bien a los estudiantes y poder resolver todas sus dudas, muchas veces los mentores no cumplen con sus horas establecidas dado que ellos son estudiantes y a veces no disponen de mucho tiempo.
+
+```{r}
+DF_filtered <- DF %>%
+  filter(!mentor_horas %in% "no participo", !mentor_dudas %in% "no participo")
+
+ggplot(DF_filtered) +
+  aes(x = mentor_horas, y = mentor_dudas, fill = mentor_horas) +
+  geom_tile() +
+  scale_fill_manual(
+    values = c(No = "#A50026",
+               Si = "#006837")
+  ) +
+  labs(
+    x = "Cumplimiento de horas",
+    y = "Frecuencia de resolución de dudas",
+    title = "Eficiencia del Mentor",
+    fill = "Cumplimiento de Horas"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 15L, face = "bold"))
+
+```
+
+Cuando el mentor cumplía con su horario la frecuencia de la aclaración de dudas era positiva, ya que "a veces" o "siempre" respondía las dudas. Sin embargo, cuando no cumplían con sus horas no resolvían sus dudas "casi nunca". 
+
+Podemos afirmar que se necesitan más mentores porque existen cupos limitados para las clases de mentorias, tomando en cuenta que dichos mentores tienen que ser responsable con sus horas de enseñanza.
+
+## OBJETIVO 4
+### Comparar los promedios de horas dedicadas de estudio de los estudiantes que reprobaron algún curso.
+
+```{r}
+# cursos jalados
+filter_total_aprove <- DF[complete.cases(DF$promediototal, DF$horas_jalados), ] # horas de estudio que le dedican a los cursos que jalaron
+# horas de estudio que ke dedican a los cursos que aprobaron
+
+plot(filter_total_aprove$horas_jalados, filter_total_aprove$promediototal,
+     xlab = "Horas de estudio", ylab = "Promedio",
+     main = "Relación entre promedio total y horas de estudio para los que jalaron",
+     col = "blue", pch = 16)
+```
+
+Cada punto en el gráfico representa un estudiante y su posición indica la cantidad de horas de estudio y su promedio.
+La mayor cantidad de estudiantes desaprobados dedicaban de 3 a 6 horas de estudio, posiblemente porque al tratar de dedicar muchas horas de estudios a sus cursos no logran cumplir con las horas respectivas para cada uno. 
+
+No se pueden sacar descriptores numéricos relevantes dado que no hay un relación clara entre estas dos variables. No existe mucha relación entre estas dos variable porque el promedio no siempre depende de las horas dedicadas a cada curso. Algunos "no estudian bien"; es decir, a pesar de dedicarle muchas horas de estudio a un curso al final no tiene impacto en sus promedios.
+ 
+
+```{r}
+
+# Crear un data frame con las variables relevantes
+data <- data.frame(Carrera = DF$Carrera, Ciclo = DF$Ciclo, Desercion = DF$Veces_desaprobado)
+
+# Filtrar los valores NA en la variable Desercion
+data <- data[!is.na(data$Desercion), ]
+#data <- data[!data %in% "no participo"]
+
+# Generar el gráfico de barras agrupadas
+ggplot(data, aes(x = Carrera, y = Desercion, fill = Ciclo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  xlab("Carrera") +
+  ylab("Cantidad de Deserciones") +
+  ggtitle("Deserción Estudiantil por Carrera y Ciclo") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+## OBJETIVO 5  
+
+### Identificar el nivel de aprendizaje y dedicación de los alumnos en el curso. 
+
+```{r}
+# gráfico mosaico
+ggplot(DF) +
+ aes(x = Dificultad_progra, y = Carrera, fill = Dificultad_progra) +
+ geom_tile() +
+ scale_fill_hue(direction = 1) +
+ labs(x = "Grado de Dificultad", y = "Carrera", title = "Dificultad percibida en el curso de Programación por Carrera", 
+ fill = "Dificultad Programación") +
+ theme_minimal() +
+ theme(plot.title = element_text(size = 15L, 
+ face = "bold", hjust = 0.5))
+```
+
+Los estudiantes de Ingeniería Ambiental, Civil, Mecánica, Mecatrónica, Industrial y Bioingeniría perciben como "muy difícil" el curso de Programación. Mientras el resto las percibe como "difícil".
+
+```{r}
+ggplot(DF) +
+ aes(x = Dificultad_calculo, y = Carrera, fill = Dificultad_calculo) +
+ geom_tile() +
+ scale_fill_hue(direction = 1) +
+ labs(x = "Grado de Dificultad", y = "Carrera", title = "Dificultad percibida en el curso de Cálculo por Carrera", 
+ fill = "Dificultad Cálculo") +
+ theme_minimal() +
+ theme(plot.title = element_text(size = 15L, 
+ face = "bold", hjust = 0.5))
+```
+
+Algunos estudiantes de la carrera de Ingeniería Ambiental, Civil e Industrial, perciben como "difícil" el curso de Cálculo; mientras; Bioingeniería, Mecatrónica y de Energía perciben como "aceptable".
+
+Los estudiantes a pesar de que le dedicaban muchas horas de estudio a sus cursos estos desaprobaban, y una posible razón sería que no comprenden los temas. 
+
+
+```{r}
+ggplot(DF) +
+ aes(x = Dificultad_quimica, y = Carrera, fill = Dificultad_quimica) +
+ geom_tile() +
+ scale_fill_hue(direction = 1) +
+ labs(x = "Grado de Dificultad", y = "Carrera", title = "Dificultad percibida en el curso de Química por cada Carrera", 
+ fill = "Dificultad Química") +
+ theme_minimal() +
+ theme(plot.title = element_text(size = 15L, 
+ face = "bold", hjust = 0.5))
+```
+
+Existen diferencias significativas en la forma en que los estudiantes de cada carrera perciben la dificultad del curso de Química, puesto que las 5 carreras de las 9 que hay, consideran al curso como "muy difícil".
+
+Finalmente podemos decir que el promedio de un estudiante no solamente se dicta de acuerdo a las horas que le puede dedicar a ciertos cursos, sino también depende de las oportunidades que pueda aprovechar, tales como las mentorias o la nivelación. Asimismo, identificamos en que carrera hay mayor tasa de abandono, al saber de antemano los cursos y carreras donde hay más abandono podemos plantear e implementar soluciones eficaces, como: el aumento de mentores, más material de estudio o brindando clases para dar técnicas a los estudiantes con mayores dificultades para aprobar.
+
+
+# **Análisis Probabilístico** 
+
+## **Probabilidad Empírica**
+
+###**Probabilidad de como perciben los alumnos el nivel de dificultad de cada curso**
+
+La variable "Nivel de dificultad" es importante dentro de este análisis dado que nos permite saber la probabilidad de que un estudiante percibe un curso como muy difícil o difícil, y gracias a ello podemos confirmar: "El curso de Cálculo de una variable es el curso más difícil, por lo que tiene una alta tasa de deserción"
+
+PROGRAMACION
+```{r}
+nrow(subset(DF, Dificultad_progra == "Accesible")) / length(DF$Dificultad_progra) 
+nrow(subset(DF, Dificultad_progra == "Aceptable")) / length(DF$Dificultad_progra)
+nrow(subset(DF, Dificultad_progra == "Dificil")) / length(DF$Dificultad_progra)
+nrow(subset(DF, Dificultad_progra == "Muy Díficil")) / length(DF$Dificultad_progra)
+```
+
+CALCULO
+```{r}
+nrow(subset(DF, Dificultad_calculo == "Accesible")) / length(DF$Dificultad_calculo) 
+nrow(subset(DF, Dificultad_calculo == "Aceptable")) / length(DF$Dificultad_calculo)
+nrow(subset(DF, Dificultad_calculo == "Dificil")) / length(DF$Dificultad_calculo)
+nrow(subset(DF, Dificultad_calculo == "Muy Díficil")) / length(DF$Dificultad_calculo)
+```
+
+QUIMICA
+```{r}
+nrow(subset(DF, Dificultad_quimica == "Accesible")) / length(DF$Dificultad_quimica) 
+nrow(subset(DF, Dificultad_quimica == "Aceptable")) / length(DF$Dificultad_quimica)
+nrow(subset(DF, Dificultad_quimica == "Dificil")) / length(DF$Dificultad_quimica)
+nrow(subset(DF, Dificultad_quimica == "Muy Díficil")) / length(DF$Dificultad_quimica)
+```
+
+En conclusión una gran parte del alumnado considera a los cursos de Programación, Cáculo y Química como "Dificles" o "Muy dificles".
+
+
+
+##**Probabilidad de no jalar un curso**
+```{r}
+nrow(subset(DF, Veces_desaprobado == "0")) / length(DF$Veces_desaprobado)
+```
+
+##**Probabilidad de jalar un curso**
+```{r}
+nrow(subset(DF, Veces_desaprobado == "1")) / length(DF$Veces_desaprobado)
+```
+
+En conclusión, es muy probable que un alumno apruebe todos sus cursos en su primer ciclo.
+
+
+
+##**Probabilidad de que un alumno no se retire de un curso**
+```{r}
+nrow(subset(DF, Veces_retirado == "0")) / length(DF$Veces_retirado)
+```
+
+##**Probabilidad de que un alumno se retire de un curso**
+```{r}
+nrow(subset(DF, Veces_retirado == "1")) / length(DF$Veces_retirado)
+```
+Es muy probable que un alumno no se retire de ningún curso en su primer ciclo.
+
+
+## **Probabilidad Condicional**
+
+Para todas las probabilidades a desarrollarse a continuación se seguirá la lógica explica a continuación, se tomará como ejemplo el caso de : Probabilidad de que un alumno que asistió a la mentoría haya aprobado.
+
+si la probabilidad de que ocurra un evento A es la misma, sin importar si el evento B ocurre o no, entonces los eventos A y B son independientes. Esto significa que la ocurrencia o no ocurrencia de B no tiene influencia en la probabilidad de que ocurra A, y viceversa. Esto se traduce en la igualdad:
+
+$P(A|B) = P(A)$
+
+Si esta igualdad se cumple, entonces podemos decir que los eventos A y B son independientes. Si no se cumple, entonces los eventos son dependientes.Para verificar si estos eventos son independientes, calcularemos la probabilidad condicional de A dado B $(P(A|B))$ y la probabilidad de A $P(A)$, y luego compararlas.
+
+En el contexto del estudio, podríamos definir los siguientes eventos:
+
+
+##**Probabilidad de que un alumno que asistió a mentoria haya aprobado**
+$A$: Un estudiante haya aprobado  . 
+$B$: Un estudiante que asistió a mentoría .
+
+```{r}
+probabilidad <- sum(DF$mentoria == "Si" & DF$Veces_desaprobado == 0) / sum(DF$mentoria == "Si")
+probabilidad
+```
+
+##**Probabilidad de que un alumno que asistió a mentoría haya desaprobado**
+
+```{r}
+probabilidad <- sum(DF$mentoria == "Si" & DF$Veces_desaprobado > 0) / sum(DF$mentoria == "Si")
+probabilidad
+```
+
+Es muy probable que un alumno que asistió a mentoría haya aprobado.
+
+
+##**Probabilidad de que un alumno que asistió a la nivelación haya aprobado**
+
+$P(A|B) = P(A)$
+$A$: Un estudiante haya desaprobado  . 
+$B$: Un estudiante que asistió a la mentoría.
+```{r}
+probabilidad <- sum(DF$Nivelacion == "Si" & DF$Veces_desaprobado == 0) / sum(DF$Nivelacion == "Si")
+probabilidad
+```
+
+##**Probabilidad de que un alumno que asistió a la nivelación haya desaprobado**
+```{r}
+probabilidad <- sum(DF$Nivelacion == "Si" & DF$Veces_desaprobado > 0) / sum(DF$Nivelacion == "Si")
+probabilidad
+```
+En conclusión, es muy probable de que un un alumno que asistió a nivelación haya aprobado.
+
+##**Probabilidad de percepcion de dificultad del curso de Calculo, Programación y Quimica en alumnos cachimbos del año 2022.**
+
+CALCULO 
+```{r}
+sum( DF$Dificultad_calculo == "Accesible")/length(DF$Ciclo)
+sum(DF$Dificultad_calculo == "Aceptable")/length(DF$Ciclo)
+sum( DF$Dificultad_calculo == "Dificil")/length(DF$Ciclo)
+sum(DF$Dificultad_calculo == "Muy Díficil")/length(DF$Ciclo)
+```
+PROGRAMACION
+```{r}
+sum( DF$Dificultad_progra == "Accesible")/length(DF$Ciclo)
+sum(DF$Dificultad_progra == "Aceptable")/length(DF$Ciclo)
+sum( DF$Dificultad_progra == "Dificil")/length(DF$Ciclo)
+sum(DF$Dificultad_progra == "Muy Díficil")/length(DF$Ciclo)
+```
+QUIMICA
+```{r}
+sum( DF$Dificultad_quimica == "Accesible")/length(DF$Ciclo)
+sum(DF$Dificultad_quimica == "Aceptable")/length(DF$Ciclo)
+sum( DF$Dificultad_quimica == "Dificil")/length(DF$Ciclo)
+sum(DF$Dificultad_quimica == "Muy Díficil")/length(DF$Ciclo)
+```
+En conclusión, los cachimbos del año 2022 concuerdan que Calculo y Programacion son los cursos "más dificiles".
+
+##**Formula para identificar independiencia o dependecia**
+
+```{r}
+DF$mentoria <- DF$mentoria == "Si"  # Si los valores son "Asistió" y "No asistió"
+```
+
+```{r}
+DF$promedio_calculo <- as.numeric(DF$promedio_calculo)
+```
+
+### Cálculo de la probabilidad condicional
+```{r}
+prob_condicional <- function(mentoria, promedio_calculo, DF) {
+  prob_A <- sum(DF$mentoria, na.rm = TRUE) / sum(!is.na(DF$mentoria))  # Probabilidad marginal de A
+  prob_AyB <- sum(DF$mentoria & DF$promedio_calculo, na.rm = TRUE) / sum(!is.na(DF$mentoria & DF$promedio_calculo))  # Probabilidad conjunta de A y B
+  prob_B <- sum(DF$promedio_calculo, na.rm = TRUE) / sum(!is.na(DF$promedio_calculo))  # Probabilidad marginal de B
+  
+  prob_condicional <- prob_AyB / prob_B  # Cálculo de la probabilidad condicional
+  
+  return(prob_condicional)
+}
+```
+
+
+### Verificación de dependencia o independencia
+
+```{r}
+verificar_dependencia <- function(mentoria, promedio_calculo, DF) {
+  prob_condicional_empirica <- prob_condicional(mentoria, promedio_calculo, DF)
+  
+  # Calculando las probabilidades empíricas de A y B
+  prob_A_empirica <- sum(DF$mentoria, na.rm = TRUE) / sum(!is.na(DF$mentoria))
+  prob_B_empirica <- sum(DF$promedio_calculo, na.rm = TRUE) / sum(!is.na(DF$promedio_calculo))
+  
+  if (abs(prob_condicional_empirica - prob_A_empirica) < 0.0001) {
+    cat("Los eventos", deparse(substitute(mentoria)), "y", deparse(substitute(promedio_calculo)), "son independientes.\n")
+  } else {
+    cat("Los eventos", deparse(substitute(mentoria)), "y", deparse(substitute(promedio_calculo)), "son dependientes.\n")
+  }
+}
+```
+
+
+```{r}
+verificar_dependencia(DF$Nivelacion, DF$Veces_desaprobado, DF)
+verificar_dependencia(DF$mentoria, DF$Veces_desaprobado, DF)
+```
+
+
+
+## **Variables discretas**
+### Distribución Binomial
+
+X => número de personas que resolvieron todas sus dudas en la mentoria
+
+X ~ Binom(n=150, p=0,4563107), donde => p= p(e), exito es la cantidad de personas que resolvieron todas sus dudas en la mentoria   
+
+
+```{r echo=FALSE}
+valores_numericos_mentor <- ifelse(DF$mentor_dudas == "no participo", 0, ifelse(DF$mentor_dudas == "A veces", 2, ifelse(DF$mentor_dudas == "Nunca", 1, ifelse(DF$mentor_dudas == "Siempre", 3,-1) )))
+DF$mentor_dudanum <- valores_numericos_mentor
+```
+
+Densidad
+```{r}
+variable <- DF$mentor_dudas
+# Calcular los parámetros de la distribución binomial a partir de los datos
+n <- 103 # Número de ensayos
+
+# Calcular la función de distribución binomial
+x <- 1:3  # Valores posibles del resultado
+prob <- dbinom(x, n, 0.4563107)  # Probabilidad de cada resultado
+
+# Graficar la función de distribución binomial
+plot(prob, type = "h", lwd = 2, main = "Función de distribución binomial", 
+     xlab = "Número de éxitos", ylab = "Probabilidad")
+```
+
+Propiedades
+```{r}
+mean(DF$mentor_dudanum)
+var(DF$mentor_dudanum)
+sd(DF$mentor_dudanum)/mean(DF$mentor_dudanum)*100
+```
+
+
+Ejemplo:
+
+El coordinador de mentorias desea conocer la eficiencia de sus mentores. Se desea saber la probabilidad de que más del 50% de alumnos pueden resolver por completo sus dudas en las mentorias.
+
+```{r}
+pbinom(75,150,0.4563107)
+```
+
+
+### Distribución hipergeométrica
+
+X=>número de estudiantes que consideran "muy dificil" programación
+
+X ~ Hiper(N=150, n=16, k=30))==> n =numero de personas que marcaron 4
+
+
+```{r echo=FALSE}
+valores_numericos_dificultad <-ifelse(DF$Dificultad_progra == "Dificil", 3, ifelse(DF$Dificultad_progra == "Accesible", 1, ifelse(DF$Dificultad_progra == "Aceptable", 2,ifelse(DF$Dificultad_progra == "Muy Díficil", 4,-1) )))
+valores_numericos_dificultad -> DF$dificultad_general
+```
+
+Densidad
+```{r}
+hist(DF$dificultad_general, freq = FALSE, main = "Densidad de la dificultad",
+     ylab = "Densidad",
+     xlab = "niveles",
+     col = "green2")
+
+dx <- density(DF$dificultad_general)
+
+lines(dx, lwd = 3, col = "black")
+```
+
+
+Propiedades
+```{r}
+mean(DF$dificultad_general)
+var(DF$dificultad_general)
+sd(DF$dificultad_general)/mean(DF$dificultad_general)*100
+```
+
+Ejemplo:
+
+Se han encuestado a 150 estudiantes de UTEC ingresantes en el año 2022 y se les preguntó acerca del curso de programación. Se les preguntó acerca del nivel de complejidad y ellos seleccionaron un número en la escala del 1 al 4 en donde 1 significa “Accesible” y el 4 significa “Muy Dificil”. Del total de encuestados 9 estudiantes consideran "Accesible" el curso, 58 estudiantes marcaron "Aceptable", 67 estudiantes marcaron "Dificil", 16 estudiantes marcaron "Muy Dificil". Si se va a escoger a 30 estudiantes al azar ¿Cuántos estudiantes que seleccionaron el nivel 4 estarían presentes en el grupo?
+
+```{r}
+round(30*16/150,0)
+```
+
+
+
+
+## **Variables continuas**
+
+### Distribución normal
+
+Se identifica graficamente una normalidad
+```{r}
+XNOR_aprobados <- (DF$horas_aprobados +DF$horas_jalados)
+mu <- mean(XNOR_aprobados)
+sigma <- (var(XNOR_aprobados)^(1/2))
+c(mu, sigma)
+
+
+hist(XNOR_aprobados
+     , breaks = 6
+     , probability =TRUE
+     , ylim=c(0, 0.30)
+     , xlab = "G"
+     , ylab = "Densidad"
+     , main = "Aproximación con el modelo Normal de horas de estudio"
+     , cex.axis = 0.95
+     )
+
+curve(dnorm(x, mu, sigma), add = TRUE,col=c("red"),lwd=3)
+legend("topright",legend = c("Dis. Normal"),fill = c("red"))
+
+```
+
+
+Se valida la normal con la media=mediana, varianza=sd2 y la esperenza=media
+```{r}
+print('media: ')
+mean(XNOR_aprobados)
+print('mediana:')
+median(XNOR_aprobados)
+print('varianza:')
+var(XNOR_aprobados)
+print('desviacion: ')
+sd(XNOR_aprobados)**2
+print('esperanza:')
+mean(XNOR_aprobados)
+```
+
+
+u=mean, g=sd => X ~ N(u, g)
+
+X= horas de estudio dedicadas mayor a 7 horas
+
+Ejemplo: 
+
+Se desea saber la cantidad de horas que utilizarían los alumnos para estudiar fuera de la universidad, se supone el caso para los alumnos más estudiosos los cuales deberían usar más horas. ¿Cual es la probabilidad de que un alumno del año 2022 haya utilizado más de 7 horas para estudiar?
+
+
+```{r}
+pnorm(q= 7, mean = 6.47, sd =2.650965, lower.tail = FALSE) 
+```
+
+
+### Distribución normal
+
+Se identifica graficamente una normalidad
+```{r}
+
+XNOR_asesorias <- (DF$asesorias_proga +DF$asesorias_calculo + DF$asesorias_quimica)
+mu <- mean(XNOR_asesorias)
+sigma <- (var(XNOR_asesorias)^(1/2))
+c(mu, sigma)
+
+
+hist(XNOR_asesorias
+     , breaks = 10
+     , probability =TRUE
+     , ylim=c(0, 0.1)
+     , xlab = "G"
+     , ylab = "Densidad"
+     , main = "Aproximación con el modelo Normal de asistencia a asesorias"
+     , cex.axis = 0.95
+     )
+
+curve(dnorm(x, mu, sigma), add = TRUE,col=c("red"),lwd=3)
+legend("topright",legend = c("Dis. Normal"),fill = c("red"))
+```
+
+
+Se valida la normal con la media=mediana, varianza=sd2 y la esperenza=media
+```{r}
+print('media: ') 
+mean(XNOR_asesorias)
+print('mediana:')
+median(XNOR_asesorias)
+print('varianza:')
+var(XNOR_asesorias)
+print('desviacion: ')
+sd(XNOR_asesorias)**2
+print('esperanza:')
+mean(XNOR_asesorias)
+```
+
+u=mean, g=sd => X ~ N(u, g)
+
+X = numero de personas que asistieron a menos de 11 asesorias
+
+
+Ejemplo: 
+
+Se desea saber el poco interes de los alumnos respecto a las asesorias. Calcula la probabilidad de personas que asistieron a menos de 11 asesorias. El máximo es 30 y el mínimo es 10.
+
+```{r}
+pnorm(q= 10, mean = 12.2, sd =8.273026 , lower.tail = TRUE)
+```
+
+
+
+
+# **Conclusiones**
+
+Objetivo General
+
+Se identifican que las causas de causas que llevan a un estudiante de primer ciclo a reprobar y/o retirarse de un curso general son:
+-   Falta de técnicas de estudio 
+-   Falta de una base teórica y práctica para cursos generales, especialmente en Cálculo y Programación I
+-   Los mentores no logran resolver una gran parte de dudas de los alumnos por falta de horas extra de mentorias
+
+Objetivos especificos
+
+-   Objetivo 1: La nivelación ayudó afrontar el primer ciclo en la mayoría de estudiantes, principalmente en Cálculo de una variable.
+-   Objetivo 2: Se identificó que Cálculo de una variable es el curso con mayor impacto de tasa de abandono estudiantil y muy de cerca le sigue Programación I. Por el contrario, Química es el curso con menor tasa de abandono con diferencia.  
+-   Objetivo 3: Se confirma la necesidad de más mentores y asesorías principalmente en el curso de Programación. Asimismo, se confirma que los mentores no logran cumplir sus horas y tampoco logran responder las dudas en una gran parte de estudiantes. 
+-   Objetivo 4: Las horas de estudio no van directamente relacionados con la aprobación o desaprobación de un curso, se concluye que los alumnos que desaprobaron requieren de técnicas de estudio para captar de mejor manera los temas.
+-   Objetivo 5: Se concluye que los alumnos que lograron pasar Quimica, Calculo de una variable y Programación tuvieron un aprendizaje óptimo debido a que consideran el curso como "muy dificil". Asimismo, los alumnos que aprobaron en su mayoria no requirió de muchas horas de estudio.

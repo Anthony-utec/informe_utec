@@ -1,0 +1,617 @@
+---
+title: Análisis estadístico de la relación entre la congestión vehicular en Lima y
+  los niveles de estrés en estudiantes universitarios de Lima Metropolitana
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r include=FALSE, warning =FALSE}
+# Aplicamos una lógica para instalar paquetes en caso de no estar instalado
+lista.paquetes <- c("readr", "dplyr", "modeest","ggplot2","MASS","survival") # En este vector se escriben los paquetes que deseamos cargar
+nuevos.paquetes <- lista.paquetes[!(lista.paquetes %in% installed.packages()[,"Package"])] # Se logra almacenar los paquetes no instalados
+if(length(nuevos.paquetes)) install.packages(nuevos.paquetes, repos = 'http://cran.us.r-project.org') # Se instala si no está instalado
+```
+
+
+# [**Introducción**]{style="color:dodgerblue"}
+
+## Importancia y Justificación
+
+La congestión vehicular es un problema común en la ciudad, y entender cómo afecta la salud mental de los estudiantes universitarios proporciona una visión única sobre los efectos negativos del tráfico en la calidad de vida. Al investigar esta relación, se puede generar conciencia sobre la importancia de abordar la congestión vehicular desde una perspectiva de salud pública y promover medidas para reducir su impacto. 
+Por lo tanto este proyecto contribuye al campo de la investigación académica en relación con la salud mental de los universitarios.
+
+## Relevancia
+
+Este proyecto es relevante desde el punto de vista social. Sabemos que el estrés es una condición de salud mental que afecta a una parte considerable de la población, y los estudiantes universitarios son propensos a experimentar altos niveles de estrés debido a diversas presiones académicas y personales. Al analizar la relación entre la congestión vehicular y el estrés en este grupo demográfico, se obtendrán resultados significativos que podrían aumentar la conciencia pública sobre la importancia de abordar el problema del tráfico y promover acciones para su mitigación.Estos respaldarían la implementación de medidas y políticas que mejoren la infraestructura vial, fomenten el uso del transporte público y promuevan alternativas de movilidad sostenible en nuestra ciudad de Lima Metropolitana. 
+
+## Objetivo
+
+### Objetivo general
+Evaluar cómo la congestión vehicular en Lima afecta el nivel de estrés y el rendimiento académico de los estudiantes universitarios. 
+
+### Objetivos específicos
+- Analizar el impacto de la congestión vehicular en las calificaciones y el rendimiento académico de los estudiantes universitarios, tomando en cuenta factores como las tardanzas y el estrés.   
+- Analizar la experiencia de los estudiantes considerando su medio de transporte y su tiempo de viaje  para proponer posibles soluciones.   
+- Establecer la relación entre el tiempo que los estudiantes universitarios pasan en el tráfico de Lima y su nivel de estrés, teniendo en cuenta factores como distancia recorrida, tiempo de viaje y tardanzas en clases.  
+
+## Contexto 
+
+Los estudiantes universitarios ya tienen suficientes desafíos académicos y personales en su día a día, pero ¿qué sucede cuando también tienen que lidiar con largos tiempos de desplazamiento y una constante sensación de frustración al tratar de llegar a tiempo a sus clases? Este análisis nos brindará una visión más clara de cómo la congestión vehicular puede afectar sus niveles de estrés, su calidad de vida y su bienestar emocional.A través de técnicas estadísticas y la recopilación de datos relevantes, este estudio pretende arrojar luz sobre esta relación compleja. Los resultados obtenidos podrían no solo ayudar a comprender mejor los desafíos a los que se enfrentan los estudiantes universitarios en su día a día, sino también aportar información valiosa para la toma de decisiones en términos de políticas de transporte y bienestar estudiantil.
+
+# [**Datos**]{style="color:dodgerblue"}
+
+## Recolección de datos
+Se empleó un formulario de Google Forms para recolectar datos, donde se diseñaron preguntas basadas en las variables de interés. El enlace al formulario será distribuido tanto de manera virtual como presencial entre estudiantes de diversas universidades de Lima Metropolitana. Elegimos este método de recolección debido a su facilidad de uso, ya que la encuesta fue simple.
+
+## Población, muestra y muestreo
+
+### Población
+
+- Estudiantes de pregrado de diversas universidades de Lima Metropolitana que estén cursando actualmente el semestre académico.
+
+### Muestra
+- Estudiantes de pregrado de diversas universidades de Lima Metropolitana que estén cursando actualmente el semestre académico seleccionados de forma aleatoria.
+
+### Muestreo
+
+- Muestreo aleatorio simple
+
+## Variables
+
+### Variables generales
+
+| Pregunta  |   Variable     |  Tipo | Restricción |
+|:----------:|:--------------:|:----------:|:--------:|
+|  ¿Que edad tienes? | Edad |  Cuantitativa discreta |Números enteros: 16 a 40 años|
+|  ¿Cuál es tu promedio ponderado?  |	Promedio ponderado	|Cuantitativa continua |Números enteros y decimales|
+|  ¿Cuál es la distancia en kilómetros que recorres entre tu casa y la universidad?  |	Kilómetros	|Cuantitativa continua |Números enteros y decimales|
+|  ¿Cuántos días asistes a la universidad? |	Frecuencia con la que una persona asiste a la universidad	|Cuantitativa discreta |Varias opciones: 1 a 6 veces|
+|   ¿Cuántas veces llegas tarde a clase por semana debido a la congestión vehicular? |	Frecuencia de tardanza | Cuantitativa discreta	|Varias opciones:  1 a 6 veces |
+|  ¿Cuánto tiempo te toma llegar de tu casa a la universidad? |	Tiempo de llegada	|Cuantitativa discreta	| Varias opciones: 30 50 90 100|
+|   ¿Cómo calificarías la calidad del transporte público en Lima? |	Calidad de Transporte	| Cualitativa ordinal	|Varias opciones: muy mala, mala,regular,buena,muy buena |
+|   ¿Qué tan estresante consideras el impacto del transporte en tus calificaciones?  |Percepción de estrés |Cualitativa ordinal	|Varias opciones: nada estresante, poco estresante, muy estresante |
+|   ¿Cuál es tu principal medio de transporte para llegar a la universidad? |Medio de transporte	|Cualitativa nominal	| Casilla opción múltiple |
+|   ¿En qué distrito de Lima vives?  | Distrito |Cualitativa nominal	|Respuesta corta |
+|   ¿De que Universidad eres? |	Universidad |Cualitativa nominal	|Respuesta corta |
+|  ¿Qué tan de acuerdo estás en fomentar las alternativas de transporte (como bicicleta, scooter, caminar, etc.) para evitar la congestión vehicular en Lima?  |	Opinión de la persona |Cualitativa nominal	| Varias opciones: desacuerdo, a medias, muy de acuerdo |
+|  ¿Cuál es tu porcentaje de tardanza? |	Porcentaje | Cuantitativa continua	| Números enteros y decimales |
+
+### Variables de mérito
+
+- **Edad:** Identificar la distribución de edades y evaluar posibles diferencias en el impacto del tráfico en estudiantes de distintos grupos de edad.  
+
+- **Promedio ponderado:** Determinar el rendimiento académico y analizar su correlación con variables relacionadas al tráfico, identificando el impacto del tráfico en la vida académica y estableciendo si existe una relación directa entre congestión vehicular y desempeño estudiantil. 
+
+- **Kilómetros:** Evaluar cómo influye la distancia que existe entre la casa y la universidad, en el rendimiento académico y percepción del tráfico, identificando patrones geográficos y analizando si las distancias más largas generan mayores niveles de estrés. 
+
+- **Frecuencia con la que una persona experimenta tráfico:** Medir cuántos días a la semana los estudiantes enfrentan tráfico congestionado en la ciudad de Lima, lo que permite analizar la exposición de los estudiantes al tráfico y cómo esto puede afectar su rendimiento académico y niveles de estrés. 
+
+- **Frecuencia con la que una persona llega tarde a clase:** Determinar el impacto de la congestión vehicular en la puntualidad de los estudiantes y analizar cómo esto afecta su rendimiento académico y niveles de estrés. 
+
+- **Tiempo que tarda una persona en llegar a la universidad:** Examinar cómo el tiempo dedicado al transporte influye en el rendimiento académico y el estrés de los estudiantes, considerando posibles diferencias entre tiempos de viaje más cortos y más largos. 
+
+- **Calidad de transporte:** Evaluar las percepciones de los estudiantes sobre la calidad del transporte público en Lima, lo que puede afectar su experiencia de viaje y, en última instancia, su rendimiento académico y niveles de estrés. 
+
+- **Percepción de estrés:** Medir el impacto percibido del transporte en el estrés de los estudiantes y su rendimiento académico, lo que permite identificar si el transporte es un factor estresante significativo en la vida de los estudiantes. 
+
+- **Medio de transporte:** Identificar los medios de transporte más comunes utilizados por los estudiantes para llegar a la universidad y analizar cómo estos medios afectan su rendimiento académico y niveles de estrés.
+
+- **Distrito:** Analizar la distribución geográfica de los estudiantes y su relación con el tráfico en Lima, lo que permite identificar áreas con mayores niveles de congestión vehicular.
+
+- **Universidad**: Evaluar el impacto del tráfico en diferentes universidades de Lima Metropolitana y comparar el rendimiento académico y niveles de estrés entre estudiantes de diferentes instituciones educativas. 
+
+
+## Limpieza de base de datos
+
+
+### Procedimiento de limpieza
+
+Se realiza la lectura a la base de datos: 
+```{r echo=TRUE,message=FALSE}
+library(readr)
+library(modeest)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+ES<-read_csv("Estres.csv")
+ES
+```
+Luego de ello, podemos observar que en nuestra base de datos se encuentran columnas que no serán de utilidad, como lo es la `marca temporal`. Por el cual para solucionar este problema eliminaremos aquella columna.
+
+```{r}
+ES$`Marca temporal`<-NULL
+```
+
+Además debemos de cambiar los nombres de las variables de nuestra base de datos:
+
+```{r}
+colnames(ES)<- c('Edad','Género', 'Distrito_vive', 'Universidad','Distrito_U','KM', 'CalidadT', 'MedioT', 'TiempoMT', 'NivelE','DiasA', 'Promedio','DiasT','Porcentaje','ProCambio' )
+colnames(ES)
+```
+Para continuar, solucionaremos ciertos problemas con el tipo de variable, corregiremos los tipos de datos de double a integer: 
+```{r}
+ES$TiempoMT<-as.integer(ES$TiempoMT)
+ES$DiasA<-as.integer(ES$DiasA)
+ES$DiasT<-as.integer(ES$DiasT)
+```
+
+Realizaremos una verificación de la cantidad de las observaciones para comprobar que nuestra cantidad de observaciones no haya sido afectada en el proceso de limpieza
+
+```{r}
+nrow(ES)
+```
+Comprobamos si hay datos faltantes:
+
+```{r}
+sum(is.na(ES))
+```
+Solo tenemos 1 dato faltante. El porcentaje de datos faltantes es:
+
+```{r}
+sum(is.na(ES))/(nrow(ES)*ncol(ES))*100
+```
+Obtenemos un 0.3% de datos faltantes de toda nuestra recolección de datos.
+
+```{r}
+ESC<- ES
+```
+Utilizamos summary para poder si existe algún dato atípico
+```{r}
+summary(ESC)
+```
+Logramos observar que hay un promedio de 147 entonces podemos pensar que el encuestado intentó escribir 14.7. Por ello, vamos a corregir este dato para evitar sesgos:
+
+```{r}
+for(i in 1:200){
+  if(ESC$Promedio[i]==147.00){
+    ESC$Promedio[i]<-ESC$Promedio[i]/10
+  }
+}
+```
+
+Continuaremos limpiando la variable `Distrito_vive`.Primero eliminamos los espacios en blanco:
+
+```{r}
+ESC$Distrito_vive <- str_trim(ESC$Distrito_vive,side = "both") 
+table(ESC$Distrito_vive)
+```
+
+Modificaremos la escritura de las respuestas de la variable `Distrito`, que evidentemente están mal escritas:
+
+```{r}
+ESC<-mutate(ESC,DistrC=case_when( Distrito_vive=='San Martín de Porres'~'San Martín de Porres',Distrito_vive=='SMP'~'San Martín de Porres',Distrito_vive=='Barranco'~'Barranco',Distrito_vive=='Cercado de lima'~'Cercado de lima', Distrito_vive=='Jesús María'~'Jesús María', Distrito_vive=='Lima'~'Inválido',Distrito_vive=='Lince'~'Lince', Distrito_vive=='Lurin'~'Lurín',Distrito_vive=='Lurín'~'Lurín',Distrito_vive=='San isidro'~'San Isidro', Distrito_vive=='San Isidro'~'San Isidro', Distrito_vive=='San Miguel'~'San Miguel',Distrito_vive=='Bellavista'~'Bellavista',Distrito_vive=='Chorrillos'~'Chorrilos',Distrito_vive=='La molina'~'La molina', Distrito_vive=='Los olivod'~'Los Olivos',Distrito_vive=='Los olivos'~'Los Olivos',Distrito_vive=='Los Olivos'~'Los Olivos', Distrito_vive=='Ventanilla'~'Ventanilla',Distrito_vive=='Miraflores'~'Miraflores',Distrito_vive=='Villa el Salvador'~'Villa el Salvador',Distrito_vive=='San Juan de Miraflores'~'San Juan de Miraflores',Distrito_vive=='San Antonio'~'Inválido',Distrito_vive=='Pueblo Libre'~'Pueblo Libre', Distrito_vive=='Huancayo'~'Inválido',Distrito_vive=='Comas'~'Comas',Distrito_vive=='Breña'~'Breña',Distrito_vive=='Santa Anita'~'Santa Anita',Distrito_vive=='Carabayllo'~'Carabayllo',Distrito_vive=='Huancayo'~'Inválido',Distrito_vive=='Puente piedra'~'Puente Piedra',Distrito_vive=='Puente Piedra'~'Puente Piedra', Distrito_vive=='Surco'~'Santiago de Surco',Distrito_vive=='surco'~'Santiago de Surco', Distrito_vive=='Santiago de Surco'~'Santiago de Surco', Distrito_vive=='Salamanca Ate'~'Ate', Distrito_vive=='Ate'~'Ate', Distrito_vive=='Surquillo'~'Surquillo', Distrito_vive=='Cercado de Lima'~'Cercado de Lima', Distrito_vive=='Lurigancho'~'San Juan de Lurigancho', Distrito_vive=='San Juan de Lurigancho'~'San Juan de Lurigancho',Distrito_vive=='Independencia'~'Independencia', Distrito_vive=='San Borja'~'San Borja', Distrito_vive=='La victoria'~'La Victoria', Distrito_vive=='La Victoria'~'La Victoria',Distrito_vive=='Ventanilla'~'Ventanilla', Distrito_vive=='Breña'~'Breña', Distrito_vive=='Rímac'~'Rímac',Distrito_vive=='La Perla-Callao'~'La Perla' ))
+
+```
+
+Eliminaremos la columna que está mal escrita de la variable `Distrito`
+
+```{r}
+ESC$Distrito_vive <- NULL
+```
+
+Ahora limpiaremos la variable `Universidad` pasandolas a mayúsculas y eliminando los espacios en blanco:
+
+```{r}
+ESC$Universidad<-toupper(ESC$Universidad)
+ESC$Universidad <- str_trim(ESC$Universidad,side = "both") 
+table(ESC$Universidad)
+```
+
+Modificaremos la escritura de respuestas que estan mal escritas de la variable `Universidad`:
+```{r}
+ESC<-mutate(ESC,UniversidadCo = case_when(Universidad =='UTEC'~'UTEC',Universidad == 'UTEC '~'Utec',Universidad =='UCV'~'UCV',Universidad == 'UNIVERSIDAD CÉSAR VALLEJO'~'UCV',Universidad == 'SAN MARTIN DE PORRES'~'UNIVERSIDAD SAN MARTIN DE PORRES',Universidad == 'SAN MARTIN'~'UNIVERSIDAD SAN MARTIN DE PORRES',Universidad == 'UNIVERSIDAD SAN MARTIN DE PORRES'~'UNIVERSIDAD SAN MARTIN DE PORRES',Universidad == 'UNIVERSIDAD NACIONAL MAYOR DE SAN MARCOS '~'UNMSM',Universidad == 'UNMSM' ~ 'UNMSM', Universidad == 'SAN MARCOS' ~ 'UNMSM', Universidad == 'UCSUR'~'UCSUR', Universidad == 'CIENTÍFICA DEL SUR'~ 'UCSUR', Universidad == 'UPC' ~ 'UPC', Universidad == 'UNIVERSIDAD PERUANA DE CIENCIAS APLICADAS'~'UPC',Universidad == 'U DE LIMA'~'U DE LIMA',Universidad == 'UPN'~'UPN', Universidad == 'NORBERT WIENER'~'NORBERT WIENER',Universidad == 'UNIVERSIDAD DEL PACÍFICO'~'UNIVERSIDAD DEL PACÍFICO',Universidad == 'PUCP'~'PUCP', Universidad == 'UNI'~'UNI',Universidad == 'UNIVERSIDAD NACIONAL MAYOR DE SAN MARCOS'~'UNMSM'))
+
+```
+
+Continuaremos eliminando la variable Universidad: 
+
+```{r}
+ESC$Universidad <- NULL
+```
+Modificamos la escritura de las respuestas de la variable Distrito U, que evidentemente están mal escritas: 
+
+```{r}
+unique(ESC$Distrito_U)
+ESC$Distrito_U<-toupper(ESC$Distrito_U)
+```
+Eliminaremos los espacios en blanco: 
+```{r}
+ESC$Distrito_U<- str_trim(ESC$Distrito_U,side = "both") 
+```
+
+Modificamos la escritura de las respuestas de la variable Universidad, que evidentemente están mal escritas.
+```{r}
+ESC<-mutate(ESC,Distrito_UCO= case_when(Distrito_U =='BARRANCO'~'BARRANCO',Distrito_U=='BARRAANCO'~'BARRANCO',Distrito_U=='LIMA'~'CERCADO DE LIMA',Distrito_U=='COMAS'~'COMAS',Distrito_U==' OLIVOS'~'LOS OLIVOS',Distrito_U=='LOS OLIVOS'~'LOS OLIVOS',Distrito_U=='MONTERRICO'~'MONTERRICO',Distrito_U=='CERCADO DE LIMA'~'CERCADO DE LIMA',Distrito_U==' CALLAO'~'CALLAO',Distrito_U=='ATE'~'ATE',Distrito_U=='SAN MIGUEL'~'SAN MIGUEL',Distrito_U=='SAN MIGUELL'~'SAN MIGUEL',Distrito_U==' CHORRILLOSS'~'CHORRILLOS',Distrito_U=='CHORRILLOS'~'CHORRILLOS',Distrito_U=='SAN ISIDRO'~'SAN ISIDRO', Distrito_U=='SURQUILLO'~'SURQUILLO',Distrito_U=='RIMAC'~'RÍMAC',Distrito_U=='RÍMAC'~'RÍMAC', Distrito_U=='JESÚS MARÍA'~'JESÚS MARÍA',Distrito_U=='SURCO'~'SURCO', Distrito_U =='BARRANNCO'~'BARRANCO', Distrito_U =='VILLA EL SALVADOR'~'VILLA EL SALVADOR',  Distrito_U =='SAN MARTIN DE PORRES'~'SAN MARTIN DE PORRES', Distrito_U =='CHORRILLOSS'~'CHORRILLOS',Distrito_U =='CHORRILLO'~'CHORRILLOS', Distrito_U =='CALLAO'~'CALLAO'))
+ESC
+```
+Finalmente eliminamos la variable Universidad: 
+
+```{r}
+ESC$Distrito_U<- NULL
+ESC
+```
+
+Nuestra base de datos ya está lista para ser utilizada.
+
+
+# [**Análisis descriptivo**]{style="color:dodgerblue"}
+
+Se realizará el análisis de cada variable con el fin de buscar una relación entre estas. Por ello, utilizaremos tanto descriptores numéricos como descriptores gráficos.  
+
+## Descriptores numéricos
+
+Antes de empezar podemos definor algunas funciones a utilizar
+
+
+```{r}
+r <- function(x){
+    return(round(x,digits = 2))}
+```
+
+```{r}
+cv <- function(x, ...){
+  return(sd(x, ...)/mean(x, ...))
+}
+
+```
+
+```{r}
+mode <- function(x) {
+   return(as.numeric(names(which.max(table(x)))))
+}
+```
+
+
+### Variable Edad 
+
+Esta variable hace referencia a las edades de los universitarios 
+
+```{r}
+#Media
+r(mean(ESC$Edad))
+#Mediana
+r(median(ESC$Edad))
+#Rango intercuartil
+r(IQR(ESC$Edad, na.rm = TRUE)) 
+#Desviación estándar
+r(sd(ESC$Edad))
+#Coeficiente de variacion
+r(cv(ESC$Edad, na.rm = T))
+#Varianza
+r(var(ESC$Edad))
+```
+
+Con respecto a la variable `edad `, podemos representarla mediante el siguiente gráfico
+
+```{r echo=FALSE}
+valor_atipico <- 40
+ESC_sin_atipico <- ESC[ESC$Edad != valor_atipico, ]
+hist(ESC_sin_atipico$Edad, xlab = "Edades de universitarios", ylab = "frecuencia absoluta", col ="#00C5CD" , border= "turquoise4" , main="Histograma de Edades",col.main = "darkgreen", breaks=8 )
+```
+
+- La gráfica nos muestra que la edad de la mayoría de universitarios está entre 17 a 20 años.
+
+
+
+### Variable Promedio
+
+Esta variable hace referencia al promedio ponderado de los estudiantes universitarios.
+
+```{r echo=FALSE}
+summary(ESC$Promedio)
+```
+Podemos observar que el promedio máximo de los estudiantes universitarios es de 18.90.
+Además vemos que el mayor del 50% de los menores de los datos de la nota promedio de los estudiantes es de 15.
+
+```{r echo=FALSE}
+#Moda
+r(mode(ESC$Promedio)) 
+#Rango interarticular
+r(IQR(ESC$Promedio, na.rm = TRUE)) 
+#Desviación estándar
+r(sd(ESC$Promedio)) 
+#Coeficiente de variación
+r(cv(ESC$Promedio, na.rm = T))  
+#Varianza
+r(var(ESC$Promedio))
+```
+
+Con respecto a la variable  `Promedio ` tenemos el siguiente gráfico:
+```{r echo=FALSE}
+n <- length(ESC$Promedio)
+bins <- round(1 + log2(n))
+hist(ESC$Promedio, main = "Histograma del Promedio de cada estudiante",col.main = "darkgreen", xlab = "Promedio", 
+     ylab = "Densidad de frecuencia", breaks = bins, col ="azure2", freq = FALSE)
+lines(density(ESC$Promedio, na.rm = TRUE), col = "darkgoldenrod1", lwd = 2)
+abline(v = c(mean(ESC$Promedio, na.rm  = TRUE), median(ESC$Promedio, na.rm= TRUE)),
+       col = c("blue1", "coral3"), lwd=3)
+legend("topleft", legend = c("media", "mediana", "densidad"), col = c("blue1", "coral3", "darkgoldenrod1"), lty=1, lwd=2)
+
+```
+
+En este gráfico podemos apreciar cómo la media y la mediana del Promedio de notas de los estudiantes de nuestra muestra, están sesgadas hacia la derecha; lo que nos indica que la mayoría tiene promedio alto.
+
+### Variable Medio de transporte
+
+Ahora analizaremos la variable medio de transporte con el fin de obtener las preferencias de los encuestados.
+
+Vemos cual es transporte más usado por los estudiantes:
+
+```{r echo=FALSE}
+Medios_transporte <-table(ESC$MedioT)
+which.max(Medios_transporte)
+```
+```{r echo=FALSE}
+max(table(ESC$MedioT))
+```
+
+Con respecto a la variable  `Medio de transporte` tenemos el siguiente gráfico:
+
+```{r echo=FALSE}
+# Crear tabla de frecuencias relativas
+freq_rel <- prop.table(table(ESC$MedioT))
+
+# Crear vector de colores y etiquetas
+colores <- c("blue","red","green","orange","pink","turquoise2")
+etiquetas <- c("Auto\nparticular", "Bicicleta", "Caminando", "Motocicleta","Taxi","Transporte\npúblico")
+
+# Crear gráfico de barras
+barplot(freq_rel, main = "Medio de transporte",col.main = "darkgreen", 
+        ylab = "Frecuencia relativa", ylim = c(0.00,0.7), col= colores, 
+        names.arg = etiquetas, las=2, cex.names=0.8)
+
+# Agregar leyenda
+legend("topleft", legend = etiquetas, col = colores, lty=1, lwd=2, cex=0.7, box.lty=0, bg='transparent')
+
+```
+Con esta gráfica podemos observar que el medio de transporte más utilizado por los estudiantes universitarios es el transporte público.
+
+### Variable Kilómetro
+
+Esta variable hace referencia a un aproximado en kilómetros de la distancia entre el distrito de la universidad y el distrito de residencia de los universitarios.
+
+Utilizamos summary para observar el promedio de km recorridos de su casa a la univerisad de los estudiantes, el cual es 15.22 km.
+```{r echo=FALSE}
+summary(ESC$KM)
+```
+```{r echo=FALSE}
+#Moda
+r(mode(ESC$KM))
+#Rango intercuartil
+r(IQR(ESC$KM, na.rm = TRUE)) 
+#Desviación estándar
+r(sd(ESC$KM)) 
+#Coeficiente de variación
+r(cv(ESC$KM, na.rm = T)) 
+#Varianza
+r(var(ESC$KM))
+```
+Para esta variable tenemos el siguiente histograma:
+
+```{r echo=FALSE}
+hist(ESC$KM, main = "Histograma de KM",col.main = "darkgreen", breaks = 30, freq = FALSE,
+     xlab = "KM recorridos\n(Distrito universitario - Providencia)",
+     ylab = "Frecuencia relativa", col = "#00C5CD")
+```
+
+De  nuestra unidad muestral, la mayoría de estudiantes vive entre 0 a 30 km de su universidad, dejando como datos atípicos a los estudiantes que viven lejos de su centro de estudio. También podemos resaltar que la barra más alta se encuentra en el rango de 0 a 10 km con una cantidad aproximada de 30 estudiantes
+
+### Variable Nivel de estrés
+
+Esta variable hace referencia al nivel de estrés de los universitarios
+
+Porcentaje de nivel de estrés de los universitarios
+```{r}
+r(prop.table(table(ESC$NivelE))*100)
+```
+
+Para esta variable tenemos el siguiente gráfico: 
+```{r echo=FALSE}
+freq_rel <- prop.table(table(ESC$NivelE))
+colores <- c("#008B8B","darkgoldenrod1","#FF4040")
+etiquetas <- names(freq_rel)
+bp <- barplot(freq_rel, main = "Nivel de estrés",col.main = "darkgreen", ylab = "Frecuencia relativa", 
+              xlab = "Nivel de estrés", col= colores, names.arg = etiquetas, 
+              ylim = c(0.00, 1.00))
+par(mar = c(5, 4, 2, 2))
+legend("right", inset=c(0,-0.15), legend = etiquetas, fill = colores, cex = 0.7)
+```
+
+Se obtiene que la mayoría de estudiantes se encuentran muy estresados. Esto podría afectar o no a su rendimiento académico.
+
+### Variable Género 
+
+Esta variable hace referencia al género de los universitarios encuestados.
+
+Con respecto a esta variable tenemos el siguiente gráfico:
+```{r echo=FALSE}
+tabgenero<-table(ESC$Género)
+
+tabgenero_prop <- prop.table(tabgenero)
+barp <- barplot(tabgenero, main="Distribución de género en la población estudiantil",col.main = "darkgreen", 
+                col=c("dodgerblue3", "coral1"), xlab = "Género", 
+                ylab = "Frecuencia absoluta", ylim=c(0,150))
+legend("topright", legend = names(tabgenero), fill = c("dodgerblue3", "coral1"), 
+       bty = "n", cex = 0.8)
+text(barp, tabgenero + 3, labels = paste0(tabgenero, " (", round(tabgenero_prop*100, 1), "%)"))
+```
+
+Podemos observar que hay una mayor cantidad de mujeres encuestadas que de varones. 
+
+## Descriptores gráficos
+
+### Medio de transporte VS Promedio
+
+```{r echo=FALSE}
+ggplot(data = ESC, aes(x = MedioT, y = Promedio, color = MedioT)) +
+  geom_point() +
+  stat_summary(fun=mean, geom="point", shape=18, size=5, color="black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Medio de Transporte", y = "Promedio Académico", color = "Medio de Transporte",
+  title = "Gráfico de dispersión del promedio académico por medio de transporte")+
+  theme(plot.title = element_text(color = "darkgreen"))
+```
+
+Este gráfico nos muestra como el rango de alcance del promedio de notas de los alumnos que utilizan transporte público es el único que abarca desde la nota más baja hasta la más alta. Podemos apreciar como ningún alumno que utiliza transporte público tiene promedio desaprobado.
+
+### Promedio VS Nivel de estrés
+
+¿Afectará el nivel de estres en el promedio ponderado?
+```{r echo=FALSE}
+ESC_temp <- ESC[complete.cases(ESC$Promedio, ESC$NivelE), ]
+# Crea un vector de colores
+colores <- c("blue", "red", "green")
+
+# Crea un diagrama de caja para cada nivel de estrés
+boxplot(ESC_temp$Promedio ~ ESC_temp$NivelE, col = colores,
+        main = "Distribución del promedio ponderado del estudiante por nivel de estrés",col.main = "darkgreen",
+        xlab = "Nivel de estrés",
+        ylab = "Promedio ponderado del estudiante")
+
+# Añade una leyenda en la esquina inferior derecha
+legend("bottomright", legend = unique(ESC_temp$NivelE), fill = colores, bty = "n")
+
+```
+
+Se aprecia que el promedio en los tres grupos esta muy parejo.Además, los estudiantes que opinan que se encuentran a un nivel " muy estresante " de estrés, presentan en su 50% central  mayor variación que los estudiantes que opinan que tienen un nivel "nada estresante".En conclusión el promedio ponderado de las personas que presentan "nivel de estrés muy estresante" es muy variable a comparación de las demás que son menos variables.
+
+### Dias de tardanza VS Nivel de estrés
+
+¿Los estudiantes con mayor cantidad de días de tardanza tienen un mayor nivel de estrés?
+
+```{r echo=FALSE}
+levels(ESC$NivelE) <- c("Bajo", "Medio", "Alto")
+colores <- c("orange", "springgreen4", "firebrick3")
+nombres_niveles <- c("Bajo", "Medio", "Alto")
+boxplot(formula = ESC$DiasT ~ ESC$NivelE, 
+        data = ESC, 
+        col = colores,
+        horizontal = TRUE,
+        main = "Distribución de los días de tardanza por nivel de estrés",col.main = "darkgreen", 
+        xlab = "Días de tardanza", 
+        ylab = "Nivel de estrés",
+        names = nombres_niveles)
+stripchart(ESC$DiasT ~ ESC$NivelE, vertical = TRUE, method = "jitter",
+           pch = 20, add = TRUE, col = colores)
+
+```
+
+ Interpretación de nivel de estrés bajo
+
+  + Min = 2 ==> La menor cantidad de días de tardanza es 2.  
+  + Q1 = 3 ==> El mayor del 25% de los menores días de tardanza es 3.  
+  + Mediana = 4 ==> El mayor de días de tardanza del 50% de los menores es 4.  
+  + Q3 = 4 ==> El mayor del 75% de los menores días de tardanza es 4.  
+  + Max = 5 ==> La mayor cantidad de días de tardanza es 5.  
+  
+Las personas que consideran estar en el nivel "muy estresante" suelen llegar más días tarde a sus clases. Por otro lado, esta relación cambia cuando el nivel es medianamente estresante o poco estresante, ya que incluso, los que presentan un nivel de poco estrés llegan tarde durante más días que los que que están en un nivel medio.
+
+### Nivel de estrés VS Género
+
+¿Cuál es el género que presenta mayor nivel de estrés?
+
+```{r echo=FALSE}
+# Convertir la tabla en un data frame para facilitar el trabajo
+conteo <- table(ESC$Género, ESC$NivelE)
+conteo_df <- as.data.frame(conteo)
+
+# Asignar nombres más cortos a los niveles de estrés
+names(conteo_df)[names(conteo_df) == "Muy estresante"] <- "Muy"
+names(conteo_df)[names(conteo_df) == "Poco estresante"] <- "Poco"
+names(conteo_df)[names(conteo_df) == "Nada estresante"] <- "Nada"
+
+# Crear el gráfico de barras agrupadas
+barplot(conteo, beside = TRUE, legend.text = TRUE, xlab = "Género", ylab = "Cantidad", 
+        main = "Relación entre género y nivel de estrés",col.main = "darkgreen", 
+        col=c("dodgerblue2", "firebrick2"),
+        las = 1) # Rotar las etiquetas del eje X
+
+```
+
+
+En este diagrama podemos apreciar que en el nivel "muy estresante", hay una gran distancia entre los géneros, presentando más estrés el género femenino, mientras que en los otros dos niveles, el género masculino supera por poca distancia al género femenino. Por lo que llegamos a la conclusión de que el genero femenino presenta mayor estrés.  
+
+### Km VS Ponderado 
+
+¿ Tendrán menor promedio los estudiantes que viven más lejos de sus universidades?
+Para responder a esta pregunta, relacionaremos la variable km con el promedio ponderado.
+Por ello se realizó el siguiente gráfico.
+```{r echo=FALSE}
+plot(ESC$KM, ESC$Promedio, main = "Relación entre la distancia en km y el promedio del estudiante",col.main = "darkgreen", 
+     xlab = "Distancia desde la residencia hasta la universidad (km)", 
+     ylab = "Promedio del estudiante", 
+     col = "blue2")
+model <- lm(ESC$Promedio ~ ESC$KM)
+abline(model, col = "red")
+legend("topright", legend = "Línea de regresión", col = "red", lty = 1)
+```
+
+Con este gráfico podemos observar que la distancia entre la universidad del estudiante y el distrito donde vive no tiene influencia en su promedio ponderado. Además, podemos saber que no existe relación entre ambas variables .Para corroborarlo,utilizaremos la correlación. Si la correlación es cerca a 1, significaría que existe una relación directamente proporcional.
+
+```{r}
+r(cor(ESC$Promedio,ESC$KM))
+```
+Obtenemos que la correlación es -0.05, el cual es un valor muy alejado a 1, por lo que no existe una relación directamente proporcional entre ambas variables.
+
+
+### Relación entre el edad, promedio y género
+
+
+```{r echo=FALSE}
+valor_atipico <- 40
+ESC_sin_atipico <- ESC[ESC$Edad != valor_atipico, ]
+ColoresG8 <- c("red", "black")
+
+plot(x = ESC_sin_atipico$Edad, 
+     y = ESC_sin_atipico$Promedio,
+     pch = 20, 
+     
+     # Configuración del título
+     main = "Relación entre el edad, promedio y género",col.main = "darkgreen", 
+     cex.main = 1,
+     
+     
+     # Configuración de los ejes
+     xlab = "Edad", 
+     ylab = "Promedio",
+     
+     col = factor(ESC_sin_atipico$Género))
+     legend(x="topleft",legend=levels(factor(ESC$Género)),fill = ColoresG8,title ="Género",cex = 0.6)
+    
+    
+```
+
+Al analizar esta gráfica, podemos mencionar que no existe una edad que sea más propensa a sacar menor calificación o que haya un género que sea más propensa de sacar menos o más notas.
+
+### Relación entre el tiempo, promedio y género
+
+```{r echo=FALSE}
+valor_atipico <- 40
+ESC_sin_atipico <- ESC[ESC$Edad != valor_atipico, ]
+ColoresG8 <- c("red", "black")
+plot(x = ESC_sin_atipico$TiempoMT, 
+     y = ESC_sin_atipico$Promedio,
+     pch = 20, 
+     
+     # Configuración del título
+     main = "Relación entre el tiempo, promedio y género",col.main = "darkgreen", 
+     cex.main = 1,
+     
+     
+     # Configuración de los ejes
+     xlab = "Tiempo de viaje", 
+     ylab = "Promedio",
+     
+     col = factor(ESC_sin_atipico$Género))
+legend(x = "center", y = "center",legend=levels(factor(ESC$Género)),fill = ColoresG8,title ="Género")
+```
+
+Con este gráfico podemos observar que no existe una relación entre el tiempo, promedio y genero, quiere decir que ni el tiempo de viaje ni el genero influyen al promedio de los estudiantes.
+
+Conclusicón: 
+Concluimos que la distancia recorrida de los universitarios no afecta directamente con sus notas, quiere decir que los estudiantes que viven más lejos de sus universidades no presentan un bajo promedio, lo cual nos hace reflexionar que existen otros factores no medidos en este estudio, que afectan directamente al nivel de estrés de los estudiantes. De igual manera, logramos observar que las personas que presentan mayor estrés tienen un alto promedio.
+
+
+

@@ -1,0 +1,859 @@
+---
+title: "Estudio de las preferencias de los consumidores de cine"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes    
+    theme: yeti
+---
+
+# **Introducción**  
+
+Antes de la llegada de la pandemia, existía una gran cantidad de usuarios que asistían a las salas de cines ya que muchas veces el cine en general es visto como un buen centro de entretenimiento y sobre todo para pasarlo en familia, esto era muy significativo para la industria cinematográfica. Pero la industria del cine sufrió una crisis económica al declararse la pandemia "COVID-19" en el año 2020, las personas ya no frecuentaban en las salas de los cines debido a las restricciones sanitarias, a pesar de que actualmente se ha vuelto a la normalidad, las salas de cines siguen en una crisis económica.
+
+
+### **Tema del proyecto**  
+
+Perfil y análisis descriptivo de los usuarios que frecuentan el cine.  
+
+
+### **Relevancia**  
+
+Se busca el mejoramiento de la experiencia en los cines mediante una encuesta que realizamos a los usuarios que residen en Lima y frecuentan a las salas de cines. Con la información obtenida podemos brindar sugerencias claves y comunicarlo a las empresas como Cineplanet, Cinemark, etc, los resultados que hemos obtenido para que logren obtener un mayor éxito en el servicio al cliente, con la finalidad de llamar mucho más la atención del público objetivo. 
+
+
+### **Objetivos**  
+
+##### **General:**  
+
+* Identificar el perfil de los usuarios que frecuentan las salas de cine para brindar mejoras en el servicio a partir de las preferencias que tienen los usuarios.  
+
+##### **Específicos**  
+
+- Identificar las preferencias de géneros cinematográficos en función a la edad de los usuarios y la probabilidad de tener un público más adulto en las salas de cine.  
+
+- Conocer la relación entre la satisfacción general en las salas de cine con la frecuencia de visitas de los consumidores.  
+
+- Analizar los patrones de consumido del público para mejorar la calidad de los servicios en cines.  
+
+
+```{r message=FALSE,echo=FALSE}
+if (!require(readr)) {
+  install.packages("readr")
+  library(readr)
+}
+if (!require(dplyr)) {
+  install.packages("dplyr")
+  library(dplyr)
+}
+if (!require(plyr)) {
+  install.packages("plyr")
+  library(plyr)
+}
+if (! require (ggplot2)) 
+{install.packages ('ggplot2')
+  library(ggplot2)
+  }
+if (! require (multimode)) 
+{install.packages ('multimode')
+  library(multimode)}
+
+```
+
+```{r}
+DD <- read_csv("Data.csv")
+```
+
+
+### **Limpieza de datos**  
+
+```{r}
+DD1 <- DD %>%
+  select(-"Marca temporal")
+```
+
+```{r}
+DD1 = dplyr::rename(DD1,
+               Edad="Edad",
+               Distrito="Distrito de residencia",
+               Estadocupacional="Estado ocupacional",
+               Presupuesto="Presupuesto estimado",
+               Presupuestofinal = "¿Sigue su presupuesto estimado?",
+               Cine ="Cine al que va usualmente",
+               Socio="¿Es socio del cine al que suele asistir?",
+               Dias ="Días de la semana a la que acostumbra ir al cine",
+               Frecuencia = "Frecuencias de visitas al cine en un mes",
+               Vistas = "Número de películas que ha visto más de una vez.",
+               Genero ="Género cinematográfico de preferencia",
+               Viaje = "¿Cuánto tiempo demora en ir desde su casa al cine en minutos?",
+               Entradas = "Precio de las entradas del cine en soles",
+               Acompañamiento ="¿Va acompañado al cine?",
+               Confiteria ="¿Suele comprar en la dulcería del cine?",
+               Calidad ="Calidad de los productos de la dulcería",
+               Satisfacción = "Experiencia general en el cine")
+```
+
+```{r}
+DD1$Edad <- as.integer(DD1$Edad)
+DD1$Frecuencia <- as.integer(DD1$Frecuencia)
+DD1$Vistas <- as.integer(DD1$Vistas)
+DD1$Viaje <- as.integer(DD1$Viaje)
+```
+
+```{r}
+DD1$Calidad <- factor(DD1$Calidad)
+DD1$Presupuestofinal <- factor(DD1$Presupuestofinal)
+DD1$Satisfacción <- factor(DD1$Satisfacción)
+DD1$Distrito <- factor(DD1$Distrito)
+DD1$Estadocupacional <- factor(DD1$Estadocupacional)
+DD1$Socio <- factor(DD1$Socio)
+DD1$Cine <- factor(DD1$Cine)
+DD1$Dias <- factor(DD1$Dias)
+DD1$Confiteria <- factor(DD1$Confiteria)
+DD1$Acompañamiento <- factor(DD1$Acompañamiento)
+DD1$Genero <- factor(DD1$Genero)
+```
+
+
+# **Análisis Descriptivo**
+
+## **Análisis Univariado**
+
+### <span style="color:blue"> **Variable *Edad*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+BXPLEdad <- boxplot(DD1$Edad, col = "#B4EEB4",
+        horizontal = TRUE,
+        main = "Gráfico de la edad de los consumidores",
+        xlab = "Edad")
+```
+<center>*Gráfico 1*</center>
+
+
+### <span style="color:blue"> **Variable *Presupuesto*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+BXPLPresupuesto <- boxplot(DD1$Presupuesto, col = "#AEEEEE",
+        horizontal = TRUE,
+        main = "Gráfico del Presupuesto de un consumidor",
+        xlab = "Presupuesto en soles")
+```
+<center>*Gráfico 2*</center>
+
+
+
+### <span style="color:blue"> **Variable *Cine*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+tabcine<-table(DD1$Cine)
+barp<-barplot(tabcine,main= "Gráfico de preferencia de cine",col=c("red", "blue", "yellow", "white", "black"),xlab = "Cine", ylab = "Recurrencia", ylim=c(0,140), legend.text = c("Cinemark", "Cineplanet", "Cinépolis", "CineStar","UVK"))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "grey")
+text(barp, tabcine, tabcine, pos = 3, col = "black")
+```
+<center>*Gráfico 3*</center>
+
+
+
+### <span style="color:blue"> **Variable *Días*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+tabdias<-table(DD1$Dias)
+barp<-barplot(tabdias,main= "Gráfico de Días más concurridos",col=c("green", "orange", "yellow", "red", "blue", "white", "black"), ylab = "Número de días", ylim=c(0,80))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "grey")
+text(barp, tabdias, tabdias, pos = 3, col = "black")
+```
+<center>*Gráfico 4*</center>
+
+
+
+
+### <span style="color:blue"> **Variable *Frecuencia*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+BXPLFrecuencia <-boxplot(DD1$Frecuencia, col = "yellow",
+        horizontal = TRUE,
+        main = "Gráfico de la frecuencia de visitas en el cine",
+        xlab = "Número de visitas al mes")
+stats <- boxplot.stats(DD1$Frecuencia)
+text(stats$out, rep(1, length(stats$out)), round(stats$out, 2), pos = 3, col = "red") 
+text(stats$stats, rep(1, length(stats$stats)), round(stats$stats, 2), pos = 3, col = "black") 
+if (!is.null(stats$coef)) {
+  text(stats$coef, 1, round(stats$coef, 2), pos = 3, col = "black", offset = 2) 
+}
+```
+<center>*Gráfico 5*</center>
+
+
+### <span style="color:blue"> **Variable *Entradas*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+BXPLOEntrada <- boxplot(DD1$Entradas, col = "#EEAEEE",
+        horizontal = TRUE,
+        main = "Gráfico del precio de las entradas",
+        xlab = "Precio de las entradas en soles")
+```
+<center>*Gráfico 6*</center>
+
+
+
+### <span style="color:blue"> **Variable *Calidad*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+tabcal<-table(DD1$Calidad)
+barp<-barplot(tabcal,main= "Gráfico de la Calidad de la Dulcería",col=c("yellow", "blue", "green", "#C6E2FF", "black", "red"), ylab = "Número de personas", ylim=c(0,80) )
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "grey")
+text(barp, tabcal, tabcal, pos = 3, col = "black")
+```
+<center>*Gráfico 7*</center>
+
+
+
+
+### <span style="color:blue"> **Variable *Satisfacción*** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+tabsatis<-table(DD1$Satisfacción)
+barp<-barplot(tabsatis,main= "Gráfico de la Satisfacción del Cine",col=c("yellow", "blue", "red", "black", "green"),ylab = "Número de personas", ylim=c(0,120), legend.text = c("Bueno", "Excelente", "Malo","Pésimo", "Regular"))
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "grey")
+text(barp, tabsatis, tabsatis, pos = 3, col = "black")
+```
+<center>*Gráfico 8*</center>
+
+
+
+## **Análisis Bivariado**
+
+### <span style="color:blue"> **Edad vs. Presupuesto** </span>
+
+```{r,fig.align='center',echo=FALSE}
+Edad <-DD1$Edad
+Presupuesto <-DD1$Presupuesto
+```
+```{r,fig.align='center',echo=FALSE}
+pairs(Edad~Presupuesto,col="hotpink", main = "Gráfico de la Edad vs el Presupuesto en soles")
+```
+<center>*Gráfico 9*</center>
+
+La gran mayoría de jóvenes presentan menor presupuesto a la hora de ir al cine, mientras que algunos adultos entre los 30 y 40 años pueden gastar un poco más, sabiendo que el presupuesto abarca el costo de la entrada y costos adicionales como comida, podemos decir que muy pocas personas en el rango de edad de nuestra muestra gasta su dinero en la dulcería del cine o en la compra de otros productos adicionales.
+
+
+### <span style="color:blue"> **Acompañamiento vs. Presupuesto** </span>
+
+```{r,fig.align='center',echo=FALSE}
+ggplot(DD1, aes(x = Acompañamiento, y = Presupuesto, fill = Acompañamiento)) +
+  geom_violin(alpha = 0.5) +
+  geom_boxplot(width = 0.2) +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Gráfica del Acompañamiento y Presupuesto en soles")
+
+```
+<center>*Gráfico 10*</center>
+
+
+- Los consumidores prefieren ir acompañados al cine.\
+- La gran mayoría va acompañado al cine y por lo tanto, lleva un mayor presupuesto.\
+- Los que van solos al cine presentan el rango más bajo de presupuesto.\
+
+La gran mayoría que son los jóvenes prefieren ir acompañados al cine, mientras que los consumidores entre 40 y 50 años no suelen ir acompañados y es por esa razón que presentan el menor presupuesto que abarca solamente sus entradas al cine.  
+
+
+### <span style="color:blue"> **Presupuesto vs. Presupuesto final** </span>
+```{r,fig.align='center',echo=FALSE}
+
+stripchart(DD1$Presupuesto~DD1$Presupuestofinal,pch=10,col=c("navy","red","#00CD00"),main="Presupuesto vs Presupuesto final",xlab="Presupuesto en soles")
+
+```
+<center>*Gráfico 11*</center>
+
+Quienes suelen llevar mayor presupuesto también tienden a cumplirlo siempre o en su defecto lo cumplen muchas veces. En contraste con quienes llevan menos de S/.60 soles de presupuesto que no suelen seguir su presupuesto.\
+
+
+### <span style="color:blue"> **Confitería vs. Calidad** </span>
+
+```{r,fig.align='center',echo=FALSE}
+library(ggplot2)
+
+ggplot(DD1, aes(x = Confiteria, fill = Calidad)) +
+  geom_bar() +
+  labs(title = "Relación entre Confitería y Calidad", x = "Confitería", y = "Frecuencia") +
+  scale_fill_manual(values = c("hotpink", "blue", "red", "yellow", "darkorange", "green")) +
+  theme_bw()
+```
+<center>*Gráfico 12*</center>
+
+
+- Son muchos los usuarios que compran en la confitería del cine o que a veces compran ahí.\
+- La gran mayoría que compra lo hacen porque los productos les parecen buenos o excelentes.\
+- Los que compran a veces lo hacen porque la calidad del producto les parece regular.\
+
+
+### <span style="color:blue"> **Cine vs. Calidad** </span>
+
+```{r,fig.align='center',echo=FALSE}
+library(ggplot2)
+ggplot(DD1, aes(x = Cine, fill = Calidad)) +
+  geom_bar() +
+  scale_fill_manual(values = c("hotpink", "blue", "red", "yellow", "darkorange", "green")) +
+  labs(title = "Relación entre Cine y Calidad", x = "Cine", y = "Frecuencia") +
+  theme_bw()
+
+```
+<center>*Gráfico 13*</center>
+
+- Los consumidores de Cineplanet opinan que la calidad de los productos son buenos y/o regulares.\
+- La opinión de los consumidores de productos en Cinépolis en su mayoría tiene una buena comparación entre las opiniones de pésimas y/o malas.\
+
+### <span style="color:blue"> **Cine vs. Frecuencia** </span>
+
+```{r,fig.align='center',echo=FALSE}
+plot(DD1$Cine,DD1$Frecuencia, xlab = "", ylab = "Visitas al mes", main = "Gráfico de frecuencia de visitas por cine",col="lightsteelblue")
+```
+<center>*Gráfico 14*</center>
+
+
+- La frecuencia de visitas durante un mes son en su mayoría menores o iguales a 5 visitas por mes.\
+- El cine con mayor frecuencia en un mes, sin contar los datos atípicos, sería UVK. Sin embargo, Cineplanet tiene algunos consumidores que van constantemente al cine, razón por la cual en el *Gráfico 5* se observa que es el más concurrido.\
+
+
+### <span style="color:blue"> **Edad vs. Género** </span>
+
+```{r,fig.align='center',echo=FALSE}
+library(ggplot2)
+ggplot(DD1, aes(x = Genero, y = Edad, color = Genero)) +
+  geom_jitter(width = 0.3, height = 0, alpha = 0.7) +
+  labs(title = "Relación entre Género y Edad", y = "Edad") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+<center>*Gráfico 15*</center>
+
+
+
+### <span style="color:blue"> **Cine vs Socio** </span>
+
+
+```{r,fig.align='center',echo=FALSE}
+tabcinesocio<-table(DD1$Cine, DD1$Socio)
+mosaicplot(tabcinesocio,col=c("red","blue"), main = "Gráfica del Cine vs Socios")
+```
+<center>*Gráfico 16*</center>
+
+
+
+# **Análisis Probabilístico**  
+
+## **Probabilidad Empírica**  
+
+En este estudio, se analizó el nivel de satisfacción de los consumidores. Para ello, se definieron eventos atómicos relacionados con estas variables y el calculo de la probabilidad empírica de cada evento.
+
+### <span style="color:blue"> **Eventos Atómicos** </span>
+
+Los eventos atómicos se definieron como la selección de un consumidor que presenta un nivel de satisfacción específico. Los cinco eventos atómicos son:
+
+1. Evento A: Seleccionar un consumidor que tiene un nivel de satisfacción "Bueno".
+2. Evento B: Seleccionar un consumidor que tiene un nivel de satisfacción "Excelente".
+3. Evento C: Seleccionar un consumidor que tiene un nivel de satisfacción "Malo".
+4. Evento D: Seleccionar un consumidor que tiene un nivel de satisfacción "Pésimo".
+5. Evento E: Seleccionar un consumidor que tiene un nivel de satisfacción "Regular".
+
+### <span style="color:blue"> **Cálculo de la Función de Probabilidad** </span>
+
+Se calculó la función de probabilidad para cada evento atómico. Esto se hizo contando el número de veces que cada evento atómico que ocurre en la base de datos y dividiendo por el número total de registros. Los resultados obtenidos fueron los siguientes:
+
+1. Probabilidad del Evento A (Satisfacción "Bueno"): 112/202 = 0.55
+2. Probabilidad del Evento B (Satisfacción "Excelente"): 40/202 = 0.20
+3. Probabilidad del Evento C (Satisfacción "Malo"): 4/202 = 0.02
+4. Probabilidad del Evento D (Satisfacción "Pésimo"): 1/202 = 0.005
+5. Probabilidad del Evento E (Satisfacción "Regular"): 45/202 = 0.22
+
+## **Probabilidad Condicional** 
+
+### <span style="color:blue"> **Eventos Independientes** </span>
+
+*Probabilidad de la Variable Género*
+
+Hallar la probabilidad de los diferentes géneros de películas que prefieren los consumidores.
+
+```{r, echo=FALSE}
+table(DD1$Genero)
+```
+```{r, echo=FALSE}
+cat('La probabilidad para el Género Acción es: 18/202 o ', 18/202, '\n')
+cat('La probabilidad para el Género Aventura es: 8/202 o ', 8/202, '\n')
+cat('La probabilidad para el Género Ciencia Ficción es: 9/202 o ', 9/202, '\n')
+cat('La probabilidad para el Género Comedia es: 51/202 o ', 51/202, '\n')
+cat('La probabilidad para el Género Drama es: 18/202 o ', 18/202, '\n')
+cat('La probabilidad para el Género Fantasía es: 3/202 o ', 3/202, '\n')
+cat('La probabilidad para el Género Musical es: 3/202 o ', 3/202, '\n')
+cat('La probabilidad para el Género Romance es: 32/202 o ', 32/202, '\n')
+cat('La probabilidad para el Género Terror es: 17/202 o ', 17/202, '\n')
+cat('La probabilidad para el Género Suspenso es: 11/202 o ', 11/202, '\n')
+```
+
+### <span style="color:blue"> **Eventos Dependientes** </span>
+
+Variables seleccionadas:
+
+1. Frecuencia: Esta variable indica la cantidad de veces que un consumidor visita el cine en un determinado período de tiempo.
+2. Satisfacción: Esta variable refleja el grado de satisfacción de los consumidores con respecto a su experiencia en el cine.
+
+*Definición de los eventos*
+
+En este estudio, se analizó la relación entre la frecuencia de visitas al cine y el nivel de satisfacción de los consumidores. Para ello, se definieron dos eventos:
+
+- Evento A: Un consumidor visita el cine con una frecuencia alta (más de 3 veces al mes).
+- Evento B: Un consumidor tiene un nivel de satisfacción excelente.
+
+*Validación de la Independencia de los Eventos*
+
+```{r}
+# Cargar la librería necesaria
+library(dplyr)
+
+# Definir los eventos
+DD1$Evento_A <- ifelse(DD1$Frecuencia > 3, 1, 0)
+DD1$Evento_B <- ifelse(DD1$Satisfacción == "Excelente", 1, 0)
+
+# Calcular las probabilidades
+P_A <- sum(DD1$Evento_A) / nrow(DD1)
+P_B <- sum(DD1$Evento_B) / nrow(DD1)
+P_A_inter_B <- sum(DD1$Evento_A & DD1$Evento_B) / nrow(DD1)
+
+# Verificar si los eventos son independientes
+independientes <- abs(P_A_inter_B - P_A * P_B) < 1e-9
+
+# Imprimir los resultados
+print(paste("P(A) =", P_A))
+print(paste("P(B) =", P_B))
+print(paste("P(A ∩ B) =", P_A_inter_B))
+print(paste("¿Son A y B independientes? ", independientes))
+```
+
+Se verificó la independencia de los eventos A y B. Los resultados mostraron que estos eventos no son independientes ya que las probabilidades de ambos eventos son distintas, lo que indica que existe una relación entre la frecuencia de visitas al cine y el nivel de satisfacción de los consumidores.
+
+*Cálculo de la Probabilidad Condicional*
+
+```{r}
+# Calcular la probabilidad condicional si los eventos son dependientes
+if (!independientes) {
+  P_A_given_B <- P_A_inter_B / P_B
+  print(paste("P(A|B) =", P_A_given_B))
+}
+```
+
+Se calculó la probabilidad condicional P(A|B), que representa la probabilidad de que un consumidor visite el cine con una alta frecuencia, dado que tiene un nivel de satisfacción excelente. El resultado obtenido fue P(A|B) = 0.3, lo que indica que el 30% de los consumidores con un nivel de satisfacción excelente, visita el cine con alta frecuencia.
+
+*Aplicar el Teorema de Bayes para hallar P(B|A)*
+
+```{r}
+# Calcular P(B|A)
+P_B_given_A <- P_A_inter_B / P_A
+
+# Aplicar el Teorema de Bayes
+P_B_given_A_Bayes <- P_B_given_A * P_B / P_A
+print(paste("P(B|A) según Bayes =", P_B_given_A_Bayes))
+
+```
+El resultado de P(A|B) = 0.1845, lo que sugiere que la probabilidad de que un consumidor con un nivel de satisfacción excelente visite el cine con alta frecuencia es del 18.45%.
+
+
+*Probabilidad Total*
+
+```{r}
+# Calcular P(A|Bcomplemento) y P(Bcomplemento)
+P_A_given_Bcomplemento <- sum(DD1$Evento_A & !DD1$Evento_B) / sum(!DD1$Evento_B)
+P_Bcomplemento <- 1 - P_B
+
+# Aplicar el Teorema de la Probabilidad Total
+P_A_total <- P_A_given_B * P_B + P_A_given_Bcomplemento * P_Bcomplemento
+print(paste("P(A) según el Teorema de la Probabilidad Total =", P_A_total))
+```
+
+Aplicando el Teorema de la Probabilidad Total para calcular la probabilidad total de que un consumidor visite el cine con alta frecuencia. El resultado obtenido fue P(A) = 0.2525, lo que indica que la probabilidad total de que un consumidor visite el cine con alta frecuencia es del 25.25%.
+
+## **Variables**  
+### <span style="color:blue"> **Variable Discreta Edad** </span>
+
+*1. Distribución y éxito*  
+
+La distribución que usaremos será la distribución binomial. Donde definimos el éxito como encontrar a un adolescente, es decir, alguien menor de 19 años.
+
+*2. Construir la variable aleatoria*
+
+Definimos nuestra variable aleatoria (X) como el número de personas encuestadas que son adolescentes en el estudio con 202 personas.
+
+*3. Identificar parámetros*
+
+- n = 202 (el número de personas en nuestro estudio realizado)
+- p = P(X) (la probabilidad de éxito, es decir, la probabilidad de encontrar a un adolescente en nuestra muestra)
+
+*4. Construir la densidad FMP(función de masa de probabilidad)*
+
+Usando la función `dbinom()` en R para calcular la FMP para nuestra distribución binomial. La FMP nos dará la probabilidad de que un número determinado de éxitos ocurra dado n y p.
+
+```{r,fig.align='center',echo=FALSE}
+p_adolescente <- sum(DD1$Edad < 19) / nrow(DD1)  # calcular p
+x <- 0:nrow(DD1)  # todos los posibles números de éxitos
+fmp <- dbinom(x, size = nrow(DD1), prob = p_adolescente)  # calcular la FMP
+
+plot(x, fmp, type = "h", main = "Función de Masa de Probabilidad", xlab = "Número de éxitos", ylab = "Probabilidad")
+```
+<center>*Gráfico 17*</center>
+
+*5. Validar las propiedades de la distribución*
+
+```{r}
+n <- nrow(DD1) # tamaño de la muestra
+
+# Esperanza E(X)
+E_X <- n * p_adolescente
+cat('La Esperanza es:', E_X, '\n')
+
+# Varianza V(X)
+V_X <- n * p_adolescente * (1 - p_adolescente)
+cat('La Varianza es:', V_X, '\n')
+
+# Coeficiente de variación CV(X)
+CV_X <- sqrt(1 - p_adolescente) / sqrt(n * p_adolescente)
+cat('El coeficiente de variación es:', CV_X, '\n')
+```
+
+*Caso 1*
+Queremos saber la probabilidad de que menos del 25% de las personas en un grupo de 200 sean adolescentes.
+Esto sería P(X <= 50), que podríamos calcular de la siguiente manera en R:
+```{r}
+pbinom(50, size = 200, prob = p_adolescente, lower.tail = TRUE)
+```
+Entonces la probabilidad de que menos del cuarto de las personas, es decir, menos del 25%, de un grupo de 200 sean adolescentes es de 0.9998626 o 99.98626%  
+
+*Caso 2*  
+En un cine se desea saber la probabilidad de que, de 100 visitantes, más del 70% sean mayores de 18 años. Considerando que en nuestra base de datos la probabilidad de encontrar personas mayores de 18 años es de 0.75.
+
+Vamos a definir X como el número de visitantes que son mayores de 18 años. Queremos encontrar P(X > 70). Podemos calcular esto en R utilizando la función pbinom con lower.tail = FALSE para obtener la probabilidad acumulada del complemento (es decir, la probabilidad de que X sea mayor que 70).
+
+```{r}
+p_mayores_18 = 0.75 # probabilidad de que un visitante sea mayor de 18 años
+n_visitantes = 100 # número de visitantes
+
+# Calculamos la probabilidad de que más de 70 visitantes sean mayores de 18 años
+pbinom(70, size = n_visitantes, prob = p_mayores_18, lower.tail = FALSE)
+```
+Entonces, la probabilidad de que, de 100 visitantes, más del 70% sean mayores de 18 años es de 0.850459 o 85.0459%
+
+### <span style="color:blue"> **Variable Discreta Visitas** </span>  
+
+*1. Distribución Poisson*
+
+Se va a modelar el número de visitas al cine de un consumidor en un mes usando una distribución Poisson. Este tipo de distribución es útil cuando nuestros datos representan el número de veces que un evento ocurre en un intervalo de tiempo o espacio fijo.
+
+*2. Construir la variable aleatoria*
+
+Definiendo la variable aleatoria X como el número de veces que un consumidor visita el cine en un mes.
+
+*3. Parámetros de la Distribución*
+
+λ (lambda). Representa la tasa promedio de ocurrencia del evento un mes.
+Asumimos que λ es 3. Esto significa que en promedio, esperamos que un consumidor visite el cine 3 veces al mes.
+
+*4. Función de Masa de Probabilidad*
+
+Podemos calcular la función de masa de probabilidad (FMP) para cada posible número de visitas al cine usando la función dpois().
+Definimos lambda:
+```{r}
+lambda <- 3
+```
+
+Creamos una secuencia de 0 a 10 (número de visitas al cine)
+```{r}
+x_values <- 0:10
+```
+
+Calculamos la fmp para cada valor en la secuencia
+```{r}
+probabilities <- dpois(x_values, lambda)
+```
+
+*5. Visualización de la Distribución*  
+
+```{r,fig.align='center', echo=FALSE}
+barplot(probabilities, names.arg = x_values, xlab = "Número de visitas al cine", ylab = "Probabilidad", main = "Distribución de Poisson con lambda = 3")
+```
+<center>*Gráfico 18. Gráfico de Poisson con lambda = 3. Elaboración propia.*</center>
+
+*6. Propiedades de la Distribución*
+
+Calcular la esperanza y la varianza
+```{r}
+esperanza <- sum(x_values * probabilities)
+varianza <- sum((x_values - esperanza)^2 * probabilities)
+
+print(paste("Esperanza =", esperanza))
+print(paste("Varianza =", varianza))
+```
+
+*Caso 1*
+
+En el "Estudio de las preferencias de los consumidores de cine" se encontró que en promedio cada consumidor realiza 2 visitas al cine por mes. A partir de ello queremos calcular la probabilidad de que un consumidor en particular realice exactamente 3 visitas al cine en un período de 1 mes.
+
+```{r}
+lambda <- 2  # Número promedio de visitas al cine por mes
+x <- 3       # Número de visitas a evaluar
+t <- 1       # Número de meses en el período
+
+probabilidad <- dpois(x, lambda * t)
+```
+
+El resultado obtenido a partir de nuestra muestra de consumidores, hay una probabilidad del 18% de que un consumidor visite el cine exactamente 3 veces en un mes. Esta información es relevante para comprender los patrones de comportamiento de los consumidores y sus hábitos de visita al cine.
+
+
+### <span style="color:blue"> **Variable Discreta Días** </span>
+
+*1. Distribución y éxito*  
+
+La distribución que usaremos será la distribución Bernoulli. Donde definimos el éxito que son los clientes que prefieren ir a Cineplanet los fines de semana.
+
+*2. Construir la variable discreta*
+
+Nuestro caso de "Éxito" es que los clientes prefieran ir a Cineplanet fines de semana.
+
+*3. Identificar parámetros*
+
+- n = 202 (el número de personas en nuestro estudio realizado)
+- p = P(X) (la probabilidad de éxito, es decir, la probabilidad de encontrar a los clientes que prefieren ir a Cineplanet los fines de semana)
+- X = Variable que indica si un cliente prefiere ir a Cineplanet fines de semana.
+
+$$X~Bur(p)$$ 
+
+*4. Calculamos la probabilidad de "Éxito" (p):*
+
+```{r}
+p<-sum(DD1$Dias != "Sábado" & DD1$Cine=="Cineplanet")/sum(DD1$Cine=="Cineplanet")
+p
+```
+
+```{r}
+p<-sum(DD1$Dias != "Domingo" & DD1$Cine=="Cineplanet")/sum(DD1$Cine=="Cineplanet")
+p
+```
+Podemos observar que existe una probabilidad alta, pues los fines de semana Cineplanet es muy concurrido.
+
+
+*Hallamos la esperanza*
+
+En este tipo de modelo, sabemos que la esperanza es igual a la probabilidad de éxito; por ello se concluye:
+
+$$EX2=p$$
+
+
+### <span style="color:blue"> **Variable Continua Viaje** </span>
+
+Validamos si la variable 'DD1$Viaje' es continua o no mediante el método gráfico.
+
+```{r,fig.align='center', echo=FALSE}
+#GRÁFICAMENTE:
+
+MeanFr<-mean(DD1$Viaje,na.rm=TRUE)
+DesFr<- sd(DD1$Viaje,na.rm=TRUE)
+
+# Generar datos para la distribución normal
+x <- seq(0, 90, length.out = 100)
+y <- dnorm(x, mean = MeanFr, sd = DesFr)
+
+# Crear el gráfico
+plot(x, y, type = "l", lwd = 2, col = "blue", 
+     main = "Distribución Normal de Viaje", xlab = "Valores", ylab = "Densidad")
+
+# Agregar una línea vertical en la media
+abline(v = MeanFr, lwd = 2, col = "red", lty = 2)
+
+# Agregar leyenda
+legend("topright", legend = c("Distribución Normal", "Media"), 
+       col = c("blue", "red"), lwd = c(2, 2), lty = c(1, 2))
+```
+<center>*Gráfico 19. Gráfico de Distribución Normal de Viaje. Elaboración propia.*</center>
+
+El gráfico muestra una distribución casi simétrica, asemejando una forma de campana por lo que estaríamos cumpliendo con la validación gráficamente.
+
+Ahora validamos mediante su normalidad. Para ello, comparamos la media y la mediana, adicionalmente hallamos la desviación estándar.
+```{r,echo=FALSE}
+cat('La media es:', mean(DD1$Viaje), '\n')
+cat('La mediana es:', median(DD1$Viaje), '\n')
+cat('La desviación estándar es:', sd(DD1$Viaje), '\n')
+```
+Para corroborar la normalidad identificamos que el valor de la media y la mediana son muy parecidas (una variación de casi 0.02) indicando que es muy simétrica.
+Procederemos a calcular la varianza y la esperanza de manera teórica para compararla al valor observado.
+
+```{r,echo=FALSE}
+# Definir la función de densidad de la variable aleatoria continua
+densidad <- function(x) {
+  # Definir aquí la función de densidad de tu variable aleatoria continua
+  # Por ejemplo, para una distribución normal con media 0 y desviación estándar 1:
+  dnorm(x, mu, sigma)
+}
+
+mu <- mean(DD1$Viaje)
+sigma <- sd(DD1$Viaje)
+```
+
+Esperanza: $$E(X) = \int x \cdot f(x) \, dx$$
+
+```{r}
+# Integramos
+esperanza <- integrate(function(x) {x * densidad(x)}, lower = -Inf, upper = Inf)$value
+
+cat('La esperanza es:', esperanza, '\n')
+```
+
+Ahora calculamos el valor teórica de la varianza para compararlo con el observado
+
+$$\text{Var}(X) = E[(X - \mu)^2 $$
+```{r}
+# Integramos
+varianza <- integrate(function(x) {(x - esperanza)^2 * densidad(x)}, lower = -Inf, upper = Inf)$value
+desviacion_estandar <- sqrt(varianza)
+desviacion_estandar
+```
+Observamos que la media de la variable "Viaje" y la esperanza de nuestra variable aleatoria continua son iguales con un valor de 30.0198
+También observamos, que la desviación estándar de la variable "Viaje" y la desviación estándar de nuestra variable aleatoria continua son iguales con un valor de 16.01056
+
+De estas dos maneras validamos su normalidad.
+
+
+*Escogemos los parámetros*
+
+$$X~N(mu,sigma)$$
+
+Sacando los parámetros para una distribución normal tenemos lo siguiente:
+
+$$ \mu = 30.0198 \\ \sigma = 16.01056$$
+De este modo podemos empezar a calcular nuestros experimentos, considerando que la variable x es:
+$$X \sim \mathcal{N}(30.0198, 16.01056)~[0,90] \\ E(X) = 30.0198 \\ V(X) = 16.01056$$
+
+CASO 1
+La variable "Viaje" que representa el tiempo de viaje en minutos que una persona demora en llegar desde su casa al cine que más frecuenta nos arroja una mediana de 30 y un promedio de 30.02
+Por lo que, hallar la probabilidad de encontrar personas que tengan el tiempo de viaje igual o mayor a 40 minutos es interesante porque nos permitirá saber qué tan lejos una persona debe ir para poder disfrutar del cine como entretenimiento en Lima Metropolitana.
+
+```{r}
+cat('La probabilidad es:', pnorm(40,mu,sigma, lower.tail=F), '\n')
+```
+
+La probabilidad de que el tiempo de viaje sea mayor o igual a 20 minutos es de 0.2665269, es decir, 26.65269%. Lo que indica que de una muestra de 202 personas hay la probabilidad de que menos de la mitad acudan a un cine lejos de casa.
+
+
+### <span style="color:blue"> **Variable Continua Presupuesto** </span>
+
+Validamos si la variable 'DD1$Presupuesto' es continua o no mediante el método gráfico.
+```{r,fig.align='center', echo=FALSE}
+#GRÁFICAMENTE:
+
+MeanFr<-mean(DD1$Presupuesto,na.rm=TRUE)
+DesFr<- sd(DD1$Presupuesto,na.rm=TRUE)
+
+# Generar datos para la distribución normal
+x <- seq(5, 120, length.out = 100)
+y <- dnorm(x, mean = MeanFr, sd = DesFr)
+
+# Crear el gráfico
+plot(x, y, type = "l", lwd = 2, col = "blue", 
+     main = "Distribución Normal de Presupuesto", xlab = "Valores", ylab = "Densidad")
+
+# Agregar una línea vertical en la media
+abline(v = MeanFr, lwd = 2, col = "red", lty = 2)
+
+# Agregar leyenda
+legend("topright", legend = c("Distribución Normal", "Media"), 
+       col = c("blue", "red"), lwd = c(2, 2), lty = c(1, 2))
+```
+<center>*Gráfico 20. Gráfico de Distribución Normal de Presupuesto. Elaboración propia.*</center>
+
+El gráfico muestra una distribución poco simétrica, pero que en la parte superior se asemeja a la forma de campana.
+
+Ahora validamos mediante su normalidad. Para ello, comparamos la media y la mediana, adicionalmente hallamos la desviación estándar.
+```{r,echo=FALSE}
+cat('La media es:', mean(DD1$Presupuesto), '\n')
+cat('La mediana es:', median(DD1$Presupuesto), '\n')
+cat('La desviación estándar es:', sd(DD1$Presupuesto), '\n')
+```
+Observamos que no se corrobora la normalidad ya que el valor de la media y la mediana no son tan parecidas, ya que tienen una variación de 4.0455
+Procederemos a calcular la varianza y la esperanza de manera teórica.
+
+```{r}
+# Definir la función de densidad de la variable aleatoria continua
+densidad1 <- function(x) {
+  # Definir aquí la función de densidad de tu variable aleatoria continua
+  # Por ejemplo, para una distribución normal con media 0 y desviación estándar 1:
+  dnorm(x, mu, sigma)
+}
+
+mu1 <- mean(DD1$Presupuesto)
+sigma1 <- sd(DD1$Presupuesto)
+```
+
+Esperanza: $$E(X) = \int x \cdot f(x) \, dx$$
+
+```{r}
+# Integramos
+esperanza1 <- integrate(function(x) {x * densidad1(x)}, lower = -Inf, upper = Inf)$value
+esperanza1
+```
+Ahora calculamos el valor teórica de la varianza para compararlo con el observado
+
+$$\text{Var}(X) = E[(X - \mu)^2 $$
+```{r}
+# Integramos
+varianza1 <- integrate(function(x) {(x - esperanza1)^2 * densidad1(x)}, lower = -Inf, upper = Inf)$value
+desviacion_estandar1 <- sqrt(varianza1)
+desviacion_estandar1
+```
+Finalmente, observamos que la media de la variable "Presupuesto" y la esperanza no son iguales ya que la media es 44.0455 y la esperanza tiene un valor de 30.0198.
+Con los casos anteriores no podemos demostrar su normalidad, sin embargo ya que se tiene poca variación, realizaremos un caso.
+
+*Escogemos los parámetros*
+
+$$X~N(mu,sigma)$$
+
+Sacando los parámetros para una distribución normal tenemos lo siguiente:
+
+$$ \mu = 44.0455 \\ \sigma = 24.47044$$
+De este modo podemos empezar a calcular nuestros experimentos, considerando que la variable x es:
+$$X \sim \mathcal{N}(44.0455, 24.47044)~[0,120] \\ E(X) = 44.0455 \\ V(X) = 24.47044$$
+
+*Caso 1*
+
+La variable "Presupuesto" que representa el presupuesto en soles que una persona lleva para gastar en el cine, nos arroja una mediana de S/. 40 soles. El cual podemos representarlo como la mediana de las ganancias del cine de una persona por visita. Por lo que en este caso hallaremos la probabilidad de encontrar, en nuestra muestra, personas que lleven un presupuesto mayor a S/ 60 soles, ya que eso representaría la probabilidad de que los cines ganen más por visita.
+
+```{r}
+cat('La probabilidad es:',pnorm(60,mu1,sigma1, lower.tail=F), '\n')
+```
+El resultado es de 0.2572035, es decir, 25.72035% de probabilidad de encontrar una persona que gaste un monto de S/. 60 o más soles.
+
+
+# **Conclusiones**
+
+En primer lugar, en el análisis descriptivo y probabilístico se evidencia que la gran mayoría de consumidores son mayores de edad. Siendo que la mediana de las edades de nuestra muestra es de 20 años y la probabilidad de que de cada 100 visitas, más del 70% sean mayores de 18 años es del 85.05%. Por lo que los cines deberían ofertar más películas dirigidas al público adulto. Además, según la gráfica 9, los adultos entre 30 y 40 años suelen tener mayor presupuesto. Asimismo, el género con mayor probabilidad de ser visto es el de Comedia con una probabilidad de 51/202. El cual, según la gráfica 14, es uno de los géneros disfrutados por los adultos.  
+
+Entre los géneros menos preferidos son los de Fantasía y Musical que tienen la misma probabilidad de 3/202 o  1.49%. Siendo que el género Musical es el preferido por los más jóvenes según lo visto en la gráfica 14, el cual presenta desventaja por el público que lo prefiere. Ya que en las salas de cine, la probabilidad de que menos del 25% de los consumidores sean menores de 15 años es de 99.99%. Por lo que se llega a la conclusión de que los cines deberían ofertar menos este género de películas para poder evitar fracasos de taquilla como los vistos con la película *Cats*, película del género Musical (Sensacine, 2019).  
+
+En segundo lugar, se analizó la variable satisfacción, donde la función de probabilidad de las personas que calificaron como bueno el servicio es del 55% y de excelente un 20%. Después de validar la dependencia de las variables satisfacción y frecuencia. Utilizamos el Teorema de la probabilidad total que nos indicó que existe el 25.25% de probabilidades de que los usuarios que calificaron como bueno o excelente, asistan con una frecuencia mínima de 3 visitas al mes.   
+
+Asimismo en el gráfico 3 nos indica que el cine más popular es Cineplanet siendo que es el cine con mayor visitas por mes según el gráfico 13. Por lo que podemos inferir que los establecimientos de Cineplanet obtienen buenas ganancias, sumándose el hecho de que la probabilidad de que una persona vaya el día sábado a Cineplanet es del 93.6% y que vaya el día domingo es del 82.4%, que son días cuando las entradas cuestan más caras.  
+
+Otro aspecto que puede afectar la industria del cine es la cercanía de estos establecimientos a los lugares donde residen los consumidores, siendo que en Lima Metropolitana hay la probabilidad de que el 26.65% de personas tengan un tiempo de viaje igual o mayor a 40 minutos hacia la sala de cine que más acuden.  
+
+Finalmente, según el análisis descriptivo, los consumidores que suelen llevar presupuesto de S/.60 soles a más, suelen cumplir con su presupuesto, lo que representa buenas ganancias para el establecimiento, siendo que la probabilidad de que las personas vayan con un presupuesto igual o mayor a S/.60 soles es de 25.72%.
+
