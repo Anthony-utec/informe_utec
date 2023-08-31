@@ -1,0 +1,223 @@
+---
+title: "Proyecto Estadística"
+date: "2023-07-07"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+```{r}
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(modeest)
+library(foreign)
+library(fitdistrplus)
+library(knitr)
+```
+```{r}
+D <- read_csv("Aemf1.csv") #EL ARCHIVO Aemf1 y datos.AIRBNB es lo mismo. 
+coef_var <- function(x, na.rm = FALSE) {sd(x, na.rm=na.rm) / mean(x, na.rm=na.rm)}
+
+
+roundF <- function(x){return(round(x,digits = 2))}
+
+
+D$`Attraction Index` <- NULL
+D$`Restraunt Index` <- NULL
+
+D %>% rename( Tipo = `Room Type` , Capacidad = `Person Capacity`, Oferta = Business, Habitaciones = Bedrooms, Ind.Atraccion = `Normalised Attraction Index`, Precio = Price, Share_Room = `Shared Room`, Limpieza = `Cleanliness Rating`, Ind.Restaurantes = `Normalised Restraunt Index`, Satisfaccion = `Guest Satisfaction`, Ciudad = City, Private_Room = `Private Room`, Distance_Center = `City Center (km)`, Distance_Metro = `Metro Distance (km)`) -> D2
+
+# El primer paso para la limpieza de datos es hacer un resumen de los datos que se tienen.
+
+vec <- factor(D2$Oferta, labels = c('No','Sí'))
+D2$Oferta <- vec
+vec <- factor(D2$`Multiple Rooms`, labels = c('No','Sí'))
+D2$`Multiple Rooms` <- vec
+vec <- factor(D2$Share_Room, labels = c('No','Sí'))
+D2$Share_Room <- vec
+vec <- factor(D2$Private_Room, labels = c('No','Sí'))
+D2$Private_Room <- vec
+vec <- factor(D2$Superhost, labels = c('No','Sí'))
+D2$Superhost <- vec
+
+D2$Habitaciones <- replace(D2$Habitaciones, D2$Habitaciones==0, NA)
+
+```
+
+## Objetivos
+
+-   Analizar las ciudades con mejor ranking de experiencia de Airbnb en Europa del 2023.
+
+-   Describir las características de los alojamientos más caros y más económicos en ciudades de Europa del 2023.
+
+-   Analizar la atracción de un Airbnb y su relación con su ubicación en ciudades de Europa del 2023.
+
+## Algunas Variables del Estudio
+
+* Ciudad (Categórica nominal)
+* Cuándo lo reservan (Categórica nominal)                                                              
+* Room Type (Categórica nominal)
+* Superhost (Categórica nominal)
+* Multiple Rooms (Categórica nominal)
+* Cleanliness Rating (Categórica ordinal)
+* Guest Satisfaction (Categórica ordinal)
+* Person Capacity (Numérica discreta)
+* Price (Numérica continua)
+* City Center (km) (Numérica continua)
+* Metro Distance (km) (Numérica continua)
+* Normalised attraction Index (Numérica continua)
+
+## Número de Airbnb's por Ciudad
+
+```{r}
+count_data <- D2 %>% group_by(Ciudad) %>% summarise(count = n())
+
+ggplot(count_data, aes(x = Ciudad, y = count)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Ciudad", y = "Cantidad de Airbnb's", fill = "Ciudad") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Cantidad de Airbnb's por ciudad")
+
+```
+
+## Probabilidad empírica
+
+Una de las variables para la cuál se cálculo la probabilidad empírica fue Ciudad.
+
+```{r}
+city_freq <- table(D2$Ciudad)
+city_prob <- city_freq / sum(city_freq)
+print(city_prob[1:5])
+print(city_prob[6:9])
+```
+
+Se puede observar que la probabilidad de seleccionar un airbnb ubicado en Roma es la mayor, mientras que la probabilidad de seleccionar uno que se encuentre en Amsterdam es la menor.
+
+## Eventos dependientes e independientes
+<p style="font-size: 12px;">Para esta parte tuvimos que buscar, según nuestra base de datos, cuatro pares de eventos y fundamentar por qué dos de ellos son independientes y los otros dos, dependientes.
+Nos basamos en tres relaciones importantes:</p>
+
+
+<p style="font-size: 12px;">$$P(B/A)=\frac{P(A/B).P(B)}{P(A)}$$ $$P(B/A)=\frac{P(A∩B)}{P(A)}$$ $$P(B∩A)=P(A).P(B)$$</p>
+
+
+<p style="font-size: 12px;">Evento A: Una persona califica a una sede de Airbnb con un puntaje de 10 en limpieza.</p>
+<p style="font-size: 12px;">Evento B: Una persona debe pagar un precio mayor al promedio del precio de Airbnb.</p>
+
+<p style="font-size: 12px;">$Promedio del precio: 260.0944$      $ProbA=0.600326$    $ProbB=0.3290023$  $ProbB/A=0.3296861$ $ProbAandB=0.1979192$</p>
+
+<p style="font-size: 12px;"> Calculamos si son independientes o no: $ProbAandB-ProbA*ProbB = 0$ </p> 
+
+<p style="font-size: 12px;">Usando el teorema de Bayes: $ProbBresA = 0.33 y ProbB=0.33$ $ $ $ProbAresB=0.6 y ProbA=0.6$ </p> 
+
+
+<p style="font-size: 12px;">Definamos los dos eventos:</p>
+<p style="font-size: 12px;">A:Una persona escoge un Airbnb en el cual pague un precio mayor al precio promedio de todos los Airbnb's.</p>
+<p style="font-size: 12px;">B:Una persona puntúe el Airbnb con un puntaje de satisfacción mayor a 90.</p>
+
+<p style="font-size: 14px;"> $ProbA=0.3290023  ProbB=0.741214  ProbAandB=0.242988  ProbBresA=0.7385602  ProbAresB=0.3278243$</p>
+<p style="font-size: 12px;"> Calculamos si son independientes o no: $ProbAandB-ProbA*ProbB = 0$ </p> 
+
+<p style="font-size: 12px;">Usando el teorema de Bayes: $ProbBresA = 0.74 y ProbB=0.74$ $ $ $ProbAresB=0.33 y ProbA=0.33$ </p> 
+
+## Eventos dependientes
+
+<p style="font-size: 12px;">Definamos los dos eventos:</p>
+<p style="font-size: 12px;">A: Una persona  califique con un puntaje mayor a 9 respecto a Limpieza al Airbnb en el que se hospedó.
+</p>
+<p style="font-size: 12px;">B: Una persona califica con un puntaje de satisfacción mayor a 90 al Airbnb en el que se hospedó.</p>
+
+<p style="font-size: 14px;"> $ProbA=0.600326  ProbB=0.741214  ProbAandB=0.5480894  ProbBresA=0.9129862 
+ProbAresB=0.3278243$</p>
+<p style="font-size: 12px;"> Calculamos si son independientes o no: $ProbAandB-ProbA*ProbB = 0.1$ </p> 
+
+<p style="font-size: 12px;">Usando el teorema de Bayes: $ProbBresA = 0.9129862 y ProbB=0.741214$ $ $ $ProbAresB=0.3278243 y ProbA=0.600326$ </p> 
+
+
+<p style="font-size: 12px;">Definamos los dos eventos:</p>
+<p style="font-size: 12px;">A: De todas las sedes en la que Airbnb tiene esparcido alrededor del mundo, este esté en la ciudad de Amsterdam </p>
+<p style="font-size: 12px;">B: Una persona que se hospede en un hotel de Airbnb tenga que pagar un precio mayor al precio promedio de todo Airbnb.</p>
+
+<p style="font-size: 14px;"> $ProbA=0.3290023  ProbB=0.04986336  ProbAandB=0.04456537  ProbBresA=0.89375  ProbAresB=0.1354561$</p>
+<p style="font-size: 12px;"> Calculamos si son independientes o no: $ProbAandB-ProbA*ProbB = 0.03$ </p> 
+
+<p style="font-size: 12px;">Usando el teorema de Bayes: $ProbBresA = 0.89375 y ProbB=0.3290023$ $ $ $ProbAresB=0.1354561 y ProbA=0.04986336$ </p>
+
+## Variables aleatorias discretas
+
+Una de las variables aleatorias discretas que fue analizada fue la variable Satisfacción
+```{r}
+ProbE<-sum(D2$Satisfaccion==90 & D2$Ciudad=="Amsterdam")/sum(D2$Ciudad=="Amsterdam")
+```
+
+Si X es la variable que cuenta el número de Airbnb's que tienen como calificación más de "90" en el puntaje de Satisfaccíon, el primer paso es Identificar los parámetros:
+
+$X~Bin(p,n)$
+
+Donde: p es la probilidad del éxito E
+       n es tamaño de la muestra
+    
+## Variables aleatorias discretas
+
+```{r}
+n<-sum(D2$Ciudad=="Amsterdam")
+```
+
+```{r}
+x<-0:n
+pmf<-dbinom(x,n, ProbE)
+
+```
+```{r}
+plot(x, pmf, type = "b", pch = 19, xlab = "Número de éxitos", ylab = "Probabilidad", main = "PMF - Distribución Binomial")
+```
+
+## Variables aleatorias continuas
+
+- Una de las variables que se analizó para esta sección es la de "Distance_Center". X es variable aleatoria que cuenta la cantidad de Airbnb que está a una distancia mayor o igual a 5km de su centro en Amsterdam.
+
+```{r}
+NuevoObjetivo<-filter(D2, Ciudad=="Amsterdam")
+mu <- mean(NuevoObjetivo$Distance_Center,na.rm=TRUE)
+sigma <- sd(NuevoObjetivo$Distance_Center,na.rm=TRUE) 
+median(NuevoObjetivo$Distance_Center,na.rm=TRUE)
+```
+
+- Para validar la normalidad de la variable, se comparan la media y la mediana:
+```{r}
+mean(NuevoObjetivo$Distance_Center)
+median(NuevoObjetivo$Distance_Center)
+```
+
+## Variables aleatorias continuas
+
+Para corroborar su supuesta normalidad identificamos que el valor de la media y la mediana son muy parecidas (una variación de casi 0.5) indicando que es, en parte, simétrica. A continuación se calcula la esperanza de la variable:
+
+```{r}
+# Definir la función de densidad de la variable aleatoria continua
+densidad <- function(x) {
+  # Definir aquí la función de densidad de tu variable aleatoria continua
+  # Por ejemplo, para una distribución normal con media 0 y desviación estándar 1:
+  dnorm(x, mu, sigma)
+}
+
+# Integramos
+esperanza <- integrate(function(x) {x * densidad(x)}, lower = -Inf, upper = Inf)$value
+
+# Integramos
+varianza <- integrate(function(x) {(x - esperanza)^2 * densidad(x)}, lower = -Inf, upper = Inf)$value
+
+# Calcular la desviación estándar
+desviacion_estandar <- sqrt(varianza)
+esperanza
+```
+
+
+## Conclusiones
+
+* El análisis estadístico de los airbnb's del dataset se realizó aplicando los conceptos de probabilidad vistos en el curso. Se contó con un dataset bastante extenso, lo que permitió resultados bastante precisos.
+
+* En este caso, no encontramos relaciones significativas entre el precio de un airbnb y alguna variable relacionada a su calidad (limpieza, satisfacción, indice de atracción).

@@ -1,0 +1,744 @@
+---
+title: "Conducción a alta velocidad y su implicación en los accidentes de tránsito
+  durante los años 2020-2021"
+date: "2023-07-04"
+output:
+  ioslides_presentation: default
+  beamer_presentation: 
+    fontsize: 5pt
+  slidy_presentation: default
+---
+
+```{r,echo= FALSE}
+r <- function(numero) {
+  resultado <- round(numero, 2)
+  return(resultado)
+}
+coef_var <- function(x, na.rm = FALSE) {
+  sd(x, na.rm=na.rm) / mean(x, na.rm=na.rm)
+}
+```
+
+```{r,echo = FALSE}
+suppressPackageStartupMessages({
+if (!require("ggplot2", character.only = TRUE)) {
+  # Si la librería no está instalada, la instalamos automáticamente con sus dependencias
+  install.packages("ggplot2", dependencies = TRUE)
+}
+
+if (!require("tidyr", character.only = TRUE)) {
+  # Si la librería no está instalada, la instalamos automáticamente con sus dependencias
+  install.packages("tidyr", dependencies = TRUE)
+}
+
+
+if (!require("dplyr", character.only = TRUE)) {
+  # Si la librería no está instalada, la instalamos automáticamente con sus dependencias
+  install.packages("dplyr", dependencies = TRUE)
+}
+
+if (!require("stringi", character.only = TRUE)) {
+  # Si la librería no está instalada, la instalamos automáticamente con sus dependencias
+  install.packages("stringi", dependencies = TRUE)
+}
+
+
+if (!require("readr", character.only = TRUE)) {
+  # Si la librería no está instalada, la instalamos automáticamente con sus dependencias
+  install.packages("readr", dependencies = TRUE)
+}
+})
+if(!require(fitdistrplus)){install.packages('fitdistrplus')}
+library(fitdistrplus)
+```
+
+## Objetivos
+
+### Objetivos generales
+
+Verificar si las cantidades de heridos y fallecidos están relacionados con los excesos de velocidad en las diversas regiones de nuestro país durante el 2020 y 2021.
+
+### Objetivos específicos
+
+-   Analizar cuáles son las zonas del Perú en las que se infringió más el límite de velocidad y en cuáles hubo mayor cantidad de accidentes de tránsito durante el 2020 y 2021 (según el tipo).
+
+-   Estudiar incremento/disminución de los accidentes de tránsito y excesos de velocidad en los distintos departamentos del Perú entre el 2020 y 2021 y ver como fue su desarrollo durante el periodo de pandemia.
+
+-   Analizar en qué meses del año los accidentes fueron más frecuentes durante el 2020 y 2021 en el Perú e inferir sus posibles causas.
+
+## Obtención de datos
+
+### Variables de estudio
+
+**Base de datos 1: Accidentes**
+
+| Variable   | Tipo               | ¿Para qué la usaremos?                                                                                                 |
+|-------------------|-------------------|----------------------------------|
+| Fecha      | Categórica ordinal | Hallamos en qué meses tiempo suceden más accidentes.                                                                   |
+| Región     | Categórica nominal | Hallaremos las regiones en las que suceden más accidentes y encontrar una relación con la modalidad de los accidentes. |
+| Modalidad  | Categórica nominal | Encontrar cuál es la modalidad más común de accidentes.                                                                |
+| Fallecidos | Numérica discreta  | Hallar la cantidad de fallecidos en en cada región y verificar si esta se relaciona con la cantidad de accidentes.     |
+| Heridos    | Numérica discreta  | Hallar la cantidad de heridos en en cada región y verificar si esta se relaciona con la cantidad de accidentes.        |
+
+**Base de datos 2: Velocidades**
+
+| Variable            | Tipo               | ¿Para qué la usaremos?                                                                                       |
+|-------------------|-------------------|----------------------------------|
+| Fecha               | Categórica ordinal | Hallaremos en qué meses tiempo se exceden más los límites de velocidad.                                      |
+| Región              | Categórica nominal | Hallaremos en qué regiones se exceden los límites de velocidad y cuánto es que se sobrepasan de este límite. |
+| Límite de velocidad | Numérica discreta  | Nos servirá para saber cuánto se excede la velocidad en las distintas regiones.                              |
+| Velocidad detectada | Numérica continua  | La usaremos para comparar las velocidades en las distintas regiones, hallar los excesos de velocidad.        |
+
+## Análisis descriptivo
+
+```{r,echo = FALSE}
+ACCIDENTESL <- read_csv("accidenteslimpio.csv", show_col_types = FALSE)
+VELOCIDADESL <- read_csv("velocidadeslimpio.csv", show_col_types = FALSE)
+
+NUEVOACCIDENTES_cat <- cut(
+  ACCIDENTESL$FECHA, breaks = c(20200101,20200201,20200301,20200401,20200501,20200601,20200701,20200801,20200901,20201001,20201101,20201201,20201231),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviebre","Diciembre")
+)
+#Datos del año 2021
+NUEVOACCIDENTES_fe <- cut(
+  ACCIDENTESL$FECHA, breaks = c(20210101,20210201,20210301,20210401,20210501,20210601,20210701,20210801,20210901,20210931),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre")
+)
+
+
+#DAtos del año 2020
+NUEVOVELOCIDADES_cat <- cut(
+  VELOCIDADESL$FECHA, breaks = c(20200101,20200201,20200301,20200401,20200501,20200601,20200701,20200801,20200901,20201001,20201101,20201201,20201231),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviebre","Diciembre")
+)
+#Datos del año 2021
+NUEVOVELOCIDADES_fe <- cut(
+  VELOCIDADESL$FECHA, breaks = c(20210101,20210201,20210301,20210401,20210501,20210601,20210701,20210801,20210901,20211001,20211101,20211130),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre")
+)
+
+```
+
+### Cantidad de Accidentes:
+
+```{r echo = FALSE}
+
+par(mfrow = c(2, 1))
+plot(table((NUEVOACCIDENTES_cat)),type = "l",
+        las=2,
+        main = "Cantidad de accidentes en el año 2020",
+        xlab = "Meses año 2020",
+        ylab = "Frecuencia",
+        ylim = c(0,400),
+        col = "orange")
+
+plot(table((NUEVOACCIDENTES_fe)),type = "l",
+        las=2,
+        main = "Cantidad de accidentes en el año 2021",
+        xlab = "Meses año 2021",
+        ylab = "Frecuencia",
+        ylim = c(0,400),
+        col = "orange")
+
+```
+
+### Modalidades de accidentes por región:
+
+```{r,echo = FALSE}
+datos_subset <- filter(ACCIDENTESL, row_number() > 2865)
+mosaicplot(table(datos_subset$REGION, datos_subset$MODALIDAD), color = TRUE,cex.axis = 0.4, main = "Región por modalidad", xlab= "Regiones",ylab="Modalidades",las =2)
+
+```
+
+## Infracciones
+
+```{r, echo = FALSE}
+par(mfrow = c(1, 2))
+plot(table((NUEVOVELOCIDADES_cat)),type ="l",
+        las=2,
+        main = "Cantidad de infracciones
+     en el año 2020",
+        xlab = "Meses año 2020",
+        ylab = "Frecuencia",
+        ylim=c(0,15000),
+        col = "orange"
+        )
+plot(table((NUEVOVELOCIDADES_fe)),type ="l",
+        las=2,
+        main = "Cantidad de infracciones
+     en el año 2021",
+        xlab = "Meses año 2021",
+        ylab = "Frecuencia",
+        ylim=c(0,16000),
+        col = "orange")
+
+```
+
+## Velocidades detectadas:
+
+```{r, echo = FALSE}
+
+```
+
+## Correlaciones
+
+```{r, echo= FALSE}
+AFH <- aggregate(cbind(FALLECIDOS, HERIDOS) ~ REGION, data = ACCIDENTESL, sum)
+VR <- as.data.frame(table(VELOCIDADESL$REGION))
+```
+
+```{r,echo = FALSE}
+par(mfrow = c(1, 2))
+plot(VR$Freq, AFH$HERIDOS, ylab = "Cantidad de heridos en las regiones",xlab = "Cantidad de vehículos infractores en las regiones", main ="Infracciones vs Heridos")
+abline(lm(AFH$HERIDOS ~ VR$Freq), col = "red")
+
+plot(VR$Freq,AFH$FALLECIDOS, ylab = "Cantidad de fallecidos en las regiones",xlab = "Cantidad de vehículos infractores en las regiones", main ="Infracciones vs Fallecidos")
+abline(lm(AFH$FALLECIDOS ~ VR$Freq), col = "blue")
+```
+
+Ecuaciones de regresión lineal: $$\small y_1(x) =0.01x +517.03 \quad  y_2(x) =0.002x + 72.86 $$
+
+## Análisis probabilístico
+
+## Probabilidad empírica
+
+### V**ariable REGIÓN**
+
+Justificación: Esta variable es de interés para nuestro estudio ya que nos importa saber en que departamentos ocurren más accidentes, es parte de nuestros objetivos.
+
+1.  **Experimento:** Seleccionamos un accidente del estudio "**Exceso de Velocidad y Accidentes**" y observamos en la región que se ha presentado.
+
+2.  El **espacio de resultados teórico** sería el siguiente:
+
+$$ Ω(REGIÓN) = [LIMA, ICA, PIURA, AREQUIPA, LAㅤLIBERTAD, MOQUEGUA, PUNO, JUNIN, ANCASH, LAMBAYEQUE] $$
+
+Cada uno es un evento atómico asociado al experimento relacionado con la variable REGIÓN.
+
+3.  **Identificamos** los eventos atómicos:
+
+A1: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región LIMA.
+
+A2: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región ICA.
+
+A3: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región PIURA.
+
+A4: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región AREQUIPA.
+
+A5: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región LA LIBERTAD.
+
+A6: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región MOQUEGUA.
+
+A7: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región PUNO.
+
+A8: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región JUNIN.
+
+A9: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región ANCASH.
+
+A10: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región LAMBAYEQUE.
+
+### Probabilidad empírica de todos los eventos atómicos de la variable REGIÓN
+
+$$ P(A) = \frac{f(A)}{n} $$
+
+$$ P(A1) = \frac{1558}{5730} = 0.27  $$
+
+$$ P(A2) = \frac{377}{5730} = 0.07 $$
+
+$$ P(A3) = \frac{327}{5730} = 0.06 $$
+
+$$ P(A4) = \frac{795}{5730} = 0.14 $$
+
+$$ P(A5) = \frac{329}{5730} = 0.06 $$
+
+$$ P(A6) = \frac{155}{5730} = 0.03 $$
+
+$$ P(A7) = \frac{529}{5730} = 0.09 $$
+
+$$ P(A8) = \frac{715}{5730} = 0.12 $$
+
+$$ P(A9) = \frac{598}{5730} = 0.10 $$
+
+$$ P(A10) = \frac{343}{5730} = 0.06 $$
+
+$$ suma = 0.27+0.07+0.06+0.14+0.06+0.03+0.09+0.12+0.1+0.06 = 1 $$
+
+#### **ANÁLISIS DE LOS RESULTADOS OBTENIDOS**
+
+De un conjunto de 5076 observaciones, pudimos corroborar en el caso de la ciudad de "LIMA" nos da una probabilidad de 27%, esto quiere decir que es más probable que, si un accidente nuevo registrado ocurre, sea en "LIMA". También pudimos observar que menos de un tercio de accidentes ocurrieron en la ciudad ya mencionada.
+
+### V**ariable MODALIDAD**
+
+Justificación: Esta variable es de interés para nuestro estudio ya que podremos saber mediante que modalidad es más probable que ocurran los accidentes .
+
+1.  **Experimento:** Seleccionamos un accidente del estudio "**Exceso de Velocidad y Accidentes**" y observamos en la modalidad que ha sucedido.
+
+2.  El **espacio de resultados teórico** sería el siguiente:
+
+$$ Ω(MODALIDAD) = [DESPISTE,CHOQUE,ESPECIAL,N.I.,ATROPELLO,VOLCADURA] $$
+
+Cada uno es un evento atómico asociado al experimento relacionado con la variable MODALIDAD.
+
+3.  **Identificamos** los eventos atómicos:
+
+A1: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la modalidad DESPISTE.
+
+A2: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región CHOQUE.
+
+A3: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región ESPECIAL.
+
+A4: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región ATROPELLO.
+
+A5: Seleccionar un accidente del estudio "**Exceso de Velocidad y Accidentes**" que ocurrió en la región VOLCADURA.
+
+### Probabilidad empírica de todos los eventos atómicos de la variable MODALIDAD
+
+$$ P(A1) = \frac{249}{5730} = 0.04  $$
+
+$$ P(A2) = \frac{2542}{5730} = 0.44  $$
+
+$$ P(A3) = \frac{2693}{5730} = 0.47  $$
+
+$$ P(A4) = \frac{144}{5730} = 0.03  $$
+
+$$ P(A5) = \frac{29}{5730} = 0.01  $$
+
+$$ P(A6) = \frac{84}{5730} = 0.01  $$
+
+$$ suma = 0.04+0.44+0.47+0.03+0.01+0.01 = 1 $$
+
+#### **ANÁLISIS DE LOS RESULTADOS OBTENIDOS**
+
+De un conjunto de 5076 observaciones, el tipo de modalidad "CHOQUE" nos dio una probabilidad de 47%, es decir que menos de la mitad de accidentes de transito fueron choques. Es más probable que, si un accidente nuevo registrado sea por la modalidad de "CHOQUE".
+
+### Probabilidades condicionales
+
+Dos eventos A y B con probabilidad mayor a 0, son independientes si y sólo si $$ \tiny P(A \cap B) = P(A)P(B) \quad P(A|B) = P(A) \space y \space P(B|A) = P(B) $$, de otro modo, se dice que los eventos son dependientes.
+
+```{r}
+# Se realiza la verificación:
+VERIFICAR_I <- function(P1,P2,PI,P1_2,P2_1){
+  #PARA QUE DOS EVENTOS SEAN INDEPENDIENTES SE TIENE QUE CUMPLIR
+  #P(AyB) = P(A)*P(B) Y P(A_B) == P(A)
+  if (PI == P1 * P2 & P1_2 == P1 & P2_1 == P2)
+    return("Los eventos son independientes")
+  else
+    print("Los eventos son dependientes, por lo que P(A|B) =")
+    return(round(P1_2,2))
+}
+```
+
+#### Eventos dependientes
+
+¿Cuál es la probabilidad de un accidente deje al menos 1 herido dado que se produjo un accidente por la modalidad de choque?
+
+Primero, se definen los eventos de interés:
+
+Evento A: El accidente dejó heridos.
+
+Evento B: El accidente es por modalidad de choque.
+
+a)  Se realiza una tabla con nuestros eventos:
+
+```{r, echo = FALSE}
+t1 <- data.frame(
+   t_ = c("B","B_", "totales"),
+  A = c(nrow(filter(ACCIDENTESL, HERIDOS>0 & MODALIDAD == "CHOQUE" )), nrow(filter(ACCIDENTESL,MODALIDAD != "CHOQUE" & HERIDOS > 0)), nrow(filter(ACCIDENTESL, HERIDOS>0))),
+  
+  A_ = c(nrow(filter(ACCIDENTESL, HERIDOS == 0 & MODALIDAD == "CHOQUE")), nrow(filter(ACCIDENTESL,HERIDOS == 0 & MODALIDAD != "CHOQUE")), nrow(filter(ACCIDENTESL, HERIDOS == 0))),
+  
+  totales = c(nrow(filter(ACCIDENTESL, MODALIDAD == "CHOQUE")), nrow(filter(ACCIDENTESL, MODALIDAD != "CHOQUE")), nrow(ACCIDENTESL))
+)
+t1
+```
+
+b)  $$\tiny P(A) = P(A|B)P(B)+P(A| \bar{B} )P( \bar{B}) \quad  P(B) = P(B|A)P(A)+P(B| \bar{A} )P(\bar{A}) \quad P(A|B) = \frac{P(A\cap B)}{P(B)}$$
+
+```{r, echo = FALSE}
+PA <- ((1568/2503)*(2503/5631))+((1540/3128)*(3128/5631))
+PB <- ((1568/3108)*(3108/5631))+((935/2523)*(2523/5631))
+PA_i_B <- (1568/5631)
+print("P(A)")
+PA
+print("P(B)")
+PB
+print("P(A_i_B)")
+PA_i_B
+
+```
+
+Además, $$\tiny P(A|B) = \frac{P(A \cap B )}{P(B)} \space y \space  P(B|A) = \frac{P(A|B)P(B)}{P(A)}$$
+
+```{r}
+PA_B <- PA_i_B/PB
+```
+
+```{r}
+PB_A <- PA_B*PB/PA
+```
+
+c)  Se realiza la verificación de independencia.
+
+```{r}
+VERIFICAR_I(PA,PB,PA_i_B,PA_B,PB_A)
+```
+
+#### Eventos independientes
+
+Se coloca en una urna los accidentes en Lima y en otra los accidentes en Arequipa, luego se escoge al azar un primer accidente de la urna de Lima y luego otro accidente de la urna de Arequipa.
+
+Definimos los eventos de interés:
+
+Evento A: El accidente de la urna de Lima no tiene heridos. Evento A: El accidente de la urna de Arequipa no tiene heridos.
+
+a)  Se realiza una tabla para observar mejor los eventos.
+
+```{r, echo = FALSE}
+U_LIMA <- filter(ACCIDENTESL, REGION=="LIMA")
+U_ARQ <- filter(ACCIDENTESL, REGION == "AREQUIPA")
+RESULTADOS <- expand.grid(U_LIMA$HERIDOS,U_ARQ$HERIDOS)
+RESULTADOS <- rename(RESULTADOS,URNA_LI = Var1 )
+RESULTADOS <- rename(RESULTADOS,URNA_ARQ = Var2 )
+t2 <- data.frame(
+  
+   t_ = c("B","B_", "totales"),
+  A = c(nrow(filter(RESULTADOS, URNA_LI == 0 & URNA_ARQ == 0 )), nrow(filter(RESULTADOS,URNA_LI== 0 & URNA_ARQ != 0)), nrow(filter(RESULTADOS, URNA_LI== 0))),
+  
+  A_ = c(nrow(filter(RESULTADOS, URNA_LI!= 0 & URNA_ARQ == 0)), nrow(filter(RESULTADOS,URNA_LI != 0 & URNA_ARQ != 0)), nrow(filter(RESULTADOS, URNA_LI != 0))),
+  
+  totales = c(nrow(filter(RESULTADOS, URNA_ARQ == 0 )), nrow(filter(RESULTADOS, URNA_ARQ != 0)), nrow(RESULTADOS))
+)
+t2
+```
+
+b)  $$ \tiny P(A) = P(A|B)P(B)+P(A| \bar{B} )P( \bar{B}) \quad P(B) = P(B|A)P(A)+P(B| \bar{A} )P(\bar{A})$$
+
+```{r}
+PA <- ((302168/642000)*(642000/1177500))+((252042/535500)*(535500/1177500))
+PB <- ((302168/554210)*(554210/1177500))+((339832/623290)*(623290/1177500))
+PA_i_B <- (302168/1177500)
+PA_B <- PA_i_B/PB
+PA_B
+
+print("P(A)")
+PA
+print("P(B)")
+PB
+print("PA_i_B")
+PA_i_B
+print("PA_i_B")
+```
+
+c)  $$\tiny  P(A|B) = \frac{P(A\cap B)}{P(B)} \space y \space por \space Bayes \quad P(B|A) = \frac{P(A|B)P(B)}{P(A) $$
+
+```{r}
+
+```
+
+```{r}
+PB_A <- PA_B*PB/PA
+PB_A
+```
+
+d)  
+
+```{r}
+VERIFICAR_I(PA,PB,PA_i_B,PA_B,PB_A )
+```
+
+## Análisis probabilístico
+
+### Variables aleatorias discreta
+
+####Variable Modalidad y región en el 2021
+Durante la investigación de la primera parte del proyecto, se obtuvo que en el año 2021 en la Región de Lima ocurrió más accidentes que en otras regiones.
+
+¿Cuál es la probabilidad de que 25 o menos accidentes sean por atropello?
+
+x es número de accidentes por atropello.
+
+Filtramos de la base de datos de Accidentes, solo los que ocurrieron en el año 2021.
+
+```{r}
+NA2021M <- filter(NUEVOACCIDENTES, FECHA>=20210000 & FECHA<=20211232)
+```
+```{r}
+nrow(filter(NA2021M,REGION== "LIMA" ))
+```
+El número de accidentes en la región de Lima en el año 2021 es de 732.
+
+```{r}
+nrow(filter(NA2021M,MODALIDAD == "DESPISTE" & REGION== "LIMA" ))
+nrow(filter(NA2021M,MODALIDAD == "ATROPELLO" & REGION== "LIMA" ))
+nrow(filter(NA2021M,MODALIDAD == "CHOQUE" & REGION== "LIMA" ))
+nrow(filter(NA2021M,MODALIDAD == "ESPECIAL" & REGION== "LIMA" ))
+nrow(filter(NA2021M,MODALIDAD == "VOLCADURA" & REGION== "LIMA" ))
+```
+Los cuales:
+
+31 fueron por atropello.
+
+338 fueron por despiste.
+
+6 fueron por volcadura.
+
+29 fueron accidentes especiales.
+
+328 fueron por choque.
+
+```{r}
+probabilidad_de_exito <- nrow(filter(NA2021M,MODALIDAD == "ATROPELLO" & REGION== "LIMA" ))/nrow(filter(NA2021M,REGION== "LIMA" ))
+round(probabilidad_de_exito,2)
+```
+La probabilidad de éxito es de 4%.
+
+```{r}
+probabilidad_de_fracaso <- 1 -probabilidad_de_exito
+probabilidad_de_fracaso
+```
+```{r}
+N<-nrow(filter(NA2021M,REGION== "LIMA" ))
+```
+Tamaño de la muestra es 732.
+
+y∼Bin(732,0.04)
+
+```{r}
+x <- 0:732
+Probabilidad <- dbinom(x=x, size=732, prob=0.04)
+plot(x=x, y=Probabilidad, xlab = "Cantidad de accidentes" , ylab = "Probabilidad", 
+     type='h', las=1, lwd=2)+abline(v=732*0.04, col="yellow", lwd=3)
+legend("topright",c("Esperanza"),fill=c("yellow"))
+```
+```{r}
+# size: número de ensayos (n > = 0)
+# prob: probabilidad de éxito en cada ensayo
+# lb: límite inferior de la suma
+# ub: límite superior de la suma
+# col: color
+# lwd: ancho de línea
+binom_sum <- function(size, prob, lb, ub, col = 4, lwd = 1, ...) {
+    x <- 0:size
+    
+    if (missing(lb)) {
+       lb <- min(x)
+    }
+    if (missing(ub)) {
+        ub <- max(x)
+    }
+      
+    plot(dbinom(x, size = size, prob = prob), type = "h", lwd = lwd, ...)
+  
+    if(lb == min(x) & ub == max(x)) {
+        color <- col
+    } else {
+        color <- rep(1, length(x))
+        color[(lb + 1):ub ] <- col
+    }
+    
+    lines(dbinom(x, size = size, prob = prob), type = "h",
+          col =  color, lwd = lwd, ...)
+}
+```
+Calculamos la esperanza:
+
+```{r}
+n = 732
+p = 0.04
+Esp<- (n*p)
+Esp
+```
+Calculamos la varianza:
+
+```{r}
+var <- n*p*(1-p)
+round(var,2)
+```
+Obtenemos que promedio esperado es de 29.28, lo cual nos indica que se espera que esta cantidad de accidentes por choque en la región de Lima en el año 2021.
+
+Calculo de probabilidades:
+
+De la muestra de 732 accidentes en Lima en el año 2021¿Que tan probable sea que 25 de ellos sea por atropello ?
+
+```{r}
+round(pbinom(25,size = 732, prob =  0.04),2)
+```
+La probabilidad de hubiera ocurrido un accidente por atropello en la región de Lima en el año 2021 es 24% debido, a que de los 732 accidentes 25 son de atropello.
+
+```{r}
+binom_sum(size = 732, prob = 0.04, ub = 25, lwd = 2,
+          ylab = "P(X = x)", xlab = "X", main = "Función de Probabilidad Binomial de X")
+```
+Lo comprobamos con la gráfica.
+
+## Análisis probabilístico
+
+### Variables aleatorias continuas
+
+#### Velocidad detectada en Arequipa
+
+```{r}
+VELOCIDADPIURA<-filter(VELOCIDADESL, REGION == "PIURA")
+```
+Realizamos un gráfico que nos ayuda a observa fa función de densidad de esta variable.
+
+```{r}
+x <- seq(0, 1000, length.out = 1000)
+hist(VELOCIDADPIURA$VELOCIDAD_DETECTADA, breaks = 7,freq = FALSE, main = "Gráfica de velocidades detectadas", xlab = "Velocidades detectadas")
+lines(density(VELOCIDADPIURA$VELOCIDAD_DETECTADA, na.rm = TRUE), col = "orange3", lwd = 2)
+curve(dnorm(x,mean(VELOCIDADPIURA$VELOCIDAD_DETECTADA, na.rm = TRUE), sd(VELOCIDADPIURA$VELOCIDAD_DETECTADA, na.rm = TRUE)),lwd = 2, col = "green3", add = T)
+```
+Tomamos una MUESTRA de nuestra base de datos.
+
+Observamos si la media y la mediana son cercanos.
+
+```{r}
+median(VELOCIDADPIURA$VELOCIDAD_DETECTADA)
+mean(VELOCIDADPIURA$VELOCIDAD_DETECTADA)
+```
+Observamos si la varianza y la desviación estándar elevada al cuadrado son cercanos.
+
+```{r}
+var(VELOCIDADPIURA$VELOCIDAD_DETECTADA)
+sd(VELOCIDADPIURA$VELOCIDAD_DETECTADA)^2
+```
+Viendo que los valores de la media y la mediana son cercanos, ademas los valores de la varianza y la desviación estándar elevada al cuadrado también son cercanos, podemos inferir que la variable velocidad detectada en la región de Lima se comporta como una variable aleatoria normal.
+
+Obtenemos los parámetros:
+
+```{r}
+parametros_normal <- fitdist(VELOCIDADLIMA$VELOCIDAD_DETECTADA,"norm")
+parametros_normal$estimate
+
+mu <- round(mean(VELOCIDADLIMA$VELOCIDAD_DETECTADA),2)
+mu
+
+mg <- round(sd(VELOCIDADLIMA$VELOCIDAD_DETECTADA),2)
+mg
+```
+Comprobamos que son los correctos.
+
+Caso para el calculo de probabilidad.
+
+¿Que tan probable es que los conductores, en las carreteras de la de región Piura superen los 120 km/h?
+
+```{r}
+round(pnorm(120,mean = 98.31,sd = 24.25, lower.tail = F),2)
+```
+La probabilidad de que los conductores superen los 120 km/h en la región de Lima es de 19%.
+
+#### Velocidad detectada en Arequipa
+
+Tomamos como nuestra variable aleatoria continua como las velocidades infractoras detectadas en la región de Arequipa.
+
+```{r}
+VELOCIDAD_AREQUIPA <- filter(VELOCIDADESL, REGION=="AREQUIPA")
+
+```
+
+En la gráfica de densidad de la velocidad detectada en la Región de Arequipa se hizo una línea que grafica la función de densidad de la variable que muestra una ligera asimetria entre las mitades de la campana pero la gráfica de densidad se asemeja ala de una variable normal deformada a la derecha.
+
+Se puede apreciar un pico en los valores alrededor de los 50 km/h al comienzo de la gráfica.
+
+```{r}
+hist(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA, breaks = 50,freq = FALSE, main = "Gráfica de velocidades detectadas", xlab = "Velocidades detectadas")
+
+lines(density(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA, na.rm = TRUE), col = "orange3", lwd = 2)
+
+```
+
+Este sería la gráfica de densidad si la variable continua fuera una normal por completo.
+
+```{r}
+hist(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA, breaks = 50,freq = FALSE, main = "Gráfica de velocidades detectadas", xlab = "Velocidades detectadas")
+
+curve(dnorm(x,mean(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA, na.rm = TRUE), sd(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA, na.rm = TRUE)),lwd = 2, col = "green", add = T)
+```
+
+Se graficaron la media y la mediana con líneas.
+
+```{r}
+hist(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA,breaks = 50, main = "Histograma de la muestra tomada", xlab = "intervalos de la muestra", ylab = "Frecuencia")
+
+#Ubicación de la media
+abline(v = mean(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA), col = "red", lwd = 3, lty = 2)
+
+#Ubicación de la mediana
+abline(v = median(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA), col = "blue", lwd = 2, lty = 2)
+
+legend("topright", legend = c("Media", "Mediana"),
+       col = c("red", "blue"), lwd = 2, lty = 2, bty = "n")
+```
+
+Hallamos los valores de los promedios:
+
+```{r}
+mean(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA)
+```
+
+```{r}
+median(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA)
+```
+
+Ya que los valores de la media y la mediana son relativamente cercanos, se puede suponer que la variable velocidades infractoras detectadas en Arequipa tiene una distribución cercana ligeramente a la normal.
+
+Otro método para comprobar el comportamiento normal sería comparando la varianza con el cuadrado de la desviación estándar.
+
+```{r}
+var(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA)
+
+sd(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA)^2
+```
+
+Esta comprobación nos da un mejor resultado por que se cumple la igualdad.
+
+Para verificar esta afirmación se se somete una muestra de 5000 observaciones a la prueba de Shapiro-Wilk.
+
+```{r}
+muestra<-sapply(1:5000,function(x){mean(sample(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA,5000,rep=T))})
+
+shapiro.test(muestra)
+```
+
+En esta prueba de Shapiro se considera que una variable aleatoria continua se aleja de ser una normal si el p-value es menor a un nivel de significancia usualmente de 0.05, en este caso el valor de p es mucho mayor al nivel de significancia, confirmando la hipótesis que nuestra variable tienen distribución normal.
+
+Tratando nuestra variable como normal hallamos los parámetros siendo µ la media y σ la desviación estandar.
+
+```{r}
+mu<- mean(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA)
+sigma<-sd(VELOCIDAD_AREQUIPA$VELOCIDAD_DETECTADA)
+mu
+sigma
+
+```
+
+Nuestra variable asumida como normal se notaría como:
+
+X ∼ N(58.8652,14.383)
+
+Hacemos un pequeño ejemplo de probabilidad:
+
+```{r}
+dnorm(60,58.8652,14.383)
+```
+
+Esto sería la probabilidad que la velocidad detectada fuera de 60 km/h siendo este el pico aproximado de la gráfica de la normal que deriva la nuestra variable que trabajamos.
+
+Ahora que tenemos la variable normal, hallamos el intervalo de confianza en 90% de la distribución con una muestra de 50.
+
+```{r}
+z<-qnorm(0.9)
+z
+x<-sigma/sqrt(50)*z
+x
+
+
+```
+
+El intervalo sería de:
+
+```{r}
+mu-x
+mu+x
+```
+
+## Conclusiones

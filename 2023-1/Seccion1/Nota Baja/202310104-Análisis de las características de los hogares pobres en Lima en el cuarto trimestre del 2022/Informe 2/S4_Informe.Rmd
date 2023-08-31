@@ -1,0 +1,702 @@
+---
+title: "PG2_Informe"
+author: "S4_Hogares_pobres"
+format: html
+editor: visual
+---
+
+```{r, echo=F, include = F}
+librerias <- c("readr", "dplyr", "tibble","rmarkdown","tidytext", "moments", "ggplot2","xtable","knitr","tinytex", "kableExtra", "fitdistrplus")
+
+instalar_librerias <- function(librerias) {
+  for (libreria in librerias) {
+    if (!require(libreria, character.only = TRUE)) {
+      install.packages(libreria, dependencies = TRUE)
+      library(libreria, character.only = TRUE)
+    } else {
+      library(libreria, character.only = TRUE)
+    }
+  }
+}
+
+instalar_librerias(librerias)
+```
+
+```{r, echo = FALSE, include =F}
+library(readr)
+DATAFRAME <- read_csv("DATAFRAME.csv")
+```
+
+## [Análisis descriptivo]{style="color: #014ba0;"}
+
+Tiempo para obtener una cita médica vs Ingresos totales
+
+```{r, echo=F}
+correlacion <- cor(DATAFRAME$IT, DATAFRAME$P408G4, use = "complete.obs")
+
+plot(DATAFRAME$IT, DATAFRAME$P408G4, xlab = "Ingresos Totales (Soles)", ylab = "Tiempo de desplazamiento (minutos)", main = paste("Tiempo de desplazamiento vs Ingresos totales"))
+abline(lm(DATAFRAME$P408G4 ~ DATAFRAME$IT), col = "red")
+cat("Correlación lineal =", round(correlacion,2))
+
+```
+
+Gastos totales vs Ingresos totales
+
+```{r}
+
+
+datos <- data.frame(
+	DATAFRAME$'P1172$01', 
+	DATAFRAME$'P1172$02', 
+	DATAFRAME$'P1172$13', 
+	DATAFRAME$'P1172$14'
+)
+gasto_mensual <- apply(datos, 1, function(x) {
+  if (all(is.na(x))) {NA} 
+  else {sum(x, na.rm = TRUE)}})
+
+
+correlacion <- cor(DATAFRAME$IT, gasto_mensual, use = "complete.obs")
+
+plot(DATAFRAME$IT, gasto_mensual, xlab = "Ingresos Totales (Soles)", ylab = "Gastos totales (soles)", main = paste("Gastos totales vs Ingresos totales"), col = "black")
+abline(lm(gasto_mensual ~ DATAFRAME$IT), col = "red")
+cat("Correlación lineal =", round(correlacion,2))
+```
+
+## [Análisis probabilista]{style="color: #014ba0;"}
+
+### Probabilidad empírica
+
+#### [Ingreso mensual por persona]{style="color: #4b1c71;"}
+
+**Selección de espacio de resultados:**
+
+$Ω = \{Evento\ A, Evento\ B, Evento\ C, Evento\ D\}$
+
+**Definición de eventos:**
+
+$Evento\ A: \text{se selecciona una persona del estudio que gana menos que la canasta básica (415 soles).}$
+
+$Evento\ B: \text{se selecciona una persona del estudio que gana menos que el sueldo mínimo pero más o igual que la canasta básica.}$
+
+$Evento\ C: \text{se selecciona una persona del estudio que gana menos que 3000 soles pero más que o igual que el sueldo mínimo.}$
+
+$Evento\ D: \text{se selecciona una persona del estudio que gana menos que 18000 soles pero más que 3000 soles.}$
+
+**Experimento:** Seleccionar una persona del estudio "Análisis de las características de los hogares pobres en Lima en el cuarto trimestre del 2022" y observar los ingresos totales del mes.
+
+**Probabilidad asociada a cada evento:**
+
+$P(Evento\_A) = \frac{F(Evento\_A)}{n}$
+
+$P(Evento\_B) = \frac{F(Evento\_B)}{n}$
+
+$P(Evento\_C) = \frac{F(Evento\_C)}{n}$
+
+$P(Evento\_D) = \frac{F(Evento\_D)}{n}$
+
+```{r}
+datos<-DATAFRAME$IT
+n <- length(na.omit(datos))
+evento_A<-datos[datos<415&!is.na(datos)]
+evento_B<-datos[datos>=415&datos<1025&!is.na(datos)]
+evento_C<-datos[datos>=1025&datos<3000&!is.na(datos)]
+evento_D<-datos[datos>=3000&datos<=18000&!is.na(datos)]
+pA<-length(evento_A)/n
+pB<-length(evento_B)/n
+pC<-length(evento_C)/n
+pD<-length(evento_D)/n
+probabilidad_empirica<-round(c(pA, pB, pC, pD), 2)
+eventos<-c("A", "B", "C", "D")
+colores<-c("purple", "lightblue", "lightgreen", "orange")
+text(x=barplot(probabilidad_empirica, names.arg=eventos, xlab="Eventos", ylab="Probabilidad Empírica", ylim=c(0, 0.5), col=colores), y=probabilidad_empirica, labels=probabilidad_empirica, pos=3)
+max_probabilidad<-max(probabilidad_empirica)
+abline(h = max_probabilidad, col = "red")
+legend("topright", legend = eventos, fill = colores, title = "Eventos")
+title(main = "Gráfico de Probabilidad Empírica")
+```
+
+**Comentario:** La probabilidad empírica de que una persona seleccionada al azar en el estudio gane menos que la canasta básica es de 0.16, es decir, un $16\%$.
+
+#### [Último nivel académico que aprobó]{style="color: #4b1c71;"}
+
+**Selección de espacio de resultados:**
+
+$Ω = \{ evento\ A, evento\ B, evento\ C, evento\ D, evento\ E, evento\ F, evento\ G \}$
+
+**Definición de eventos:**
+
+$Evento\ A: \text{se selecciona una persona del estudio que aprobó educación inicial o básica especial.}$
+
+$Evento\ B: \text{se selecciona una persona del estudio que aprobó primaria completa o incompleta.}$
+
+$Evento\ C: \text{se selecciona una persona del estudio que aprobó secundaria completa o incompleta.}$
+
+$Evento\ D: \text{se selecciona una persona del estudio que aprobó superior no universitaria completa o incompleta.}$
+
+$Evento\ E: \text{se selecciona una persona del estudio que aprobó superior universitaria completa o incompleta.}$
+
+$Evento\ F: \text{se selecciona una persona del estudio que aprobó maestría/doctorado.}$
+
+$Evento\ G: \text{se selecciona una persona del estudio que no aprobó ningún nivel académico.}$
+
+**Experimento:** Se selecciona una persona del estudio "Análisis de las características de los hogares pobres en Lima en el cuarto trimestre del 2022" y se observa el nivel académico que aprobó.
+
+**Probabilidad asociada a cada evento:**
+
+$P(Evento\_A) = \frac{F(Evento\_A)}{n}$
+
+$P(Evento\_B) = \frac{F(Evento\_B)}{n}$
+
+$P(Evento\_C) = \frac{F(Evento\_C)}{n}$
+
+$P(Evento\_D) = \frac{F(Evento\_D)}{n}$
+
+$P(Evento\_E) = \frac{F(Evento\_E)}{n}$
+
+$P(Evento\_F) = \frac{F(Evento\_F)}{n}$
+
+$P(Evento\_G) = \frac{F(Evento\_G)}{n}$
+
+```{r}
+datos <- DATAFRAME$P301A
+n <- length(na.omit(datos))
+evento_A <- datos[datos == 2 & datos == 12]
+evento_B <- datos[datos == 3 & datos == 4]
+evento_C <- datos[datos == 5 & datos == 6]
+evento_D <- datos[datos == 7 & datos == 8]
+evento_E <- datos[datos == 9 & datos == 10]
+evento_F <- datos[datos == 11]
+evento_G <- datos[datos == 1]
+pA <- length(evento_A)/n
+pB <- length(evento_B)/n
+pC <- length(evento_C)/n
+pD <- length(evento_D)/n
+pE <- length(evento_E)/n
+pF <- length(evento_F)/n
+pG <- length(evento_G)/n
+probabilidad_empirica <- round(c(pA, pB, pC, pD, pE, pF, pG), 2)
+eventos <- c("A", "B", "C", "D", "E", "F", "G")
+colores <- c("#FF0000", "lightblue", "lightgreen", "orange", "purple", "yellow", "cyan")
+plot <- barplot(probabilidad_empirica, names.arg = eventos, xlab = "Eventos", ylab = "Probabilidad Empírica", ylim = c(0, 0.5), col = colores, xlim = c(0, length(eventos) + 1))
+text(x = plot, y = probabilidad_empirica, labels = probabilidad_empirica, pos = 3)
+max_probabilidad <- max(probabilidad_empirica)
+abline(h = max_probabilidad, col = "gray", lty = "dashed")
+legend("topright", legend = eventos, fill = colores, title = "Eventos", ncol = 2)
+title(main = "Gráfico de Probabilidad Empírica")
+```
+
+**Comentario:** La probabilidad empírica del Evento F, es del 0.13. Esto sugiere una proporción significativa de individuos con alto nivel educativo en estos hogares.
+
+### Probabilidad condicional
+
+#### Primer par de eventos
+
+**Tabla de contingencia:**
+
+```{r, echo=F}
+datos <- data.frame(
+	DATAFRAME$'P1172$01', 
+	DATAFRAME$'P1172$02', 
+	DATAFRAME$'P1172$13', 
+	DATAFRAME$'P1172$14'
+)
+gasto_mensual <- apply(datos, 1, function(x) {
+  if (all(is.na(x))) {NA} 
+  else {sum(x, na.rm = TRUE)}
+})
+du <- na.omit(cbind(gasto_mensual, DATAFRAME$P301A))
+du <- as.data.frame(du)
+datos <- data.frame(
+	DATAFRAME$'P1172$01', 
+	DATAFRAME$'P1172$02', 
+	DATAFRAME$'P1172$13', 
+	DATAFRAME$'P1172$14'
+)
+gasto_mensual <- apply(datos, 1, function(x) {
+  if (all(is.na(x))) {NA} 
+  else {sum(x, na.rm = TRUE)}
+})
+du <- na.omit(cbind(DATAFRAME$P301A, gasto_mensual))
+du <- as.data.frame(du)
+colnames(du) <- c("Último nivel académico aprobado", "Gasto mensual")
+eventoA <- du[du[, 1] <= 11 & du[, 1] >= 7, 1]
+eventoB <- du[du[, 2] >= 185 , 2]
+n <- nrow(du)  
+pA <- length(eventoA)/n
+pB <- length(eventoB)/n 
+pAyB <- sum(du[, 1] <= 11 & du[, 1] >= 7 & du[, 2] >= 185) / n  
+pAcB <- pAyB/pB
+pACaB <- sum((du[, 1] > 11 | du[, 1] < 7) & du[, 2] >= 185) / n
+pAaBC <- sum((du[, 1] <= 11 & du[, 1] >= 7) & du[, 2] < 185) / n
+pACaBC <- sum((du[, 1] > 11 | du[, 1] < 7) & du[, 2] < 185) / n
+pACwB = pACaB/pB
+pAwBC= pAaBC/(1-pB)
+pACwBC= pACaBC/(1-pB)
+pbA= pAcB*pB + pAwBC*(1-pB)
+pBwA = (pAcB*pB)/pbA
+```
+
+```{r, echo=F}
+fila1 <- c(round(pAcB,2), round(pACwB,2), round(pAcB,2) + round(pACwB,2))
+fila2 <- c(round(pAwBC,2), round(pACwBC,2), round(pAwBC,2) + round(pACwBC,2))
+fila3 <- c(round(pAcB,2)+round(pAwBC,2), round(pACwB,2)+round(pACwBC,2), round(pAcB,2) + round(pACwB,2)+round(pAwBC,2) + round(pACwBC,2))
+tabla_contingencia <- rbind(fila1, fila2, fila3)
+rownames(tabla_contingencia) <- c("B ≥ 185", "B' < 185", "Total")
+colnames(tabla_contingencia) <- c("7 ≤ A ≤ 11", "A'<7 | A'>11", "Total")
+tabla_formateada <- kable(tabla_contingencia, "html") %>%
+  kable_styling(full_width = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+tabla_formateada
+```
+
+**Definición de eventos:**
+
+$Evento\ A: \text{Se selecciona una persona del estudio que aprobó el nivel académico: superior no universitaria incompleta o superior no universitaria completa o superior universitaria incompleta o superior universitaria completa o maestría/doctorado.}$
+
+$Evento\ B: \text{Se selecciona una persona del estudio que gasta más o igual que 185 soles.}$
+
+**Identificamos la independencia o dependencia de dos eventos:**
+
+Dos eventos $A\ y\ B ∈ F$ (subconjunto del espacio de resultados) con $P(A) > 0$, $P(B) > 0$ son dependientes si se cumple cualquiera de las siguientes afirmaciones:
+
+1.  $P(A∩B) ≠ P(A)\cdot P(B)$
+
+2.  $P(A|B) ≠ P(A)$
+
+3.  $P(B|A) ≠ P(B)$
+
+**Experimento:** Seleccionar una persona del estudio "Análisis de las características de los hogares pobres en Lima en el cuarto trimestre del 2022" y observar el último nivel académico aprobado y el gasto mensual en servicios de esta persona.
+
+**Comprobamos la siguiente condición:**
+
+$P(A∩B) ≠ P(A)\cdot P(B)$
+
+$P(A∩B) - P(A)\cdot P(B) ≠ 0 →$ Los eventos A y B son dependientes (teóricamente)
+
+```{r, echo=F}
+cat("P(A∩B) =", pAyB, "\n")
+cat("P(A) =", round(pA, 2), "\n")
+cat("P(B) =", round(pB, 2), "\n")
+cat("P(A)*P(B) =", round(pA*pB, 2), "\n")
+cat("P(A∩B) - P(A)*P(B) =", round((pAyB - (pA * pB)),2), "\n")
+cat("Por lo tanto se concluye que los eventos A y B son dependientes.")
+```
+
+Teóricamente que dos eventos (A y B) sean dependientes, significa la ocurrencia o no ocurrencia de uno de los eventos puede afectar la probabilidad del otro evento.
+
+En nuestro estudio, obtener que estos eventos sean dependientes, significa que existe una relación predictiva de que suceda el evento A y B.
+
+**Probabilidad condicional:**
+
+$P(A|B) = \frac{P(A∩B)}{P(B)}$
+
+Al tratarse de eventos **dependientes**, la probabilidad condicional se reduce a:
+
+$P(A|B) ≠ P(A)$
+
+```{r, echo = F}
+cat("P(A|B) =", round(pAcB, 2), "\n")
+cat("P(A) =", round(pA, 2), "\n")
+```
+
+***Probabilidad de que ocurra el evento B dado que ya ocurrió el evento A (teorema de Bayes).***
+
+$P(B|A) = \frac {P(A|B)\cdot P(B)}{P(A)}$
+
+Pero sabemos que $P(A|B) ≠ P(A)$, por tanto:
+
+$P(B|A) ≠ P(B)$
+
+```{r, echo=F}
+cat("P(B|A) =", round(pBwA, 2))
+```
+
+Ahora comparamos con:
+
+```{r, echo=F}
+cat("P(B) =", round(pB, 2))
+```
+
+#### Segundo par de eventos
+
+**Tabla de contingencia:**
+
+```{r, echo=F}
+du <- na.omit(cbind(DATAFRAME$P408G4, DATAFRAME$IT)) 
+dun <- as.data.frame(du)
+colnames(dun) <- c("Tiempo de desplazamiento", "Ingreso mensual")
+columnaA <- dun$`Tiempo de desplazamiento`
+Evento_A <- columnaA[columnaA >= 10 & columnaA <= 30] 
+columna <- dun$`Ingreso mensual`
+Evento_B <- columna[columna < 415]
+ProbAandB <- sum( dun$`Tiempo de desplazamiento`>=10 & dun$`Tiempo de desplazamiento`<=30 & dun$`Ingreso mensual`<415)/nrow(dun)
+prob_A <- length(Evento_A)/nrow(dun)
+prob_B <- length(Evento_B)/nrow(dun)
+prob_cond = ProbAandB/prob_B
+ProbACandB <- sum((columnaA < 10 | columnaA > 30) & columna < 415) / nrow(dun)
+ProbAandBC <- sum((columnaA >= 10 & columnaA <= 30) & columna >= 415) / nrow(dun)
+ProbACandBC <- sum((columnaA < 10 | columnaA > 30) & columna >= 415) / nrow(dun)
+pACwB <- ProbACandB / prob_B
+pAwBC <- ProbAandBC / (1 - prob_B)
+pACwBC <- ProbACandBC / (1 - prob_B)
+ProbA= prob_cond*prob_B + pAwBC*(1-prob_B)
+pBwA = (prob_cond*prob_B)/ProbA
+fila1 <- c(round(prob_cond, 2), round(pACwB, 2), round(prob_cond, 2) + round(pACwB, 2))
+fila2 <- c(round(pAwBC, 2), round(pACwBC, 2), round(pAwBC, 2) + round(pACwBC, 2))
+fila3 <- c(
+  round(prob_cond, 2) + round(pAwBC, 2),
+  round(pACwB, 2) + round(pACwBC, 2),
+  round(prob_cond, 2) + round(pACwB, 2) + round(pAwBC, 2) + round(pACwBC, 2)
+)
+tabla_contingencia <- rbind(fila1, fila2, fila3)
+rownames(tabla_contingencia) <- c("B < 415", "B' ≥ 415", "Total")
+colnames(tabla_contingencia) <- c("10 ≤ A ≤ 30", "A'≤ 10 | A'≥30", "Total")
+tabla_formateada <- kable(tabla_contingencia, "html") %>%
+  kable_styling(full_width = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+tabla_formateada
+```
+
+**Identificamos la independencia o dependencia de dos eventos:**
+
+**Definición de eventos:**
+
+$Evento\ A: \text{se selecciona una persona del estudio que su tiempo de desplazamiento al centro de salud sea mayor igual que 10 minutos y menor igual que 30 minutos}$
+
+$Evento\ B: \text{Se selecciona una persona del estudio que gana menos que la canasta básica (415 soles).}$
+
+Dos eventos $A \ y\  B ∈ F$ (subconjunto del espacio de resultados) con $P(A) > 0$, $P(B) > 0$ son independientes si se cumple cualquiera de las siguientes afirmaciones:
+
+1.  $P(A∩B) = P(A)\cdot P(B)$
+
+2.  $P(A|B) = P(A)$
+
+3.  $P(B|A) = P(B)$
+
+**Experimento:** Seleccionar una persona del estudio "Análisis de las características de los hogares pobres en Lima en el cuarto trimestre del 2022" y observar los ingresos totales del mes y el tiempo de desplazamiento al centro de salud (en minutos) de esta persona.
+
+**Comprobamos la siguiente condición:**
+
+$P(A∩B) = P(A)\cdot P(B)$
+
+$P(A∩B) - P(A)\cdot P(B) = 0 → A ⊥ B$ : Los eventos A y B son independientes
+
+```{r, echo=F}
+cat("P(A∩B) =", ProbAandB, "\n")
+cat("P empírica del evento A =", prob_A, "\n")
+cat("P empírica del evento B =", round(prob_B, 2), "\n")
+cat("P(A)*P(B) =", round(prob_A*prob_B, 2), "\n")
+cat("P(A∩B) - P(A)*P(B) =", round((ProbAandB - prob_A * prob_B),2), "\n")
+cat("Por lo tanto se concluye que los eventos (A ⊥ B).")
+```
+
+Teóricamente que dos eventos (en este caso A y B) sean independientes, significa que la ocurrencia o no ocurrencia de uno de los eventos no tiene ningún efecto sobre la probabilidad del otro evento.
+
+En nuestro estudio, obtener que estos eventos sean independientes, significa que no existe una relación predictiva entre el tiempo de desplazamiento al centro de salud y que la persona del experimento gane menos que la canasta básica.
+
+***Probabilidad condicional:***
+
+$P(A|B) = \frac{P(A∩B)}{P(B)}$
+
+Al tratarse de eventos **independientes**, la probabilidad condicional se reduce a:
+
+$P(A|B) = P(A)$
+
+```{r, echo=F}
+cat("P(A|B) =", round(prob_cond, 2), "\n")
+cat("P(A) =", round(prob_A, 2), "\n")
+```
+
+Se observa que la probabilidad condicional es $0.7222$, y que la probabilidad del evento A es $0.698$, esto confirma que los eventos analizados son independientes.
+
+El análisis que se le da es que la probabilidad de que una persona llegue a un establecimiento de salud entre las 10 y 30 minutos, no estaría afectado con que gane menos que la canasta básica. Esta probabilidad de llegar al centro de salud en ese rango de tiempo sería del 70%.
+
+***Probabilidad de que ocurra el evento B dado que ya ocurrió el evento A (teorema de Bayes).***
+
+$P(B|A) = \frac {P(A|B)\cdot P(B)}{P(A)}$
+
+Pero sabemos que $P(A|B) = P(A)$, por tanto:
+
+$P(B|A) = P(B)$
+
+```{r, echo=F}
+cat("P(B|A) =", round(pBwA, 2))
+```
+
+Ahora comparamos con:
+
+```{r, echo=F}
+cat("P(B) =", round(prob_B, 2))
+```
+
+### Variables discretas
+
+#### Centro de estudio
+
+La variable que se ajustará a un modelo de distribución de variable aleatoria discreta es el tipo de centro de estudio. *El tipo de distribución que se usará es la **Binomial*****,** que describe el número de éxitos posibles: éxito o fracaso.
+
+$X\sim Bin(p,n)$
+
+Éxito -\> Que sea de un colegio estatal (p)
+
+Fracaso -\> Que sea de un colegio privado (1-p)
+
+**Probabilidad de éxito:**
+
+$P(E)=\frac {P(p)}{n}$
+
+**Variable aleatoria:**
+
+X: Número de personas que estudian en un colegio estatal en la ciudad de Lima.
+
+**Parámetros:** $$
+X\sim Bin(P,n)  \left\{ \begin{array}{ll}
+P →P(E) & \mbox{pertenecen a un colegio estatal} \\
+n & \mbox{$4999$} \\
+\end{array}
+\right.
+$$
+
+**Se construye la función de densidad:**
+
+$$
+P_X(X)→dbinom(0:n, p, n)
+$$
+
+```{r}
+estatales = filter(DATAFRAME, DATAFRAME$P301D == "Estatal")
+nrow(estatales)
+
+```
+
+```{r}
+(pEstatal =nrow(estatales)/nrow((DATAFRAME)))
+n = 4999
+```
+
+Se realiza un experimento al azar de que una persona fuera de estatal o privado y se gráfica la función de densidad:
+
+```{r}
+ProbE <- sum(DATAFRAME$P301D == "Estatal", na.rm=T ) / 4999
+n <- sum(DATAFRAME$P301D == "Estatal", na.rm=T )
+pmf <- dbinom(0:n, n, ProbE)
+x <- 0:n
+barplot(pmf, names.arg = x, xlab = "Número de éxitos", ylab = "Probabilidad", main = "PMF - Distribución Binomial")
+```
+
+**Ejemplo:**
+
+Si le preguntan a 10 personas del estudio si fueron a un colegio estatal o privado, **¿cuál es la probabilidad de que 4 de ellas hayan asistido a un colegio estatal?**
+
+```{r}
+round(pbinom(4,7,pEstatal),2)
+```
+
+La probabilidad de que 4 personas hayan asistido a un colegio estatal de un total de 7 en nuestro estudio es de 0.55
+
+#### Uso del servicio de Internet
+
+La variable que se ajustará a un modelo de distribución de variable aleatoria discreta es si la persona hizo el uso del servicio de Internet. El tipo de distribución que se usará es la **hipergeométrica**, que describen el número de veces que un evento ocurre en un número fijo de ensayos, para ello, cada ensayo cambia la probabilidad de cada ensayo subsiguiente porque no hay reemplazo.
+
+$P(X=x)=\frac{{\binom{M}{k}\binom{N-M}{n-k}}}{\binom{N}{n}}$
+
+Éxito -\> personas que no usaron el servicio de Internet el mes anterior.
+
+Fracaso -\> personas que usaron el servicio de Internet el mes anterior.
+
+Variable aleatoria: 𝑿=número de personas pobres encuestadas que no usaron el servicio de Internet en el mes anterior en Lima.
+
+```{r, echo=F}
+ProbE <- nrow(filter(DATAFRAME, P301D == "Estatal", P314A == "No")) / nrow(filter(DATAFRAME, P301D == "Estatal"))
+ProbE
+```
+
+Identificamos los parámetros:
+
+$X \sim Bin(P,n)$
+
+Donde:
+
+$P$ es la probabilidad de éxito E.
+
+$n$ es el tamaño de la muestra.
+
+```{r, echo=F}
+n <- nrow(filter(DATAFRAME, P301D == "Estatal"))
+n
+```
+
+**Gráfico de la densidad:**
+
+```{r, echo=F}
+x <- 0:n
+pmf <- dbinom(x, n, ProbE)
+barplot(pmf, names.arg = x, xlab = "Número de éxitos", ylab = "Probabilidad", main = "PMF - Distribución Binomial")
+plot(x, pmf, type = "b", pch = 19, xlab = "Número de éxitos", ylab = "Probabilidad", main = "PMF - Distribución Binomial")
+```
+
+Si $P= \frac{M}{N}$ es la proporción de éxitos, entonces:
+
+**Esperanza**
+
+$E(X) = n*p$
+
+Se escoge una muestra aleatoria de 1000 habitantes pobres encuestadas en Lima. Por lo tanto,
+
+$n = 1000$
+
+```{r, echo=F}
+n <- 1000
+p<-ProbE
+esp <- n * p
+esp
+```
+
+**Varianza**
+
+$V(X) = \frac{np(1-p)(N-n)}{n-1}$
+
+```{r, echo=F}
+varianza <- (n*p)*(1-p)*((1180-n)/(n-1))
+varianza
+```
+
+**Ejemplo:**
+
+En el departamento de Lima, hay 1180 personas personas que terminaron el último año de estudios en un centro Privado y 3062 personas que terminaron el último año de estudios en un centro Estatal. De las personas que terminaron el último año en un centro Privado 1101 usaron el servicio de Internet y el resto no lo usaron, mientras que de las personas que terminaron el último año en un centro Estatal sólo 1101 usaron el servicio de Internet y el resto no lo usaron.
+
+Si los primeros en escoger son 50 personas que terminaron el último año de estudios en un centro Privado. Halle la probabilidad de que el número de personas que usaron el servicio de Internet sea 50.
+
+```{r}
+N <- 1180 # TOTAL DE LA POBLACIÓN
+M <- 1101 # NÚMERO DE ÉXITOS
+n <- 50   # TAMAÑO DE LA MUESTRA
+k = 50
+exito <- M
+fracaso <- N-M
+muestra <- n
+dhyper(k, exito, fracaso, muestra)
+```
+
+### Variables continuas
+
+#### Tiempo de espera para obtener una cita médica
+
+Se explora visualmente la variable de interés (Tiempo de espera para obtener una cita médica).
+
+```{r}
+tiempo = DATAFRAME[complete.cases(DATAFRAME$P408F5),]
+tiempo2 = tiempo$P408F5
+tiempo3 = tiempo2[!tiempo2 %in% boxplot.stats(tiempo2)$out]
+hist(tiempo3)
+```
+
+Al observar el comportamiento de esta variable se aprecia que tiene un comportamiento exponencial. Además, por teoría una variable aleatoria del tiempo se modela de manera exponencial.
+
+```{r}
+descdist(tiempo3,boot = 300)
+```
+
+La variable aleatoria continua X tiene una distribución exponencial si:
+
+$\lambda > 0 \text{ y escribimos } X \sim Exp(\lambda)$
+
+```{r}
+mediaExp = mean(tiempo3) #la media se distribuye como exponencial
+cat("La media es:", mediaExp )
+```
+
+Luego de haber caracterizado la función tiempo de espera para obtener una cita médica con una media de 1.11 se formula la siguiente pregunta:
+
+**¿Cuál es la probabilidad de que una persona del estudio espere menos de 1 horas para obtener una cita?**
+
+```{r}
+pexp(1,mediaExp,lower.tail = TRUE)
+```
+
+La probabilidad de que una persona espere menos de 1 hora es de 0.67. Es decir, de 100 personas del estudio es probable de que 67 personas esperen menos de 1 horas para obtener una cita.
+
+**Esperanza:**
+
+```{r}
+Ex = 1/mediaExp
+cat("La esperanza es:",Ex)
+```
+
+**Varianza:**
+
+```{r}
+Var = Ex*Ex
+cat("La varianza es:", Var)
+```
+
+Se espera que una persona del estudio pueda obtener una cita en 0.899 horas (53.94 minutos), con una dispersión moderada al rededor del valor promedio.
+
+#### [Ingreso mensual por persona]{style="color: #4b1c71;"}
+
+Se explora visualmente la variable de interés **"Ingreso mensual por persona"**.
+
+```{r, echo=F}
+a = DATAFRAME[complete.cases(DATAFRAME$IT),]
+b = a$IT
+ingresos = b[!b %in% boxplot.stats(b)$out]
+hist(ingresos, col = "orange", main = "Histograma de Ingresos mensuales", xlab = "Ingresos mensuales por persona (S/.)")
+densidad <- density(ingresos)
+plot(densidad, main = "Función de Densidad de Probabilidad", xlab = "Ingresos mensuales por persona (S/.)")
+legend("topright", legend = c("Densidad de probabilidad"), col = c("black"), lwd = c(1))
+```
+
+Al observar el comportamiento de esta variable se aprecia una distribución sesgada positiva (hacia la derecha).
+
+```{r, echo=F}
+descdist(ingresos,boot = 300)
+```
+
+Del anterior gráfico, se nota que esta contenida en la zona beta que se estás viendo en la salida se refiere a la distribución beta. Sin embargo, para los propósitos del estudio, se ha decidido considerar una aproximación con una distribución normal (Gaussiana).
+
+```{r, echo=F}
+plot(density(ingresos), main = "Función de Densidad de Probabilidad", xlab = "Ingresos mensuales por persona (S/.)")
+mu <- mean(ingresos)
+sigma <- sd(ingresos)
+curve(dnorm(x, mean = mu, sd = sigma), add = TRUE, col = "purple", lwd = 2)
+legend("topright", legend = c("Densidad de probabilidad", "Distribución normal"), col = c("black", "purple"), lwd = c(1, 2))
+```
+
+**Validamos una aproximación de manera numérica:**
+
+```{r, echo=F}
+media <- mean(ingresos)
+mediana <- median(ingresos)
+varianza <- var(ingresos)
+desviacion_estandar <- sd(ingresos)
+esperanza <- sum(ingresos) / length(ingresos)
+```
+
+**Media y mediana:**
+
+```{r, echo=F}
+cat("La media es:", media, "\n")
+cat("La mediana es:", mediana, "\n")
+```
+
+**Varianza:**
+
+```{r, echo=F}
+cat("La varianza es:", varianza, "\n")
+cat("La desviación estándar al cuadrado es:", desviacion_estandar^2, "\n")
+```
+
+**Esperanza:**
+
+```{r, echo=F}
+cat("La esperanza es:", esperanza, "\n")
+```
+
+*¿Cuál es la probabilidad de que una persona del estudio tenga un ingreso menor a la canasta básica (S/. 415)?*
+
+```{r, echo=F}
+prob_acumulada <- pnorm(415, mean = media, sd = desviacion_estandar, lower.tail = TRUE)
+
+cat("La probabilidad de que una persona del estudio tenga un ingreso menor a la canasta básica es", round(prob_acumulada, 2), ".", "\n")
+```

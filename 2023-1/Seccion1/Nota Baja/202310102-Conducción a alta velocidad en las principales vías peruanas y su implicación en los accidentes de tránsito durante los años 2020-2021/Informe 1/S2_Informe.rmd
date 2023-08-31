@@ -1,0 +1,1090 @@
+---
+title: "Conducción a alta velocidad en las principales vías peruanas y su implicación en los accidentes de tránsito durante los años 2020-2021"
+format: html
+editor: visual
+output:
+  html_notebook:
+    toc: true
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: yeti
+  word_document:
+    toc: TRUE
+  html_document:
+    toc: true
+    df_print: paged
+  pdf_document:
+    toc: yes
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+<center>
+
+![](logoutec.png){fig-align="center"}
+
+</center>
+
+## Planificación
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+gantt <- read.csv("Gantt.csv", h=T)
+acts <- c("Planteamiento del Tema","Reconocimiento de Variables", "Limpieza de Datos",             "Analisis Descriptivo")
+els <- c("P1")
+g.gantt <- gather(gantt, "state", "date", 4:5) %>% mutate(date = as.Date(date, "%d.%m.%Y"), Activity=factor(Activity,), Project.element=factor(Project.element, "P1"))
+actcols <- c("#FF773C")
+ggplot(g.gantt, aes(date, Activity, color=actcols, group=Item)) +
+  geom_line(size = 10) +
+  scale_color_manual(values=actcols,labels=els, name="Componentes del Proyecto") +
+  labs(x="Meses del Proyecto", y="Actividades del Proyecto", title="Línea de Tiempo del Proyecto")
+```
+
+## Introducción
+
+En nuestro país se observan muchos accidentes en las vías más circuladas en el Perú y observamos que muchos conductores no respetan los límites de velocidad, decidimos indagar más sobre este tema y realizar un análisis. 
+
+A pesar de las constantes campañas de concientización que promueven el respeto de los límites de velocidad impuestos aún hay demasiadas infracciones por exceso de velocidad en nuestro país.
+
+![](exceso-de-velocidad.png){fig-alt="Cómo influye el exceso de velocidad en los accidentes de tráfico? (s. f.). https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.peritosdeaccidentes.com%2Fexceso-de-velocidad%2F&psig=AOvVaw1YxCom4VToEidZib_9rUyn&ust=1685075698910000&source=images&cd=vfe&ved=0CBMQjhxqFwoTCNiyh6jSj_8CFQAAAAAdAAAAABAf" fig-align="right" width="181"}
+
+## Objetivos
+
+### Objetivos generales
+
+Verificar si las cantidades de heridos y fallecidos están relacionados con los excesos de velocidad en las diversas regiones de nuestro país durante el 2020 y 2021.
+
+### Objetivos específicos
+
+-   Analizar cuáles son las zonas del Perú en las que se infringió más el límite de velocidad y en cuáles hubo mayor cantidad de accidentes de tránsito durante el 2020 y 2021 (según el tipo).
+
+-   Estudiar incremento/disminución de los accidentes de tránsito y excesos de velocidad en los distintos departamentos del Perú entre el 2020 y 2021 y ver como fue su desarrollo durante el periodo de pandemia.
+
+-   Analizar en qué meses del año los accidentes fueron más frecuentes durante el 2020 y 2021 en el Perú e inferir sus posibles causas.
+
+## Manejo de datos
+
+### Obtención de datos:
+
+Se usarán dos fuentes secundarias, la cuales obtendremos y descargaremos de la página web de datosabiertos.gob.pe.
+La primera base de datos nos brinda información sobre los [Accidentes de tránsito que se han producido entre los años 2020 - 2021](https://www.datosabiertos.gob.pe/dataset/accidentes-de-tr%C3%A1nsito-en-carreteras/resource/3398beff-8440-4343-a54d-0911d11dfcd5#%7Bview-grid:%7BcolumnsWidth:%5B%7Bcolumn:!MODALIDAD,width:119).
+Por otro lado, la segunda base de datos nos brinda información sobre los [Excesos de velocidad durante los años 2019 y 2021](https://www.datosabiertos.gob.pe/dataset/excesos-de-velocidad-detectados-por-cinem%C3%B3metros/resource/adec7d99-bb08-47f1-b9ec#%7B%7D) .
+En ambas bases de datos encontramos variables que nos serán muy útiles para nuestro análisis.
+
+### Población y muestra:
+
+La población está dada por todos los autos que exceden los límites de velocidad en las pistas de las distintas regiones peruanas y todos los accidentes de tránsito ocurridos en nuestro país.
+Así mismo, la muestra serán los autos que infringieron los límites de velocidad y los accidentes de tránsito ocurridos entre los años 2020 y 2021.
+
+### Descripción de variables
+
+#### Base de datos 1: Accidentes
+
+| Variable     | Tipo               | Descripción                                                                                                         |
+|------------|------------|------------------------------------------------|
+| Fecha        | Categórica ordinal | Esta variable nos da la fecha, en formato numérico, en la que ocurrió el accidente                                  |
+| Departamento | Categórica nominal | Esta variable nos brinda el departamento en el que ocurrió el accidente                                             |
+| Modalidad    | Categórica nominal | Esta variable nos brinda la modalidad en la que sucedió el accidente. Es decir, choque, despiste, atropello y otros |
+| Fallecidos   | Numérica discreta  | Nos brinda la cantidad de fallecidos que tuvo el accidente                                                          |
+| Vía          | Categórica nominal | Brinda el nombre o código de la vía en la que ocurrió el accidente                                                  |
+| Hora         | Numérica ordinal   | Brinda la hora en formato hh:mm en la que ocurrió el accidente                                                      |
+| Heridos      | Numérica discreta  | Nos brinda la cantidad de heridos que tuvo el accidente                                                             |
+
+#### 
+
+#### **Base de datos 2: Velocidades**
+
+| Variable            | Tipo               | Descripción                                                                                       |
+|--------------|--------------|---------------------------------------------|
+| Fecha papeleta      | Categórica ordinal | Esta variable nos brinda la fecha en la que se detuvo al vehículo que excedió la velocidad límite |
+| Región              | Categórica nominal | Nos brinda el nombre del departamento en el que se excedió el límite de velocidad                 |
+| Carretera           | Categórica nominal | Brinda el nombre de la carretera en la que se excedió el límite de velocidad                      |
+| Latitud             | Categórica nominal | Brinda la latitud en UTM en la que se excedió la velocidad                                        |
+| Longitud            | Categórica nominal | Brinda la longitud en UTM en la que se excedió la velocidad                                       |
+| Límite de velocidad | Numérica discreta  | Nos brinda el límite de velocidad de la región                                                    |
+| Velocidad detectada | Numérica discreta  | Brinda la velocidad a la que estaba conduciendo el vehículo detenido                              |
+
+### Limpieza de las bases de datos
+
+Cargamos las librerías que usaremos
+
+```{r}
+library(dplyr)
+library(readr)
+library(stringi)
+library(funModeling)
+```
+
+Escribimos algunas funciones que nos serán útiles a lo largo de nuestro proyecto:
+
+```{r}
+r <- function(x){return(round(x,digits=2))}
+coef_var <- function(x, na.rm = FALSE) {
+  sd(x, na.rm=na.rm) / mean(x, na.rm=na.rm)
+}#coeficiente de variación
+```
+
+Abrimos nuestra base de datos:
+
+```{r}
+ACCIDENTES <- read_csv("Accidentes.csv")
+VELOCIDADES <- read_csv("Velocidades.csv")
+```
+
+Eliminamos las variables que no usaremos en nuestro estudio
+
+```{r}
+NUEVOACCIDENTES <- select(ACCIDENTES,- FECHA_CORTE,- CODIGO_VIA, -KILOMETRO, -HORA)
+
+NUEVOVELOCIDADES <- select(VELOCIDADES,-FECHA_CORTE,-CARRETERA, -LATITUD, -LONGITUD)
+```
+
+Cambiamos el nombre a la variable DEPARTAMENTO de la base ACCIDENTES por REGION y cambiamos FECHA_PAPELETA de la base VELOCIDADES por FECHA
+
+```{r}
+NUEVOACCIDENTES %>% rename( REGION = DEPARTAMENTO ) -> NUEVOACCIDENTES
+NUEVOVELOCIDADES %>% rename( FECHA = FECHA_PAPELETA ) -> NUEVOVELOCIDADES
+```
+
+Observamos las regiones que participan en nuestras bases de datos
+
+```{r}
+table(NUEVOACCIDENTES$REGION)
+table(NUEVOVELOCIDADES$REGION)   
+```
+
+Observamos que hay regiones que están escritas de la misma manera, procedemos a unificar todas estas en cada una de las bases.
+
+```{r}
+NUEVOACCIDENTES %>% mutate(REGION = ifelse(REGION %in% c("Puno"), "PUNO",
+                            ifelse(REGION %in% c("Cusco"), "CUSCO",
+                            ifelse(REGION %in% c("Arequipa"), "AREQUIPA",REGION)))) -> NUEVOACCIDENTES
+
+NUEVOVELOCIDADES %>% mutate(REGION = ifelse(REGION %in% c("Lima"), "LIMA",REGION)) -> NUEVOVELOCIDADES
+
+table(NUEVOACCIDENTES$REGION)
+table(NUEVOVELOCIDADES$REGION)
+```
+
+Así mismo, notamos que las bases no tienen las mismas regiones, entonces solo trabajaremos con las regiones que están en la base de NUEVOVELOCIDADES
+
+```{r}
+NUEVOACCIDENTES <- subset(NUEVOACCIDENTES, REGION=="ANCASH" | NUEVOACCIDENTES$REGION=="AREQUIPA" | NUEVOACCIDENTES$REGION=="ICA" | NUEVOACCIDENTES$REGION=="JUNIN" | NUEVOACCIDENTES$REGION=="LA LIBERTAD" | NUEVOACCIDENTES$REGION=="LAMBAYEQUE" | NUEVOACCIDENTES$REGION=="LIMA" | NUEVOACCIDENTES$REGION=="MOQUEGUA" | NUEVOACCIDENTES$REGION=="PIURA" | NUEVOACCIDENTES$REGION=="PUNO")
+```
+
+```{r}
+table(NUEVOACCIDENTES$REGION)
+table(NUEVOVELOCIDADES$REGION)
+```
+
+Por otro lado...
+
+```{r}
+max(NUEVOVELOCIDADES$FECHA)
+max(NUEVOACCIDENTES$FECHA)
+```
+
+La base ACCIDENTES tiene datos de 2020 a 2021, mientras que VELOCIDADES tiene datos de 2019 a 2021, por lo que solo usaremos los datos entre los años 2020 y 2021(hasta septiembre)
+
+```{r}
+#FILTRAMOS LOS AÑOS
+NUEVOVELOCIDADES <- subset(NUEVOVELOCIDADES, FECHA>20200000 & FECHA<20210931)
+```
+
+```{r}
+#corroboramos que los intervalos de fechas sean iguales
+min(NUEVOVELOCIDADES$FECHA)
+min(NUEVOACCIDENTES$FECHA)
+max(NUEVOVELOCIDADES$FECHA)
+max(NUEVOACCIDENTES$FECHA)
+```
+
+Ahora, revisaremos si los datos ingresados en cada una de las variables son correctas
+
+```{r,eval =FALSE}
+#NUEVO ACCIDENTES
+unique(NUEVOACCIDENTES$FECHA)
+unique(NUEVOACCIDENTES$HORA)
+unique(NUEVOACCIDENTES$REGION)
+unique(NUEVOACCIDENTES$MODALIDAD)
+unique(NUEVOACCIDENTES$FALLECIDOS)
+unique(NUEVOACCIDENTES$HERIDOS)
+```
+
+Notamos que en las bases de datos hay valores con "N.I", asumiremos estos datos como NA's dado que significan que no hay información sobre esas variables.
+Además, procederemos a eliminarlos ya que tienen poca representatividad para nuestro análisis.
+
+```{r}
+NUEVOACCIDENTES <- NUEVOACCIDENTES %>% filter_all(all_vars(.!= "N.I."))
+```
+
+Verificamos si todos los "N.I." han sido eliminados
+
+```{r,eval =FALSE}
+#NUEVO ACCIDENTES
+unique(NUEVOACCIDENTES$FECHA)
+unique(NUEVOACCIDENTES$HORA)
+unique(NUEVOACCIDENTES$REGION)
+unique(NUEVOACCIDENTES$MODALIDAD)
+unique(NUEVOACCIDENTES$FALLECIDOS)
+unique(NUEVOACCIDENTES$HERIDOS)
+```
+
+Realizamos el mismo filtro en la base de NUEVOVELOCIDADES
+
+```{r}
+NUEVOVELOCIDADES <- NUEVOVELOCIDADES %>% filter_all(all_vars(. != "N.I."))
+```
+
+Finalmente, clasificaremos de manera correcta nuestras variables en numéricas y categóricas
+
+```{r}
+names(NUEVOACCIDENTES)
+summary(NUEVOACCIDENTES)
+```
+
+Notamos que R está tomando al número de FALLECIDOS Y HERIDOS como caracteres, por lo que las convertiremos a números
+
+```{r}
+unique(NUEVOACCIDENTES$FALLECIDOS)
+```
+
+Convertimos la variable FALLECIDOS a numérico
+
+```{r}
+NUEVOACCIDENTES$FALLECIDOS <- strtoi(NUEVOACCIDENTES$FALLECIDOS)
+unique(NUEVOACCIDENTES$FALLECIDOS)
+```
+
+Convertimos la variable HERIDOS a numérico
+
+```{r}
+NUEVOACCIDENTES$HERIDOS <- strtoi(NUEVOACCIDENTES$HERIDOS)
+
+NUEVOACCIDENTES <- NUEVOACCIDENTES[complete.cases(NUEVOACCIDENTES),]
+unique(NUEVOACCIDENTES$HERIDOS)
+```
+
+Ahora, revisamos la variables de NUEVOVELOCIDADES
+
+```{r}
+names(NUEVOVELOCIDADES)
+summary(NUEVOVELOCIDADES)
+```
+
+```{r}
+df_status(NUEVOVELOCIDADES)
+```
+
+```{r}
+df_status(NUEVOACCIDENTES)
+```
+
+Observamos que no hay datos que contengan NA's en ambas bases de datos.
+
+Escribimos nuevos archivos csv con los bases totalmente limpias:
+
+```{r}
+write_csv(NUEVOACCIDENTES,"accidenteslimpio.csv")
+write_csv(NUEVOVELOCIDADES,"velocidadeslimpio.csv")
+```
+
+De ahora en adelante usaremos las bases de datos limpias.
+
+```{r}
+ACCIDENTESL <- read_csv("accidenteslimpio.csv")
+VELOCIDADESL <- read_csv("velocidadeslimpio.csv")
+```
+
+### Variables
+
+#### Base de datos 1: Accidentes
+
+| Variable   | Tipo               | ¿Para qué la usaremos?                                                                                                |
+|------------|------------|-------------------------------------------------|
+| Fecha      | Categórica ordinal | Hallamos en qué meses tiempo suceden más accidentes                                                                   |
+| Región     | Categórica nominal | Hallaremos las regiones en las que suceden más accidentes y encontrar una relación con la modalidad de los accidentes |
+| Modalidad  | Categórica nominal | Encontrar cuál es la modalidad más común de accidentes                                                                |
+| Fallecidos | Numérica discreta  | Hallar la cantidad de fallecidos en en cada región y verificar si esta se relaciona con la cantidad de accidentes     |
+| Heridos    | Numérica discreta  | Hallar la cantidad de heridos en en cada región y verificar si esta se relaciona con la cantidad de accidentes        |
+
+#### Base de datos 2: Velocidades
+
+| Variable            | Tipo               | ¿Para qué la usaremos?                                                                                      |
+|-------------|-------------|----------------------------------------------|
+| Fecha               | Categórica ordinal | Hallaremos en qué meses tiempo se exceden más los límites de velocidad                                      |
+| Región              | Categórica nominal | Hallaremos en qué regiones se exceden los límites de velocidad y cuánto es que se sobrepasan de este límite |
+| Límite de velocidad | Numérica discreta  | Nos servirá para saber cuánto se excede la velocidad en las distintas regiones                              |
+| Velocidad detectada | Numérica discreta  | La usaremos para comparar las velocidades en las distintas regiones, hallar los excesos de velocidad        |
+
+## Análisis descriptivo
+
+### Descriptores numéricos y gráficos:
+
+#### Variable fecha en base de datos de ACCIDENTES
+
+Para una mejor visualización y análisis de los datos, agruparemos las fechas por meses.
+
+```{r}
+#Datos del año 2020
+NUEVOACCIDENTES_cat <- cut(
+  ACCIDENTESL$FECHA, breaks = c(20200101,20200201,20200301,20200401,20200501,20200601,20200701,20200801,20200901,20201001,20201101,20201201,20201231),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviebre","Diciembre")
+)
+#Datos del año 2021
+NUEVOACCIDENTES_fe <- cut(
+  ACCIDENTESL$FECHA, breaks = c(20210101,20210201,20210301,20210401,20210501,20210601,20210701,20210801,20210901,20210931),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre")
+)
+```
+
+a\.
+**Hallamos el mes en el que ocurrieron más y menos accidentes en el año 2020**
+
+```{r}
+table(NUEVOACCIDENTES_cat)[which.max(table(NUEVOACCIDENTES_cat))]
+table(NUEVOACCIDENTES_cat)[which.min(table(NUEVOACCIDENTES_cat))]
+```
+
+b\.
+**Gráfico de accidentes en el 2020**
+
+```{r}
+
+
+barplot(table((NUEVOACCIDENTES_cat)),
+        cex.names = 0.7,
+        las=2,
+        main = "Cantidad de accidentes en el año 2020",
+        xlab = "Meses año 2020",
+        ylab = "Frecuencia",
+        ylim = c(0,400),
+        col = c("orange","orange","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","orange"))
+```
+
+c\.
+**Hallamos los meses en los que ocurrieron más y menos accidentes en el año 2021**
+
+```{r}
+table(NUEVOACCIDENTES_fe)[which.max(table(NUEVOACCIDENTES_fe))]
+table(NUEVOACCIDENTES_fe)[which.min(table(NUEVOACCIDENTES_fe))]
+```
+
+d\.
+**Gráfico de accidentes ocurridos en el 2021**
+
+```{r}
+
+barplot(table((NUEVOACCIDENTES_fe)),
+        cex.names = 0.7,
+        las=2,
+        main = "Cantidad de accidentes en el año 2021" ,
+        xlab = "Meses año 2021",
+        ylab = "Frecuencia",
+        ylim=c(0,400),
+        col = c("#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","orange","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1"))
+```
+
+-   Análisis de los datos obtenidos:
+
+La primera gráfica nos muestra la cantidad de accidentes en el año 2020, podemos observar que en el mes de enero (361 accidentes) y febrero hay mayor cantidad de accidentes, también que hay una disminución de accidentes entre los meses de marzo hasta agosto, siendo el mes de abril con la menor cantidad de accidentes (83).
+Esto se puede explicar dado que en este periodo hubo restricciones de tránsito vehícular debido a la pandemia del COVID 19.
+
+La segunda gráfica nos muestra la cantidad de accidentes en el año 2021, podemos observar que existe una pequeña tendencia al aumento.
+Finalmente, observamos que en el mes de Agosto hubo más accidentes( 375 ) y en el mes de febrero hubo menos cantidad de accidentes(263).
+
+Así mismo, podemos notar que enero y febrero de 2021 hubo una disminución de accidentes con respecto al año 2020.
+Esto se puede explicar dado que al inicio del año 2021, aún se continuaba con restricciones debido a la pandemia del COVID-19.
+
+#### Variable modalidad en base de datos de ACCIDENTES
+
+```{r}
+ACCI_2020 <-subset(ACCIDENTESL, 20200000<FECHA )
+ACCI_2020 <- subset(ACCI_2020,FECHA<20210000 )
+
+ACCI_2021 <-subset(ACCIDENTESL, 20210000<FECHA )
+ACCI_2021 <- subset(ACCI_2021,FECHA<20220000 )
+
+
+```
+
+a\.
+**Cantidad total del tipo de modalidades que se han dado en el 2020**
+
+```{r}
+table(ACCI_2020$MODALIDAD)
+```
+
+b\.
+**Porcentaje de cada tipo de modalidad en 2020**
+
+```{r}
+r(prop.table(table(ACCI_2020$MODALIDAD))*100)
+```
+
+c\.
+**Gráfico de modalidades accidentes por modalidad en el 2020**
+
+```{r}
+my_colors <- c("#838B8B","orange","orange","#838B8B", "aquamarine3")
+#CANTIDAD DE ACCIDENTES POR MODALIDAD DEL 2020
+ACCIDENTES_REL_20 <- ACCI_2020 %>% group_by(MODALIDAD) %>% summarise(accidentes=n())
+barplot(ACCIDENTES_REL_20$accidentes,space = 0.1,col = my_colors,ylim=c(0,2200),main="Cantidad de accidentes por Modalidad en el año 2020",xlab="Modalidad",ylab="Cantidad de Accidentes", names.arg = (ACCIDENTES_REL_20$MODALIDAD),cex.axis = 0.8, cex.names =0.8)
+
+total_accidentes_20 <- sum(ACCIDENTES_REL_20$accidentes)
+ACCIDENTES_REL_20$Porcentaje <- r(ACCIDENTES_REL_20$accidentes / total_accidentes_20 * 100)
+#ACCIDENTES_REL_20
+
+
+text(x = 1:length(ACCIDENTES_REL_20$MODALIDAD), y = ACCIDENTES_REL_20$accidentes + 1, labels = paste0(ACCIDENTES_REL_20$Porcentaje,"%"),pos = 3, cex = 0.8, col = "black")
+```
+
+d\.
+**Cantidad total del tipo de modalidades que se han dado en el 2021**
+
+```{r}
+table(ACCI_2021$MODALIDAD)
+```
+
+e\.
+**Porcentaje de cada tipo de modalidad en 2021**
+
+```{r}
+r(prop.table(table(ACCI_2021$MODALIDAD))*100)
+```
+
+f\.
+**Gráfico de modalidades accidentes por modalidad en el 2021**
+
+```{r}
+#CANTIDAD DE ACCIDENTES POR MODALIDAD DEL 2021
+ACCIDENTES_REL_21 <- ACCI_2021 %>% group_by(MODALIDAD) %>% summarise(accidentes=n())
+barplot(ACCIDENTES_REL_21$accidentes,col=my_colors,space = 0.1,main ="Cantidad de accidentes por Modalidad en el año 2021",xlab="Modalidad",ylab="Cantidad de Accidentes",ylim=c(0,2200), names.arg = (ACCIDENTES_REL_21$MODALIDAD),cex.axis = 0.8, cex.names =0.8)
+
+
+total_accidentes_21 <- sum(ACCIDENTES_REL_21$accidentes)
+ACCIDENTES_REL_21$Porcentaje <- r(ACCIDENTES_REL_21$accidentes / total_accidentes_21 * 100)
+#ACCIDENTES_REL_21
+
+text(x = 1:length(ACCIDENTES_REL_21$MODALIDAD), y = ACCIDENTES_REL_21$accidentes + 1, labels = paste0(ACCIDENTES_REL_21$Porcentaje,"%"),pos = 3, cex = 0.8, col = "black")
+```
+
+-   Análisis de los datos obtenidos:
+
+    Observamos que en ambos años las modalidades más comunes de accidentes son las de despiste y choque.
+
+    También se puede observar que para el año 2021 la cantidad de choques aumentó respecto a la cantidad registrada en el 2020.
+
+#### Variable región en base de datos de ACCIDENTES
+
+a\.
+**Cantidad de accidentes por cada región**
+
+```{r}
+table(ACCIDENTESL$REGION)
+```
+
+b\.
+**Porcentaje de accidentes por cada región**
+
+```{r}
+r(prop.table(table(ACCIDENTESL$REGION))*100)
+```
+
+c\.
+**Gráfico modalidad de accidente por región**
+
+```{r}
+ggplot(ACCIDENTESL, aes(x = ACCIDENTESL$REGION, fill = MODALIDAD)) +
+  geom_bar() +
+  labs(title = "Modalidad de accidente por Región", x = "Región", y = "Frecuencia")+theme(axis.text.x = element_text(size = 5))
+```
+
+-   Análisis de los datos obtenidos:
+
+    La región donde ocurren más atropellos, choques, despistes, etc.
+    Es en la ciudad de Lima.
+
+    La región donde ocurren menos atropellos, choques, despiste, etc.
+    Es en Cusco y Puno,
+
+    En Moquegua, los accidentes por modalidad de atropello son casi nulos en comparación con los choques o despistes
+
+#### Variable heridos en base de datos de ACCIDENTES
+
+a\.
+**Coeficiente de variación de heridos**
+
+```{r}
+coef_var(ACCIDENTESL$HERIDOS)
+```
+
+b\.
+**Mediana de los heridos en los accidentes**
+
+```{r}
+median(ACCIDENTESL$HERIDOS)
+```
+
+c\.
+**Cuartiles de heridos**
+
+```{r}
+quantile(ACCIDENTESL$HERIDOS)
+```
+
+d\.
+**Moda**
+
+```{r}
+heridos <- table(ACCIDENTESL$HERIDOS)
+
+heridos[which.max(heridos)]
+```
+
+e\.
+**Máximo y mínimo**
+
+```{r}
+max(ACCIDENTESL$HERIDOS)
+min(ACCIDENTESL$HERIDOS)
+```
+
+f\.
+**Gráfico de cantidad de heridos**
+
+```{r}
+boxplot(ACCIDENTESL$HERIDOS, main = "Cantidad de heridos por accidente",horizontal = T , xlab = "cantidad de heridos", col="#FF7F00", outline =T)
+```
+
+Observamos que el máximo se encuentra cercano a 70, es decir, en un accidente hubieron cerca a 70 heridos.
+Sin embargo, este y todos los datos mayores a 10 son considerados atípicos reales, por lo que procederemos a reducir nuestros datos para ver con mayor facilidad la concentración de estos.
+
+```{r}
+AV <- filter(ACCIDENTESL,ACCIDENTESL$HERIDOS < 10)
+
+boxplot(AV$HERIDOS, main = "Cantidad de heridos por accidentes",horizontal = T , xlab = "cantidad de heridos", col="#FF7F00", outline =T)
+```
+
+-   Análisis de los datos obtenidos:
+
+    En el segundo gráfico de caja, podemos observar que la mediana se encuentra en 1.
+    Así mismo, observamos que el rango intercuartil es aproximadamente 2.
+    Lo cual se pudo corroborar numéricamente.
+
+    Así mismo, dado que la moda es 0, entonces en muchos de los accidentes registrados no hubo heridos.
+    Por otro lado, gracias al coeficiente de variación podemos observar que las cantidades de heridos en los accidentes varía mucho.
+
+#### Variable fallecidos en base de datos de ACCIDENTES
+
+a\.
+**Coeficiente de variación de fallecidos**
+
+```{r}
+coef_var(ACCIDENTESL$FALLECIDOS)
+```
+
+b\.
+**Mediana de los fallecidos en los accidentes**
+
+```{r}
+median(ACCIDENTESL$FALLECIDOS)
+
+```
+
+c\.
+**Cuartiles de fallecidos**
+
+```{r}
+quantile(ACCIDENTESL$FALLECIDOS)
+```
+
+d\.
+**Cantidad de fallecidos**
+
+```{r}
+
+fallecidos <- table(ACCIDENTESL$FALLECIDOS)
+fallecidos
+
+```
+
+e\.
+**Moda**
+
+```{r}
+fallecidos[which.max(heridos)]
+```
+
+f\.
+**Máximo y mínimo**
+
+```{r}
+max(ACCIDENTESL$FALLECIDOS)
+min(ACCIDENTESL$FALLECIDOS)
+```
+
+-   Análisis de los datos obtenidos:
+
+    Dado que la moda es 0, hubo muchos accidentes en los que no hubo fallecidos.
+
+    El coeficiente de variación alta nos indica que hay una dispersión alta en la cantidad de fallecidos registrados , siendo el número 33 de fallecidos la cantidad más alta.
+
+#### Cantidad de personas afectadas por los accidentes de tránsito en cada región
+
+```{r}
+
+acc_en_reg <- aggregate(cbind(FALLECIDOS, HERIDOS) ~ REGION, data = ACCIDENTESL, sum)
+
+barplot(cbind(FALLECIDOS, HERIDOS) ~ REGION,space = 0.1, data = acc_en_reg,names.arg= (acc_en_reg$REGION),col = c("red","green"), cex.axis = 1, cex.names = 0.4,  xlab = "Regiones",ylab = "Cantidad de personas afectadas",main = "Cantidad de personas afectadas 
+        por los accidentes de tránsito en cada región (2020-2021)")
+legend("topright", c("Heridos","Fallecidos"), fill = c("green","red"))      
+```
+
+-   Análisis de los datos obtenidos:
+
+En el gráfico obtenido, observamos que la región con mayor cantidad heridos y fallecidos es la de Lima y la región con menor cantidad de accidentes es Moquegua.
+Observamos también que la proporción de la cantidad de fallecidos con respecto a los accidentes es pequeña en todas las regiones.
+Por lo que podríamos deducir que en los accidentes que se registraron durante el 2020 y 2021, la cantidad de heridos fue mucho mayor a la de fallecidos.
+
+#### Heridos y fallecidos por modalidad
+
+```{r}
+#accidentes en el 2020
+NA2020 <- filter(ACCIDENTESL, 20200000 < FECHA & FECHA < 20201232)
+NA2020 <- aggregate(cbind(FALLECIDOS, HERIDOS) ~ MODALIDAD, data = NA2020, sum)
+#accidentes en el 2021
+NA2021<-filter(ACCIDENTESL, 20210000 < FECHA & FECHA < 20211232)
+NA2021 <- aggregate(cbind(FALLECIDOS, HERIDOS) ~ MODALIDAD, data = NA2021, sum)
+
+```
+
+a\.
+**Máximo de heridos por modalidad en el 2020**
+
+```{r}
+NA2020$MODALIDAD[which.max(NA2020$HERIDOS)]
+max(NA2020$HERIDOS)
+```
+
+b\.
+**Máximo de fallecidos por modalidad en el 2020**
+
+```{r}
+NA2020$MODALIDAD[which.max(NA2020$FALLECIDOS)]
+max(NA2020$FALLECIDOS)
+```
+
+c\.
+**Máximo de heridos por modalidad en el 2021**
+
+```{r}
+NA2021$MODALIDAD[which.max(NA2021$HERIDOS)]
+max(NA2021$HERIDOS)
+```
+
+d\.
+**Máximo de fallecidos por modalidad en el 2021**
+
+```{r}
+NA2021$MODALIDAD[which.max(NA2021$FALLECIDOS)]
+max(NA2021$FALLECIDOS)
+```
+
+e\.
+**Gráfico de cantidad de heridos y fallecidos por modalidad en el 2020**
+
+```{r}
+
+
+barplot(cbind(FALLECIDOS, HERIDOS) ~ MODALIDAD, space = 0.1, data = NA2020,names.arg= (NA2020$MODALIDAD),col = c("red","green"), cex.axis = 1, cex.names = 0.4,  xlab = "Modalidades",ylab = "Heridos y fallecidos ",main = "Cantidad de heridos y fallecidos por modalidad en el año 2020")
+legend("topright", c("Heridos","Fallecidos"), fill = c("green","red"))  
+```
+
+f\.
+**Gráfico de cantidad de heridos y fallecidos por modalidad en el 2021**
+
+```{r}
+
+
+barplot(cbind(FALLECIDOS, HERIDOS) ~ MODALIDAD, space = 0.1, data = NA2021,names.arg= (NA2021$MODALIDAD),col = c("red","green"), cex.axis = 1, cex.names = 0.4,  xlab = "Modalidades",ylab = "Heridos y fallecidos ",main = "Cantidad de heridos y fallecidos por modalidad en el año 2021")
+legend("topright", c("Heridos","Fallecidos"), fill = c("green","red")) 
+```
+
+-   Análisis de los datos obtenidos:
+
+Podemos apreciar que en ambos años 2020 y 2021 la proporción de la cantidad de fallecidos y heridos es igual es igual.
+Lo mismo sucede con las proporciones en Atropello, donde la cantidad de heridos y fallecidos es casi igual.
+
+Se puede notar que los accidentes por choque fueron los más mortíferos en el 2020 y 2021.
+Así mismo, se observa que la cantidad de fallecidos por despiste aumentaron en el 2021.
+
+#### Variable fecha en base de datos VELOCIDADES
+
+Para una mejor visualización y análisis de los datos, agruparemos las fechas por meses.
+
+```{r}
+#DAtos del año 2020
+NUEVOVELOCIDADES_cat <- cut(
+  VELOCIDADESL$FECHA, breaks = c(20200101,20200201,20200301,20200401,20200501,20200601,20200701,20200801,20200901,20201001,20201101,20201201,20201231),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviebre","Diciembre")
+)
+#Datos del año 2021
+NUEVOVELOCIDADES_fe <- cut(
+  VELOCIDADESL$FECHA, breaks = c(20210101,20210201,20210301,20210401,20210501,20210601,20210701,20210801,20210901,20211001,20211101,20211130),
+  labels = c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre")
+)
+
+```
+
+a\.
+**Hallamos con exactitud la cantidad máxima y mínima de vehículos que excedieron los límites de velocidad en el año 2020**
+
+```{r}
+table(NUEVOVELOCIDADES_cat)[which.max(table(NUEVOVELOCIDADES_cat))]
+table(NUEVOVELOCIDADES_cat)[which.min(table(NUEVOVELOCIDADES_cat))]
+
+```
+
+b\.
+**Gráfica de cantidad de vehículos que excedieron la velocidad en el año 2020**
+
+```{r}
+
+barplot(table((NUEVOVELOCIDADES_cat)),
+        cex.names = 0.7,
+        las=2,
+        main = "Cantidad de vehículos que excedieron la velocidad en el año 2020",
+        xlab = "Meses año 2020",
+        ylab = "Frecuencia",
+        ylim=c(0,15000),
+        col = c("orange","#D1D1D1","aquamarine","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1")
+        )
+```
+
+c\.
+**Hallamos con exactitud la cantidad máxima y mínima de vehículos que excedieron los límites de velocidad en el año 2021**
+
+```{r}
+table(NUEVOVELOCIDADES_fe)[which.max(table(NUEVOVELOCIDADES_fe))]
+table(NUEVOVELOCIDADES_fe)[which.min(table(NUEVOVELOCIDADES_fe))]
+```
+
+d\.
+**Gráfica de cantidad de excesos de velocidad en el año 2021**
+
+```{r}
+
+barplot(table((NUEVOVELOCIDADES_fe)),
+        cex.names = 0.7,
+        las=2,
+        main = "Cantidad de excesos de velocidades en el año 2021",
+        xlab = "Meses año 2021",
+        ylab = "Frecuencia",
+        ylim=c(0,16000),
+        col = c("orange","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1"))
+```
+
+-   Análisis de datos obtenidos:
+
+La primera gráfica nos muestra la cantidad de excesos de velocidades en el año 2020, en esta de aprecia una disminución de excesos de velocidades entre los meses de marzo a agosto, asumimos que esta disminución es por el periodo de pandemia, también se observa que el mes de enero hubo mas cantidad de exceso de velocidad esto podría explicarse porque en estas fechas hay mayor movimiento de personas por vacaciones.
+
+La segunda gráfica nos muestra la cantidad de excesos de velocidades en el año 2021, donde se observa que en el mes de enero registro mayor cantidad de exceso de velocidad y en el mes de octubre se registro menor cantidad de exceso de velocidad.
+
+#### Variable región en base de datos de VELOCIDADES
+
+a\.
+**Infracciones por región**
+
+```{r}
+table(VELOCIDADESL$REGION)
+```
+
+b\.
+**Porcentaje de infracciones por región**
+
+```{r}
+r(prop.table(table(VELOCIDADESL$REGION))*100)
+```
+
+c\.
+**Gráfico de infracciones por región**
+
+```{r}
+table(VELOCIDADESL$REGION)
+barplot(table(VELOCIDADESL$REGION),
+        cex.names = 0.7,
+        las=2, col = c("#838B8B","#838B8B","aquamarine3","#838B8B","#838B8B","#838B8B","orange","aquamarine3","#838B8B","#838B8B"))
+```
+
+-   Análisis de los datos obtenidos
+
+    Se puede observar que las regiones de Ica y Moquegua se encuentra el menor número de infracciones de velocidad, mientras que Lima se posiciona como la región con más infracciones de velocidad de todas.
+    La libertad queda a menos de la mitad de infracciones de Lima.
+
+#### Variable Velocidad detectada en base de dato VELOCIDADES
+
+a\.
+Velocidad mínima detectada
+
+```{r}
+min(VELOCIDADESL$VELOCIDAD_DETECTADA)
+```
+
+b\.
+Velocidad máxima detectada
+
+```{r}
+
+max(VELOCIDADESL$VELOCIDAD_DETECTADA)
+```
+
+c\.
+Moda de velocidad detectada
+
+```{r}
+t <- table(VELOCIDADESL$VELOCIDAD_DETECTADA)
+t[which.max(t)]#velocidad más comun
+```
+
+d\.
+Coeficiente de variación de las velocidad detectas
+
+```{r}
+coef_var(VELOCIDADESL$VELOCIDAD_DETECTADA)
+```
+
+e, Gráfica de velocidades detectadas
+
+```{r}
+hist(VELOCIDADESL$VELOCIDAD_DETECTADA,breaks = 15,ylab = "Frecuencia",xlab = "Velocidad", main = "Velocidades detectas de vehículos infractores
+     en los años 2020 y 2021 ", col = c("#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#D1D1D1","#07adff","#07adff"))
+legend("topright", c("Moda"), fill = c("#07adff")) 
+
+```
+
+-   Análisis de los datos obtenidos
+
+    Se puede observar que el coeficiente de variación es muy cercano a 0, por lo que podemos concluir que la velocidad a la que iban los vehículos infractores, no varía demasiado.
+
+    Además, la velocidad a la que la mayoría de autos que fueron detenidos iban a una velocidad de 107 km/h.
+
+#### Variable velocidad límite en base de dato VELOCIDADES
+
+a\.
+**Mínima** velocidad límite y la región dónde se impone este límite
+
+```{r}
+VELOCIDADESL$REGION[which.min(VELOCIDADESL$LIMITE_VELOCIDAD)]
+min(VELOCIDADESL$LIMITE_VELOCIDAD)
+```
+
+b\.
+**Máxima** velocidad límite y la región dónde se impone este límite
+
+```{r}
+VELOCIDADESL$REGION[which.max(VELOCIDADESL$LIMITE_VELOCIDAD)]
+max(VELOCIDADESL$LIMITE_VELOCIDAD)
+```
+
+c\.
+**Cuartiles**
+
+```{r}
+quantile(VELOCIDADESL$LIMITE_VELOCIDAD)
+```
+
+d\.
+**Gráfica de excesos de velocidades por regiones en porcentaje**
+
+```{r}
+B<- VELOCIDADESL
+
+#Se pide hallar los promedios del exceso de velocidades en los elementos de region del dataset de velocidades, primero genero la columna exceso que es la diferencia entre la velocidad detectada y el límite de velocidad.
+B$EXCESO <- B$VELOCIDAD_DETECTADA - B$LIMITE_VELOCIDAD
+B$porc_excesos <- r(B$VELOCIDAD_DETECTADA/B$LIMITE_VELOCIDAD)
+#B$EXCESO <- B$VELOCIDAD_DETECTADA - B$LIMITE_VELOCIDAD
+#Luego hallo numéricamente las medias de exceso de velocidad por región.
+
+B %>% filter(REGION=="LIMA")-> Lima
+B %>% filter(REGION=="ANCASH")-> Ancash
+B %>% filter(REGION=="AREQUIPA")-> Arequipa
+B %>% filter(REGION=="ICA")-> Ica
+B %>% filter(REGION=="JUNIN")-> Junin
+B %>% filter(REGION=="LA LIBERTAD")-> Libertad
+B %>% filter(REGION=="LAMBAYEQUE")-> Lambayeque
+B %>% filter(REGION=="MOQUEGUA")-> Moquegua
+B %>% filter(REGION=="PIURA")-> Piura
+B %>% filter(REGION=="PUNO")-> Puno
+
+```
+
+```{r,eval=FALSE}
+#mean(Lima$EXCESO)
+#mean(Ancash$EXCESO)
+#mean(Arequipa$EXCESO)
+#mean(Ica$EXCESO)
+#mean(Junin$EXCESO)
+#mean(Libertad$EXCESO)
+#mean(Lambayeque$EXCESO)
+#mean(Moquegua$EXCESO)
+#mean(Piura$EXCESO)
+#mean(Puno$EXCESO)
+
+
+mean(Lima$porc_excesos)
+mean(Ancash$porc_excesos)
+mean(Arequipa$porc_excesos)
+mean(Ica$porc_excesos)
+mean(Junin$porc_excesos)
+mean(Libertad$porc_excesos)
+mean(Lambayeque$porc_excesos)
+mean(Moquegua$porc_excesos)
+mean(Piura$porc_excesos)
+mean(Puno$porc_excesos)
+
+#boxplot((B$EXCESO) ~ (B$REGION),
+#        las=1, 
+#        col= "red",
+#        ylab = "Excesos",
+#        xlab = "Regiones",
+ #       ) 
+
+boxplot((B$porc_excesos) ~ (B$REGION),outpch = 22,
+        ylim =c(0,4),
+        las=1,
+        cex.axis = 0.4,
+        col= "red",
+        ylab = "Excesos",
+        xlab = "Regiones"
+        ) 
+```
+
+e\.
+**Relación entre el exceso mínimo y su límite correspondiente**
+
+```{r}
+B$REGION[which.max(B$porc_excesos)]
+max(B$porc_excesos)
+```
+
+f\.
+**Valor de exceso máximo**
+
+```{r}
+B$REGION[which.max(B$EXCESO)]
+max(B$EXCESO)
+```
+
+g\.
+**Relación entre el exceso mínimo y su límite correspondiente**
+
+```{r}
+B$REGION[which.min(B$porc_excesos)]
+min(B$porc_excesos)
+```
+
+h\.
+**Valor de exceso mínimo**
+
+```{r}
+B$REGION[which.min(B$EXCESO)]
+min(B$EXCESO)
+```
+
+-   Análisis de datos obtenidos:
+
+    En todas las regiones se presentan datos atípicos sobre las cajas, pero la región con el valor máximo de exceso de velocidad es Lima con 142km/h por encima del límite de velocidad.
+    Es decir, supera en 4.7 veces al límite.
+
+    Así mismo, la región con el valor máximo de exceso de velocidad es Puno con 2km/h por encima del límite de velocidad.
+    Es decir, supera en muy poco al límite.
+
+    Por otro lado, el 50% de regiones tiene un límite de velocidad menor a 80km/h.
+
+#### Heridos e infracciones por región
+
+Agrupamos los datos de infracciones(observaciones) en la base de datos de Velocidades y las cantidades de heridos y fallecidos en la base de datos de Accidentes
+
+```{r}
+
+AFH <- aggregate(cbind(FALLECIDOS, HERIDOS) ~ REGION, data = ACCIDENTESL, sum)
+VR <- as.data.frame(table(VELOCIDADESL$REGION))
+
+
+
+```
+
+a\.
+**Hallamos los coeficientes de la recta de regresión lineal**
+
+```{r}
+lm(AFH$HERIDOS ~ VR$Freq)
+```
+
+```{r}
+r(517.02879)
+r(0.01327)
+```
+
+b\.
+**Gráficamos**
+
+```{r}
+plot(VR$Freq, AFH$HERIDOS, ylab = "Cantidad de heridos en las regiones",xlab = "Cantidad de vehículos infractores en las regiones", main ="Infracciones vs Heridos")
+abline(lm(AFH$HERIDOS ~ VR$Freq), col = "red")
+
+```
+
+c\.
+**Correlación entre las variables**
+
+```{r}
+cor(AFH$HERIDOS , VR$Freq)
+```
+
+-   Análisis de datos obtenidos:
+
+    El gráfico nos muestra la relación entre la cantidad de infracciones registradas y la cantidad de heridos en los accidentes de las distintas regiones.
+    Además, la correlación nos indica que hay una asociación lineal fuerte y positiva entre ambas variables y está dada por la siguiente expresión
+
+    y(x) =0.01x +517.03
+
+#### Fallecidos e infracciones por región
+
+a\.
+**Hallamos la correlación entre las variables**
+
+```{r}
+cor(AFH$FALLECIDOS , VR$Freq)
+
+```
+
+b\.
+**Hallamos los coeficientes de la recta de regresión lineal**
+
+```{r}
+lm(AFH$FALLECIDOS ~ VR$Freq)
+```
+
+```{r}
+r(72.913078 )
+round(0.001601,3)
+```
+
+c\.
+**Graficamos la interacción de las variables**
+
+```{r}
+plot(VR$Freq,AFH$FALLECIDOS, ylab = "Cantidad de fallecidos en las regiones",xlab = "Cantidad de vehículos infractores en las regiones", main ="Infracciones vs Fallecidos")
+abline(lm(AFH$FALLECIDOS ~ VR$Freq), col = "red")
+```
+
+-   El gráfico nos muestra la relación entre la cantidad de infracciones registradas y la cantidad de fallecidos en los accidentes de las distintas regiones.
+    Además, la correlación nos indica que hay una asociación lineal fuerte y positiva entre ambas variables y está dada por la siguiente expresión
+
+    y(x) =0.002x + 72.91

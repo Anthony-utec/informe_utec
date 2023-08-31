@@ -1,0 +1,590 @@
+---
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    code-overflow: scroll
+    code-block-bg: true
+    execute:
+      warning: false
+    css: styles.css
+    theme:
+      light: flatly
+      dark: darkly
+toc: true
+toc-depth: 4
+toc-title: ""
+toc-location: left
+self-contained: true
+---
+
+# [Análisis de las características de los hogares pobres en Lima en el cuarto trimestre del 2022]{style="color: #e00000;"}
+
+```{r, echo=F, include=F}
+librerias <- c("readr", "dplyr", "tibble","rmarkdown","tidytext", "moments", "ggplot2")
+install_libraries <- function(libreria) {
+  if (!require(libreria, character.only = TRUE)) {
+    install.packages(libreria, dependencies = TRUE)
+  }
+}
+lapply(librerias, install_libraries)
+EDUCACION <- read_csv("Educacion.csv", locale=locale(encoding="latin1"))
+SALUD <- read_csv("Salud.csv", locale=locale(encoding="latin1"))
+INGRESOS <- read_csv("Ingresos.csv", locale=locale(encoding="latin1"))
+CARACTERISTICA <- read_csv("Caracteristica.csv", locale=locale(encoding="latin1"))
+```
+
+## [Introducción]{style="color: #014ba0;"}
+
+### Relevancia
+
+Actualmente, la pobreza es uno de los factores socioeconómicos que arraiga en cada país. Por esta razón, este fenómeno limita el desarrollo de cada individuo y de una sociedad, por lo que se considera un tema relevante para analizar.
+
+### Objetivos
+
+-   Objetivo general:
+
+    -   Analizar las características de los hogares pobres en Lima en el cuarto trimestre del 2022.
+
+-   Objetivos específicos:
+
+    -   Determinar la relación entre el nivel de pobreza y el nivel de educación en Lima en el cuarto trimestre del 2022.
+
+    -   Determinar la relación entre el nivel de pobreza y la cantidad de gastos, evaluada por hogares en Lima en el cuarto trimestre del 2022.
+
+    -   Determinar la relación entre el nivel de pobreza y el acceso a los servicios de Salud, evaluada por hogares en Lima en el cuarto trimestre del 2022.
+
+### Contexto
+
+En 2022, la pobreza monetaria en Perú se incrementó, afectando al 27.5% de la población. Esto plantea un desafío significativo en la lucha contra la pobreza, ya que muchas personas tienen dificultades para satisfacer sus necesidades básicas como: vivienda, educación y acceso a salud.
+
+## [Datos]{style="color: #014ba0;"}
+
+### Proceso de recolección de datos
+
+La base de datos utilizada para este tema de investigación es recopilada por el Instituto Nacional de Estadística e Informática (INEI). El propósito de usar este tipo de información es porque es una fuente confiable y muy extensa en relación a los datos obtenidos de la base de datos. Además, la Encuesta Nacional de Hogares fue realizada en el año 2022, en la modalidad de entrevista mixta, es decir, se inicia la entrevista de manera presencial y luego se hace el recojo de información mediante una entrevista telefónica.
+
+### Población, muestra y muestreo
+
+La población de estudio está definida como el conjunto de todas las viviendas y sus ocupantes que residen en el área urbana y rural de Lima. La muestra es la base de datos recopilada por el INEI donde se considera como universo el total de viviendas en Lima. Por último, el muestreo será igual a la población delimitada por el INEI donde se trabajará con 944 conglomerados y 6270 viviendas.
+
+### Variables
+
+| Variables | Significado                                                                                           | Tipo de Variable   | Restricción                                                                     |
+|---------------|------------------------|---------------|------------------|
+| UBIGEO    | Ubicación geográfica.                                                                                 | Categórica Nominal | Número entero positivo establecido por el lugar donde vive.                     |
+| VIVIENDA  | Número de Selección de Vivienda.                                                                      | Numérica Discreta  | Número entero positivo.                                                         |
+| PERSONA   | Variable que Permite conocer de la persona encuestada.                                                | Categórica Nominal | Número positivo que nos permite enumerar en un orden a las personas encuestadas |
+| P1172\$01 | El último gasto mensual por consumo de: Agua, pagado por algún miembro de este hogar.                 | Numérica discreta  | Número entero positivo                                                          |
+| P1172\$02 | El último gasto mensual por consumo de: Electricidad, pagado por algún miembro de este hogar.         | Numérica discreta  | Número entero positivo                                                          |
+| P1172\$13 | El último gasto mensual por consumo de: TV Cable o Satelital, pagado por algún miembro de este hogar. | Numérica discreta  | Número entero positivo                                                          |
+| P1172\$14 | El último gasto mensual por consumo de: Internet, autoconsumo/autosuministro.                         | Numérica discreta  | Número entero positivo                                                          |
+| P408F5    | Tiempo que demora en obtener una cita (Horas).                                                        | Numérica Continua  | Número positivo y puede ser en decimal                                          |
+| P408G4    | Tiemplo de Desplazamiento al Centro de Salud (Minutos).                                               | Numérica Discreta  | Número entero positivo                                                          |
+| IT        | Ingreso Total.                                                                                        | Numérica Discreta  | Monto S/. Ingreso Total. Número entero positivo                                 |
+| P300A     | Idioma o lengua materna que aprendió en su niñez.                                                     | Categórica Nominal | Marcar una de la palabras que encuentran en la opciones (Rango 1-15)            |
+| P301C     | Último año o grado de estudios y nivel que aprobó (Grado).                                            | Categórica Ordinal | Número entero Positivo.                                                         |
+| P301A     | Último año o grado de estudios y nivel que aprobó (Nivel).                                            | Categórica Ordinal | Marcar una de la palabras que encuentran en la opciones (Rango 1-12)            |
+| P301D     | Último año o grado de estudios y nivel que aprobó (Centro Estudio).                                   | Categórica Nominal | 1\. Estatal 2. No estatal (Rango 1-2)                                           |
+| P314A     | En el mes anterior, ¿Ud. hizo uso del servicio de Internet?                                           | Categórica Nominal | 1\. Si 2. No (Rango 1-2)                                                        |
+| P315A     | ¿Cuánto fue el monto del servicio en el mes anterior?                                                 | Numérica Continua  | Monto S/. Número positivo                                                       |
+
+### Limpieza de datos
+
+```{r, results='hide'}
+# Extracción de datos de la región de Lima.
+
+  DFE <- EDUCACION[grep("^15|^07", EDUCACION$UBIGEO),]
+  DFS <- SALUD[grep("^15|^07", SALUD$UBIGEO),]
+  DFI <- INGRESOS[grep("^15|^07", INGRESOS$UBIGEO),]
+  DFC <- CARACTERISTICA[grep("^15|^07", CARACTERISTICA$UBIGEO),]
+  
+  # Características de la casa:
+    CAR_FILTRO <- DFC[, c("VIVIENDA", "UBIGEO", "P1172$01","P1172$02","P1172$13","P1172$14")]
+
+      # "P1172\$01":
+        CAR_FILTRO$`P1172$01`[CAR_FILTRO$`P1172$01` <7.11] <- NA #Gasto mínimo según la SUNASS
+        
+      # "P1172\$02":
+        numeros <- c(0, 1.5, 2.77, 3.14, 0, 4.2, 5.1, -1, 2.2)
+        nuevos_numeros <- ifelse(numeros == 0 | numeros > 2.77, numeros, NA)
+        CAR_FILTRO$`P1172$02` <- ifelse(CAR_FILTRO$`P1172$02` == 0 | CAR_FILTRO$`P1172$02` > 2.67, CAR_FILTRO$`P1172$02`, NA) # Gasto mínimo según OSINERGMIN
+
+  # Educación:
+    EDU_FILTRO <- DFE[, c("VIVIENDA", "UBIGEO","P300A","P301C", "P301A","P301D","P302","P314A","P315A")]
+
+    # "P301C":
+      EDU_FILTRO <- EDU_FILTRO %>% mutate(P301C = ifelse(P301A == 1,0,P301C))
+      
+    # "P301D":
+      EDU_FILTRO$P301D <- ifelse(EDU_FILTRO$P301D == 1, "Estatal", ifelse(EDU_FILTRO$P301D == 2, "Privado", EDU_FILTRO$P301D))
+
+    # "P314A":
+      EDU_FILTRO$P314A <- ifelse(EDU_FILTRO$P314A == 1, "Si", ifelse(EDU_FILTRO$P314A == 2, "No", EDU_FILTRO$P314A))
+
+    # "P315A":
+      EDU_FILTRO$P315A[EDU_FILTRO$P315A >250] <- NA
+
+  # Salud:
+    SALUD_FILTRO <- DFS[, c("VIVIENDA", "UBIGEO","P407F2","P407F3", "P407F4","P407G1","P407G2","P407G3","P4091")]
+
+    # "P408F5":
+    time_hours <- (ifelse(is.na(SALUD_FILTRO$P407F2), 0, SALUD_FILTRO$P407F2) * 24) + ifelse(is.na(SALUD_FILTRO$P407F3), 0, SALUD_FILTRO$P407F3) + ifelse(is.na(SALUD_FILTRO$P407F4), 0, SALUD_FILTRO$P407F4) / 60
+    SALUD_FILTRO$P408F5 <- round(time_hours,2)
+    SALUD_FILTRO$P408F5[SALUD_FILTRO$P408F5==0] <- NA
+    
+    # "P408G4":
+    SALUD_FILTRO <- SALUD_FILTRO %>% mutate(P408G4 = ifelse(is.na(P407G1) | is.na(P407G2) | is.na(P407G3), NA, P407G1 * 24 * 60 + P407G2 * 60 + P407G3))
+    SALUD_FILTRO$P408G4 <- ifelse(SALUD_FILTRO$P408G4 >=1440, NA, SALUD_FILTRO$P408G4)
+    SALUD_FILTRO <- SALUD_FILTRO[, c("VIVIENDA", "UBIGEO", "P408F5", "P408G4")]
+
+  # Ingresos:
+    
+      ING_FILTRO <- DFI[, c("VIVIENDA", "UBIGEO","P523","P524A1", "P530A", "P538A1", "P541A")]
+         ING_FILTRO$P524A1[ING_FILTRO$P524A1>999998] <- NA
+        ING_FILTRO$P530A[ING_FILTRO$P530A>999998] <- NA
+        ING_FILTRO$P538A1[ING_FILTRO$P538A1>999998] <- NA
+        ING_FILTRO$P541A[ING_FILTRO$P541A>999998] <- NA
+
+      ING_FILTRO <- ING_FILTRO %>% mutate(n1 = case_when(P523 == 1 ~ 30, P523 == 2 ~ 4, P523 == 3 ~ 2, P523 == 4 ~ 1,TRUE ~ NA))
+      ING_FILTRO <- ING_FILTRO %>% mutate(IOP = ifelse(is.na(P524A1) | is.na(P523), NA, P524A1 * n1))
+       ING_FILTRO <- ING_FILTRO %>% mutate(IT = rowSums(.[, c("IOP","P538A1", "P530A","P541A")], na.rm = TRUE))
+      ING_FILTRO$IT[ING_FILTRO$IT==0] <- NA
+      ING_FILTRO <- ING_FILTRO[, c("VIVIENDA", "UBIGEO", "IT")]
+
+# Unión de las cuatro secciones de la base de datos
+  CAR_FILTRO <- arrange(CAR_FILTRO,CAR_FILTRO$VIVIENDA)
+  CAR_FILTRO <- arrange(CAR_FILTRO,CAR_FILTRO$UBIGEO)
+  CAR_FILTRO <- CAR_FILTRO %>%
+  group_by(CAR_FILTRO$UBIGEO, CAR_FILTRO$VIVIENDA) %>%
+  mutate(PERSONA = row_number())
+  EDU_FILTRO <- EDU_FILTRO %>%
+  group_by(EDU_FILTRO$UBIGEO, EDU_FILTRO$VIVIENDA) %>%
+  mutate(PERSONA = row_number())
+  SALUD_FILTRO <- SALUD_FILTRO %>%
+  group_by(SALUD_FILTRO$UBIGEO, SALUD_FILTRO$VIVIENDA) %>%
+  mutate(PERSONA = row_number())
+  ING_FILTRO <- ING_FILTRO %>%
+  group_by(ING_FILTRO$UBIGEO, ING_FILTRO$VIVIENDA) %>%
+  mutate(PERSONA = row_number())
+  datos_unidos <- merge(CAR_FILTRO, SALUD_FILTRO, by = c("UBIGEO" ,"VIVIENDA" ,"PERSONA"), all = TRUE)
+  datos_unidos <- merge(datos_unidos, ING_FILTRO, by = c("UBIGEO" ,"VIVIENDA" ,"PERSONA"), all = TRUE)
+  datos_unidos <- merge(datos_unidos, EDU_FILTRO, by = c("UBIGEO" ,"VIVIENDA" ,"PERSONA"), all = TRUE)
+  datos_unidos <- select(datos_unidos,-`CAR_FILTRO$VIVIENDA`,-`CAR_FILTRO$UBIGEO`,-`SALUD_FILTRO$VIVIENDA`,-`SALUD_FILTRO$UBIGEO`,-`ING_FILTRO$VIVIENDA`,-`ING_FILTRO$UBIGEO`,-`EDU_FILTRO$VIVIENDA`,-`EDU_FILTRO$UBIGEO`)
+
+# Exportación del Data Frame.
+  write.csv(datos_unidos, file = "DATAFRAME.csv", row.names = FALSE)
+# Se lee la data.
+  DATAFRAME <- read_csv("DATAFRAME.csv")
+```
+
+Inicialmente se tenían 4 CSVs correspondientes las diferentes categorías de las encuestas realizadas en todo el Perú: características de la casa, educación, salud e ingresos. En primera instancia, se extrajeron y validaron las observaciones pertenecientes a la región Lima, utilizando la variable "Ubigeo" como criterio de selección.
+
+Luego, se extrajeron todas las variables que se utilizarían posteriormente en el análisis.
+
+La verificación de respuestas esperadas fueron realizadas con la función "unique" o "summary", sin embargo no están contempladas en el código. Todas las observaciones que no estaban dentro de lo esperado fueron considerados como NA.
+
+Luego se procedió a hacer la limpieza de datos para los datos atípicos; para ello se tomaron datos de diferentes organizaciones y entidades como el OSINERMING. Simultáneamente se realizó la limpieza de datos para categoría y variable tomando en cuenta ciertas consideraciones.
+
+Luego se creó la variable persona (que consiste en números sucesivos teniendo en cuenta el "Ubigeo" y el numero de vivienda encuestada). Posteriormente, se unió las 4 CSVs teniendo en cuenta el numero de vivienda y numero de persona.
+
+Finalmente se guardo el CSV resultante con el nombre DATAFRAME.
+
+## [Análisis descriptivo]{style="color: #014ba0;"}
+
+### Univariado
+
+#### [Gastos básicos de la casa]{style="color: #4b1c71;"}
+El análisis de los gastos básicos en hogares pobres en Lima es crucial para comprender las condiciones de vida y las oportunidades de desarrollo de estos hogares. Estos indicadores reflejan el acceso a servicios básicos y medios de comunicación, y su estudio proporcionará información valiosa sobre las condiciones de vida y las posibilidades de crecimiento de estos hogares.
+```{r,echo=FALSE}
+set.seed(1)
+data <- data.frame(
+  AGUA = DATAFRAME$`P1172$01`,
+  ELECTRICIDAD = DATAFRAME$`P1172$02`,
+  TV = DATAFRAME$`P1172$13`,
+  INTERNET = DATAFRAME$`P1172$14`
+)
+
+# Crear el gráfico de boxplot
+boxplot(data, ylab="Gastos(soles)", col = c("lightblue", "lightpink", "lightgreen", "lightgray"))
+
+media <- colMeans(data, na.rm = TRUE)
+
+# Agregar los puntos de la media al gráfico
+points(x = 1:length(media), y = media, col = "red", pch = 19)
+legend("topright", legend = c("Media"), pch = c(16), col = c("red"),bty="n")
+```
+
+En promedio, los gastos en agua, electricidad, TV e Internet son de 49 soles, 83.7 soles, 44.4 soles y 59.7 soles, respectivamente. Se observa que, en promedio, los gastos en electricidad son más altos que en otras categorías. Además, la dispersión de los gastos en electricidad para el 50% de las personas es mayor en comparación con otras categorías. Por otro lado, los gastos en agua y TV, en promedio, son menores en comparación con las demás categorías. Asimismo, la dispersión de los gastos en agua y TV para el 50% de las personas es menor en comparación con las demás categorías. Para los gastos en Internet, se observa que la dispersión de dichos gastos para el 50% de las personas es mayor en comparación con los gastos en agua y TV, pero menor en comparación con los gastos en electricidad.
+
+#### [Gasto en electricidad]{style="color: #4b1c71;"}
+La variable analizada representa el gasto en electricidad de los hogares, una medida relevante al considerar factores de pobreza.
+
+```{r, echo=F}
+# Calcular estadísticas
+media <- mean(DATAFRAME$`P1172$02`, na.rm = TRUE)
+desviacion_estandar <- sd(DATAFRAME$`P1172$02`, na.rm = TRUE)
+curtosis <- kurtosis(DATAFRAME$`P1172$02`, na.rm = TRUE)
+
+# Crear el histograma y añadir las estadísticas
+ggplot(DATAFRAME, aes(x=`P1172$02`)) +
+  geom_histogram(binwidth=10, fill="blue", color="white") +
+  labs(title="Distribución del Gasto en Electricidad",
+       x="Gasto en Electricidad",
+       y="Frecuencia") +
+  annotate("text", x = Inf, y = Inf, 
+           label = paste("Media = ", round(media, 2),
+                         "\nDesviación Estándar = ", round(desviacion_estandar, 2),
+                         "\nCurtosis = ", round(curtosis, 2)),
+           hjust = 1, vjust = 1, size = 4, color = "black") +
+  theme_minimal()
+```
+
+La muestra consiste en 4999 observaciones. La media de la muestra es de 83 soles, indicando el gasto eléctrico promedio entre los hogares. Por otro lado, la alta curtosis (concentración de los datos al rededor de la media) "8.31" sugiere que hay una cantidad significativa de hogares con gastos de electricidad muy por encima o por debajo de la media, lo que podría reflejar diferencias en el acceso a los servicios eléctricos. Estos factores deben considerarse en el desarrollo e implementación de políticas para abordar la pobreza.
+
+#### [Gasto en agua]{style="color: #4b1c71;"}
+
+Entender el gasto en agua es vital, ya que representa un gasto básico y necesario para todos los hogares.
+
+```{r, echo=F}
+# Eliminar outliers como se hizo previamente
+Q1 <- quantile(DATAFRAME$`P1172$01`, 0.25, na.rm = TRUE)
+Q3 <- quantile(DATAFRAME$`P1172$01`, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+
+lower_bound <- Q1 - 1.5 * IQR
+upper_bound <- Q3 + 1.5 * IQR
+
+data_clean <- DATAFRAME$`P1172$01`[DATAFRAME$`P1172$01` > lower_bound & DATAFRAME$`P1172$01` < upper_bound]
+
+# Calcular estadísticas
+media <- mean(data_clean, na.rm = TRUE)
+desviacion_estandar <- sd(data_clean, na.rm = TRUE)
+curtosis <- kurtosis(data_clean, na.rm = TRUE)
+
+# Imprimir estadísticas
+cat("Media =", round(media, 2), "\n")
+cat("Desviación Estándar =", round(desviacion_estandar, 2), "\n")
+cat("Curtosis =", round(curtosis, 2), "\n")
+
+# Crear el diagrama de densidad
+densidad <- density(data_clean, na.rm = TRUE)
+plot(densidad, main="Distribución del Gasto en Agua (sin outliers)", xlab="Gasto en Agua")
+polygon(densidad, col="blue", border="black")
+abline(v=media, col="red", lty=2)
+```
+
+Se ha realizado un análisis en el que se ha excluido los valores extremos u outliers de la muestra, proporcionando un panorama más preciso del gasto típico en agua. La media re-calculada es de 41.36 soles, con una desviación estándar de 23.45 soles, lo que indica un nivel de dispersión moderado. La curtosis es de 2.91, lo que sugiere una distribución ligeramente más achatada en comparación con una distribución normal, con menos valores extremos.
+
+Al observar el promedio de este gasto, se puede tener una mejor idea de los costos básicos que enfrentan los hogares y cómo estos pueden impactar en su situación económica. Este conocimiento puede ser útil para el diseño de políticas públicas que busquen reducir la pobreza, proporcionando apoyo o subsidios para estos costos básicos.
+
+#### [Tiempo para obtener una cita médica (en horas)]{style="color: #4b1c71;"}
+
+Esta variable es importante, ya que refleja la atención oportuna y manejo de su salud.
+
+```{r, echo=F}
+DATAFRAME$P408F5[DATAFRAME$P408F5>400] <- NA
+```
+
+```{r, echo=F}
+summary(DATAFRAME$P408F5)
+desviacion_estandar <- sd(DATAFRAME$P408F5, na.rm = T)
+cat("La desviación estandar es:", desviacion_estandar) 
+```
+
+```{r, echo=F}
+par(mfrow=c(1,2))
+boxplot(DATAFRAME$P408F5, xlab = "Tiempos de espera (horas)", main = "", horizontal = T)
+colores <- c("skyblue", "pink", "lightgreen")
+boxplot(DATAFRAME$P408F5, xlab = "Tiempos de espera (horas)", outline = F, col = colores, main="", horizontal =T)
+title(main="Diagrama de caja de tiempos de espera", outer = TRUE, line = -2)
+par(mfrow=c(1,1))
+```
+
+Según la muestra estudiada en la ciudad de Lima, se ha observado una variabilidad significativa en los tiempos que los habitantes demoran en obtener una cita médica, que van desde 0.02 horas (aproximadamente 1 minuto) hasta 2 semanas. Además, se ha encontrado una desviación estándar relativamente alta en relación a la media. Esto indica que los tiempos de espera individuales presentan una dispersión considerable en comparación con la media, lo que hace que analizar este descriptor numérico no sea viable como medida representativa.
+
+Sin embargo, al considerar la mediana como un descriptor robusto, se puede concluir que el 50% de los pacientes esperan menos o igual a 1 hora para obtener una cita médica. Esta medida central resistente a valores inusuales proporciona una visión más confiable de los tiempos de espera.
+
+Además, al examinar el gráfico de cajas (boxplot) sin considerar los datos atípicos (imagen de la derecha), se puede observar que el 50% de las personas esperan entre 1 y 4 horas para recibir una cita médica. En este gráfico, la caja representa el rango intercuartílico, donde el 25% de la muestra obtiene la cita en menos de 1 hora, y el otro 25% restante la obtiene en más de 4 horas. Los tiempos menos frecuentes, que podrían considerarse atípicos, podrían estar presentes en esta última categoría.
+
+#### [Tiempo del desplazamiento al centro de salud (en minutos)]{style="color: #4b1c71;"}
+
+Esta variable es importante debido a su impacto directo en la capacidad de las personas para recibir atención médica oportuna.
+
+```{r, echo=F}
+#Descriptores numéricos 
+summary(DATAFRAME$P408G4, na.rm=T)
+desviacion_estandar <- sd(DATAFRAME$P408G4, na.rm = T)
+cat("La desviación estándar es", desviacion_estandar)
+```
+
+```{r, echo=F}
+par(mfrow=c(1,2))
+boxplot(DATAFRAME$P408G4, xlab = "Tiempos de desplazamiento (minutos)", main = "", horizontal =T)
+colores <- c("skyblue", "pink", "lightgreen")
+boxplot(DATAFRAME$P408G4, xlab = "Tiempos de desplazamiento (minutos)", main = "", outline = F, col = colores, horizontal =T)
+title(main="Boxplot de tiempo de desplazamiento", outer = TRUE, line = -2)
+par(mfrow=c(1,1))
+```
+
+Algunas personas tienen distancias cortas y pueden llegar al centro de salud en tan solo 1 minuto, mientras que otras deben hacer viajes mucho más largos, llegando incluso a tardar hasta 20 horas. Se observa una desviación estándar mayor en comparación con la media, lo que hace que la media no sea un descriptor viable para el análisis. Por lo tanto, utilizamos gráficos de boxplot sin datos atípicos, ya que estos no son predominantes en su mayoría. Estos gráficos nos indican que el 50% de las personas tarda entre 10 y 30 minutos en desplazarse hacia su centro de salud. Además, el 25% de la muestra se desplaza en menos o igual a 10 minutos, mientras que el 25% superior tarda más de 30 minutos en su desplazamiento.
+
+#### [Último nivel de estudios aprobado]{style="color: #4b1c71;"}
+
+Esta variable es importante debido a su impacto socioeconómico en términos de nivel de ingresos, y además en el desarrollo profesional y personal de cada persona en Lima.
+
+Los números en el gráfico de nivel de estudios representan:
+
+1.  Sin nivel
+2.  Educación inicial
+3.  Primaria incompleta
+4.  Primaria completa
+5.  Secundaria incompleta
+6.  Secundaria completa
+7.  Superior no universitaria Incompleta
+8.  Superior no universitaria completa
+9.  Superior universitaria incompleta
+10. Superior universitaria completa
+11. Maestría/Doctorado
+12. Básica especial
+
+```{r, echo=F}
+# Tabla de frecuencias de los niveles de estudio
+tabla_niveles <- table(DATAFRAME$P301A)
+
+text(x = barplot(tabla_niveles, main = "Frecuencia de último nivel de estudios aprobado", xlab = "Último nivel de estudios aprobado", ylab = "Número de personas", ylim = c(0, 1400)), y = tabla_niveles, labels = tabla_niveles, pos = 3, col = "black")
+```
+
+```{r, echo=F, results='hide'}
+round(mean(DATAFRAME$P301A == "11", na.rm = TRUE) * 100, 2)
+round(mean(DATAFRAME$P301A == "1", na.rm = TRUE) * 100, 2)
+round(mean(DATAFRAME$P301A == "6", na.rm = TRUE)*100, 2)
+```
+
+Se observa que el nivel de estudios más frecuente de los encuestados es "Secundaria completa", mientras que el menos frecuente es "Básica especial". Sin embargo, este último está especializado en la atención de demandas educativas de la población con discapacidad, habilidades especiales y superdotación. Es posible que el número reducido de personas con discapacidad o habilidades especiales en la muestra de encuestados dificulte un análisis equitativo en comparación con otros niveles de estudio. Dado este contexto, y considerando que el objetivo del análisis es comprender la frecuencia de los niveles de estudio, podemos considerar a "Maestría/Doctorado" como el siguiente nivel menos frecuente después de "Básica especial" para realizar comparaciones más equitativas entre los niveles educativos. Del total de encuestados, solo el 1.37% cursaron todos los niveles de estudio, mientras que el 4.46% no cursó ninguno. Además, se observa que el 28.33% de los encuestados tiene secundaria completa.
+
+#### [Lengua materna (rango: 1-15)]{style="color: #4b1c71;"}
+
+La variable "Lengua materna" es importante debido a su impacto significativo en el desarrollo congnitivo y emocional de una persona, y además podemos vincular su identidad cultural de cada individuo en Lima.
+
+Los números en la lengua materna representan:
+
+1.  Quechua
+2.  Aimara
+3.  Otra lengua nativa
+4.  Castellano
+5.  No existe registro de esta lengua en la DATAFRAME
+6.  Portugués
+7.  Otra lengua extranjera
+8.  No escucha/no habla
+9.  Lengua de señas peruanas
+10. Ashaninka
+11. Awajún/Aguarun
+12. Shipibo -- Konibo
+13. Shawi / Chayahuita
+14. Matsigenka / Machiguenga
+15. Achuar
+
+```{r, echo=F}
+# Tabla de frecuencias de los niveles de estudio
+tabla_niveles <- table(DATAFRAME$P300A)
+
+text(x = barplot(tabla_niveles, main = "Frecuencia de lengua materna", xlab = "Lengua materna", ylab = "Número de personas", ylim = c(0, 4500)), y = tabla_niveles, labels = tabla_niveles, pos = 3, col = "black")
+```
+
+```{r,echo=F,results='hide'}
+round(mean(DATAFRAME$P300A == "4", na.rm = TRUE) * 100, 2)
+round(mean(DATAFRAME$P300A == "1", na.rm = TRUE) * 100, 2)
+round(mean(DATAFRAME$P300A == "8", na.rm = TRUE) * 100, 2)
+round(mean(DATAFRAME$P300A %in% c(2,6,7,9,10,14), na.rm = TRUE)*100, 2)
+```
+
+Se observa que la mayoría de los encuestados tienen el castellano como lengua materna, mientras que no se encontraron personas que tengan como lengua materna el awajún/aguarun, shipibo-konibo, shawi/chayahuita y anchuar. Del total de personas encuestadas, el 91.89% tiene el castellano como lengua materna, mientras que el 7.52% tiene el quechua como lengua materna. Además, se identificó que el 0.09% de los encuestados no escucha o no habla ninguna lengua. Por otro lado, el 0.44% de los encuestados tienen otras lenguas maternas diferentes al castellano y quechua.
+
+#### [Tipo de centro en el que concluyó sus estudios (estatal o privado)]{style="color: #4b1c71;"}
+
+La variable "Tipo de centro" es importante para entender las preferencias personales, las necesidades individuales o las circunstancias económicas de cada persona en Lima.
+
+```{r, echo=FALSE}
+table(DATAFRAME$P301D)
+```
+
+En Lima, se observó que el tipo de centro educativo más común fue el estatal.
+
+#### [Monto de gasto en Internet (S/.)]{style="color: #4b1c71;"}
+
+La variable del "Monto de gasto en Internet" es fundamental para reflejar la cantidad que pagan las personas en Lima el servicio de Internet y así determinar quiénes pueden tener acceso a dicho servicio.
+
+```{r, echo=FALSE}
+summary(DATAFRAME$P315A)
+media <- round(mean(DATAFRAME$P315A, na.rm = T), 2)
+desviacion <- round(sd(DATAFRAME$P315A, na.rm = T), 2)
+cat("Desviación estándar = ", round(desviacion, 2))
+CV <- round(desviacion / media * 100, 2)
+cat("Coeficiente de variación = ", round(CV, 2))
+```
+
+-   **Mínimo y máximo**
+
+```{r, echo=FALSE}
+range(DATAFRAME$P315A, na.rm = T)
+```
+
+```{r, echo=FALSE}
+cd <- na.omit(DATAFRAME$P315A)
+boxplot(cd, horizontal = TRUE, xlab = "Soles (S/.)", main = "Gasto en Internet")
+abline(v = c(mean(cd), quantile(cd, probs = 0.25), quantile(cd, probs = 0.75), max(cd), min(cd)), col = c("red", "blue", "blue", "purple", "orange"))
+grid()
+legend("topright", legend = c("Media", "Cuartil 1y3", "Máx", "Mín"), col = c("red", "blue", "purple", "orange"), lwd=2)
+```
+
+El monto de gasto promedio en Internet es de S/ 13.18 en los hogares encuestados en Lima en el cuarto trimestre, con una tendencia a variar por debajo o encima de dicho gasto en S/ 15.37 que se obtiene de la desviación estándar. Esta información no da cierta certeza en relación a los gastos ya que la desviación estándar es mayor que la media, por ello se presenta datos atípicos. De esta manera no da seguridad en el análisis con respecto a la media ya que tiende a variar en relación a los gastos; sin embargo, podemos trabajar con la mediana que es un descriptor numérico robusto. Además, la desviación estándar le permite a quienes tienen acceso al Internet en los hogares encuestados en Lima, determinar cuánto es el promedio en gastos causado por el consumo de Internet. Por otro lado, se sabe que el gasto mínimo es de S/ 1 y el gasto máximo es de S/ 64 y que el rango entre ambos valores fluctúa entre el intervalo de 1 a 64 siendo expresados en soles. Además se sabe que la mediana del gasto de Internet es de S/ 8, lo cual determina que la mitad de los hogares pobres en el Perú pagan de S/ 8 a menos el consumo de Internet, y que el 25% pagan de S/ 4 a menos y que el 75% paga de S/ 15 a menos.
+
+#### [Ingreso total (Ingreso mensual por habitante)]{style="color: #4b1c71;"}
+
+La variable de "Ingreso Total" es crucial para entender el nivel económico de las personas en Lima. Nos muestra cómo se distribuyen y varían los ingresos entre individuos, y también se utilizará como indicador de pobreza en nuestro estudio estadístico.
+
+```{r, echo=F}
+summary(DATAFRAME$IT)
+cat("Desviación estándar: ",sd(DATAFRAME$IT, na.rm=TRUE))
+cat("Coeficiente de variación: ",sd(DATAFRAME$IT, na.rm=TRUE)/mean(DATAFRAME$IT, na.rm=TRUE))
+```
+
+```{r, echo=F}
+cleaned_data <- na.omit(DATAFRAME$IT)
+boxplot(cleaned_data, horizontal = TRUE, xlab = "Soles (S/.)", main = "Ingreso Total")
+abline(v = c(mean(cleaned_data), quantile(cleaned_data, probs = 0.25), quantile(cleaned_data, probs = 0.75), max(cleaned_data), min(cleaned_data)), col = c("red", "blue", "blue", "purple", "orange"))
+grid()
+legend("topright", legend = c("Media", "Cuartil 1y3", "Máx", "Mín"), col = c("red", "blue", "purple", "orange"), lwd=2)
+```
+
+La mayoría de las personas tienden a ganar alrededor de 1593 soles al mes. Algunas tienden a ganar 18000 soles, mientras que otras solo tienden a ganar 1 sol. El coeficiente de variación de 1.128836 indica que la variabilidad en los ingresos es moderada en relación al promedio.
+
+### Bivariado
+
+#### [Ingreso total vs. Último Nivel de Estudios Aprobado]{style="color: #a87b05;"}
+
+Los números en el gráfico de nivel de estudios representan:
+
+1.  Sin nivel.
+2.  Educación inicial.
+3.  Primaria incompleta.
+4.  Primaria completa.
+5.  Secundaria incompleta.
+6.  Secundaria completa.
+7.  Superior no universitaria Incompleta.
+8.  Superior no universitaria completa.
+9.  Superior universitaria incompleta.
+10. Superior universitaria completa.
+11. Maestría/Doctorado.
+12. Básica especial.
+
+```{r, echo=F}
+datos <- data.frame(Ingresos = DATAFRAME$IT,
+                    LenguaMaterna = DATAFRAME$P301A)
+# Calcular las medias o medianas de los ingresos por cada nivel de estudios aprobado
+estadisticas <- aggregate(DATAFRAME$IT ~ DATAFRAME$P301A, data = datos, FUN = function(x) c(media = mean(x), mediana = median(x)))
+
+# Crear el gráfico de barras
+barplot(estadisticas$`DATAFRAME$IT`[, "media"], 
+        names.arg = estadisticas$`DATAFRAME$P301A`, 
+        main = "Relación entre Último Nivel de Estudios Aprobado y Ingresos",
+        xlab = "Último Nivel de Estudios Aprobado", ylab = "Media de ingresos(soles)")
+```
+
+Se observa que, en general, los encuestados con niveles de estudios más altos tienen mayores promedios de ingresos, lo cual sugiere una relación positiva entre el último nivel de estudios alcanzado y los ingresos obtenidos. Sin embargo, es importante mencionar que existen algunos niveles de estudios, como la educación inicial, primaria incompleta y superior no universitaria completa, donde esta relación no es tan evidente. Estas discrepancias podrían atribuirse a la presencia de datos atípicos o particulares en el conjunto de datos. A pesar de estas excepciones, podemos afirmar que en general existe una relación positiva entre el último nivel de estudios aprobado y los ingresos, ya que los ingresos promedio en estos niveles no difieren significativamente de los otros niveles.
+
+#### [Ingreso total vs. Lengua materna]{style="color: #a87b05;"}
+
+Los números en la lengua materna representan:
+
+1.  Quechua.
+2.  Aimara.
+3.  Otra lengua nativa.
+4.  Castellano.
+5.  No existe registro de esta lengua en la DATAFRAME.
+6.  Portugués.
+7.  Otra lengua extranjera.
+8.  No escucha/no habla.
+9.  Lengua de señas peruanas.
+10. Ashaninka.
+11. Awajún/Aguarun.
+12. Shipibo - Konibo.
+13. Shawi / Chayahuita.
+14. Matsigenka / Machiguenga.
+15. Achuar.
+
+Imprime el texto anterior.
+
+```{r, echo=F}
+datos <- data.frame(Ingresos = DATAFRAME$IT,
+                    LenguaMaterna = DATAFRAME$P300A)
+# Calcular las medias o medianas de los ingresos por lengua materna
+estadisticas <- aggregate(DATAFRAME$IT ~ DATAFRAME$P300A, data = datos, FUN = function(x) c(media = mean(x), mediana = median(x)))
+
+# Crear el gráfico de barras
+text( x= barplot(estadisticas$`DATAFRAME$IT`[, "media"], 
+        names.arg = estadisticas$`DATAFRAME$P300A`, 
+        main = "Relación entre Lengua Materna e Ingresos",
+        xlab = "Lengua materna", 
+        ylab = "Media de ingresos (soles)", ylim = c(0,5000)),
+        y = round(estadisticas$`DATAFRAME$IT`[, "media"], 2), 
+        labels = round(estadisticas$`DATAFRAME$IT`[, "media"], 2), pos = 3, col="black")
+```
+
+Se observa que las personas con ingresos económicos promedio más altos son aquellas cuya lengua materna es una lengua extranjera distinta al portugués, mientras que aquellos cuya lengua materna es el achuar poseen los ingresos económicos promedio más bajos. Además, las personas cuya lengua materna es el castellano tienen un ingreso promedio de 1641.81, que representa la mediana de los ingresos promedio. Este monto podría deberse a que del total de encuestados hay mas personas con lengua materna castellano, por lo que el tamaño de la muestra y la distribución de los encuestados podrían estar influyendo en estos resultados, ya que esto hace que puedan existir más datos atípicos sean reales o no. Además, es sabido que la media no es una medida robusta frente a los valores atípicos.
+
+#### [Tiempo para obtener una cita médica (en horas) vs. Ingreso total]{style="color: #a87b05;"}
+
+```{r, echo=F}
+plot(DATAFRAME$IT, DATAFRAME$P408F5, xlab = "Ingresos totales (soles)", ylab = "Tiempo de espera (horas) ", main = "Tiempo de espera vs. Ingresos")
+abline(lm(DATAFRAME$P408F5 ~ DATAFRAME$IT), col="red")
+
+
+```
+
+```{r, echo=F}
+correlacion <- cor(DATAFRAME$IT, DATAFRAME$P408F5, use = "complete.obs")
+cat("Correlación lineal =", round(correlacion,4))
+```
+
+Al observar la gráfica de tiempo de espera para obtener una cita médica vs los ingresos totales de una persona, se aprecia que no existe una relación lineal o directa entre ambos variables. Además, la correlación lineal es 0.0039, cercana a cero. Por lo que se concluye que los ingresos totales de una persona y el tiempo de espera no están relacionados de forma significativa. El hecho de tener mayores o menores ingresos no parece tener un impacto directo en el tiempo que una persona debe esperar para obtener una cita médica. Asimismo, es importante destacar que un mayor tiempo de espera para obtener una cita médica depende de distintos factores, como la demanda y la capacidad del centro de salud, priorización de casos, procesos administrativos, etc. En este caso, el nivel de pobreza en un hogar no sería un factor limitante para que una persona pueda obtener una cita médica en menos de 1 hora, salvo casos excepcionales.
+
+#### [Tiempo del desplazamiento al centro de salud (en minutos) vs. Ingreso total]{style="color: #a87b05;"}
+
+```{r, echo=F}
+plot(DATAFRAME$IT, DATAFRAME$P408G4, xlab = "Ingresos Totales (Soles)", ylab = "Tiempo de desplazamiento (minutos)", main = "Tiempo de desplazamiento vs Ingresos")
+abline(lm(DATAFRAME$P408F5 ~ DATAFRAME$IT), col="blue")
+```
+
+```{r, echo=F}
+correlacion <- cor(DATAFRAME$IT, DATAFRAME$P408G4, use = "complete.obs")
+cat("Correlación lineal =", round(correlacion,4))
+```
+
+Al observar la gráfica que muestra la relación entre el tiempo de desplazamiento y los ingresos, se puede apreciar una relación débil o casi nula entre estas variables. La correlación lineal obtenida es de -0.0113, lo que indica una correlación lineal cercana a cero y sugiere una relación no lineal. En la gráfica, se puede observar que hay personas con ingresos más altos en comparación con aquellas que ganan menos del sueldo mínimo. Sin embargo, también se destaca que el tiempo de desplazamiento hasta el centro de salud más cercano es prácticamente similar para personas con diferentes niveles de ingresos.
+
+Es importante tener en cuenta que en nuestra muestra los datos de personas con bajos ingresos y su tiempo de desplazamiento son limitados, pero siguen siendo relevantes y merecen ser mencionados debido a la importancia del acceso a la salud como factor determinante de la pobreza.
+
+A partir del análisis de los datos, podemos concluir que en nuestra muestra no existe una relación significativa entre la distancia que una persona debe recorrer para llegar a su centro de salud y sus ingresos. Esto sugiere que las personas con bajos ingresos no necesariamente viven más lejos de su centro de salud, lo que les permite acceder a él sin que sus ingresos tengan un impacto significativo.
+
+#### [Tipo de centro vs. Ingreso total]{style="color: #a87b05;"}
+
+```{r, echo=F}
+datos <- data.frame(Ingresos = DATAFRAME$IT,
+                    Estatal = DATAFRAME$P301D)
+# Calcular las medias o medianas de los ingresos por cada nivel de estudios aprobado
+estadisticas <- aggregate(DATAFRAME$IT ~ DATAFRAME$P301D, data = datos, FUN = function(x) c(media = mean(x), mediana = median(x)))
+
+# Crear el gráfico de barras
+barplot(estadisticas$`DATAFRAME$IT`[, "media"], 
+        names.arg = estadisticas$`DATAFRAME$P301D`, 
+        main = "Relación entre Tipo de centro que culminó su estudio y Media de ingresos(soles)",
+        xlab = "Tipo de centro", ylab = "Media de ingresos(soles)")
+```
+
+```{r, echo=FALSE}
+data <- boxplot(formula= IT~P301D, data = DATAFRAME, xlab = "TIPO DE CENTRO QUE CULMINÓ SU ESTUDIO",ylab= "INGRESOS TOTALES", col = c("green","pink"))
+```
+
+Para el estudio de nivel de pobreza, hemos considerado el nivel de educación de las personas pobres en Lima en el último trimestre del 2022, según el tipo de centro ya sea colegio, instituto o universidad que concluyeron sus estudios, y además para el análisis de dicha variable tomamos como referencia los ingresos totales de cada hogar. Como podemos observar en la gráfica de caja y bigotes, la mediana para el tipo de centro Estatal es menor que el Privado, esta diferencia nos indica que el 50% de las personas que terminaron en un centro Privado tienen ingresos por debajo de los S/ 1500, mientras que en el Estatal tienen ingresos por debajo de los S/ 1025. Además, la cuarta parte de tal muestra que culminó en un centro Estatal tienen ingresos de S/ 600 a menos , en cambio si culminaron en un centro Privado tienen ingresos de S/ 1000 a menos. Sin embargo, la diferencia en cuanto al máximo ingreso si terminaron en un centro Público o Privado, es casi el doble, ya que es de S/ 5500 y S/ 2913, respectivamente. De esta manera, se deduce que las personas encuestadas de Lima en el 2022 del cuarto trimestre, que culminaron en un centro Privado tienden a tener mayores ingresos con respecto a quienes terminaron en un centro Público.
