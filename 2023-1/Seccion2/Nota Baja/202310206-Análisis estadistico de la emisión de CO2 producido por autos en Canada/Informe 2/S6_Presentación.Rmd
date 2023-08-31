@@ -1,0 +1,187 @@
+---
+title: "S6 - Análisis de las emisiones de CO2 en los autos de Canadá"
+date: "2023-07-07"
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r Base de datos y librerias importadas, include=FALSE}
+library(readr)
+library(plyr)
+library(dplyr)
+library(stringr)
+BD <- read_delim("CO2 Emissions_Canada.csv", ";", escape_double = FALSE, 
+    trim_ws = TRUE)
+
+```
+
+## Planteamiento:
+
+<u>**Tema:**</u> **Análisis estadístico de la emisión de CO2 producido por autos en Canadá**
+
+<u>**Relevancia:**</u>
+El presente estudio nos permitirá observar y analizar la emisión de CO2 producido por los autos de Canadá, permitiendo encontrar alguna relación entre el tipo de vehículo, el combustible que se usa, la distancia recorrida o el tipo de ruta recorrida. Todo esto nos permitirá entender mejor como se da dicha emisión.
+
+<u>**¿Qué información se desea aportar al final del estudio?**</u>
+
+Mediante este estudio esperemos aportar información importante acerca de la relacción que tiene ciertas características del vehículo como el número de cilindros o tamaño de motor, en relación con el consumo de combustible y la emcisión de CO2
+
+## Análisis - Numero de cilindros vs Emisiones de CO2:
+
+```{r}
+#Obtenemos los indicadores para nuestra variable Cilindros:
+
+summary(BD$Cilindros)
+table(BD$Cilindros)
+
+#Obtenemos los indicadores para nuestra variable Emisión_CO2:
+
+summary(BD$Emisión_CO2)
+table(BD$Emisión_CO2)
+
+#Obtenemos los indicadores de la Emisión de CO2 según el número de cilindros:
+
+summary(BD$Emisión_CO2[BD$Cilindros=="3"]) #3 cilindros
+summary(BD$Emisión_CO2[BD$Cilindros=="4"]) #4 cilindros
+summary(BD$Emisión_CO2[BD$Cilindros=="5"]) #5 cilindros
+summary(BD$Emisión_CO2[BD$Cilindros=="6"]) #6 cilindros
+summary(BD$Emisión_CO2[BD$Cilindros=="8"]) #8 cilindros
+summary(BD$Emisión_CO2[BD$Cilindros=="10"]) #10 cilindros
+summary(BD$Emisión_CO2[BD$Cilindros=="12"]) #12 cilindros
+summary(BD$Emisión_CO2[BD$Cilindros=="16"]) #16 cilindros
+```
+
+```{r, echo=FALSE, fig.align='center', out.width="50%"}
+knitr::include_graphics('numeritos.PNG')
+```
+
+```{r}
+#Creamos el diagrama de cajas
+
+boxplot(formula=BD$Emisión_CO2~BD$Cilindros, data=BD,col="lightblue", horizontal= T, xlab="Emisión de CO2", ylab="N° de cilindros")
+title("Diagrama de cajas Emisión de CO2 vs N° de cilindros")
+```
+
+## Descriptores de dispersión de "Emisiones de CO2"
+
+```{r}
+#Obtenemos los descriptores de dispersión para nuestra variable numérica "Consumo en ciudad" 
+summary(BD$Emisión_CO2)
+Rmin = 96
+Rmax = 522
+Rangototal = Rmax - Rmin 
+Rangototal #Rango total
+
+var(BD$Emisión_CO2,na.rm=T)  #Varianza
+
+sd(BD$Emisión_CO2,na.rm=T)   #Desviación estándar
+
+CV<-(sd(BD$Emisión_CO2,na.rm=T)/mean(BD$Emisión_CO2,na.rm=T))*100   #Coeficiente de variación.
+CV
+
+```
+
+## Relación entre variables
+
+```{r, echo=TRUE}
+#Hallamos la relación entre las variables
+
+cov(BD$Cilindros,BD$Emisión_CO2)  #Covarianza
+
+cor(BD$Cilindros,BD$Emisión_CO2)  #Coeficiente de correlación
+
+```
+
+**Regresión lineal:**
+
+Fórmula modelo lineal:
+   y = B0 + B1.X
+   
+   B0 = termino independiente o intercepto (con eje x)
+   B1 = coeficiente (de x) o pendiente
+   
+## Relación entre variables
+
+
+**Ecuación final:**
+
+<center>$Y = 100.96 + 26.65*X$</center>
+
+```{r}
+#Planteo mi comando para obtener los datos de mi ecuación
+
+rl <- lm(BD$Emisión_CO2~BD$Cilindros, data=BD)
+rl
+```
+
+Comprobamos si el modelo es bueno:
+
+```{r, echo=TRUE}
+#Hallamos la relación entre las variables con los valores estimados
+
+cov(BD$Cilindros,Promedio)  #"Covarianza"
+
+cor(BD$Cilindros,Promedio)  #"Coeficiente de correlación
+```
+
+## Análisis Probabilístico
+
+**Distribución Binomial**  
+
+```{r}
+result <- round(table(BD$Cilindros)/nrow(BD)*100,digits=2)
+result
+```
+  
+  
+Se sabe que el 43.60 % de los vehículos considerados cuantan con 4 cilindros en el motor. Por lo tanto consideremos que se elije al azar 20 vehículos, tomando como *éxito* cuando el vehículo cuanta con 4 cilindros.
+
+Por lo que se utiliza el **modelo binomial**.  
+   
+$\mathbb{X}∼\mathbb{Bin(x,n,p)}$   
+  
+*Donde:*   
+$X$: número de vehículos que cuentan con 4 cilindros.  
+$n$: número de muestras tomada (20 vehículos).   
+$p$: probabilidad de *éxito* que el vehículo seleccionado cuente con 4 cilindros   
+
+## Análisis Probabilístico
+
+* a) ¿Cuál es la probabilidad de que exactamente 6 vehículos cuenten con 4 cilindros?   
+       
+      $X$= Número de vehículos que cuentan con 4 cilindros.     
+      Parámetros:  
+      $n$=20    
+      $p$= 0.4360       
+      Se pide: $P(x=6)$          
+```{r,echo=TRUE}
+    dbinom(6,20,0.4360)
+```
+
+## Análisis Probabilístico
+
+**GRÁFICA DE UN MODELO BINOMIAL**   
+
+```{r}
+result <- round(table(BD$Cilindros)/nrow(BD)*100,digits=2)
+result
+```
+
+Se sabe que del total de vehículos considerados, el 33.12 % son vehículos que ceuntan con 6 cilindros en el motor. Si se toma una muentra de 90 vehículos de la población, ¿cuál es la probabilidad de que 46 vehículos tengan 6 cilindros en el motor?
+
+  
+```{r}
+n= 90
+x= 46
+p= 0.3312
+plot(dbinom(x,0:n, p), col= "red2", xlab= "Número de Vehículos (n)", ylab= "Probabilidad  P(X=x0)", main="MODELO BINOMIAL- vEHÍCULOS CON 6 CILINDROS")
+```
+   
+
+
+

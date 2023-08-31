@@ -1,0 +1,1092 @@
+---
+title: "P3 - Informe"
+date: "5 Abril, 2023"
+output:
+  ioslides_presentation: default
+  slidy_presentation:
+    toc: yes
+    toc_depth: 2
+    number_sections: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+```{r, eval=FALSE, echo = FALSE}
+# Librerías necesarias para la ejecución del código.
+install.packages("ggplot2")
+install.packages("ggplot2movies")
+install.packages("lubridate")
+install.packages("knitr")
+install.packages("dplyr")
+install.packages("mice")
+install.packages("modeest")
+```
+
+```{r, echo=FALSE}
+library(modeest)
+
+# Funciones no predeterminadas que usaremos.
+
+r <- function(n){
+  round(n, 2)}
+
+cv <- function(X){
+  return (sd(X)/mean(X))}  
+```
+
+# **Introducción**
+
+## Relevancia
+
+Conocer la relación entre la cantidad de créditos en los cuales los alumnos de UTEC se han matriculado y su índice de satisfacción con la rueda de la vida para los ciclos 2022-2 y 2023-1, a partir de nuestra base de datos de 200 estudiantes.
+
+## Objetivos
+
+**Objetivo general:** Entender e interpretar la influencia de la cantidad de créditos matriculados en la rueda de la vida de estudiantes UTEC en los ciclos 2022-2 y 2023-1.
+
+**Objetivos específicos:**
+
+1.  Analizar los datos recolectados de los estudiantes de UTEC e identificar posibles influencias y correlaciones entre las variables estudiadas con respecto al rendimiento académico.
+
+2. Utilizar gráficos para visualizar y comunicar de manera efectiva los resultados del análisis, facilitando la comprensión de las relaciones y patrones identificados entre las variables estudiadas. Esto permitirá presentar de manera clara y concisa la información obtenida, lo que facilitará la toma de decisiones informadas y la comunicación de recomendaciones a los estudiantes y otros interesados. 
+
+3. Proporcionar recomendaciones y retroalimentación a los estudiantes en relación con la elección saludable de horarios académicos, considerando los hallazgos y patrones identificados en el análisis.
+
+
+
+# Datos
+
+## Recolección de datos
+
+Uso de Google Forms dada su sencilla dinámica de uso.
+
+Requisitos sobre los estudiantes:
+- Estudiantes de la UTEC.
+- No ingresantes (no están cursando su primer ciclo académico)
+- Que hayan cursado el ciclo 2022-2 y actualmente cursando el ciclo 2023-1.
+
+
+## Población, muestra y muestreo
+
+**Población:** Estudiantes de la UTEC que hayan cursado el ciclo 2022-2 y se encuentren cursando el ciclo 2023-1.
+
+**Muestra:** Los 200 estudiantes que fueron seleccionados en las instalaciones de la UTEC.
+
+**Muestreo:** Selección al azar simple, donde solicitamos a estudiantes de la UTEC en **distintos horarios e instalaciones** de todos los pisos de la UTEC realizar la encuesta, sin preferencias particulares.
+
+
+
+## Variables
+
+A continuación, la siguiente tabla **se resumen** las variables del estudio, su clase, su tipo, y las restricciones a las que se ajustan:
+
+```{r, echo = FALSE}
+library("knitr")
+Vars <- matrix(c ("Ciclo Académico", "Categórica", "Nominal", "Pregunta cerrada",
+                   "Total de Ciclos Cursados", "Numérica", "Discreta", "Entero positivo",
+                   "Género", "Categórica", "Nominal", "Pregunta cerrada",
+                   "Edad", "Numérica", "Discreta", "Entero positivo",
+                   "Situación sentimental", "Categórica", "Nominal", "Pregunta cerrada",
+                   "Carrera universitaria", "Categórica", "Nominal", "Pregunta cerrada",
+                   "Distrito de residencia", "Categórica", "Nominal", "Pregunta cerrada",
+                   "Tiempo tomado en llegar a la universidad", "Categórica", "Ordinal", "Pregunta cerrada",
+                   "Número de cursos totales llevados (por ciclo)", "Numérica", "Discreta", "Entero positivo",
+                   "Créditos totales llevados (por ciclo)", "Numérica", "Discreta", "Entero positivo no mayor a 26",
+                   "Créditos de cursos de carrera (por ciclo)", "Numérica", "Discreta", "Entero positivo",
+                   "Número de cursos de carrera (por ciclo)", "Numérica", "Discreta", "Entero positivo no mayor a 26",
+                   "Promedio ponderado 2022-2", "Numérica", "Continua", "Entero positivo",
+                   "Horario de desayuno (en días de clase o no, por ciclo)*", "Categórica", "Ordinal", "Pregunta cerrada",
+                   "Horario de almuerzo (en días de clase o no, por ciclo)*", "Categórica", "Ordinal", "Pregunta cerrada",
+                   "Horario de cena (en días de clase o no, por ciclo)*", "Categórica", "Ordinal", "Pregunta cerrada",
+                   "Horas semanales de sueño (por ciclo)*", "Numérica", "Continua", "Entero positivo",
+                   "Horas semanales de deporte (por ciclo)*", "Numérica", "Continua", "Entero positivo",
+                   "Horas semanales de estudio (por ciclo)*", "Numérica", "Continua", "Entero positivo",
+                   "Índice de satisfacción (por aspecto de la vida y según el ciclo)*", "Categórica", "Ordinal", "Pregunta cerrada"), ncol = 4 , byrow = TRUE ) 
+colnames (Vars) <- c ('Variable', 'Clase', 'Tipo', 'Restricciones')
+
+kable(Vars)
+```
+
+En total, se trabajó con **51** variables, las cuales por motivos de comodidad visual y similitud resumimos en la anterior tabla.
+
+
+## Limpieza de base de datos
+
+```{r, include = FALSE}
+library(dplyr)
+
+Data = read.csv("DD.csv")
+Data = Data[ , -c(1,2)]
+
+# Renombramos las variables para mayor comodidad, para volverlas más descriptivas y para facilitar su manipulación.
+Data = rename(Data, "Ciclo_Académico" = "X.En.que.ciclo.académico.te.encuentras.actualmente.en.la.UTEC...Tu.ciclo.lo.define.tu.curso.de.menor.ciclo.que.NO.has.llevado..o.recién.estás.llevando..", "Ciclos_Cursados" = "X.Cuántos.ciclos.has.cursado.desde.que.ingresaste.a.la.UTEC...Los.ciclos.de.verano.no.se.toman.en.cuenta.", "Género" = "X.Cuál.es.tu.género.", "Edad" = "X.Cuántos.años.tienes.", "Situación_sentimental" = "X.Cuál.es.tu.situación.sentimental.", "Carrera" = "X.Qué.carrera.estás.estudiando.", "Residencia" = "X.En.que.distrito.resides.actualmente..Los.siete.distritos.del.Callao.también.figuran.", "Tiempo_llegada" =  "X.Cuánto.tiempo.te.toma.llegar.a.la.UTEC..Puede.que.haya.días.en.los.que.enfrentas.más.tránsito.o.no..en.ese.caso.te.pedimos.una.media.aproximada.", "Cursos_total_2023" = "X.2023.1...Cuántos.cursos.en.total.estás.llevando.este.ciclo.......", "Créditos_total_2023" = "X.2023.1...Cuántos.créditos.en.total.estás.llevando.este.ciclo..El.máximo.de.créditos.por.ciclo.es.26.", "Créditos_carrera_2023" = "X.2023.1..De.tu.total.de.créditos...cuántos.son.de.cursos.de.carrera.........El.máximo.de.créditos.por.ciclo.es.26.", "Cursos_carrera_2023" = "X.2023.1..De.tu.total.de.cursos...cuántos.son.cursos.de.carrera.", "Créditos_total_2022" = "X.2022.2...Cuántos.créditos.llevaste.el.ciclo.pasado..El.máximo.de.créditos.por.ciclo.es.26.", "Cursos_total_2022" = "X.2022.2...Cuántos.cursos.en.total.llevaste.el.ciclo.pasado.......", "Créditos_carrera_2022" = "X.2022.2..De.tu.anterior.total.de.créditos...cuántos.eran.de.cursos.de.carrera.........El.máximo.de.créditos.por.ciclo.es.26.", "Cursos_carrera_2022" = "X.2022.2..De.tu.anterior.total.de.cursos...cuántos.eran.cursos.de.carrera.", "Promedio_2022" = "X.2022.2...Cuál.es.tu.promedio.ponderado.del.ciclo.pasado..Te.pedimos.que.de.ser.posible..al.menos.puedas.especificar.la.primera.cifra.decimal..ejem..15.6..", "Desayuno_clases_2023" = "X.Entre.qué.horas.sueles.desayunar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...TIENES.clases..2023.1...", "Desayuno_No_clases_2023" = "X.Entre.qué.horas.sueles.desayunar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...NO.tienes.clases..2023.1...", "Desayuno_clases_2022" = "X.Entre.qué.horas.sueles.desayunar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...TENÍAS.clases..2022.2...", "Desayuno_no_clases_2022" = "X.Entre.qué.horas.sueles.desayunar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...NO.tenías.clases..2022.2...", "Almuerzo_clases_2023" = "X.Entre.qué.horas.sueles.almorzar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...TIENES.clases..2023.1...", "Almuerzo_No_clases_2023" = "X.Entre.qué.horas.sueles.almorzar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...NO.tienes.clases..2023.1...", "Almuerzo_clases_2022" = "X.Entre.qué.horas.sueles.almorzar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...TENÍAS.clases..2022.2...", "Almuerzo_no_clases_2022" = "X.Entre.qué.horas.sueles.almorzar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...NO.tenías.clases..2022.2...", "Cenar_clases_2023" = "X.Durante.qué.horas.sueles.cenar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...TIENES.clases..2023.1...", "Cenar_no_clases_2023" = "X.Durante.qué.horas.sueles.cenar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...NO.tienes.clases..2023.1...", "Cenar_clases_2022" = "X.Durante.qué.horas.sueles.cenar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...TENÍAS.clases..2022.2...", "Cenar_no_clases_2022" = "X.Durante.qué.horas.sueles.cenar.los.días.que.....Con..días.que.NO.tienes.clases..nos.referimos.a.domingos.y.feriados...NO.tenías.clases..2022.2...")
+
+Data = rename(Data, "Horas_dormir_2023" = "X.SEMANALMENTE.cuántas.horas.sueles.DORMIR..ciclo.2023.1........Cuántas.horas.duermes.en.una.semana.aprox.", "Horas_dormir_2022" = "X.SEMANALMENTE.cuántas.horas.SOLÍAS.DORMIR..ciclo.2022.2..", "Horas_deporte_2023" = "X.SEMANALMENTE.cuántas.horas.SUELES.DEDICAR.al.deporte..ciclo.2023.1........." , "Horas_deporte_2022" = "X.SEMANALMENTE.cuántas.horas.SOLÍAS.DEDICAR.al.deporte..ciclo.2022.2..", "Horas_estudio_2023" = "X.SEMANALMENTE.cuántas.horas.SUELES.ESTUDIAR..ciclo.2023.1......", "Horas_estudio_2022" = "X.SEMANALMENTE.cuántas.horas.SOLÍAS.ESTUDIAR..ciclo.2022.2..", "Índice_Salud_2023" = "Salud.y.deporte..Hábitos.que.sean.beneficiosos.para.tu.bienestar.general..alimentación..sueño.y.ejercicio..", "Índice_Dinero_2023" = "Dinero..finanzas.y.economía...Tu.relación.con.el.dinero..la.forma.en.la.que.gestionas.tus.gastos.y.ahorros.", "Índice_carrera_2023" = "Carrera.y.trabajo..Desarrollo.de.habilidades.profesionales..desempeño.en.la.universidad.y.desempeño.laboral..en.caso.tengas.trabajo..", "Índice_familia_2023" = "Familia.y.amor..Tu.relación.con.tu.familia.y.pareja..en.caso.tengas.una..", "Índice_entorno_2023" = "Entorno.y.amigos..La.calidad.y.la.cantidad.de.las.relaciones.sociales.y.de.amistad.tienes.en.tu.vida.", "Índice_desarrollo_2023" = "Desarrollo.personal..Tiempo.dedicado.a.reflexionar.y.trabajar.en.tus.habilidades..personalidad..mentalidad..salud.y.felicidad.", "Índice_pasatiempo_2023" = "Pasatiempos.y.entretenimiento..Sentimiento.de.satisfacción.y.suficiencia.respecto.al.tiempo.que.le.dedicas.a.tu.diversión.", "Índice_espiritualidad_2023" = "Espiritualidad..Conexión.personal.con.tu.vida.espiritual..religión..práctica.espiritual.personal.o.su.sentido.de.propósito.y.significado.en.la.vida..", "Índice_Salud_2022" = "Salud.y.deporte..Hábitos.que.sean.beneficiosos.para.tu.bienestar.general..alimentación..sueño.y.ejercicio...1", "Índice_Dinero_2022" = "Dinero..finanzas.y.economía...Tu.relación.con.el.dinero..la.forma.en.la.que.gestionas.tus.gastos.y.ahorros..1", "Índice_carrera_2022" = "Carrera.y.trabajo..Desarrollo.de.habilidades.profesionales..desempeño.en.la.universidad.y.desempeño.laboral..en.caso.tengas.trabajo...1", "Índice_familia_2022" = "Familia.y.amor..Tu.relación.con.tu.familia.y.pareja..en.caso.tengas.una...1", "Índice_entorno_2022" = "Entorno.y.amigos..La.calidad.y.la.cantidad.de.las.relaciones.sociales.y.de.amistad.tienes.en.tu.vida..1", "Índice_desarrollo_2022" = "Desarrollo.personal..Tiempo.dedicado.a.reflexionar.y.trabajar.en.tus.habilidades..personalidad..mentalidad..salud.y.felicidad..1", "Índice_pasatiempo_2022" = "Pasatiempos.y.entretenimiento..Sentimiento.de.satisfacción.y.suficiencia.respecto.al.tiempo.que.le.dedicas.a.tu.diversión..1", "Índice_espiritualidad_2022" = "Espiritualidad..Conexión.personal.con.tu.vida.espiritual..religión..práctica.espiritual.personal.o.su.sentido.de.propósito.y.significado.en.la.vida...1")
+
+```
+
+
+### Ciclo Académico
+
+Cambiamos las etiquetas para los resultados (se trataba de una pregunta para marcar) para facilitar la comprensión.
+
+```{r}
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Segundo ciclo.", "2do",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Tercer ciclo.", "3er",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Cuarto ciclo.", "4to",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Quinto ciclo.", "5to",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Sexto ciclo.", "6to",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "SÃ©ptimo ciclo.", "7mo",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Séptimo ciclo.", "7mo",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Octavo ciclo.", "8vo",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "Noveno ciclo.", "9no",Ciclo_Académico)) -> Data
+Data %>% mutate(Ciclo_Académico =
+                 ifelse(Ciclo_Académico == "DÃ©cimo ciclo.", "10mo",Ciclo_Académico)) -> Data
+```
+
+
+### Total de Ciclos Cursados
+
+Según la INEI en 2015 "la edad normativa que corresponde a educación secundaria es entre 12 y 16 años de edad"[^1] (pág. 7).
+
+Sabiendo que dos ciclos equivalen un año, entonces la resta de la edad menos los ciclos cursados (entre dos) NO debería menor a 16.
+
+```{r}
+Data$Ciclos_Cursados <- ifelse(Data$Edad - (Data$Ciclos_Cursados)/2 < 16, NA, Data$Ciclos_Cursados)
+
+table(Data$Ciclos_Cursados)
+```
+
+Algunas personas han ingresado un total de ciclos cursados menor a su ciclo académico, lo cual puede ser válido si tomaron cursos en vacaciones y/o convalidaron cursos (lo cual no consideramos).
+
+### Edad
+
+No reconocimos a ningún estudiante mayor de 30 años (por eso, esa edad sería el tope).
+
+```{r}
+Data$Edad <- ifelse(Data$Edad > 30, NA, Data$Edad)
+
+table(Data$Edad)
+```
+
+### Residencia
+
+La provincia de Lima cuenta con 43 distritos mientras que 6 distritos pertenecen a la Provincia Constitucional del Callao. Agrupamos los distritos en unidades territoriales según el Plan Met 2040: Lima Centro, Lima Este, Lima Norte y Lima Sur (2017, pág. 12)[^2]. 
+
+Como queremos analizar el área de Lima Metropolitana como una entidad unificada, consideramos incluir los distritos del Callao dentro de "Lima Centro".
+
+```{r}
+Data <- Data %>% mutate(Residencia = ifelse(Residencia %in% c("Comas", "San Martin de Porres", "Independencia", "Los Olivos", "Carabayllo", "Ancón", "Puente Piedra", "Ventanilla"), "Lima norte",
+                                         ifelse(Residencia %in% c("San Borja", "San Isidro", "Barranco", "Lince", "Jesús María", "Breña", "Pueblo Libre", "La Victoria", "Cercado de Lima", "Magdalena del Mar", "Surquillo", "Miraflores", "Santiago de Surco", "San Miguel", "San Luis", "Callao", "Bellavista"), "Lima centro",
+                                                ifelse(Residencia %in% c("Chaclacayo","La Molina", "El Agustino", "Santa Anita", "Ate", "San Juan de Lurigancho", "Lurigancho"), "Lima este",
+                                                ifelse(Residencia %in% c("Chorrillos", "Lurín", "Pachacámac", "San Juan de Miraflores", "Villa el Salvador"), "Lima sur",
+                                                       Residencia))))) 
+```
+
+
+
+### Tiempo de llegada a la universidad
+
+Cambiamos las etiquetas para los resultados (se trataba de una pregunta para marcar) para facilitar la comprensión.
+
+```{r, echo = FALSE}
+Data %>% mutate(Tiempo_llegada =
+                 ifelse(Tiempo_llegada == "Menos de media hora.", "0-0.5",Tiempo_llegada)) -> Data
+Data %>% mutate(Tiempo_llegada =
+                 ifelse(Tiempo_llegada == "Media hora a 1 hora.", "0.5-1",Tiempo_llegada)) -> Data
+Data %>% mutate(Tiempo_llegada =
+                 ifelse(Tiempo_llegada == "De 1 a 2 horas.", "1-2",Tiempo_llegada)) -> Data
+Data %>% mutate(Tiempo_llegada =
+                 ifelse(Tiempo_llegada == "De 2 a 3 horas.", "2-3",Tiempo_llegada)) -> Data
+Data %>% mutate(Tiempo_llegada =
+                 ifelse(Tiempo_llegada == "De 3 a mÃ¡s.", "3-mas",Tiempo_llegada)) -> Data
+```
+
+
+
+### Número de cursos totales llevados (por ciclo)
+
+Poniéndonos en el supuesto de que una persona quiere llevar el máximo de cursos posibles con el mínimo posible de créditos cada uno, debido a que son escasos los cursos de dos créditos (alrededor de 2 generales), supondremos que una persona invierte también sus cursos electivos en cursos de esta cantidad de créditos, por lo cual el máximo de cursos matriculables será 10 (6 cursos de 3 créditos y 4 cursos de 2 créditos).
+
+```{r}
+table(Data$Cursos_total_2023, dnn = c("Número total de cursos (ciclo 2023-1)"))
+```
+
+```{r}
+Data$Cursos_total_2022 <- ifelse(Data$Cursos_total_2022 > 10, NA, Data$Cursos_total_2022)
+```
+
+```{r, echo = FALSE}
+Data$Cursos_total_2022 <- as.integer(Data$Cursos_total_2022)
+
+table(Data$Cursos_total_2022, dnn = c("Número total de cursos (ciclo 2022-2)"))
+```
+
+### Número de cursos de carrera (por ciclo)
+
+No pueden ser un número mayor al número de cursos totales.
+
+```{r}
+Data$Cursos_carrera_2023 <- ifelse(Data$Cursos_carrera_2023 > Data$Cursos_total_2023, NA, Data$Cursos_carrera_2023)
+```
+
+```{r, echo = FALSE}
+table(Data$Cursos_carrera_2023, dnn = c("Número de cursos de carrera (ciclo 2023-1)"))
+```
+
+```{r}
+Data$Cursos_carrera_2022 <- ifelse(Data$Cursos_carrera_2022 > Data$Cursos_total_2022, NA, Data$Cursos_carrera_2022)
+```
+
+```{r, echo = FALSE}
+table(Data$Cursos_carrera_2022, dnn = c("Número de cursos de carrera (ciclo 2022-2)"))
+```
+
+### Número de créditos de cursos de carrera (por ciclo)
+
+No pueden ser un número mayor al número de créditos totales. Si el número de cursos es igual al número de cursos de carrera, el número de créditos deberá ser igual también.
+
+```{r}
+Data$Créditos_carrera_2023 <- ifelse(Data$Créditos_carrera_2023 > Data$Créditos_total_2023, NA, Data$Créditos_carrera_2023)
+
+Data$Créditos_carrera_2023 <- ifelse(Data$Cursos_carrera_2023 > Data$Cursos_carrera_2023 & Data$Créditos_carrera_2023 != Data$Créditos_total_2023, NA, Data$Créditos_carrera_2023)
+```
+
+```{r, echo = FALSE}
+table(Data$Créditos_carrera_2023, dnn = c("Número de créditos de cursos de carrera (ciclo 2023-1)"))
+```
+
+```{r}
+Data$Créditos_carrera_2022 <- ifelse(Data$Créditos_carrera_2022 > Data$Créditos_total_2022, NA, Data$Créditos_carrera_2022)
+
+Data$Créditos_carrera_2022 <- ifelse(Data$Cursos_carrera_2022 > Data$Cursos_carrera_2022 & Data$Créditos_carrera_2022 != Data$Créditos_total_2022, NA, Data$Créditos_carrera_2022)
+```
+
+```{r, echo = FALSE}
+table(Data$Créditos_carrera_2022, dnn = c("Número de créditos de cursos de carrera (ciclo 2022-2)"))
+```
+
+### Horas semanales de sueño (por ciclo)
+
+Para el tratamiento de estos datos tendremos en cuenta que el mínimo de horas sin que afecte el rendimiento según Dewald-Kaufmann et al. (2013) es de 4 horas de sueño diarias[^3], y dado a los malos hábitos (y perjudiciales) de algunos estudiantes, podrían llegar a ser hasta 3 horas diarias. El mínimo de horas de sueño semanales a considerar sería entonces de 21 horas semanales.
+
+En el caso de la variable "Horas_dormir_2022", alguien ingresó un dato mayor a incluso las horas que tiene una semana, por lo cual se tomará como límite máximo que una persona duerme 100 horas semanales (14.2 horas al día).
+
+```{r}
+Data$Horas_dormir_2023 <- ifelse(Data$Horas_dormir_2023 < 21, NA, Data$Horas_dormir_2023)
+```
+
+```{r, echo = FALSE}
+table(Data$Horas_dormir_2023, dnn = c("Horas semanales de sueño (ciclo 2023-1)"))
+```
+
+```{r}
+Data$Horas_dormir_2022 <- ifelse(Data$Horas_dormir_2022 < 21 | Data$Horas_dormir_2022 > 100, NA, Data$Horas_dormir_2022)
+```
+
+```{r, echo = FALSE}
+table(Data$Horas_dormir_2022, dnn = c("Horas semanales de sueño (ciclo 2022-2)"))
+```
+
+### Horas semanales de deporte (por ciclo)
+
+Cambiamos el tipo de variable a *numeric*.
+
+```{r}
+Data$Horas_deporte_2022 <- as.numeric(Data$Horas_deporte_2022)
+```
+
+```{r, echo = FALSE}
+table(Data$Horas_deporte_2022)
+```
+
+### Horas semanales de estudio (por ciclo)
+
+Gonzáles (2022), debemos estudiar entre 4 y 6 horas[^4], pondremos como máximo de horas de estudio semanales el valor de 42 horas.
+
+```{r}
+Data$Horas_estudio_2023 <- ifelse(Data$Horas_estudio_2023 > 42, NA, Data$Horas_estudio_2023)
+```
+
+```{r, echo = FALSE}
+Data$Horas_estudio_2023 <- as.numeric(Data$Horas_estudio_2023)
+
+table(Data$Horas_estudio_2023, dnn = c("Horas semanales de estudio (ciclo 2023-1)"))
+```
+
+```{r}
+Data$Horas_estudio_2022 <- ifelse(Data$Horas_estudio_2022 > 42, NA, Data$Horas_estudio_2022)
+```
+
+```{r, echo = FALSE}
+Data$Horas_estudio_2022 <- as.numeric(Data$Horas_estudio_2022)
+
+table(Data$Horas_estudio_2022, dnn = c("Horas semanales de estudio (ciclo 2022-2)"))
+```
+
+### Filtración de datos
+
+**Total de observaciones:**
+
+```{r, echo=FALSE}
+Observaciones_incompletas = sum(apply(Data, 1, function(x) any(is.na(x))))
+
+cat("El total de observaciones (incompletas y completas) es: ",  sum(complete.cases(Data)) + Observaciones_incompletas)
+```
+
+**Observaciones incompletas:**
+
+```{r, echo = FALSE}
+
+cat("Del total, " , Observaciones_incompletas, " observaciones están incompletas.")
+```
+
+**Datos incompletos de acuerdo a las variables:**
+
+Específicamente, estas son las variables que cuentan con datos faltantes (NA's), y el número de datos faltantes que contienen.
+
+```{r, echo = FALSE}
+Datos_faltantes_por_columnas = sapply(Data, function(x) sum(is.na(x)), simplify = TRUE, USE.NAMES = TRUE)
+
+kable(subset(Datos_faltantes_por_columnas, Datos_faltantes_por_columnas != 0), caption = 'Datos faltantes por cada variable', col.names = "Frecuencia")
+
+```
+
+Existe una cantidad significativa de observaciones con datos **NA**, por lo cual optamos por implementar técnicas apropiadas de imputación a fin de lidiar con aquellos datos faltantes sin eliminar una enorme cantidad de muestras a su paso.
+
+```{r, include = FALSE}
+library("mice")
+
+bloques <- list(
+  bloque1 = c("Edad"),
+  bloque2 = c("Ciclos_Cursados"),
+  bloque3 = c("Cursos_total_2022", "Cursos_carrera_2023", "Créditos_carrera_2023", "Créditos_carrera_2022", "Cursos_carrera_2022"),
+  bloque4 = c("Horas_dormir_2023", "Horas_dormir_2022", "Horas_estudio_2023", "Horas_estudio_2022")
+)
+
+metodos_imputacion <- c("norm", "pmm", "rf", "cart")
+
+mice_datos <- mice(Data, meth = metodos_imputacion, blocks = bloques, seed = 123)
+```
+
+Y los agregamos a la base de datos :D
+
+```{r, include = FALSE}
+Data <- complete(mice_datos, 1)
+```
+
+# Análisis descriptivo
+
+## Descriptores gráficos
+
+### Ciclo Académico y horario de desayuno en el 2023 (no clases) de los encuestados:
+
+En el primer gráfico mostramos un histograma con su respectiva leyenda.
+
+En la segunda gráfica de barras podemos notar que la mayoría de alumnos de todos los ciclos desayunan entre las 6 y 8 de la mañana.
+
+Los alumnos de tercero a quinto ciclo llegan a desayunar entre las 10 y 11 de la mañana. Solo los alumnos de tercero y quinto ciclo desayunan entre las 11am y 12pm.
+
+```{r,echo = FALSE}
+barplot(prop.table(table(Data$Desayuno_clases_2023,Data$Ciclo_Académico),margin=2),legend=T,col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",
+     xlab = "Ciclo universitario", ylab = "Porcentaje")
+barplot(prop.table(table(Data$Desayuno_clases_2023,Data$Ciclo_Académico),margin=2),legend=F,col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",
+     xlab = "Ciclo universitario", ylab = "Porcentaje")
+plot(prop.table(table(Data$Desayuno_clases_2023,Data$Ciclo_Académico),margin=2),col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",
+     xlab = "Horario de desayuno", ylab = "ciclo")
+```
+
+### Ciclo Académico y horario de desayuno en el 2023 (no clases) de los encuestados:
+
+Cuando los alumnos no se encuentran en clases podemos notar que la gran parte empieza a desayunar mas tarde.
+
+Si comparamos el mosaico de obtenido anteriormente y el que tenemos ahora, la tercera gráfica, podemos notar que ahora la mayor parte de alumnos ahora no se ubica entre las 6 y 7 de la mañana sino que ahora se encuentra en 9 y 10 de la mañana.
+
+También podemos notar que la cantidad de alumnos que no desayuna disminuye significativamente.
+
+Con la comparación de mosaicos podemos deducir que el hecho a asistir a la universidad modifica el horario de desayuno de los alumnos.
+
+```{r,echo = FALSE}
+barplot(prop.table(table(Data$Desayuno_No_clases_2023,Data$Ciclo_Académico),margin=2),legend=T,col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",
+     xlab = "Ciclo universitario", ylab = "Porcentaje")
+barplot(prop.table(table(Data$Desayuno_No_clases_2023,Data$Ciclo_Académico),margin=2),legend=F,col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",
+     xlab = "Ciclo universitario", ylab = "Porcentaje")
+plot(table(Data$Desayuno_No_clases_2023,Data$Ciclo_Académico),col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",
+     xlab = "Horario de desayuno", ylab = "ciclo")
+```
+
+### Distrito y tiempo de llegada
+
+Al realizar estas gráficas resumimos los distritos por zonas siendo estas: Lima sur, Lima centro, Lima norte, Lima este y Lima oeste. Tomamos esta decisión en base a que queríamos mostrar estos datos y mostrarlos sin reunirlos por zonas hacia que las gráficas fueran muy confusas.
+
+En la gráfica de barras podemos notar que la gran mayoría de los alumnos que viven en lima centro demoran entre menos media hora y una hora
+
+La mayoría de los alumnos que vive en Lima norte demora de 2 a 3 horas en llegar a la universidad.
+
+También que algunos que viven en lima norte demoran entre media hora a 1 hora. Este supuesto parecería falso ya que lo mas cerca a lima norte desde la universidad es el distrito de Independencia. Sin embargo, esto podría ser cierto por que desconocemos las rutas que toman los alumnos para llegar a la universidad.
+
+```{r,echo = FALSE}
+barplot(prop.table(table(Data$Residencia,Data$Tiempo_llegada),margin=2),legend=T,col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",xlab = "Tiempo de llegada(Horas)", ylab = "Porcentaje de alumnos")
+barplot(prop.table(table(Data$Residencia,Data$Tiempo_llegada),margin=2),legend=F,col=c("blue", "white","orange","red","green","yellow","skyblue","brown","pink","black","violet","purple"), main = "Alumnos encuestados",xlab = "Tiempo de llegada(Horas)", ylab = "Porcentaje de alumnos")
+```
+
+### Horas de dormir en el ciclo 2022-2 y créditos totales en el ciclo 2022-2:
+
+Podemos notar que la cantidad de créditos tomados por los alumnos no afecta significativamente las horas de sueño de los mismos. También podemos notar que las mayoría de alumnos duerme entre 30 y 50 horas semanales.
+
+```{r,echo = FALSE}
+plot(Data$Horas_dormir_2022,Data$Créditos_total_2022, main = "Alumnos encuestados",xlab = "Horas de sueño en el ciclo 2022-2", ylab = "Créditos totales en el ciclo 2022-2")
+```
+
+COVARIANZA:
+
+Con la covarianza podemos darnos cuenta que la relación que tienen las variables "Créditos tomados el ciclo 2022-2" y "Horas de sueño en el ciclo 2022-2" es directamente proporcional. Sin embargo, la relación no es muy significativa debido al valor que nos da la covarianza.
+
+```{r,echo = FALSE}
+r(cov(Data$Horas_dormir_2022,Data$Créditos_total_2022)) 
+```
+
+CORRELACIÓN:
+
+La correlación nos muestra lo que anteriormente confirmamos. Debido a que el valor de la correlación esta demasiado cerca a cero significa que estas dos variables no tienen relación alguna.
+
+```{r,echo = FALSE}
+r(cor(Data$Horas_dormir_2022,Data$Créditos_total_2022))
+
+```
+
+### Horas de dormir en el ciclo 2023-1 y créditos totales en el ciclo 2023-1:
+
+Podemos notar que la cantidad de créditos tomados por los alumnos no afecta significativamente las horas de sueño de los mismos.
+
+```{r,echo = FALSE}
+plot(Data$Horas_dormir_2023,Data$Créditos_total_2023, main = "Alumnos encuestados",xlab = "Horas de sueño en el ciclo 2023-1", ylab = "Créditos totales en el ciclo 2023-1")
+```
+
+COVARIANZA:
+
+Con la covarianza podemos darnos cuenta que la relación que tienen las variables "Créditos tomados el ciclo 2023-1" y "Horas de sueño en el ciclo 2023-1" es inversamente proporcional. Sin embargo, la relación no es muy significativa debido al valor que nos da la covarianza.
+
+```{r,echo = FALSE}
+r(cov(Data$Horas_dormir_2023,Data$Créditos_total_2023))
+```
+
+CORRELACIÓN:
+
+La correlación nos demuestra que las variables no tienen relación alguna. debido a que el valor de la correlación es demasiado cercana a 0. Sin embargo, al ser negativo nos puede indicar que algunos alumnos al tomar mas créditos duermen menos horas.
+
+```{r,echo = FALSE}
+r(cor(Data$Horas_dormir_2023,Data$Créditos_total_2023))
+```
+
+### Horas de dormir en el ciclo 2022-2 y promedio ponderado en el ciclo 2022-2
+
+En la gráfica podemos notar que solo un alumnos que durmió 40 horas a la semana saco 20 en el promedio ponderado del año pasado. A su vez, podemos darnos cuenta que dos alumnos que durmieron un poco mas de 40 horas tienen el promedio mas baja de la muestra.
+
+```{r,echo = FALSE}
+plot(Data$Horas_dormir_2022,Data$Promedio_2022, main = "Alumnos encuestados",xlab = "Horas de sueño en el ciclo 2022-2", ylab = "Promedio ponderado 2022-2")
+```
+
+COVARIANZA:
+
+La covarianza es positiva lo cual significa que la relación entre las "Horas de sueño en el ciclo 2022-2" y "Promedio ponderado en el ciclo 2022-2" es directamente proporcional.
+
+```{r,echo = FALSE}
+r(cov(Data$Horas_dormir_2022,Data$Promedio_2022))
+```
+
+CORRELACIÓN:
+
+La correlación nos indica que la relación entre ambas variables a pesar de ser positiva no es tan significativa. Lo que significa que solo pocos alumnos que durmieron mas es ciclo 2022-2 tuvieron un promedio mas alto. Ya que si observamos la gráficas hay alumnos que durmieron la misma cantidad de horas pero tienen promedios con un diferencia muy notoria.
+
+```{r,echo = FALSE}
+r(cor(Data$Horas_dormir_2022,Data$Promedio_2022))
+```
+
+### Créditos en el ciclo 2022-2 y promedio ponderado en el ciclo 2022-2:
+
+En la gráfica podemos notar que que hubo un alumno que tomo menos de 5 créditos y tuvo un promedio ponderado de 14. También que la mayoría de alumnos tomaron entre 15 y 20 créditos. Visualmente no notamos que exista un relación directa o inversamente proporcional.
+
+```{r,echo = FALSE}
+plot(Data$Créditos_total_2022,Data$Promedio_2022, main = "Alumnos encuestados",xlab = "Creditos el ciclo 2022-2", ylab = "Promedio ponderado 2022-2")
+```
+
+COVARIANZA:
+
+Usando la covarianza notamos que que la relación entre los créditos tomado el ciclo 2022-2 y el promedio ponderado del ciclo 2022-2 tiene un relación directamente proporcional aunque esta no es muy significativa debido al valor tan bajo de la covarianza.
+
+```{r,echo = FALSE}
+r(cov(Data$Créditos_total_2022,Data$Promedio_2022))
+```
+
+CORRELACIÓN:
+
+Con la correlación podemos notar que la relación entre las dos variables es poco significativa, por lo cual, podemos afirmar que la relación entre ambas variables no es tan notoria. Solo algunos alumnos que tomaron mas créditos tuvieron un promedio mas alto.
+
+```{r,echo = FALSE}
+r(cor(Data$Créditos_total_2022,Data$Promedio_2022))
+```
+
+### Histograma de cursos totales 2022-2
+
+En el histograma podemos notar que solo un alumno llevo 10 cursos. También podemos ver que la moda es de 6 cursos. Con los datos de la moda, la media y la mediana son casi iguales podríamos decir que la gráfica tiene sesgo a la izquierda. (Media \< Mediana \< Moda)
+
+```{r,echo = FALSE}
+hist(Data$Cursos_total_2022, main = "Histograma de cursos totales 2022-2", 
+     xlab = "Cursos totales", ylab = "Frecuencia",
+     col = "green")
+```
+
+## Descriptores estadísticos:
+
+Con la media y mediana podemos notar que tendencia a tomar cursos es de 6.
+
+Mediana:
+
+```{r,echo = FALSE}
+median(Data$Cursos_total_2022)
+```
+
+Media:
+
+```{r,echo = FALSE}
+r(mean(Data$Cursos_total_2022))
+```
+
+Coeficiente de variación:
+
+El coeficiente de variación nos indica que la mayoría de cursos que llevaron los alumnos se encontraban a la distancia de 1 de la media. Por lo cual, la mayoría de los cursos tomados por los alumnos se encuentra entre 5 y 7.
+
+```{r,echo = FALSE}
+r(sd(Data$Cursos_total_2022))
+```
+
+### Boxplot de la relación entre créditos matriculados y rueda de la vida en 2022-2
+
+Con la rueda de la vida podemos identificar que tan bien o mal se encuentra una persona en su vida para lo cual se mide diferentes áreas de su vida. En estos boxplot comparemos si los créditos que llevan los alumnos afecta su forma de vida. Siendo 0 que se encuentra fatal y 10 que se encuentra muy respecto a todas las áreas de su vida.
+
+-   El 75% de los alumnos que llevan 5 créditos se encuentran entre una escala del 3 al 5 en su rueda de vida y el 25% se encuentra entre el 5 y el 7 en su rueda de vida. Con estos datos pordríamos deducir que la gran mayoría de alumnos que solo llevaron 5 créditos estuvieron entre mal y normal respecto a todos los aspectos de su vida.
+
+-   Los alumnos entre 18 y 26 créditos tienen el bigote inferior ubicado en 1 y el bigote superior en 10. Excepto por los alumnos que solo llevaron 25 créditos los cuales su bigote inferior empieza en 5 y los que llevaron 21 y 24 créditos que solo tienen un dato atípico en 1.
+
+-   El 100% de los alumnos que llevaron 25 créditos se encontrón entre 5 y 10 respecto a su rueda de vida.
+
+-   Solo los alumnos que tuvieron 21 y 24 créditos tienen datos atípicos.
+
+```{r}
+# Datos del ciclo 2022-2
+rueda_vida_2022 <- c(Data$Índice_Salud_2022, Data$Índice_Dinero_2022, Data$Índice_carrera_2022,Data$Índice_familia_2022, Data$Índice_entorno_2022, Data$Índice_desarrollo_2022,Data$Índice_pasatiempo_2022,Data$Índice_espiritualidad_2022)
+
+# Crear un dataframe con los datos
+datos <- data.frame(
+  Creditos_2022= c(Data$Créditos_total_2022),
+  rueda_vida_2022 = c(rueda_vida_2022)
+)
+
+# Crear el diagrama de boxplot
+boxplot(rueda_vida_2022 ~ Creditos_2022, data = datos, 
+        main = "Relación entre Créditos Matriculados y Rueda de la Vida",
+        xlab = "Créditos Matriculados", ylab = "Rueda de la Vida",
+        col = c("blue", "red"), 
+        border = "black")
+```
+
+### Boxplot de la relación entre créditos matriculados y rueda de la vida en 2023-1
+
+-   El 50% de los alumnos que solo llevaron 5 créditos se encuentran entre 4 y 6 respecto a su rueda de vida.
+
+-   El 75% de alumnos a partir de los 17 a los 26 créditos se ubican entre 5 y 10 respecto a su rueda de vida.
+
+-   La mediana en los alumnos que solo llevaron 23 créditos se ubica en el límite del cuartíl 1.
+
+-   Si comparamos el boxplot de "rueda de vida 2023-1" y el boxplot de "rueda de vida 2022-2" podemos notar que los alumnos del ciclo 2023-1 tienen en su mayoría el cuartíl 1 ubicado en 5 a diferencia de los alumnos del ciclo 2022-2.
+
+```{r}
+# Datos del ciclo 2023-1
+rueda_vida_2023 <- c(Data$Índice_Salud_2023, Data$Índice_Dinero_2023, Data$Índice_carrera_2023,Data$Índice_familia_2023, Data$Índice_entorno_2023, Data$Índice_desarrollo_2023,Data$Índice_pasatiempo_2023,Data$Índice_espiritualidad_2023)
+# Crear un dataframe con los datos
+datos <- data.frame(
+  Creditos_2023= c(Data$Créditos_total_2023),
+  rueda_vida_2023 = c(rueda_vida_2023)
+)
+
+# Crear el diagrama de boxplot
+boxplot(rueda_vida_2023 ~ Creditos_2023, data = datos, 
+        main = "Relación entre Créditos Matriculados y Rueda de la Vida",
+        xlab = "Créditos Matriculados en 2023-1", ylab = "Rueda de la Vida en 2023-1",
+        col = c("blue", "red"), 
+        border = "black")
+```
+
+### Descriptores descriptivos de Créditos_total_2023:
+
+```{r,echo = FALSE}
+K <- r(median(Data$Créditos_total_2022))
+K1<- r(mean(Data$Créditos_total_2022))
+K2<- r(var(Data$Créditos_total_2022))
+K3<- mfv(Data$Créditos_total_2022)
+```
+
+Mediana: Nos indica que en promedio se llevaron 20 créditos
+
+```{r,echo = FALSE}
+K
+```
+
+Media:
+
+```{r,echo = FALSE}
+K1
+```
+
+Varianza: La mayoría de los créditos que se llevaron estaban alejados de la mediana.
+
+```{r,echo = FALSE}
+K2
+```
+
+### Descriptores estadísticos de Creditos_totales_2023
+
+```{r,echo = FALSE}
+G <- r(median(Data$Créditos_total_2023))
+G1<- r(mean(Data$Créditos_total_2023))
+G2<- r(var(Data$Créditos_total_2023))
+G3<- mfv(Data$Créditos_total_2023)
+```
+
+Mediana: A diferencia del ciclo 2022-2 la mediana no ha cambiado.
+
+```{r,echo = FALSE}
+G
+```
+
+Media:
+
+```{r,echo = FALSE}
+G1
+```
+
+Varianza: A diferencia del ciclo 2022-2 la cantidad de créditos llevados están mas alejados de la mediana.
+
+```{r,echo = FALSE}
+G2
+```
+
+```{r}
+max(Data$Créditos_total_2022)
+```
+
+# Probabilidad empirica 
+
+## Promedio ponderado
+Primero damos una visión general de los datos que tenemos:
+```{r}
+Data$Promedio_2022
+```
+Estos datos son bastante variados, y como se puede apreciar, la mayoria difiere en décimas. Redondearemos al entero las notas para que podamos trabajar de mejor manera las variables.
+
+```{r}
+# Redondear al entero los datos de la columna "Promedio_2022"
+promedio_redondeado <- round(Data$Promedio_2022, digits = 0)
+
+# Verificar los datos redondeados
+promedio_redondeado
+```
+Ahora si podemos delimitar nuestro espacio muestral
+```{r}
+promedio_emuestral <- length(promedio_redondeado)
+length(promedio_redondeado)
+```
+Una vez hecho esto, calcularemos con que frecuencia aparece cada uno de nuestros datos.
+
+```{r}
+promedio_frecuencia <- table(promedio_redondeado)
+
+# Convertir la tabla de frecuencia en texto
+promedio_text <- paste("Valor ", names(promedio_frecuencia), ":", promedio_frecuencia, "veces", sep = " ")
+
+cat(promedio_text, sep = "\n")
+
+```
+Por último determinaremos la probabilidad para cada uno de nuestros valores:
+```{r}
+Prob_p <- paste("Probabilidad de valor ", names(promedio_frecuencia), ":", promedio_frecuencia, "/", promedio_emuestral, "=",round(promedio_frecuencia/promedio_emuestral,2), sep = " ")
+cat(Prob_p, sep = "\n")
+
+```
+
+## Rueda de la vida
+
+Promediaremos estos pilares de la ruleta de la vida para conseguir un índice de satisfacción general por persona.
+
+```{r}
+Rueda_vida2022 <- Data[, 44:50]
+Indice_satisfaccion <- rowMeans(Rueda_vida2022)
+```
+
+Nos damos cuenta que al igual que nuestra variable "promedio", el índice de satisfacción general difiere de milésimas. Redondearemos al entero más cercano.
+
+```{r}
+satisfacion_redondeado <- round(Indice_satisfaccion, digits = 0)
+```
+Espacio muestral:
+
+```{r, echo=FALSE}
+Satisfaccion_emuestral = length(Indice_satisfaccion)
+Satisfaccion_emuestral
+```
+
+
+Calcularemos con que frecuencia aparece cada uno de nuestros datos.
+
+```{r, echo=FALSE}
+satisfaccion_frecuencia <- table(satisfacion_redondeado)
+
+# Convertir la tabla de frecuencia en texto
+
+satisfaccion_text <- paste("Valor ", names(satisfaccion_frecuencia), ":", satisfaccion_frecuencia, "veces", sep = " ")
+
+cat(satisfaccion_text, sep = "\n")
+```
+Por último determinaremos la probabilidad para cada uno de nuestros valores:
+```{r, echo=FALSE}
+Prob_frec <- paste("Probabilidad de valor ", names(satisfaccion_frecuencia), ":", satisfaccion_frecuencia, "/", Satisfaccion_emuestral, "=",round(satisfaccion_frecuencia/Satisfaccion_emuestral,2), sep = " ")
+cat(Prob_frec, sep = "\n")
+
+```
+# Eventos Dependientes 
+
+Para esta parte elegimos las variables: Horas_estudio_2022 y Promedio_2022.
+
+Dos eventos son dependientes si el resultado o la ocurrencia de uno de ellos está relacionado o afectado por el resultado o la ocurrencia del otro. Entonces analizando la relación entre el tiempo de estudio (Horas_estudio_2023) y el promedio académico (Promedio_2022). Es posible que haya una dependencia, ya que es probable que a travez de las horas de estudio, se involucre el resultado para este promedio
+
+# Eventos Independientes
+
+Para esta parte elegimos las variables: Género y Carrera.
+
+Dos eventos son independientes si el resultado o la ocurrencia de uno de ellos no está relacionado o no se ve afectado por el resultado o la ocurrencia del otro. Entonces analizando la relación entre el género (Género) y la carrera universitaria (Carrera). Es posible que estas variables sean independientes, ya que el género de una persona generalmente no está relacionado con la elección de su carrera universitaria.
+
+```{r}
+# Calcular el coeficiente de correlación entre dos variables
+coef_correlacion <- cor(Data$Promedio_2022, Data$Horas_estudio_2022)
+print(coef_correlacion)
+
+```
+```{r}
+# Graficar un scatter plot de las variables
+plot(Data$Promedio_2022, Data$Horas_estudio_2022, main = "Relación entre Promedio_2022 y Horas_estudio_2023", xlab = "Promedio_2022", ylab = "Horas_estudio_2022")
+
+plot(Data$Promedio_2022, Data$Horas_estudio_2023, main = "Relación entre Promedio_2022 y Horas_estudio_2023", xlab = "Promedio_2022", ylab = "Horas_estudio_2023")
+
+```
+
+*1) Dada la eleccion entre las variables Independientes como CARRERA y GENERO podemos definir los eventos:*
+
+A: "Seleccionar un estudiante de la carrera de Ciencias de la Computación"
+B: "Seleccionar un estudiante de género masculino"
+
+Para verificar la independencia, debemos comprobar si se cumple que P(A ∩ B) = P(A) * P(B). Si esta igualdad se cumple, entonces los eventos son independientes.
+P(A | B)
+
+```{r}
+# Calculando cant. Estudiantes para nuestra muestra
+Nro_estudiantes = nrow(Data) # 207
+
+# Nro estudiantes Masculino y Femenino
+maleEst = nrow(filter(Data, Género == "Masculino.")) # 112
+femaEst = nrow(filter(Data, Género == "Femenino.")) # 94
+
+# Probabilidad de seleccionar a un estudiante Masculino
+(p_male = maleEst/Nro_estudiantes)
+
+# Probabilidad de seleccionar a un estudiante Femenino
+p_fema = femaEst/Nro_estudiantes
+```
+
+```{r}
+# Cant. estudiantes de cada carrera
+cat(paste(names(table(Data$Carrera)), " : " , table(Data$Carrera)), sep = "\n")
+```
+```{r}
+# Para la Carrera de Ciencias de la Computación (B):
+nroCS = table(Data$Carrera)["Ciencias de la Computación."]
+(P_B_CS = nroCS/Nro_estudiantes)
+```
+
+```{r}
+# Probabilidad de seleccionar a un estudiante masculino de una carrera específica en la muestra
+(P_CS_male = p_male*P_B_CS)
+```
+
+P(A) = 0.5410628 (probabilidad de seleccionar a un estudiante masculino en la muestra)
+P(B) = 0.1207729 (probabilidad de seleccionar a un estudiante de una carrera específica en la muestra (Ciencias de la Computación))
+P(A ∩ B) = 0.06534575 (probabilidad de seleccionar a un estudiante masculino de una carrera específica en la muestra)
+
+Entonces:
+P(A|B) = P(A ∩ B) / P(B) = 0.06534575/0.1207729 = 0.541063
+
+Demostrando que P(A|B) = P(A), entonces si son independientes.
+
+
+*2) Dada la eleccion entre las variables Dependientes como Horas_estudio_2022 y Promedio_2022 podemos definir los eventos:*
+
+A: "Seleccionar a un estudiante cuyo promedio en 2022 es alto, >= 17"
+B: "Seleccionar a un estudiante cuyo número de horas de estudio en 2022 es alto > 30 horas"
+
+```{r}
+# P(A): Probabilidad de seleccionar a un estudiante cuyo promedio en 2022 es alto.
+promAlto = nrow(filter(Data, Promedio_2022 >= 17))
+(P_promAlto = promAlto/Nro_estudiantes)
+
+```
+
+```{r}
+# P(B): Probabilidad de seleccionar a un estudiante cuyo número de horas de estudio en 2022 es alto.
+horasEstAlta = nrow(filter(Data, Horas_estudio_2022 > 30))
+(P_horasAltas = horasEstAlta/Nro_estudiantes)
+
+```
+Calculando P(A ∩ B) = P(A) * P(B|A):
+```{r}
+(AintersectB = nrow(filter(Data, Promedio_2022 >= 17 & Horas_estudio_2022 > 30))/Nro_estudiantes)
+```
+
+Calculando la probabilidad de P(A|B) = P(A ∩ B)/P(B):
+```{r}
+P_AdadoB = AintersectB/P_promAlto
+
+cat("P(A|B) != P(A) : ",P_AdadoB != P_horasAltas)
+```
+El resultado nos muestra esta proposición "P(A|B) != P(A)" verdadera, por lo que llegamos a la finalidad de que estos dos eventos son Independientes.
+
+
+# Variable aleatoria discreta
+## Distribución usada:
+creditos totales 2022-2 ----> Distribución normal
+## Variable Aleatoria:
+Número de alumnos de la UTEC encuestados en el año 2023 que llevan una cantidad de créditos menores a 26 en el ciclo de 2022-2 dentro del estudio que se llevo a cabo con 207 estudiantes.
+
+
+```{r}
+datos<-Data$Créditos_total_2022
+# Calcular la estimación de la densidad
+densidad <- density(datos)
+
+# Graficar la densidad estimada
+plot(densidad, main = "Estimación de la Densidad", xlab = "Valores", ylab = "Densidad")
+
+# Agregar histograma para comparar
+hist(datos, freq = FALSE, add = TRUE, col = "cyan")
+
+```
+
+
+
+
+A partir del análisis de un histograma, podemos inferir que nuestra Variable creditos totales 2022-2 muestra una tendencia a seguir una distribución normal. Por lo tanto, a raíz de esta observación, podemos formular las siguientes interrogantes:
+
+```{r}
+ v  <-Data$Créditos_total_2022[!is.na(Data$Créditos_total_2022)  & Data$Créditos_total_2022!=0]
+  desviacion <-sd(v)
+   media <- mean(v)
+   
+```
+
+##PREGUNTAS DE PROBABILIDAD
+
+ **¿Cuál es la probabilidad de   que un alumno de la UTEC  tenga  una cantidad de creditos menor o igual a 26?  P(<=26)**
+```{r}
+ f <-pnorm(26, mean=media, sd=desviacion, lower.tail=TRUE)
+  
+  r(f)
+```
+ **¿Cuál es la cantidad de créditos matriculados que se considera baja para estar en el percentil 10%?**
+ 
+```{r}
+percentil=0.10
+cantidad_creditos <- qnorm(percentil, media, desviacion)
+r(cantidad_creditos)
+```
+
+## Distribución usada:
+Indice de salud(Categórica ordinal) ----> Distribución Hipergeometrica
+## Variable Aleatoria:
+ Se ha establecido que la variable es ordinal, ya que la muestra consta únicamente de 10 niveles de satisfacción (1, 2, 3, 4, 5, 6, 7, 8,9,10), lo cual representa un conjunto finito. Por lo tanto, en este experimento utilizaremos una distribución hipergeométrica para determinar la probabilidad de que esten con un indice de salud mayor a 5 al tomar una muestra de la población.
+ 
+##PREGUNTAS DE PROBABILIDAD
+ **¿Cuál es la probabilidad de que, al seleccionar aleatoriamente una muestra de 50 personas encuestadas, exactamente 6 de ellas tengan un indice de salud de 9?**
+
+Éxito: Que una persona encuestada tengo 9 como indice de salud 
+
+N = 207 (tamaño de la población)
+
+n = 50 (tamaño de la muestra)
+
+k = 12 (éxitos en la población)
+
+x = 6 (personas de la muestra con mayor de 5  de indice de salud)
+
+P(x=6):
+```{r,echo=FALSE}
+dhyper(x=6,m=12,n=195,k=50)
+```
+
+ **¿Cual es la probabilidad de que, al seleccionar aleatoriamente  una muestra de 50 alumnos encuestados, exactamente 6 de ellas tengan un indice de salud de 3 ?**
+
+
+Éxito: Que una alumno de UTEC encuestado tenga 3 de indice de salud
+
+N = 207 (tamaño de la población)
+
+n = 50 (tamaño de la muestra)
+
+k = 6 (éxitos en la población)
+
+x = 6 (personas de la muestra con 3 de satisfacción en la modalidad híbrida)
+
+P(x=6):
+
+
+```{r,echo=FALSE}
+dhyper(x=6,m=6,n=201,k=50)
+```
+
+**¿Cual es la probabilidad de que al seleccionar aleatoriamente una muestra de 50 alumnos encuestados, exactamente 6 de ellas tengan un indice de salud de 6 ?**
+Distribución Hipergeometrica:
+
+Éxito: Que una persona encuestada tengo 6 como nivel de satisfacción en la modalidad híbrida
+
+N = 207 (tamaño de la población)
+
+n = 50 (tamaño de la muestra)
+
+k = 72 (éxitos en la población)
+
+x = 6 (personas de la muestra con 6 de satisfacción en la modalidad híbrida)
+
+P(x=6):
+```{r,echo=FALSE}
+dhyper(x=6,m=72,n=135,k=50)
+```
+ 
+
+ Es más probable que, al seleccionar una muestra de 50 personas encuestadas, solo 6 de ellas tengan el máximo indice de salud.
+
+
+
+
+## Distribución usada:
+Carrera(Categórica ordinal) ----> Distribución Hipergeometrica
+## Variable Aleatoria:
+ Se ha establecido que la variable es ordinal, ya que determina la carrera de cada estudiante de UTEC. Por lo tanto, en este experimento utilizaremos una distribución hipergeométrica para determinar la probabilidad de que esten con un indice de salud mayor a 5 al tomar una muestra de la población.
+
+
+
+```{r}
+table(Data$Carrera)
+```
+a)Se toma una muestra de 50 estudiantes de UTEC para conocer el numero de estudiantes por carrera.
+¿Cuál es la probabilidad de que al menos 5 estudiantes sean de la carrera de Ingeniería Mecatrónica?
+
+
+
+M=30, Cantidad total de éxitos en la población
+N=207, Población
+x=5, Número de éxitos en la muestra
+n=50,  Cantidad de la muestra
+
+
+
+```{r}
+x=30
+M=207-x
+n=50
+
+plot(dhyper(0:x, x, M, n),col = "olivedrab1",xlab = "Cantidad de estudiantes encuestados",ylab = "Prob. de pertenecer a Ing. Metalúrgica")
+```
+
+
+
+```{r}
+1 -phyper(4,30,207-30,50)
+```
+
+
+
+**Interpretación:**
+
+La probabilidad de que al menos 5 estudiantes, estudien ingeniería metalúrgica, de una muestra de 50 alumnos seleccionados es de 0.90, entonces es muy probable encontrarse con una cantidad considerable de ingenieros metalurgicos en un grupo de 50 alumnos elegidos al azar.
+
+
+
+
+
+```{r}
+table(Data$Tiempo_llegada)
+a <- sapply(Data, is.numeric)
+cat(names(Data[, a]),sep="\n")
+```
+```{r}
+cat(Data$Edad)
+```
+
+Distribucion Normal
+*calcular la probabilidad de que un estudiante seleccionado al azar tenga una edad menor o igual a 20 años.*
+```{r}
+# variable Edad
+edades <- Data$Edad
+prom <- mean(edades)
+deStand <- sd(edades)
+q <- 20
+# Se quiere P(X <= 20)
+pnorm(q, mean = prom, sd = deStand, lower.tail = T)
+```
+
+Distribucion exponencial
+*¿Cuál es la probabilidad de que un estudiante masculino duerma menos de o igual a 10 horas en el ciclo 2023, asumiendo una distribución exponencial con base en las horas de sueño de los estudiantes masculinos en la muestra?*  
+```{r}
+# Horas_suenho_2023
+hora_suenho_2023 <- Data$Horas_dormir_2023[Data$Género=="Masculino."]
+m <- mean(hora_suenho_2023)
+q <- 10 # Probabilidad a ser calculado
+
+pexp(q, rate = 1/m, lower.tail = T) # lower.tail hasta q o desde q hasta el final (superior).
+
+```
+
+# Conclusiones
+
+1. Podemos concluir que la variable que mas impacto tiene en el ámbito académico será las horas de estudio. A diferencia de lo que nosotros creíamos, los horas de sueño, horarios de alimentación y lugar de residencia no tuvieron mayor impacto en el ámbito academico más si tuvo cierta relación con los pilares de la rueda de la vida, que nos indica un nivel de satisfacción general con la misma
+
+2. Con ayuda de los gráficos pudimos representar visualmente los datos anteriormente mencionados y nos dió una mejor noción del manejo de estos. Sin embargo, es importante tener en cuenta que estos datos podrían ser más sólidos y precisos si se realizara un análisis estadístico más detallado y se tuviera acceso a más información sobre los factores contextuales y individuales que pueden influir en los resultados.
+
+3. En base a los resultados obtenidos podemos realizar las siguientes recomendaciones: 
+
+  3.1. En cuanto a la elección saludable de horarios académicos, se sugiere a los estudiantes de UTEC que equilibren su carga académica y consideren sus necesidades individuales de descanso para evitar afectar su rendimiento y bienestar.
+
+  3.2. En relación al horario de desayuno y almuerzo, se recomienda mantener hábitos regulares de desayuno y asegurarse de tener un tiempo adecuado para comer y recargar energías durante el día.
+
+  3.3 Para los estudiantes que viven en Lima Norte, se sugiere planificar su tiempo de traslado de manera adecuada para evitar retrasos y asegurarse de llegar a tiempo a sus clases.
+
+  3.4 Es importante encontrar un equilibrio entre las actividades académicas y personales, incluyendo el tiempo dedicado al estudio, deporte y actividades de ocio.
+
+  3.5 Se recomienda reflexionar sobre los resultados de la rueda de la vida y, en caso de identificar áreas de insatisfacción, buscar oportunidades para mejorar y equilibrar el bienestar en esas áreas específicas.
+# Referencias
+
+[^1]: Instituto Nacional de Estadística e Informática. (setiembre de 2015). Perú: Indicadores de Educación por Departamentos, 2004-2014. en *III. Asistencia Escolar en Edad Normativa, con Atraso y Adelanto Escolar*. [https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1293/cap03.pdf](https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1293/cap03.pdf)
+
+[^2]: Plan Met Lima al 2040. (2017). *ANÁLISIS SOCIAL. Diagnóstico Urbano de Lima Metropolitana.* Instituto Metropolitano de Planificación y Ministerio de Vivienda, Construcción y Saneamiento. [https://www.imp.gob.pe/es/recursos/Planificacion/PLANIFICACIÓN-SOCIAL.pdf](https://www.imp.gob.pe/es/recursos/Planificacion/PLANIFICACIÓN-SOCIAL.pdf)
+
+[^3]: Dewald-Kaufmann, J., Oort, F. y Meijer, A. (Junio de 2013). The effects of sleep extension on sleep and cognitive performance in adolescents with chronic sleep reduction: An experimental study. *Sleep Medicine, 14*(6), 510-517. [https://doi.org/10.1016/j.sleep.2013.01.012](https://doi.org/10.1016/j.sleep.2013.01.012)
+
+[^4]: González, L. (1 de diciembre de 2022) ¿Cuántas horas tengo que estudiar al día para tener éxito académico?. emagister [https://www.emagister.com/blog/cuantas-horas-tengo-que-estudiar-al-dia-para-tener-exito-academico/](https://www.emagister.com/blog/cuantas-horas-tengo-que-estudiar-al-dia-para-tener-exito-academico/)
