@@ -1,0 +1,1417 @@
+---
+title: "Discriminación hacia la población venezolana en el Perú en los años 2018 y 2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: 'readable'
+    css: 'styles.css'
+---
+
+```{r, echo=FALSE, message=FALSE}
+library(rmarkdown)
+library(haven)
+library(esquisse)
+library(dplyr)
+library(tidyr)
+library(datasets)
+library(readxl)
+library(ggplot2)
+library(ggmosaic)
+library(plotly)
+library(reshape2)
+library(fitdistrplus)
+```
+
+
+# Tema
+
+El tema general de este estudio es el análisis de la discriminación hacia la población venezolana mayor de 18 años en el Perú en los años 2018 y 2022. La información está basada en un estudio realizado por el INEI.
+
+# Contexto
+
+Durante los años 2018 y 2022, la población venezolana fue víctima de discriminacion debido a la crisis migratoria que afectó al país. Esta crisis, impulsada por problemas políticos y socioeconómicos, llevó a un gran número de personas venezolanas a buscar una mejor condición de vida en otros países. Sin embargo, muchos de ellos se encontraron con prejuicios y estereotipos negativos.
+
+La discriminación se mostró a través de actitudes hostiles, exclusiones y generalizaciones negativas sobre las personas venezolanas, con prejuicios que contribuyeron a la marginalización y la violación de los derechos de los migrantes
+
+# Relevancia
+
+Realizar un estudio de la población venezolana entre los años 2018 y 2022 es de interés debido a la crisis sociopolítica y humanitaria que afectó al país en ese periodo. Actualmente, una parte significativa de la población en el país es venezolana, producto de la ola migratoria que ha sucedido a lo largo de los últimos años. Debido a esto, es necesario comprender las experiencias y circunstancias por las cuales está pasando la población estudiada.
+
+# Finalidad y objetivos
+
+La finalidad de este estudio es analizar y estudiar la discriminación hacia las personas mayores de 18 de nacionalidad venezolana en el Perú, así como también sus factores relacionados en los años 2018 y 2022, con el objetivo de hallar indicadores que representen de manera precisa los niveles de discriminación en distintos rubros.
+
+Entre los diversos objetivos de este estudio se encuentran:
+
+<span class="custom-bullet">&#8226;</span>
+Explicar la relación de la discriminación hacia la población venezolana mayor a 18 años, considerando su estado económico en el Perú en los años 2018 y 2022.
+
+<span class="custom-bullet">&#8226;</span>
+Determinar los factores personales por el cual la población venezolana mayor a 18 años fue discriminada en el Perú en los años 2018 y 2022.
+
+<span class="custom-bullet">&#8226;</span>
+Identificar los principales motivos de discriminación hacia la población venezolana mayor a 18 años en el Perú en el año 2022.
+
+<span class="custom-bullet">&#8226;</span>
+Describir la variación del nivel de discriminación que sufren los trabajadores independientes y dependientes mayores a 18 años en el Perú de acuerdo a su ingreso mensual en los años 2018 y 2022.
+
+# Recolección de datos
+Se utilizó una base de datos existente para recopilar la información necesaria para este proyecto. Esta elección fue tomada con el propósito de evitar un sesgo muestral. El nombre de dicha base es la “Encuesta dirigida a la población venezolana que reside en el país, 2018 y 2022”. La cual proporciona información sobre la población venezolana en el Perú en 10 módulos distintos. En este caso, es el módulo 8 el que contiene los datos de la encuesta sobre discriminación, pero se emplearan ciertos modulos restantes para análisis más variado.
+
+La información de la base de datos fue obtenida del [Catálogo de Base de Datos 2023](https://www.inei.gob.pe/media/difusion/apps/#p=1) del INEI, en la cual podemos encontrar la encuesta como __Encuesta dirigida a la Población Venezolana que reside en el país, 2022__ __(ENPOVE)__ y cuenta con una [ficha técnica](https://proyectos.inei.gob.pe/iinei/srienaho/Descarga/FichaTecnica/642-Ficha.pdf), un [cuestionario](https://proyectos.inei.gob.pe/iinei/srienaho/Descarga/DocumentosMetodologicos/2022-67/2-Cuestionario-ENPOVE.pdf) y una [base de datos en formatos CSV y SPSS](https://proyectos.inei.gob.pe/microdatos/index.htm).
+
+# Bases 2018 y 2022
+## Variables
+
+<div class="rounded-box">
+  <div class="table-container">
+```{r, echo=FALSE}
+nombresVariables <- c('Edad', 'Género', 'Nivel Estudio', 'Estado Económico', 'Empleo', 'Discriminación', 'Lugar', 'Motivo', 'Agresor', 'Horas Trabajo', 'Ingreso Hora Independiente', 'Ingreso Hora Dependiente')
+
+tiposVariables <- c('Numérica discreta', 'Categórica nominal', 'Categórica ordinal', 'Categórica ordinal', 'Categórica nominal', 'Categórica nominal', 'Categórica nominal', 'Categórica nominal', 'Categórica nominal', 'Numérica discreta', 'Numérica continua', 'Numérica continua')
+
+valoresVariables <- c('Número entero', 'Hombre o Mujer', 'Número entero 1-10 con un nombre asociado', 'Número entero 1-5 representando un intervalo de ingresos', 'Sí o No', 'Sí o No', 'Sí o No para cada columna que representa un lugar distinto', 'Sí o No para cada columna que representa un motivo distinto', 'Sí o No para cada columna que representa un tipo de persona distinta', 'Número entero', 'Decimal', 'Decimal')
+
+tablaVariables <- data.frame(Nombre = nombresVariables, Tipo = tiposVariables, Valores = valoresVariables)
+knitr::kable(tablaVariables)
+```
+  </div>
+</div>
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+C_EDAD <- read_sav("EDAD_CARACTERISTICAS_2022.SAV", col_select = c("P204", "P205_A", "P208", "NSELV", "P200_N") )
+C_EDAD <- as_factor(C_EDAD)
+
+C_DISCR <- read_sav("DISCRIMINACION_2022.SAV", col_select = c("P701", "P702_1", "P702_2","P702_3","P702_4","P702_5","P702_6","P702_7","P703_1", "P703_2","P703_3", "P703_4","P703_5","P703_6","P703_7","P703_8","P703_9","P703_10","P704_1","P704_2", "P704_3","P704_4","P704_5","P704_6","P704_7", "P704_8", "P704_9", "NSELV", "P200_N") )
+C_DISCR <- as_factor(C_DISCR)
+
+C_EMPL <- read_sav("EMPLEO_2022.SAV", col_select = c("P621","P622_1","P622_2", "P623_1","P623_2", "P615_T", "P601", "NSELV", "P200_N") )
+C_EMPL <- as_factor(C_EMPL)
+
+C_EDU <- read_sav("EDUCACION_2022.SAV", col_select = c("P501", "P501A", "P501B", "NSELV", "P200_N") )
+C_EDU <- as_factor(C_EDU)
+
+C_EMPL$P615_T <- C_EMPL$P615_T*4
+C_EMPL <- C_EMPL %>% mutate(GANANCIA_POR_HORA_TRABAJADOR_INDEPENDIENTE = round((P623_1+P623_2)/(P615_T),3))
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+C_EMPL$P621 <- case_when(
+  C_EMPL$P621 == "1.Diario?" ~ 30,
+  C_EMPL$P621 == "2.Semanal?" ~ 4,
+  C_EMPL$P621 == "3.Quincenal?" ~ 2,
+  C_EMPL$P621 == "4.Mensual?" ~ 1,
+  C_EMPL$P621 == "5.No recibió pago alguno" ~ 0,
+  TRUE ~ NA
+)
+
+C_EMPL <- C_EMPL %>% mutate(INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE = round(((P622_1+P622_2)*P621)/(P615_T),3))
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+
+C_EMPL <- C_EMPL %>% unite(NSELV,P200_N, col = CODIGO, sep = "_", remove = F) %>% print()
+C_EDAD <- C_EDAD %>% unite(NSELV,P200_N, col = CODIGO, sep = "_", remove = F) %>% print()
+C_EDU <- C_EDU %>% unite(NSELV,P200_N, col = CODIGO, sep = "_", remove = F) %>% print()
+C_DISCR <- C_DISCR %>% unite(NSELV,P200_N, col = CODIGO, sep = "_", remove = F) %>% print()
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+C_EMPL <- dplyr::select(C_EMPL, -NSELV, -P200_N)
+C_EDAD <- dplyr::select(C_EDAD, -NSELV, -P200_N)
+C_EDU <- dplyr::select(C_EDU, -NSELV, -P200_N)
+C_DISCR <- dplyr::select(C_DISCR, -NSELV, -P200_N)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2022 <- Reduce(function(...) merge(..., by.x = "CODIGO", by.y = "CODIGO", all = TRUE), list(C_EDU, C_EMPL, C_DISCR, C_EDAD))
+
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2022$P501 <- as.numeric(base2022$P501)
+base2022$P501B <- as.numeric(base2022$P501B)
+for (i in 1:nrow(base2022)) {
+  base2022$P501[i] <- sum(base2022$P501[i], base2022$P501B[i], na.rm = T)
+}
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+for (i in 1:nrow(base2022)) {
+  base2022$NIVEL_ECONO[i] <- sum(((base2022$P622_1[i]+base2022$P622_2[i])*base2022$P621[i]), (base2022$P623_1[i]+base2022$P623_2[i]), na.rm = T)
+}
+```
+
+
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2022_sucia <- base2022
+
+base2022 <- base2022 %>% filter(P205_A >= 18 | is.na(P205_A))
+base2022 <- base2022[!is.na(base2022$P701),]
+base2022 <- base2022 %>% filter_at(.vars = vars(P622_1,P623_1), .vars_predicate = any_vars(!is.na(.)))
+```
+
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+ceros_ingres <- base2022 %>% filter(NIVEL_ECONO == 0)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2022$NIVEL_ECONO[1]
+for (i in 1:nrow(base2022)){
+  if (base2022$NIVEL_ECONO[i] <= 3000 ){
+    if(base2022$NIVEL_ECONO[i] <= 1400){
+      if(base2022$NIVEL_ECONO[i] <= 1000){
+        if(base2022$NIVEL_ECONO[i] <= 700){
+          base2022$NIVEL_ECONO[i] = 5
+        }
+        else{
+          base2022$NIVEL_ECONO[i] = 4
+        }
+      }
+      else{
+        base2022$NIVEL_ECONO[i] = 3
+      }
+    }
+    else{
+      base2022$NIVEL_ECONO[i] = 2
+    }
+  }
+  else {
+    base2022$NIVEL_ECONO[i] = 1
+  }
+}
+table(base2022$NIVEL_ECONO)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+
+base2022 <- base2022 %>% rename(NIVEL_EDU = P501)
+base2022 <- base2022 %>% rename(ESTADO_TRABAJO = P601)
+base2022 <- base2022 %>% rename(HORAS_TOTALES_TRABAJ = P615_T)
+base2022 <- base2022 %>% rename(INGRESO_T_DEP = P622_1)
+base2022 <- base2022 %>% rename(INGRESO_T_IND = P623_1)
+base2022 <- base2022 %>% rename(SENTIRSE_DISC = P701)
+base2022 <- base2022 %>% rename(SEXO = P204)
+base2022 <- base2022 %>% rename(EDAD = P205_A)
+base2022 <- base2022 %>% rename(MIGRÓ_DE_V = P208)
+
+base2022 <- base2022 %>% rename(MOT_DISC_1 = P702_1)
+base2022 <- base2022 %>% rename(MOT_DISC_2 = P702_2)
+base2022 <- base2022 %>% rename(MOT_DISC_3 = P702_3)
+base2022 <- base2022 %>% rename(MOT_DISC_4 = P702_4)
+base2022 <- base2022 %>% rename(MOT_DISC_5 = P702_5)
+base2022 <- base2022 %>% rename(MOT_DISC_6 = P702_6)
+base2022 <- base2022 %>% rename(MOT_DISC_7 = P702_7)
+
+base2022 <- base2022 %>% rename(LUG_DIS_1 = P703_1)
+base2022 <- base2022 %>% rename(LUG_DIS_2 = P703_2)
+base2022 <- base2022 %>% rename(LUG_DIS_3 = P703_3)
+base2022 <- base2022 %>% rename(LUG_DIS_4 = P703_4)
+base2022 <- base2022 %>% rename(LUG_DIS_5 = P703_5)
+base2022 <- base2022 %>% rename(LUG_DIS_6 = P703_6)
+base2022 <- base2022 %>% rename(LUG_DIS_7 = P703_7)
+base2022 <- base2022 %>% rename(LUG_DIS_8 = P703_8)
+base2022 <- base2022 %>% rename(LUG_DIS_9 = P703_9)
+base2022 <- base2022 %>% rename(LUG_DIS_10 = P703_10)
+
+base2022 <- base2022 %>% rename(QUIEN_DIS_1 = P704_1)
+base2022 <- base2022 %>% rename(QUIEN_DIS_2 = P704_2)
+base2022 <- base2022 %>% rename(QUIEN_DIS_3 = P704_3)
+base2022 <- base2022 %>% rename(QUIEN_DIS_4 = P704_4)
+base2022 <- base2022 %>% rename(QUIEN_DIS_5 = P704_5)
+base2022 <- base2022 %>% rename(QUIEN_DIS_6 = P704_6)
+base2022 <- base2022 %>% rename(QUIEN_DIS_7 = P704_7)
+base2022 <- base2022 %>% rename(QUIEN_DIS_8 = P704_8)
+base2022 <- base2022 %>% rename(QUIEN_DIS_9 = P704_9)
+
+base2022 <- base2022 %>% rename(ULT_NIVEL_ESTU = P501A)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2022 <- dplyr::select(base2022, -P501B,)
+base2022 <- dplyr::select(base2022, -P621,)
+base2022 <- dplyr::select(base2022, -P622_2,)
+base2022 <- dplyr::select(base2022, -P623_2,)
+base2022 <- dplyr::select(base2022, -INGRESO_T_DEP,)
+base2022 <- dplyr::select(base2022, -INGRESO_T_IND,)
+base2022 <- dplyr::select(base2022, -MIGRÓ_DE_V,)
+base2022 <- dplyr::select(base2022, -CODIGO,)
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+filas_base2022_sucia <- nrow(base2022_sucia)
+filas_temp <- nrow(base2022_sucia)
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+NA_edad_base2022_sucia <- sum(base2022_sucia$P205_A < 18 | is.na(base2022_sucia$P205_A), na.rm=FALSE)
+NA_porcentaje_edad_base2022_sucia <- round((NA_edad_base2022_sucia/filas_temp)*100, 2)
+base2022_sucia <- base2022_sucia %>% filter(P205_A >= 18 | is.na(P205_A))
+filas_temp <- nrow(base2022_sucia)
+
+
+NA_disc_base2022_sucia <- sum(is.na(base2022_sucia$P701))
+NA_porcentaje_disc_base2022_sucia <- round((NA_disc_base2022_sucia/filas_temp)*100, 2)
+base2022_sucia <- base2022_sucia[!is.na(base2022_sucia$P701),]
+filas_temp <- nrow(base2022_sucia)
+
+
+NA_ingresos_base2022_sucia <- sum(is.na(base2022_sucia$P622_1) & is.na(base2022_sucia$P623_1))
+NA_porcentaje_ingresos_base2022_sucia <- round((NA_ingresos_base2022_sucia/filas_temp)*100, 2)
+base2022_sucia <- base2022_sucia %>% filter_at(.vars = vars(P622_1,P623_1), .vars_predicate = any_vars(!is.na(.)))
+filas_temp <- nrow(base2022_sucia)
+
+knitr::kable(head(base2022_sucia[1:3]))
+```
+
+```{r, echo=FALSE, message=FALSE}
+filas_base2022 <- nrow(base2022)
+porcentaje_filas_limpiadas <- round(((filas_base2022_sucia - filas_temp)/filas_base2022_sucia) * 100, 2)
+```
+
+
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+C_EDAD <- read_sav("EDAD_CARACTERISTICAS_2018.sav", col_select = c("P204", "P205_A", "VIVIENDA", "CODPERSO") )
+C_EDAD <- as_factor(C_EDAD)
+
+C_DISCR <- read_sav("DISCRIMINACION_2018.sav", col_select = c("P701", "P702_1", "P702_2","P702_3","P702_4","P702_5","P702_6","P702_7","P702_8","P702_9","P702_10","VIVIENDA", "CODPERSO") )
+C_DISCR <- as_factor(C_DISCR)
+
+C_EMPL <- read_sav("EMPLEO_2018.sav", col_select = c("P601","P610_T","P613","P614_MON","P614_ESP","P615_MON","P615_ESP","VIVIENDA", "CODPERSO") )
+C_EMPL <- as_factor(C_EMPL)
+
+C_EDU <- read_sav("EDUCACION_2018.sav", col_select = c("P501","VIVIENDA", "CODPERSO") )
+C_EDU <- as_factor(C_EDU)
+
+C_EMPL$P610_T <- C_EMPL$P610_T*4
+C_EMPL <- C_EMPL %>% mutate(GANANCIA_POR_HORA_TRABAJADOR_INDEPENDIENTE = round((P615_MON+P615_ESP)/(P610_T),3))
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+
+C_EMPL$P613 <- case_when(
+  C_EMPL$P613 == "Diario?" ~ 30,
+  C_EMPL$P613 == "Semanal?" ~ 4,
+  C_EMPL$P613 == "Quincenal?" ~ 2,
+  C_EMPL$P613 == "Mensual?" ~ 1,
+  TRUE ~ NA
+)
+  
+C_EMPL <- C_EMPL %>% mutate(INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE = round(((P614_MON+P614_ESP)*P613)/(P610_T),3))
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+C_EMPL <- C_EMPL %>% unite(VIVIENDA,CODPERSO, col = CODIGO, sep = "_", remove = F) %>% print()
+C_EDAD <- C_EDAD %>% unite(VIVIENDA,CODPERSO, col = CODIGO, sep = "_", remove = F) %>% print()
+C_EDU <- C_EDU %>% unite(VIVIENDA,CODPERSO, col = CODIGO, sep = "_", remove = F) %>% print()
+
+C_DISCR <- C_DISCR %>% unite(VIVIENDA,CODPERSO, col = CODIGO, sep = "_", remove = F) %>% print()
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+C_EMPL <- dplyr::select(C_EMPL, -VIVIENDA, -CODPERSO)
+C_EDAD <- dplyr::select(C_EDAD, -VIVIENDA, -CODPERSO)
+C_EDU <- dplyr::select(C_EDU, -VIVIENDA, -CODPERSO)
+C_DISCR <- dplyr::select(C_DISCR, -VIVIENDA, -CODPERSO)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2018 <- Reduce(function(...) merge(..., by.x = "CODIGO", by.y = "CODIGO", all = TRUE), list(C_EDU, C_EMPL, C_DISCR, C_EDAD))
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+
+filas_base2018_sucia <- nrow(base2018)
+
+base2018 <- base2018 %>% filter(P205_A >= 18 | is.na(P205_A))
+base2018 <- base2018 %>% filter(P610_T > 0)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+for (i in 1:nrow(base2018)) {
+  base2018$NIVEL_ECONO[i] <- sum(((base2018$P614_MON[i]+base2018$P614_ESP[i])*base2018$P613[i]), base2018$P615_MON[i]+base2018$P615_ESP[i], na.rm = T)
+}
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2018 <- base2018 %>% rename(NIVEL_EDU = P501)
+base2018 <- base2018 %>% rename(ESTADO_TRABAJO = P601)
+base2018 <- base2018 %>% rename(HORAS_TOTALES_TRABAJ = P610_T)
+base2018 <- base2018 %>% rename(SENTIRSE_DISC = P701)
+base2018 <- base2018 %>% rename(SEXO = P204)
+base2018 <- base2018 %>% rename(EDAD = P205_A)
+
+base2018 <- base2018 %>% rename(LUG_DIS_1 = P702_1)
+base2018 <- base2018 %>% rename(LUG_DIS_2 = P702_2)
+base2018 <- base2018 %>% rename(LUG_DIS_3 = P702_3)
+base2018 <- base2018 %>% rename(LUG_DIS_4 = P702_4)
+base2018 <- base2018 %>% rename(LUG_DIS_5 = P702_5)
+base2018 <- base2018 %>% rename(LUG_DIS_6 = P702_6)
+base2018 <- base2018 %>% rename(LUG_DIS_7 = P702_7)
+base2018 <- base2018 %>% rename(LUG_DIS_8 = P702_8)
+base2018 <- base2018 %>% rename(LUG_DIS_9 = P702_9)
+base2018 <- base2018 %>% rename(LUG_DIS_10 = P702_10)
+
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+base2018 <- dplyr::select(base2018, -P613,)
+base2018 <- dplyr::select(base2018, -P614_MON,)
+base2018 <- dplyr::select(base2018, -P614_ESP,)
+base2018 <- dplyr::select(base2018, -P615_MON,)
+base2018 <- dplyr::select(base2018, -P615_ESP,)
+base2018 <- dplyr::select(base2018, -CODIGO,)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+for (i in 1:nrow(base2018)){
+  if (base2018$NIVEL_ECONO[i] <= 3000 ){
+    if(base2018$NIVEL_ECONO[i] <= 1400){
+      if(base2018$NIVEL_ECONO[i] <= 1000){
+        if(base2018$NIVEL_ECONO[i] <= 700){
+          base2018$NIVEL_ECONO[i] = 5
+        }
+        else{
+          base2018$NIVEL_ECONO[i] = 4
+        }
+      }
+      else{
+        base2018$NIVEL_ECONO[i] = 3
+      }
+    }
+    else{
+      base2018$NIVEL_ECONO[i] = 2
+    }
+  }
+  else {
+    base2018$NIVEL_ECONO[i] = 1
+  }
+}
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, include=FALSE}
+filas_eliminadas_2018 <- filas_base2018_sucia - nrow(base2018)
+filas_2018 <- nrow(base2018)
+```
+
+
+# Análisis
+
+## Objetivo 1
+
+Analizamos el estado económico y su relación con la discriminación, ya que el principal motivo de la migración en masa fue la búsqueda de oportunidades.
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+ggplot(base2022) +
+aes(x = factor(NIVEL_ECONO), fill = SENTIRSE_DISC) +
+geom_bar(position = "dodge") +
+geom_text(
+  aes(label = after_stat(count)),
+  stat = "count",
+  position = position_dodge(width = 0.9),
+  vjust = -0.5,
+  size = 3
+) +
+scale_fill_hue(direction = 1) +
+labs(
+  x = "Nivel económico",
+  y = "Casos",
+  title = "Discriminación por escala económica",
+  subtitle = "Base 2022",
+  fill = "Fue discriminado"
+) +
+scale_x_discrete(labels = c("Alto", "Medio-Alto", "Medio", "Medio-Bajo", "Bajo")) +
+theme_gray() +
+theme(legend.position = "right")
+
+ggplot(base2018) +
+aes(x = factor(NIVEL_ECONO), fill = SENTIRSE_DISC) +
+geom_bar(position = "dodge") +
+geom_text(
+  aes(label = after_stat(count)),
+  stat = "count",
+  position = position_dodge(width = 0.9),
+  vjust = -0.5,
+  size = 3
+) +
+scale_fill_hue(direction = 1) +
+labs(
+  x = "Nivel económico",
+  y = "Casos",
+  title = "Discriminación por escala económica",
+  subtitle = "Base 2018",
+  fill = "Fue discriminado"
+) +
+scale_x_discrete(labels = c("Alto", "Medio-Alto", "Medio", "Medio-Bajo", "Bajo")) +
+theme_gray() +
+theme(legend.position = "right")
+```
+</div>
+\
+
+La escasa cantidad de datos en la escala alta puede alterar la impresión del lector, así que se descartó esa categoría y se utilizó un histograma.
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+temp <- base2022 %>% 
+  filter(NIVEL_ECONO != 1)
+ggplot(temp) +
+aes(x = factor(NIVEL_ECONO), fill = SENTIRSE_DISC) +
+scale_y_continuous(labels = scales::percent) +
+geom_bar(position = "fill") +
+scale_fill_hue(direction = 1) +
+labs(
+  x = "Nivel económico",
+  y = "Porcentaje de casos",
+  title = "Porcentaje de discriminación por escala económica",
+  subtitle = "Base 2022",
+  fill = "Fue discriminado"
+  ) +
+scale_x_discrete(labels = c("Medio-Alto", "Medio", "Medio-Bajo", "Bajo")) +
+theme_gray() +
+theme(legend.position = "right")
+rm(temp)
+
+temp <- base2018 %>% 
+  filter(NIVEL_ECONO != 1)
+ggplot(temp) +
+aes(x = factor(NIVEL_ECONO), fill = SENTIRSE_DISC) +
+geom_bar(position = "fill") +
+scale_y_continuous(labels = scales::percent) +
+scale_fill_hue(direction = 1) +
+labs(
+  x = "Nivel económico",
+  y = "Porcentaje de casos",
+  title = "Porcentaje de discriminación por escala económica",
+  subtitle = "Base 2018",
+  fill = "Fue discriminado"
+  ) +
+scale_x_discrete(labels = c("Medio-Alto", "Medio", "Medio-Bajo", "Bajo")) +
+theme_gray() +
+theme(legend.position = "right")
+rm(temp)
+```
+</div>
+\
+
+En el año 2018, el nivel de discriminación estaba repartido entre los diversos niveles económicos. El nivel medio-alto fue el más discriminado, aunque no había tanta diferencia comparado a los demás rubros.
+
+Por otro lado, en el año 2022, se puede apreciar una tendencia discriminatoria hacia el nivel económico más bajo, mientras que el índice de discriminación disminuyó para los niveles más altos.
+
+Existe una correlación negativa entre ambas variables, por lo que se concluye que la discriminación disminuye a mayor nivel económico. Además, esta correlación parece estabilizarse en el segundo periodo estudiado.
+
+## Objetivo 2
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+temp <- base2022 %>% filter(SENTIRSE_DISC == "1.Sí")
+ggplot(temp) +
+  aes(x = temp$EDAD, y = temp$SENTIRSE_DISC, fill = temp$SEXO) +
+  geom_boxplot() +
+  scale_fill_hue(direction = 1) +
+  labs(
+  x = "Edad",
+  y = "Fue discriminado",
+  title = "Casos de discriminación por edad y sexo",
+  subtitle = "Base 2022",
+  fill = "Sexo"
+  ) +
+  theme_gray() +
+  coord_cartesian(xlim = c(min(base2022$EDAD), max(base2022$EDAD))) +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank()
+  )
+  rm(temp)
+  
+temp <- base2018 %>% filter(SENTIRSE_DISC == "Si")
+ggplot(temp) +
+  aes(x = temp$EDAD, y = temp$SENTIRSE_DISC, fill = temp$SEXO) +
+  geom_boxplot() +
+  scale_fill_hue(direction = 1) +
+  labs(
+  x = "Edad",
+  y = "Fue discriminado",
+  title = "Casos de discriminación por edad y sexo",
+  subtitle = "Base 2018",
+  fill = "Sexo"
+  ) +
+  theme_gray() +
+  coord_cartesian(xlim = c(min(base2018$EDAD), max(base2018$EDAD))) +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank()
+  )
+  rm(temp)
+```
+</div>
+\
+
+Al clasificar los casos de discriminación y relacionarlos con el sexo y la edad, es posible observar las diferencias en influencia que el sexo tuvo sobre la frecuencia de discriminación.
+
+Los periodos de migración iniciales (2018) tienen un rango menor de edad debido a que la población inmigrante era en su mayoría joven, con intenciones laborales. En el año 2022, el rango de edad propenso a discriminación incrementó, por lo que se puede concluir que la edad dejó de ser un factor relevante, dando paso al sexo de la población discriminada en el 2022.
+
+## Objetivo 3
+
+<div class="rounded-box">
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE}
+temp <- base2022 %>%
+  dplyr::select(SENTIRSE_DISC, LUG_DIS_1:LUG_DIS_10) %>%
+  filter(SENTIRSE_DISC == "1.Sí") %>%
+  pivot_longer(cols = LUG_DIS_1:LUG_DIS_10, names_to = "LUG_DIS_number", values_to = "LUG_DIS_value") %>%
+  filter(LUG_DIS_value != "0")
+
+ggplot(temp, aes(x = factor(LUG_DIS_number), fill = LUG_DIS_value)) +
+  geom_bar(aes(y = (after_stat(count))/sum(after_stat(count)))) +
+  scale_fill_manual(values = c("#9e0142", "#d53e4f", "#f46d43", "#fdae61", "#fee08b", "#e6f598", "#abdda4" , "#66c2a5", "#3288bd", "#5e4fa2"), labels = c("1. Trabajo", "2. I.Educativa", "3. E.Salud", "4. I.Justicia", "5. Calle", "6. T.Público", "7. Migración", "8. Cancillería", "9. Barrio", "10. Otro")) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_discrete(labels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")) +
+  labs(x = "Ambiente",
+       y = "Porcentaje",
+       title = "Porcentajes de discriminación por ambiente",
+       fill = "Lugar") +
+  theme_gray() +
+  theme(legend.position = "right")
+rm(temp)
+```
+</div>
+\
+
+<div class="rounded-box">
+```{r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE}
+temp <- base2022 %>%
+  dplyr::select(SENTIRSE_DISC, MOT_DISC_1:MOT_DISC_7) %>%
+  filter(SENTIRSE_DISC == "1.Sí") %>%
+  pivot_longer(cols = MOT_DISC_1:MOT_DISC_7, names_to = "MOT_DISC_number", values_to = "MOT_DISC_value") %>%
+  filter(MOT_DISC_value != "0")
+
+ggplot(temp, aes(x = MOT_DISC_number, fill = MOT_DISC_value)) +
+geom_bar(aes(y = (stat(count))/sum(stat(count))), width = 1) +
+scale_y_continuous(labels = scales::percent) +
+scale_x_discrete(labels = c("1", "2", "3", "4", "5", "6", "7")) +
+labs(
+  x = "Motivo de la discriminación",
+  y = "Porcentaje",
+  title = "Porcentaje de personas que se sintieron discriminadas por cada motivo",
+  fill = "Motivo"
+)
+rm(temp)
+```
+</div>
+\
+
+Al analizar el primer gráfico, es posible notar que la mayor cantidad de casos de discriminación ocurren en la calle, trabajo, y transporte público, siendo la calle el ambiente con más incidencia. Seguidos de estos ambientes, se encuentran los ambientes socioeconómicos, como son las instituciones públicas.
+
+Es necesario resaltar la alta tasa de incidencia de discriminación en instituciones públicas, lo cual puede ser interpretado como el rechazo por parte de la población trabajadora peruana en los primero años de la ola migratoria
+
+## Objetivo 4
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+
+temp <- base2022
+
+temp$NIVEL_EDU_Merged <- temp$NIVEL_EDU
+temp$NIVEL_EDU_Merged[temp$NIVEL_EDU %in% c(0, 1, 2, 11, 12)] <- "Otros"
+
+
+temp$NIVEL_EDU_Merged <- factor(temp$NIVEL_EDU_Merged, levels = c("3", "4", "5", "6", "7", "8", "9","10" ,"Otros"))
+
+
+boxplot(temp$HORAS_TOTALES_TRABAJ ~ temp$NIVEL_EDU_Merged, 
+        main = "Distribución de las horas totales trabajadas según el nivel de estudio",
+        xlab = "Nivel de estudio", ylab = "Horas totales trabajadas")
+rm(temp)
+```
+</div>
+\
+
+Sorprendentemente, el nivel educativo no tiene un impacto grande referente al valor medio de la mayoría de niveles educativos; sin embargo, a medida que incrementa el nivel de educación, se presenta una mayor concentración de casos atípicos con menores horas de trabajo. Lo cual conlleva una disminución de la cantidad de horas necesarias.
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+
+temp <- base2022
+temp <- subset(temp, INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE < 100)
+
+
+ggplot(temp, aes(x = EDAD, y = INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Ingreso horario dependiente por edades", x = "Edad", y = "Ingreso por hora")
+rm(temp)
+```
+</div>
+\
+
+Se puede notar una tendencia negativa respecto al ingreso, a primera vista es posible decir que el ingreso medio disminuye a medida que la edad incrementa. Esto podría deberse a diversos factores, como la reposición de personal en empresas, mayores oportunidades a edades tempranas, o el nivel educativo de cada persona.
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+
+ggplot(base2022, aes(x = HORAS_TOTALES_TRABAJ, y = INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Horas totales por ingreso dependiente", x = "Horas totales de trabajo por mes", y = "Ingreso por hora")
+```
+</div>
+\
+Si se observa la relación entre las horas de trabajo y el ingreso por hora, podría pensarse que existen contradicciones. Idealmente, se esperaría que los ingresos aumentaran a mayores horas de trabajo; sin embargo, se puede observar lo contrario. Este fenómeno puede ocurrir por diversos motivos, como el hecho de que los trabajos mejor remunerados requieren pocas horas de trabajo.
+
+# Análisis Probabilístico
+
+## Probabilidad empírica
+
+Para cada evento, definimos $N(\Omega)$ como el número total de observaciones.
+
+Variable: "Sentirse Discriminado"
+
+__2022__
+
+__Experimento:__ Escoger al azar a una persona que forma parte de la encuesta realizada a la población venezolana en el año 2022 para observar si se siente discriminada. 
+
+__Definición de eventos atomicos:__
+
+$B1$: Seleccionar una persona que formó parte de la encuesta realizada a la población venezolana en el año 2022 que ha sido discriminada en algún momento.
+
+$$P(B1) = N(B1)/N(\Omega) = 0.36$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+cantidades_sentir_dis_2022 <- table(base2022$SENTIRSE_DISC)
+cantidades_sentir_dis_2022[1]/(cantidades_sentir_dis_2022[1] + cantidades_sentir_dis_2022[2])
+```
+</div>
+\
+$B2$: Seleccionar una persona que formó parte de la encuesta realizada a la población venezolana en el año 2022 que no fue discriminada en algún momento.
+
+$$P(B2) = N(B2)/N(\Omega) = 0.64$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+cantidades_sentir_dis_2022[2]/(cantidades_sentir_dis_2022[1] + cantidades_sentir_dis_2022[2])
+```
+</div>
+\
+
+__2022__
+
+
+__Experimento:__ Escoger al azar a una persona que se siente discriminada que forma parte de la encuesta realizada a la población venezolana en el año 2022 para observar en **qué lugar** se sintio discriminada.
+
+__Espacio de resultados:__ {Centro de trabajo, espacios públicos, transporte público, otros}
+
+__Definición de eventos atómicos:__
+
+$D1$: Seleccionar una persona que se siente discriminada que forma parte de la encuesta realizada a la población venezolana en el año 2022 que se haya sentido discriminada en su centro de trabajo.
+
+$$P(D1) = N(D1)/N(\Omega) = 0.41$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+sub_table <- base2022[15:24]
+sub_table <- na.omit(sub_table)
+table(sub_table$LUG_DIS_1)[2]/(table(sub_table$LUG_DIS_1)[1]+table(sub_table$LUG_DIS_1)[2])
+```
+</div>
+\
+
+
+
+$D2$: Seleccionar una persona que se siente discriminada que forma parte de la encuesta realizada a la población venezolana en el año 2022 que se haya sentido discriminada en la calle/lugares públicos.
+
+$$P(D2) = N(D2)/N(\Omega) = 0.74$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+table(sub_table$LUG_DIS_5)[2]/(table(sub_table$LUG_DIS_5)[1]+table(sub_table$LUG_DIS_5)[2])
+```
+</div>
+\
+
+
+
+$D3$: Seleccionar una persona que se siente discriminada que forma parte de la encuesta realizada a la población venezolana en el año 2022 que se haya sentido discriminada en el transporte público (bus, colectivo, Metro de Lima, Corredor azul, Metropolitano,etc.).
+
+$$P(D3) = N(D3)/N(\Omega) = 0.13$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+table(sub_table$LUG_DIS_6)[2]/(table(sub_table$LUG_DIS_6)[1]+table(sub_table$LUG_DIS_6)[2])
+```
+</div>
+\
+
+
+
+$D4$: Seleccionar una persona que se siente discriminada que forma parte de la encuesta realizada a la población venezolana en el año 2022 que se haya sentido discriminada en otros lugares.
+
+$$P(D4) = N(D4)/N(\Omega) = 0.18$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+(table(sub_table$LUG_DIS_10)[2]+table(sub_table$LUG_DIS_2)[2]+table(sub_table$LUG_DIS_3)[2]+table(sub_table$LUG_DIS_4)[2]+table(sub_table$LUG_DIS_7)[2]+table(sub_table$LUG_DIS_8)[2]+table(sub_table$LUG_DIS_9)[2])/(table(sub_table$LUG_DIS_10)[1]+table(sub_table$LUG_DIS_10)[2])
+rm(sub_table)
+```
+</div>
+\
+
+## Probabilidad Condicional - 2022
+
+Variables utilizadas: Ser discriminado y sexo
+
+### Eventos usados y probabilidades para casos dependientes
+
+Espacio de resultados teórico:
+<div class="rounded-box">
+```{r, echo=FALSE}
+esp_gen <- unique(base2022$SEXO)
+prob_gen <- table(base2022$SEXO) / sum(table(base2022$SEXO))
+esp_gen
+```
+</div>
+\
+
+Definición de eventos atómicos:
+
+$E1$: Seleccionar a una persona que es hombre.
+
+Probabilidad de elegir a una persona que es hombre $P(E1)$:
+<div class="rounded-box">
+```{r,echo=FALSE}
+prob_gen[1]
+```
+</div>
+\
+
+$E2$: Seleccionar a una persona que es mujer.
+Probabilidad de elegir a una persona que es mujer $P(E2)$:
+<div class="rounded-box">
+```{r,echo=FALSE}
+prob_gen[2]
+```
+</div>
+\
+
+$E3$: Seleccionar a una persona que fue discriminada y es hombre.
+
+Probabilidad de elegir a una persona que fue discriminada y es hombre $P(E3)$:
+<div class="rounded-box">
+```{r, echo = FALSE}
+hombre_disc_df <- base2022$SEXO[base2022$SENTIRSE_DISC=="1.Sí" & base2022$SEXO=="1.Hombre"]
+prob_disc_hombre <- length(hombre_disc_df) / nrow(base2022)
+prob_disc_hombre
+```
+</div>
+\
+
+
+$E4$: Seleccionar a una persona que fue discriminada y es mujer.
+
+Probabilidad de elegir a una persona que fue discriminada y es mujer $P(E4)$:
+<div class="rounded-box">
+```{r, echo = FALSE}
+mujer_disc_df <- base2022$SEXO[base2022$SENTIRSE_DISC=="1.Sí" & base2022$SEXO=="2.Mujer"]
+prob_disc_mujer <- length(mujer_disc_df) / nrow(base2022)
+prob_disc_mujer
+```
+</div>
+\
+
+$E5$: Seleccionar a una persona que fue discriminada en su lugar de trabajo y es mujer.
+
+Probabilidad de elegir a una perona que fue discriminada en el lugar de trabajo y es mujer $P(E5)$:
+<div class="rounded-box">
+```{r, echo = FALSE}
+mujer_disc_trab_df <- base2022$SEXO[base2022$SENTIRSE_DISC=="1.Sí" & base2022$SEXO=="2.Mujer" & base2022$LUG_DIS_1 == "1.En su centro de trabajo"]
+prob_mujer_disc_trab <- length(mujer_disc_trab_df) / nrow(base2022)
+prob_mujer_disc_trab
+```
+</div>
+\
+
+#### Caso dependiente 1
+
+$E6$: Seleccionar a una persona que fue discriminada tal que la persona es hombre.
+
+Con los cálculos anteriores, la probabilidad de elegir a una persona que haya sido discriminada $P(B1)$ es 0.36%, la probabilidad de elegir a una persona que es hombre $P(E1)$ es 0.55%, y la probabilidad de elegir a una persona que haya sido discriminada y es hombre $P(E3)$ es de 0.19%. Por lo tanto, la probabilidad de elegir a una persona que fue discriminada tal que es hombre es:
+
+$$P(B1/E1) = \frac{P(E3)}{P(E1)} = 0.35$$ 
+<div class="rounded-box">
+```{r, echo = FALSE}
+0.19/0.55
+```
+</div>
+\
+
+Para comprobar que son dependientes, aplicamos el teorema de Bayes, para el cual:
+$$P(B1/E1) = \frac{P(E1/B1) * P(B1)}{P(E1)} \not= P(B1)$$
+
+Calculamos $P(E1/B1)$, es decir la probabilidad de ser hombre tal que fue discriminado.
+$$P(E1/B1) = \frac{0.19}{0.36} = 0.53$$
+<div class="rounded-box">
+```{r,echo=FALSE}
+0.19/0.36
+```
+</div>
+\
+
+Por lo tanto: $$P(B1/E1) = \frac{0.53 * 0.36}{0.55} = 0.35$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+(0.53*0.36)/0.55
+```
+</div>
+\
+
+Entonces, 0.35 $\not=$ 0.36, por lo que los eventos son dependientes.
+
+#### Caso dependiente 2
+
+$E7$: Seleccionar a una que es mujer tal que fue discriminada en su lugar de trabajo.
+
+Gracias a los cálculos anteriores, sabemos que la probabilidad de elegir a una persona que es mujer es $P(E2)$ 0.45%,la probabilidad de elegir a una persona que fue discriminada en el lugar de trabajo $P(D1)$ es de 0.41%, y la probabilidad de de ser discriminado en el lugar de trabajo y ser mujer es $P(E4)$ 0.07%. Por lo tanto, la probabilidad de seleccionar a una persona que es mujer tal que fue discriminada en su lugar de trabajo es:
+
+$$P(E2/D1) = \frac{P(E4)}{P(D1)} = 0.17$$
+<div class="rounded-box">
+```{r, echo = FALSE}
+0.07/0.41
+```
+</div>
+\
+
+Aplicamos el teorema de bayes, para el cual:
+
+$$P(E2/D1) = \frac{P(D1/E2)*P(E2)}{P(D1)} \not= P(E2)$$
+
+Hallamos $P(D1/E2)$, es decir la probabilidad de seleccionar a una persona que fue discriminada en su lugar de trabajo tal que es mujer.
+
+$$P(D1/E2) = \frac{P(0.07)}{0.45} = 0.16$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+0.07/0.45
+```
+</div>
+\
+
+Por lo tanto: $$P(E2/D1) = \frac{0.15 * 0.41}{0.45} = 0.14$$
+<div class="rounded-box">
+```{r, echo=FALSE}
+(0.15 * 0.41)/0.45
+```
+</div>
+\
+
+Y 0.14 $\not=$ 0.17, por lo tanto son dependientes.
+
+
+### Eventos usados y probabilidades para casos independientes
+
+#### Caso independiente 1
+
+__Evento A:__ Seleccionar a una persona que tiene entre 18 y 28 años de edad.
+
+__Evento B:__ Seleccionar a una persona que sea discriminada.
+
+__Evento C:__ Seleccionar a una persona que tenga entre 18 y 28 años de edad y sea discriminada
+
+__Evento D:__ Seleccionar a una persona que sea discriminada tal que tiene entre 18 y 28 años de edad.
+
+Ahora hallamos las probabilidades empíricas de __A, B, y C.__
+
+Probabilidad de elegir a una persona que tenga entre 18 y 28 años $P(A)$:
+<div class="rounded-box">
+```{r, echo = FALSE}
+cant_18a28 <- base2022$EDAD[base2022$EDAD >= 18 & base2022$EDAD <= 28]
+prob_18a28 <- length(cant_18a28) / nrow(base2022)
+prob_18a28
+```
+</div>
+\
+
+Probabilidad de elegir a una persona que sea discriminada $P(B) = 0.36$ (por cálculo anterior).
+
+Probabilidad de elegir a una persona que sea discriminada y este en el rango de 18-28 años $P(C)$:
+```{r, echo = FALSE}
+cant_disc_18a28 <- base2022$EDAD[base2022$SENTIRSE_DISC=="1.Sí" & base2022$EDAD >= 18 & base2022$EDAD <= 28]
+prob_disc_18a28 <- length(cant_disc_18a28) / nrow(base2022)
+prob_disc_18a28
+```
+Ahora, para hallar la probabilidad entre casos independientes, usamos Bayes
+
+$$P(D) = P(B/A)$$
+
+$$P(B/A) = \frac{P(A/B)*P(B)}{P(A)} \not= P(B)$$
+
+Hallamos $P(A/B)$:
+
+$$P(A/B) = \frac{0.13}{0.36} = 0.36$$
+<div class="rounded-box">
+```{r, echo = FALSE}
+0.1294447 / 0.3575709
+```
+</div>
+\
+
+Entonces, $P(B/A) = \frac{0.36 * 0.36}{0.37} \approx 0.36$. Esto implica que $P(B/A) = P(B)$, por lo que los eventos son independientes.
+
+
+#### Caso independiente 2
+
+__Evento A:__ Elegir a una persona con nivel económico 3 (medio)
+
+__Evento B:__ Elegir a una persona que fue discriminada.
+
+__Evento C:__ Elegir a una persona con nivel económico medio y que fue discriminada.
+
+__Evento D:__ Elegir a una persona que fue discriminada tal que tiene nivel económico medio.
+
+Ahora hallamos las probabilidades empíricas:
+
+Probabilidad de elegir a una persona con nivel economico "3" $P(A)$:
+<div class="rounded-box">
+```{r, echo= FALSE}
+cant_medio <- base2022$NIVEL_ECONO[base2022$NIVEL_ECONO == 3]
+prob_medio <- length(cant_medio) / nrow(base2022)
+prob_medio
+```
+</div>
+\
+
+Probabilidad de elegir a una persona que fue discriminada $P(B)$ (por dato): 0.36%.
+
+Probabilidad de elegir a una persona con nivel económico medio y que fue discriminada $P(C)$:
+<div class="rounded-box">
+```{r, echo = FALSE}
+cant_disc_medio <- base2022$NIVEL_ECONO[base2022$SENTIRSE_DISC=="1.Sí" & base2022$NIVEL_ECONO == 3]
+prob_disc_medio <- length(cant_disc_medio) / nrow(base2022)
+prob_disc_medio
+```
+</div>
+\
+
+Utilizamos Bayes para hallar independencia:
+
+$$P(D) = P(B/A)$$
+
+$$P(B/A) = \frac{P(A/B)*P(B)}{P(A)} \not= P(B)$$
+
+Hallamos $P(A/B)$:
+
+$$P(A/B) = \frac{P(A \cap B)}{P(B)} = \frac{0.1}{0.36} = 0.27$$
+<div class="rounded-box">
+```{r, echo = FALSE}
+0.0970835/0.3575709
+```
+</div>
+\
+
+Entonces, $P(B/A) = \frac{0.28 * 0.36}{0.27} \approx 0.36$. Esto implica que $P(B/A) = P(B)$, por lo que los eventos son independientes.
+
+
+## Variables aleatorias discretas
+
+
+- __Definición de la distribución discreta__
+
+    Se emplea la distribución binomial para la definición de la variable aleatoria discreta.
+
+- __Variable utilizada para la creación de la variable aleatoria discreta__
+
+    Sentirse discriminado en su centro de trabajo.
+    
+    __Tipo:__ Categórica nominal.
+
+- __Definición de éxito y fracaso__
+
+  $E$ : Encontrar a una persona que ha sido discriminada en su centro del trabajo que forme parte de la encuesta realizada a la población venezolana en el año 2022.
+
+  $F$ : No encontrar a una persona que ha sido discriminada en su centro del trabajo que forme parte de la encuesta realizada a la población venezolana en el año 2022.
+
+- __Probababilidad de éxito y fracaso__
+
+$$ P(E) = π $$ 
+
+$$ P(F) = 1 - π $$
+
+- __Construcción de la variable aleatoria discreta__
+
+  Donde:
+
+  $X:$ 
+El número de personas discriminadas en su centro de trabajo dentro de la encuesta realizada a la población venezolana en el año 2022, cuyo tamaño muestral es 2685.
+
+- __Identificación de parametros__
+
+<center>$X$ ~ $Binomial(n,π)$</center>
+
+  Donde:  
+
+  $π = p(E):$ El éxito es definido como la selección de una persona que se ha sentido discriminada en su centro de trabajo.
+
+  $n:$ Tamaño de la muestra de la población venezolana encuestada mayor a 18 años.
+
+- __Gráfica de densidad de la variable__ 
+$X$
+
+$$P(E) = \frac {f(π)}{n}$$
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+sub_table <- base2022[15:24]
+sub_table <- na.omit(sub_table)
+P_E =as.numeric( table(sub_table$LUG_DIS_1)[2]/(table(sub_table$LUG_DIS_1)[1]+table(sub_table$LUG_DIS_1)[2]))
+n = nrow(sub_table)
+
+pa_graficar <- dbinom(0:n,n,P_E)
+
+plot (pa_graficar,col="blue", main = "Gráfico de densidad de la variable aleatoria discreta",
+      xlab = "Número de personas",
+      ylab = "Probabilidad",
+      )
+```
+</div>
+\
+
+- __Validación de propiedades__
+
+### Cálculo de la esperanza 
+$$µ = n * π$$
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+Esperanza <- n * P_E
+
+Esperanza
+```
+</div>
+\
+
+### Cálculo de la varianza
+
+$$σ^2 = n * π * q$$
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+q = 1 - P_E
+varianza = n * P_E * q
+varianza
+```
+</div>
+\
+
+### Cálculo del coeficiente de variación
+$$σ = \sqrt{n * π * q}$$
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+coeficiente = sqrt(varianza)
+coeficiente
+```
+</div>
+\
+
+- __Construcción de un ejemplo__
+
+En Tumbes, se albergan 2685 personas venezolanas que se han sentido discriminadas. Se desea determinar la probabilidad de que el 42% de esta población se sienta discriminada en sus centros de trabajo.
+
+$$pbinom(2685*0.42,2685,π)$$
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+pobla_muestra <- (n * 0.42)
+resp <- pbinom(pobla_muestra,n,P_E)
+resp
+```
+</div>
+\
+
+## Definición de la segunda variable aleatoria discreta 
+
+- __Definición de la distribución discreta__
+
+  Se emplea la distribución geométrica para la definición de la variable aleatoria discreta.
+
+- __Variable empleada para la creación de la variable aleatoria discreta__
+
+  Sentirse discriminado en espacios públicos.
+
+  __Tipo:__ Categórica nominal.
+
+- __Definición del éxito y fracaso__
+
+  $E$ : Encontrar a una persona que ha sido discriminada en espacios públicos que forme parte de la encuesta realizada a la población venezolana en el año 2022.
+
+  $F$ : No encontrar a una persona que ha sido discriminada en espacios públicos que forme parte de la encuesta realizada a la población venezolana en el año 2022.
+
+- __Probababilidades del éxito y fracaso__
+
+$$P(E) = π $$ 
+
+$$P(F) = 1 - π$$
+
+- __Construcción de la variable aleatoria discreta__
+
+  $X:$ El número casos hasta encontrar la primera persona del estudio que ha sido discriminada en espacios públicos.
+  
+- __Identificación de parámetros__
+
+<center>$X$ ~ $G(π)$</center>
+
+$$f(x) = P(X = x) = (1-p)^{x-1}*p$$
+$$f(x) = P(X = x) = (1-π)^{x-1}*π$$
+
+  Donde:  
+
+  $π=p(E)$: El éxito es definido como seleccionar una persona que se ha sentido discriminada en espacios públicos.
+
+- __Gráfica densidad de la variable__
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+P_GEO <- as.numeric(table(sub_table$LUG_DIS_5)[2]/(table(sub_table$LUG_DIS_5)[1]+table(sub_table$LUG_DIS_5)[2]))
+n <- nrow(sub_table)
+
+
+plot(0:n, dgeom(0:n,prob = P_GEO),main = "Gráfico de densidad de la variablealeatoria discreta",
+      xlab = "Número de personas",
+      ylab = "Probabilidad",col="green")
+
+```
+</div>
+\
+
+  __Consideración:__ A simple vista, la gráfica da la impresión de que la variable no posee una forma exponencial probabilística; por este motivo, realizamos un acercamiento a la gráfica teniendo como parámetro a `n = 50`.
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+n <- 50
+plot(0:n, dgeom(0:n,prob = P_GEO),main = "Zoom del gráfico de densidad de la variable discreta aleatoria",
+      xlab = "Número de personas",
+      ylab = "Probabilidad",col="green")
+```
+</div>
+\
+
+  Al analizar ambas gráficas podemos inferir que la probabilidad de éxito es muy alta, es decir es muy probable que la primera o segunda persona elegida al azar haya sido discriminada en espacios públicos.
+
+- __Validación de propiedades__
+
+### Cálculo de la esperanza
+<center>$E(x) = \frac {1}{π}$</center>
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+Esper_expo <- 1/ P_GEO
+Esper_expo
+```
+</div>
+\
+
+### Cálculo de la varianza
+<center>$V(x) = \frac {1-π}{π^2}$</center>
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+Varia_exp <- (1-P_GEO)/(P_GEO^2)
+Varia_exp
+rm(sub_table)
+```
+</div>
+\
+
+- __Construcción de un ejemplo__
+
+  El ministerio de cultura generó una especie de ayuda humanitaria para personas venezolanas que radican en el Perú, en la cual se desea determinar la probabilidad de que la segunda persona elegida al azar se haya sentido discriminada en espacios públicos.
+
+$$dgeom(2,π)$$
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+dgeom(2,P_GEO)
+```
+</div>
+
+
+## Variables continuas
+
+Para analizar las variables aleatorias continuas relevantes, usamos dos variables en nuestro estudio: el ingreso de los trabajadores Venezolanos de forma independiente y dependiente.
+
+### Ingreso Trabajadores Independientes
+
+Para identificar la posible distribución de la variable, haremos un histograma. En este histograma buscaremos patrones a simple vista:
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+hist(base2018$GANANCIA_POR_HORA_TRABAJADOR_INDEPENDIENTE, main =" Histograma Ingresos Independientes 2018", xlab= "Ganancia en Nuevos Soles por hora trabajada ")
+```
+
+</div>
+\
+
+Como el estudio busca ser representativo, se omiten los datos atípicos y se analizan las ganancias hasta el tercer cuartil:
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+ingresoHoraLimpio20 <- filter(base2018,base2018$GANANCIA_POR_HORA_TRABAJADOR_INDEPENDIENTE < 10)
+
+ingresoHoraLimpio20 <- ingresoHoraLimpio20$GANANCIA_POR_HORA_TRABAJADOR_INDEPENDIENTE                            
+
+
+boxplot(ingresoHoraLimpio20, main = "Ingreso por Hora Sin Datos Atípicos", ylab="Soles")
+```
+</div>
+\
+
+Ahora que solo se está trabajando con los datos atipicos, se verifica si el histograma puede compararse con una distribución conocida.
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+ingresoHoraLimpio20 <- ingresoHoraLimpio20[!is.na(ingresoHoraLimpio20)]
+# Crea el histograma y guarda el resultado en 'h' para luego usarlo
+h <- hist(ingresoHoraLimpio20, probability = TRUE, breaks=30, 
+          col = "lightblue", border = "black", main = "Histograma de Ingreso por Hora", 
+          xlab = "Hora", ylab = "Densidad")
+
+# Genera la secuencia de valores 'x' para la línea de la normal
+x <- seq(min(ingresoHoraLimpio20), max(ingresoHoraLimpio20), length=40)
+
+
+# Genera la línea de la normal usando 'dnorm()'
+y <- dnorm(x, mean=mean(ingresoHoraLimpio20), sd=sd(ingresoHoraLimpio20))
+
+# Usa 'lines()' para agregar la normal al histograma
+lines(x, y, col = "red", lwd = 2)
+
+```
+</div>
+\
+
+Debido a la forma de la distribución, es viable aproximarla a una normal. Para comprobarlo, se verifica la curtosis y asimetría. La curtosis es el peso de las colas y su aplanamiento; una alta curtosis significa picos pronunciados y colas salientes.
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+library(fitdistrplus)
+
+descdist(ingresoHoraLimpio20, boot =200)
+```
+</div>
+\
+
+El gráfico Cullen and Frey nos dice que la variable se aproxima a una distribución normal, por lo que se procede a caracterizar a la variable aleatoria. Tenemos los siguientes datos sobre la distribución:
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+cat("La media de la variable es:",mean(ingresoHoraLimpio20), "y la desviación estandar es:", sd(ingresoHoraLimpio20))
+
+```
+</div>
+\
+
+**Definición de la variable aleatoria continua**
+
+$$
+X   \sim Ingresos\:  personas venezolanas\:por\:hora\:\sim Norm(\mu =4.059,\sigma=1.597) 
+$$
+
+Con esto, es posible responder preguntas sobre probabilidades respecto a la variable. Ejemplos a continuación:
+
+Si escogo un venezolano al azar, ¿Cúal es la probabilidad de que gane más que el sueldo mínimo? (S/4.92)
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+cat("La probabilidad de que una persona venezolana gane mas que el sueldo minimo por hora es de:", pnorm(4.92,mean(ingresoHoraLimpio20),sd(ingresoHoraLimpio20),lower.tail = FALSE))
+```
+</div>
+\
+
+### Segunda variable
+
+**Identificación de la variable numérica continua***
+Para identificar la posible distribuciòn de la variable haremos un histograma. En este histograma buscaremos patrones a simple vista. 
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+GananciaPorHoraDependiente <-base2022$INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE
+GananciaPorHoraDependiente <-GananciaPorHoraDependiente[!is.na(GananciaPorHoraDependiente)]
+hist(GananciaPorHoraDependiente)
+```
+</div>
+\
+
+Como buscamos la representatividad del ciudadano venezolano común, solo analizaremos a trabajadores que ganan por debajo de 100 soles. 
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+
+x <- base2018$INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE
+ingresoHoraLimpio <- filter(base2018,base2018$INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE<100)
+boxplot(ingresoHoraLimpio$INGRESO_POR_HORA_TRABAJADOR_DEPENDIENTE, main = "Ingreso por Hora Sin Datos Atípicos", ylab="Soles")
+```
+</div>
+\
+
+
+Ahora que solo estamos trabajando con los datos atipicos vamos verificar si el histograma puede compararse con una distribucion conocida.
+
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+xy <- GananciaPorHoraDependiente
+ingresoHoraLimpioDependiente <- xy[!xy %in% boxplot.stats(xy)$out ]
+```
+
+<div class="rounded-box">
+```{r echo=FALSE}
+ ingresoHoraLimpioDependiente<- ingresoHoraLimpioDependiente[!is.na(ingresoHoraLimpioDependiente)]
+# Crea el histograma y guarda el resultado en 'h' para luego usarlo
+h <- hist( ingresoHoraLimpioDependiente,probability = TRUE, breaks=30, 
+          col = "lightblue", border = "black", main = "Histograma de Ingreso por Hora Dependientes", 
+          xlab = "Hora", ylab = "Densidad")
+
+# Genera la secuencia de valores 'x' para la línea de la normal
+x <- seq(min(ingresoHoraLimpioDependiente), max(ingresoHoraLimpioDependiente), length=40)
+
+# Genera la línea de la normal usando 'dnorm()'
+y <- dnorm(x, mean=mean(ingresoHoraLimpioDependiente), sd=sd(ingresoHoraLimpioDependiente))
+
+# Usa 'lines()' para agregar la normal al histograma
+lines(x, y, col = "red", lwd = 2)
+
+```
+</div>
+\
+
+Para comprobar que la variable se puede modelar como normal. Verificaremos su curtosis y asimetría. 
+Usaremos la función descdist para hacer la comparación.
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+descdist(ingresoHoraLimpioDependiente)
+```
+</div>
+\
+
+Como podemos ver, el grafico Cullen and Frey nos dice que nuestra variable se asemeja mucho a una distribución normal. Procederemos a caracterizar la variable aleatoria. 
+Como sabemos, una distribución normal tiene los parametros media y desviación estandar. 
+
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+cat("La media de la variable es:",mean(ingresoHoraLimpioDependiente), "y la desviacion estandar es:", sd(ingresoHoraLimpioDependiente))
+
+```
+</div>
+\
+
+**Definición de la variable aleatoria continua**
+
+$$
+X   \sim Ingresos\:  personas venezolanas\:por\:hora\:\sim Norm(\mu =5.473,\sigma=2.176) 
+$$
+Ahora podemos hacernos preguntas con respecto a esta variable y responderlas usando probabilidades.
+Una pregunta clave que podemos responder es:
+
+Si escogo un venezolano al azar, ¿Cúal es la probabilidad de que gane más que el sueldo mínimo? (S/4.92)
+<div class="rounded-box">
+```{r, echo=FALSE, message = FALSE, warning = FALSE, error = FALSE}
+
+cat("La probabilidad de que un venezolano gane mas que el sueldo minimo por hora es de:", pnorm(4.92,mean(ingresoHoraLimpioDependiente),sd(ingresoHoraLimpioDependiente),lower.tail = FALSE))
+```
+</div>
+\
+
+# Conclusiones
+
+En cuanto al nivel económico, es posible establecer una relación moderada con la incidencia de la discriminación. Esta diferencia era más débil y variada al inicio de la ola migratoria, pero luego se concentró sobre la población de nivel medio-bajo. Esto significa que hubo una cierta disminución de la discriminación debido a la nacionalidad, pero se concentró de nuevo en contra de las personas con este nivel económico, ya sean peruanas o venezolanas. Lo mismo ocurre con el sexo; la discriminación era imparcial anteriormente, pero poco a poco fue concentrándose sobre el sexo femenino.
+
+La probabiidad de ser discriminado en espacios públicos es alarmante, sobre todo incluyendo los espacios socioeconómicos como centros de atención general del estado. Con el análisis realizado, es posible determinar que aún existe un rechazo significativo contra esta población, sobre todo en el 2018.
+
+Gracias al estudio de variables discretas, podemos determinar que no es necesario entrevistar a muchas personas venezolanas para encontrar un caso de discriminación. Esto es relevante en el contexto actual, ya que desde el aspecto sociocultural, la discriminación es un delito en contra de los derechos humanos, por lo que es necesario un mayor control sobre este tipo de situaciones.

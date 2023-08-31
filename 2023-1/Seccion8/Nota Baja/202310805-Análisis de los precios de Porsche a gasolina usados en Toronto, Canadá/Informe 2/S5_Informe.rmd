@@ -1,0 +1,1514 @@
+---
+title: "Análisis de los precios de Porsche a gasolina usados en Toronto, Canadá, desde enero a marzo del 2023"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  word_document:
+    toc: yes
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: journal
+    number_sections: yes
+editor_options: 
+  chunk_output_type: inline
+  markdown: 
+    wrap: 72
+    
+---
+
+*Librerías*
+
+```{r,warning=FALSE}
+library(readr)
+library(dplyr)
+library(funModeling)
+library(modeest)
+library(ggplot2)
+library(ggthemes)
+```
+
+
+# Introducción
+
+## Relevancia
+
+Esta investigación ayuda a informar a los canadienses, que viven en Toronto, el precio promedio recomendado a pagar por un Porsche de segunda mano en base a los datos recolectados de la página "autotrader.ca", del repositorio de **kaggle**.
+
+## Objetivos
+
+### Objetivo General
+
+Analizar los precios de Porsche a gasolina tomando en cuenta
+especificaciones, en Toronto, Canadá desde enero a marzo del 2023.
+
+### Objetivos Específicos
+
+-   **Identificar** la relación entre el precio de venta y cantidad de
+    km recorridos por modelo de Porsche a gasolina usado en Toronto,
+    Canadá desde enero a marzo del 2023.
+
+-   **Describir** las características de los Porsche a gasolina usados
+    con mayor valor de reventa en Toronto, Canadá de desde enero a marzo
+    del 2023.
+
+-   **Identificar** la relación entre el precio de venta y el consumo
+    que tiene cada modelo de Porsche a gasolina usado en Toronto, Canadá
+    desde enero a marzo del 2023.
+
+
+## Contexto  
+
+Se tiene 570 autos Porsche a gasolina puestos a la venta en un pagina de "autotrader.ca" donde se presenta las características más importantes de estos autos en Toronto, Canadá.
+
+
+# Datos
+
+## Proceso de recolección de datos
+
+Optamos por una base de datos existente en lugar de encuestas, siguiendo la recomendación del profesor. Utilizamos Kaggle para acceder a los datos de especificaciones de los Porsche en venta, ahorrando tiempo y cumpliendo nuestros objetivos de investigación.
+
+## Población, muestra y muestreo
+
+1.- Población de estudio: Múltiples precios que presentan los Porsche
+usados en Toronto, Canáda,desde enero a marzo del 2023.
+
+2.- Unidad muestral: Diferentes modelos de Porsche.
+
+3.- Tamaño de muestra: 599 precios de autos Porsche
+
+4.- Representatividad de la muestra: Si es una muestra representativa,
+ya que muestra los múltiples precios que existen por modelo de Porsche,
+basado en sus especificaciones.
+
+5.- Tipo de muestreo: Población total.
+
+## Variables
+
+| Variable                                 | Tipo de Variable   | Descripción                                                                                                                                |
+|-------------------|-------------------|----------------------------------|
+| Consumo de combustible/energía en ciudad | Numérica continua  | Consumo de combustible/energía de un auto/camioneta en zonas urbanas y/o ciudad                                                            |
+| Consumo de combustible/energía carretera | Numérica continua  | Consumo de combustible/energía de un auto/camioneta en carretera                                                                           |
+| Kilometraje                              | Numérica Discreta  | Kilómetros recorridos del auto/camioneta                                                                                                   |
+| Pasajeros                                | Numérica Discreta  | Cantidad de pasajeros que pueden ir en el auto/camioneta                                                                                   |
+| Puertas                                  | Numérica Discreta  | Número de puertas que contiene el auto                                                                                                     |
+| Precio                                   | Numérica Discreta  | Precio del auto/camioneta puesto en venta                                                                                                  |
+| N° de cilindros del motor                | Numérica Discreta  | Cantidad de cilindros del motor que presenta un auto/camioneta                                                                             |
+| Modelo                                   | Categórica Nominal | Identificación específica para cada tipo de auto diferente, pero de la misma marca                                                         |
+| Tipo de carrocería                       | Categórica Nominal | Identificar si es un carro o una SUV                                                                                                       |
+| Tipo de tracción                         | Categórica Nominal | Mecanismo que permite llevar la fuerza y el movimiento generado por el motor hasta las ruedas                                              |
+| Color exterior                           | Categórica Nominal | Color de cada auto/camioneta vista por el exterior                                                                                         |
+| Color interior                           | Categórica Nominal | Color de cada auto/camioneta vista por el interior                                                                                         |
+| Tipo de combustible/energía              | Categórica Nominal | Aquella sustancia que proporciona energía a los autos con motor de combustión o electrico                                                  |
+| Tipo de transmisión                      | Categórica Nominal | Aquel mecanismo que convierte la fuerza del motor en una fuente controlada de energía, actuando como mediador entre el motor y las ruedas. |
+| Año del Auto                             | Categoría Ordinal  | Año en que se fabricó el vehículo                                                                                                         |
+| Marca                                    | Categórica Nominal | Empresa que se encargó de la fabricación del vehículo                                                                                      |
+
+
+*Funciones*
+
+```{r}
+r <- function(n){
+  round(n, 2)
+}
+
+cv <- function(X){
+  return(sd(X, na.rm = T) / mean(X, na.rm = T))
+}
+```
+
+```{r}
+ModaCreada <- function(x) {
+  DatosSinNulos <- na.omit(unique(x))
+  tabulado <- tabulate(match(x, DatosSinNulos))
+  DatosSinNulos[tabulado == max(tabulado) ]
+}
+```
+
+
+La base de datos esta siendo almacenada en la variable **doc**.
+```{r}
+doc<-read.csv("AutosUsadosVendidos.csv")
+doc
+```
+
+## Limpieza de datos
+
+1.- Filtramos la base de datos y lo almacenaremos en la variable **BD**.
+
+```{r}
+doc<-read.csv("AutosUsadosVendidos.csv")
+BD<-filter(doc, doc$Make=="Porsche")
+doc_corregido<-filter(doc, doc$Make=="Porsche")
+BD
+```
+
+2.- Revisamos si existen datos faltantes (NA)
+
+```{r}
+sum(!complete.cases(BD))
+```
+
+3.- Realizamos el cambio de comas a puntos en los datos de las variables "City" y "Highway", y las pasamos a numéricas junto con la variable "Engine"
+
+```{r}
+BD$City<-sub(",",".",BD$City, fixed=TRUE)
+BD$Highway<-sub(",",".",BD$Highway, fixed=TRUE)
+BD$City<-as.numeric(BD$City)
+BD$Highway<-as.numeric(BD$Highway)
+BD$Engine<-as.numeric(BD$Engine)
+
+```
+
+  3.1.- Cambio de numérico a categórico de la variable "Year"
+
+```{r}
+BD$Year<-as.character(BD$Year)
+```
+
+Cargamos los datos con la función `df_status`
+
+```{r}
+library(funModeling)
+knitr::kable(df_status(BD,print_results = FALSE),"pipe",caption="Resumen de la base de datos" )
+```
+
+4.- Cambiamos los nombres de las variables con el comando `rename` y las almacenaremos en una nueva base de datos **BD1**
+
+```{r}
+rename(BD, Año= 'Year', Marca='Make', Modelo='Model', Kilómetros='Kilometres', Carrocería='Body_Type', Motor='Engine', Transmisión='Transmission', Tracción= 'Drivetrain', Color_exterior='Exterior_Colour', Pasajeros='Passengers', Puertas='Doors', Tipo_combustible='Fuel_Type', Consumo_Ciudad='City',Consumo_Carretera='Highway',Precio='Price' )->BD1
+BD1
+```
+
+
+5.- Filtramos los autos Porsche a gasolina ("Gas"), que serán la base de nuestro estudio, y los almacenamos en la variable **BD1**.
+
+```{r}
+BD1<-filter(BD1,Tipo_combustible == "Gas")
+```
+6.- El modelo "Boxster" se repite de 2 formas distintas, esta corrección la almacenamos en una nueva
+variable **Modelcor**
+
+```{r}
+BD1<-mutate(BD1,Modelcor=case_when(Modelo == '718' ~'718',
+Modelo == '911' ~ '911',Modelo=='Boxster'~'Boxster',Modelo=='BOXSTER'~'Boxster',Modelo=='Cayenne'~'Cayenne',Modelo=='Cayman'~'Cayman', Modelo=='Macan'~'Macan',Modelo=='Panamera'~'Panamera'))
+
+```
+
+7.- Eliminaremos las variables "Modelo", ya que "Modelcor" muetra los mismos datos. Además de las variables "Tipo_combustible", "Marca" y "Interior Colour"
+
+```{r}
+BD1<-select(BD1,-Modelo,-Tipo_combustible,-Marca, -Interior_Colour)
+```
+
+
+8.- Identificamos la cantidad de columnas y filas de nuestra base
+```{r}
+ncol(BD1)
+nrow(BD1)
+```
+
+Por último, llamamos a nuestra base de datos corregida
+
+```{r}
+BD1
+```
+
+# Análisis descriptivo
+## Análisis univariado
+
+### Variables Númericas
+
+#### Precio
+
+Usamos el coeficiente de variabilidad en porcentaje para saber que medida de tendencia central no se ve afectada por los datos atípicos.
+
+```{r}
+cv(BD1$Precio)*100 
+```
+
+Habrá dispersión con influencia de datos atípicos, entonces la mejor opción es utilizar la mediana.
+
+```{r}
+median(BD1$Precio, na.rm=TRUE)
+```
+
+```{r}
+quantile(BD1$Precio,na.rm = TRUE)
+```
+
+Veremos el diagrama de Cajas y Bigotes de la variable Precio
+
+```{r}
+options(scipen=3)
+caja<-boxplot(BD1$Precio, horizontal = T, main = "Diagrama de Cajas y Bigotes de Precio", xlab = "Precio ($)",col="#FFEFDB")
+abline(v=median(BD1$Precio),col="red",lwd=2)
+text(x=median(BD1$Precio)-11000, y=0.6, "Mediana", srt=90, col="red")
+```
+
+Calculamos datos atípicos
+
+```{r}
+min(caja$out)
+length(caja$out)
+```
+
+Hay 39 autos considerados valores atípicos, los cuales tienen un precio superior a 259,888 dólares. El precio promedio de los Porsche en venta es de aproximadamente 73,888 dólares. El precio más alto es de 539,000 dólares y el más económico es de 15,995 dólares.
+
+
+#### N° cilindros del motor
+
+```{r}
+ModaCreada(BD1$Motor)
+```
+
+```{r}
+hist(BD1$Motor,breaks=10,col="#FFEFDB",main="Distribución del número de cilindros del motor\n de los Porsches usados a la venta",xlab="Número de cilindros", ylab="Número de Porsches")
+abline(v=ModaCreada(BD1$Motor),col="red",lwd=2)
+legend("topright",legend=c("Moda"),lwd=2,col=c("red"))
+```
+
+Observamos que la mayoría de Porsche a la venta tienen 6 cilindros, con
+un máximo de 8 y un mínimo de 3.
+
+
+#### Kilómetros
+
+```{r}
+range(BD1$Kilómetros) 
+round(mean(BD1$Kilómetros),2) 
+round(median(BD1$Kilómetros),2)
+quantile(BD1$Kilómetros)
+```
+
+Usamos el coeficiente de variabilidad en porcentaje para saber que medida de tendencia central no se ve afectada por los datos atípicos.
+
+```{r}
+cv(BD1$Kilómetros)*100 
+```
+
+Habrá dispersión con influencia de datos atípicos, entonces la mejor opción es utilizar la mediana.
+
+```{r}
+median(BD1$Kilómetros)
+```
+
+Gráfico de Cajas y Bigotes con la variable kilometraje
+
+```{r}
+cajak<-boxplot(BD1$Kilómetros,main = "Diagrama de Cajas y Bigotes del Kilometraje\n de los Porsches usados a la venta", col="#FFEFDB", horizontal = TRUE , xlab ="Kilometraje")
+abline(v=median(BD1$Kilómetros),col="red")
+legend("topright", c("Mediana"), col=c("red"), lwd=2)
+```
+
+Cantidad de datos atípicos:
+
+```{r}
+length(cajak$out)
+```
+
+Se observa 11 Porsche en venta con un alto kilometraje en comparación con el resto. El promedio de kilometraje de los Porsches usados es de alrededor de 44,899 kilómetros. El rango de kilometraje entre los Porsche en venta varía desde 67 kilómetros hasta 205,400 kilómetros.
+
+
+#### Consumo en ciudad
+
+```{r}
+range(BD1$Consumo_Ciudad)
+median(BD1$Consumo_Ciudad)
+mean(BD1$Consumo_Ciudad)
+quantile(BD1$Consumo_Ciudad)
+```
+
+Usamos el coeficiente de variabilidad en porcentaje para saber que medida de tendencia central no se ve afectada por los datos atípicos.
+
+```{r}
+cv(BD1$Consumo_Ciudad)*100 
+```
+
+Habrá dispersión sin influencia de datos atípicos, entonces utilizaremos a la media.
+
+```{r}
+r(mean(BD1$Consumo_Ciudad))
+```
+
+Diagrama de cajas y bigotes con la variable de Consumo en Ciudad
+(L/100Km)
+
+```{r}
+cajacc<-boxplot(BD1$Consumo_Ciudad,main = "Diagrama de Cajas y Bigotes del consumo de gasolina en cuidad\n (L/100Km) de los Porsches usados a la venta", col="#FFEFDB", horizontal = TRUE , xlab ="Consumo en ciudad (L/100Km)")
+
+abline(v=mean(BD1$Consumo_Ciudad),col="red")
+legend("topright", c("Media"), col=c("red"), lwd=2)
+```
+
+Cantidad de datos atípicos
+
+```{r}
+length(cajacc$out)
+```
+
+Hay 47 Porsche en venta que se consideran datos atípicos. El consumo promedio de gasolina en ciudad de los Porsche es de aproximadamente 13.24 L/100km. El rango de consumo de gasolina en ciudad varía desde 7.4 L/100 km hasta 19.4 L/100km.
+
+#### Consumo en carretera
+
+```{r}
+range(BD1$Consumo_Carretera)
+median(BD1$Consumo_Carretera)
+mean(BD1$Consumo_Carretera)
+round(quantile(BD1$Consumo_Carretera),2)
+```
+
+Usamos el coeficiente de variabilidad en porcentaje para saber que medida de tendencia central no se ve afectada por los datos atípicos.
+
+```{r}
+cv(BD1$Consumo_Carretera)*100 
+```
+
+Habrá dispersión sin influencia de datos atípicos, entonces utilizaremos a la media.
+
+```{r}
+r(mean(BD1$Consumo_Carretera))
+```
+
+Histograma del consumo de gasolina en carretera
+
+```{r}
+hist(BD1$Consumo_Carretera, xlab="Consumo en Carretera (L/100km)", ylab = "Número de Porsches", main = "Histograma del consumo de gasolina en carretera\n (L/100 Km) de los Porsches usados a la venta")
+abline(v=mean(BD1$Consumo_Carretera, na.rm=T), col='red')
+legend("topright", c("Media"), col=c("red"), lwd=2)
+```
+
+Diagrama de cajas y bigotes del consumo de gasolina en carretera (L/100
+Km)
+
+```{r}
+boxplot(BD1$Consumo_Carretera,main = "Diagrama de Cajas y Bigotes del consumo de gasolina en carretera\n (L/100Km) de los Porsches usados a la venta", col="#FFEFDB", horizontal = TRUE , xlab ="Consumo en carretera (L/100Km)")
+
+abline(v=mean(BD1$Consumo_Carretera),col="red")
+legend("topright", c("Media"), col=c("red"), lwd=2)
+```
+
+El consumo promedio de gasolina en carretera de los autos evaluados es de 10 L/100km. El rango de consumo de gasolina varía desde 6.8 L/100km hasta 28.3 L/100km.
+
+### Variables Categóricas
+
+#### Modelos de Porsche
+
+
+Gráficos de Frecuencias de la variable "Modelo"
+
+```{r}
+bar <- barplot(table(BD1$Modelcor),
+               xlab = "Modelos de Porsche",
+               ylab = "Número de Porsches",
+               main = "Frecuencia de la variable Modelo",
+               col = c("blue1", "pink", "yellow", "brown", "red", "green", "aquamarine", "black"),
+               names.arg = " ",
+               ylim = c(0, 200), xlim = c(0, 21))
+text(bar, table(BD1$Modelcor) + 1.5, labels = table(BD1$Modelcor))
+legend("right", c("718", "911", "Boxster", "Cayenne", "Cayman", "Macan", "Panamera"),
+       fill = c("blue1", "pink", "yellow", "brown", "red", "green", "aquamarine", "black"),
+       title = "Leyenda")
+grid()
+```
+
+Observamos que los modelos con menos unidades a la venta son el "Panamera" (53 unidades), "718" (30 unidades), "Boxster" (10 unidades) y "Cayman" (5 unidades). El modelo con menos unidades en venta es "Cayman". Por otro lado, los modelos "Macan", "911" y "Cayenne" tienen más unidades en venta, siendo "Macan" el que tiene más unidades (164), seguido de "Cayenne" con 155 unidades y "911" con 153 unidades.
+
+
+#### Tipo de carrocería
+
+```{r}
+ModaCreada(BD1$Carrocería)
+```
+
+Cantidad de Porsche de cada tipo de carrocería
+
+```{r}
+table(BD1$Carrocería)
+```
+
+El gráfico de barras mostrará la cantidad de tipos de carrocerías de los
+Porsche puestos en venta
+
+```{r}
+color=c("grey","grey","grey","grey","#97FFFF","grey")
+barplot(table(BD1$Carrocería),main="Tipo de Carrocería", xlab="Tipo de carrocería", ylab="Cantidad", col=color)
+```
+
+Observamos que hay un total de 319 autos Porsche que tienen una carrocería del tipo "SUV", lo cual representa la tendencia actual. Además, existen 3 tipos de carrocería de autos Porsche en venta que tienen menos de 40 repeticiones, los cuales son "Hatchback", "Sedan" y "Wagon" en el rango de 0 a 40.
+
+
+#### Tracción
+
+```{r}
+tabla_frecuencias<-table(BD1$Tracción)
+moda<-names(tabla_frecuencias)[tabla_frecuencias == max(tabla_frecuencias)]
+moda
+```
+
+Cantidad de Porsche que hay de cada tipo de tracción
+
+```{r}
+table(BD1$Tracción)
+```
+
+Gráfico de barras
+
+```{r}
+color=c("grey","#1F8AA2","grey")
+tabla_frecuencias<-table(BD1$Tracción)
+barplot(tabla_frecuencias, main="Tracción", xlab="Tracción", ylab="Cantidad",col=color)
+```
+
+Observamos que el tipo de tracción más bajo, es el "AWD" con un total de 447 unidades en venta. Le sigue el tipo "RWD" con 119 repeticiones y finalmente tenemos el "4x4" con solo 4 repeticiones. Estos dos últimos tipos, en comparación con el "AWD", representan una cantidad reducida de autos Porsche puestos en venta.
+
+
+#### Color exterior
+
+```{r}
+muestra<-filter(BD1, Color_exterior=="Black" | Color_exterior=="White" | Color_exterior=="Blue" | Color_exterior=="Quarzite Grey Metallic" | Color_exterior=="Silver" | Color_exterior=="Agate Grey Metallic")
+muestra
+```
+
+Identificaremos la cantidad de Porsche por cada color
+
+```{r}
+table(muestra$Color_exterior)
+```
+
+Gráfica de la cantidad de Porsche que hay por color exterior
+
+```{r}
+color=c("#616161","#030303","#1E90FF","#474747","#949494","White")
+barplot(table(muestra$Color_exterior),main="Color exterior", xlab="", ylab="Cantidad", col=color)
+
+legend(x=3,y=140, legend=c("Agate Grey Metallic","Black","Blue", "Quarzite Grey Metallic","Silver","White"),
+       fill = c("#616161","#030303","#1E90FF","#474747","#949494","White"),
+       title = "Leyenda")
+```
+
+Observamos que el color "Agate Grey Metallic" tiene menos repeticiones, con un total de 20 unidades. Por otro lado, el color con la mayor cantidad de repeticiones es el "Black", con un total de 149 unidades.
+
+
+#### Año
+
+```{r}
+ModaCreada(doc_corregido$Year)
+```
+
+```{r}
+ggplot(doc_corregido) +
+ aes(x = Year) +
+ geom_histogram(bins = 30L, fill = "#1F8AA2") +
+ labs(y = "Frecuencia", 
+ title = "Año del Auto") +
+ theme_minimal()
+```
+
+Observamos que los años de fabricación más bajos son 1997 y 1999, con solo 1 venta en cada año. El año en el que se fabrican más autos es 2019, con un total de 104 ventas. Además, se observa que se ponen en venta menos de 110 autos en cada año.
+
+## Análisis Bivariado
+
+### Objetivo 1
+
+-   **Identificar** la relación entre el precio de venta y cantidad de
+    km recorridos por modelo de Porsche usado en Toronto, Canadá desde
+    enero a marzo del 2023.
+
+```{r}
+Kilómetros<-BD1$Kilómetros
+Precio<-BD1$Precio
+ggplot(BD1, aes(x=Precio,y=Kilómetros))+geom_point() +ggtitle("Gráfico de relación entre el precio de venta y la cantidad de km recorridos") 
+```
+
+***Análisis del Gráfico***   
+Según la gráfica, tiene una tendencia a una relación no lineal.
+
+Verificamos con el p_value si hay relación:
+
+```{r}
+cor.test(BD1$Precio,BD1$Kilómetros)
+```
+
+Se observa que el valor del p_value\<0.05, entonces se confirma que
+existe relación entre estas variables.
+
+Analizaremos el precio y Kilometraje que tiene cada modelo de
+Porsche:
+
+```{r}
+crearGrafico <- function(modelo) {
+  modelo_filtrado <- filter(BD1, Modelcor == modelo)
+  
+  grafico <- ggplot(modelo_filtrado, aes(x = Precio, y = Kilómetros)) + 
+    geom_point() + 
+    labs(title = paste("Gráfico de regresión para modelo", modelo, ":"), x = "Precio", y = "Kilómetros")
+  
+  grafico + geom_smooth(method = lm)
+}
+
+modelos <- c("718", "911", "Boxster", "Cayenne", "Cayman", "Macan", "Panamera")
+
+Conf3x3 <- matrix(c(1:9), nrow = 3, byrow = FALSE)
+layout(Conf3x3)
+options(scipen = 3)
+
+for (modelo in modelos) {
+  grafico <- crearGrafico(modelo)
+  print(grafico)
+}
+```
+
+***Análisis del Gráfico***    
+Indica que a medida que aumenta el kilometraje, el precio tiende a disminuir. Esto significa que a menor kilometraje, mayor será el precio de venta del Porsche.
+
+Diagrama de Cajas y Bigotes de los precios que tiene los
+modelos de los Porsche
+
+```{r}
+boxplot(formula=BD1$Precio~BD1$Modelcor, xlab="Modelos", ylab="Precio ($)",main="Modelos de Porsche y Precio", data=BD1,col="#FFEFDB", vertical=T)
+```
+
+***Análisis del Gráfico***  
+
+Se concluye que el precio disminuye según aumenta el kilometraje del
+vehículo, además el modelo con mayor precio será el "911" pero no
+necesariamente su kilometraje será menor.
+
+### Objetivo 2
+
+-   **Describir** las características de los Porsche usados con mayor
+    valor de reventa en Toronto, Canadá de desde enero a marzo del 2023.
+
+Hay que identificar el 10% superior de los
+Porsche con mayor valor de reventa
+
+```{r}
+cuantil<-quantile(BD1$Precio, probs = 0.90)
+baseP<-filter(BD1,Precio>=cuantil)
+baseP1<- arrange(baseP,-Precio)
+baseP1
+```
+
+Observamos el mínimo y máximo del precio de los Porsche
+
+```{r}
+range(baseP$Precio)
+```
+
+Los precios máximos a analizar estarán dentro
+de un rango de 208800 hasta 539000 dólares.
+
+**Se puede concluir según la base de datos(baseP):**
+
+
+**Año**: El año de fabricación más frecuente es el 2019, con una frecuencia absoluta de 20.
+
+```{r}
+table(baseP$Año)
+```
+
+**Kilometraje**: El Porsche de mayor precio tiene un kilometraje de 125, seguido de otro con un kilometraje de 27,475 km.
+
+```{r}
+table(baseP$Kilómetros)
+```
+
+**Transmisión**: La moda es el tipo de transmisión "7 Speed Automatic" con 20 repeticiones y el Porsche con el precio máximo tiene esta misma característica de transmisión.
+
+```{r}
+table(baseP$Transmisión)
+```
+
+**Color_exterior**: El color "Black" es el que más hay y este mismo color representa al Porsche con el precio máximo.
+
+```{r}
+table(baseP$Color_exterior)
+```
+
+**Consumo_Ciudad**: Se observa una moda por 26 autos hacia un consumo por ciudad de 13.6576087 L/100km, lo cual muestra que los clientes tienen una tendencia a adquirir autos con un menor consumo.
+
+```{r}
+table(baseP$Consumo_Ciudad)
+```
+
+**Consumo_Carretera**: Se observa una moda de 26 autos hacia un consumo de 10.23369565 L/100km, indica que los clientes tienen una tendencia a adquirir autos con un menor consumo.
+
+```{r}
+table(baseP$Consumo_Carretera)
+```
+
+Gráficas de las otras variables
+
+```{r}
+Conf2x3 <- matrix(c(1:6), nrow = 2, byrow = FALSE)
+layout(Conf2x3)
+
+barplot(table(baseP$Carrocería), main = "Tipo de carrocería", xlab = "", ylab = "Cantidad", col = c("#7FFF00", "grey"))
+barplot(table(baseP$Motor), main = "Cantidad de cilindros", xlab = "", ylab = "Cantidad", col = "#616161")
+barplot(table(baseP$Tracción), main = "Tipo de Tracción", xlab = "", ylab = "Cantidad", col = c("aquamarine", "#1F8AA2"))
+barplot(table(baseP$Pasajeros), main = "Número de pasajeros", xlab = "", ylab = "Cantidad", col = c("#C1FFC1", "aquamarine", "#C6E2FF"))
+barplot(table(baseP$Puertas), main = "Número de puertas", xlab = "", ylab = "Cantidad", col = "lightblue")
+barplot(table(baseP$Modelcor), main = "Tipo de modelo", xlab = "", ylab = "Cantidad", col = "#FFE4C4")
+```
+
+En las gráficas del Tipo de carrocería, Tipo de tracción y el número de pasajeros, hay una moda más notoria, hay una tendencia a preferir un tipo de carrocería "Coupe", una tracción "RWD" y un número de pasajeros de "2".
+
+### Objetivo 3
+
+-   **Identificar** la relación entre el precio de venta y el consumo
+    que tiene cada modelo de Porsche a gasolina usado en Toronto, Canadá
+    desde enero a marzo del 2023.
+
+```{r}
+boxplot(formula=BD1$Consumo_Carretera~BD1$Modelcor, xlab="Modelos", ylab="Consumo en Carretera (L/100km)", main="Modelos de Porsche y Consumo en Carretera", data=BD1,col="#FFEFDB", vertical=T)
+
+boxplot(formula=BD1$Consumo_Ciudad~BD1$Modelcor, xlab="Modelos", ylab="Consumo en Ciudad (L/100km)", main="Modelos de Porsche y Consumo en Ciudad", data=BD1,col="#FFEFDB", vertical=T)
+```
+
+***Análisis del Gráfico***   
+El modelo de Porsche "911" genera más datos atípicos.
+Concluyendo que es el modelo que más consume gasolina tanto en carretera como en ciudad. Por medio de la mediana, a comparación con los otros modelos, los mayores valores están en la mitad superior.
+
+
+```{r}
+crearGraficoRegresion <- function(x, y, title, xlab, ylab) {
+  plot(x, y, pch = 20, col = c("black", "red"), main = title, xlab = xlab, ylab = ylab)
+  abline(lm(y ~ x), col = "blue", lty = 1)
+}
+
+par(mfrow = c(1, 2), mar = c(5, 4, 4, 2))
+
+crearGraficoRegresion(BD1$Consumo_Ciudad, BD1$Precio, "Precio y Consumo por ciudad", "Consumo por ciudad (L/100km)", "Precio ($)")
+crearGraficoRegresion(BD1$Consumo_Carretera, BD1$Precio, "Precio y Consumo por carretera", "Consumo por carretera (L/100km)", "Precio ($)")
+```
+
+***Análisis del Gráfico***   
+Analizando las gráficas se reconoce que la variable consumo por ciudad, presenta
+mayor velocidad de aumento de precio.
+
+
+Generamos los gráficos por modelo de Porsche entre su precio y la
+cantidad de consumo
+
+```{r}
+
+crearGraficoRegresion <- function(modelo, data) {
+  grafico <- plot(data$Precio ~ data$Consumo_Ciudad, pch = 20, col = c("black", "red"),
+                  main = paste("Modelo", modelo), xlab = "Consumo en ciudad (L/100 km)", ylab = "Precio ($)")
+  
+  abline(lm(data$Precio ~ data$Consumo_Ciudad), col = "blue", lty = 1)
+  
+  return(grafico)
+}
+
+modelos <- c("718", "911", "Boxster", "Cayenne", "Cayman", "Macan", "Panamera")
+
+Conf3x3 <- matrix(c(1:9), nrow = 3, byrow = FALSE)
+layout(Conf3x3)
+
+options(scipen = 3)
+
+for (modelo in modelos) {
+  data <- filter(BD1, Modelcor == modelo)
+  grafico <- crearGraficoRegresion(modelo, data)
+  print(grafico)}
+```
+
+***Análisis del Gráfico*** 
+
+Los modelos "718", "Cayenne", "Panamera" y "911" presentan un comportamiento de crecimiento del precio en relación con el consumo en ciudad.
+
+La pendiente negativa en los modelos "Cayman" y "Boxster" puede indicar que hay un decaimiento de precio en relación con el consumo en ciudad en el mercado actual, aunque esta conclusión no se puede garantizar debido a la escasez de datos disponibles.
+
+El modelo "Macan" muestra una pendiente con una tendencia nula, lo que indica que existe una distribución central entre las variables.
+
+Verificamos la correlación moderada de estas 2 variables:
+```{r}
+cor(BD1$Precio[BD1$Modelcor=="Cayenne"],BD1$Consumo_Ciudad[BD1$Modelcor=="Cayenne"])
+cor(BD1$Precio[BD1$Modelcor=="911"],BD1$Consumo_Ciudad[BD1$Modelcor=="911"])
+```
+
+
+Graficamos por modelo de Porsche entre su precio y la cantidad
+de consumo en carretera
+
+```{r}
+
+crearGraficoRegresionCarretera <- function(modelo, data) {
+  grafico <- plot(data$Precio ~ data$Consumo_Carretera, pch = 20, col = c("black", "red"),
+                  main = paste("Modelo", modelo), xlab = "Consumo en carretera (L/100 km)", ylab = "Precio ($)")
+  
+  abline(lm(data$Precio ~ data$Consumo_Carretera), col = "blue", lty = 1)
+  
+  return(grafico)
+}
+
+modelos <- c("718", "911", "Boxster", "Cayenne", "Cayman", "Macan", "Panamera")
+
+Conf3x3 <- matrix(c(1:9), nrow = 3, byrow = FALSE)
+layout(Conf3x3)
+
+options(scipen = 3)
+
+for (modelo in modelos) {
+  data <- filter(BD1, Modelcor == modelo)
+  grafico <- crearGraficoRegresionCarretera(modelo, data)
+  print(grafico)}
+```
+
+***Análisis del Gráfico***   
+Los modelos "718", "Cayenne", "Panamera" y "911". Indica el crecimiento del precio a medida
+que aumenta el consumo en carretera.
+
+En los modelos "Cayman" y Boxster. Indica un decaimiento de precio respecto al consumo en carretera.
+
+Pendiente a tendencia nula en el modelo "Macan". Indica que existe una
+cierta distribución central entre las variables.
+
+La correlación es alta de estas 2 variables:
+
+```{r}
+cor(BD1$Precio[BD1$Modelcor=="Cayenne"],BD1$Consumo_Carretera[BD1$Modelcor=="Cayenne"])
+```
+
+
+# Análisis probabilístico
+
+## Probabilidad empírica
+
+### Experimento 1
+
+
+$Ɛ:\hspace{0.1cm} Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} al\hspace{0.1cm} azar\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche\hspace{0.1cm} a\hspace{0.1cm} gasolina\hspace{0.1cm} usados\hspace{0.1cm} en\hspace{0.1cm} Toronto,\hspace{0.1cm} Canadá\hspace{0.1cm} y\hspace{0.1cm} observar\hspace{0.1cm} el\hspace{0.1cm} modelo\hspace{0.1cm} del\hspace{0.1cm} auto.$
+
+Hallamos el número de observaciones:
+```{r}
+obs<- nrow(BD1)
+obs
+```
+
+Seguimos con la definición del espacio muestral:
+
+**Ω(Ɛ):** {Cayenne, Macan, Panamera, 911, Cayman, Boxster, 718}
+
+Mostramos los *eventos atómicos*:
+```{r}
+unique(BD1$Modelcor)
+```
+
+**Definición de eventos:**
+
+$Evento\hspace{0.1cm} 1: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} sea\hspace{0.1cm} "Cayenne"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} observaciones\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 2: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} sea\hspace{0.1cm} "Macan" de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} observaciones\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 3: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} sea\hspace{0.1cm} "Panamera"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} observaciones\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 4: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} sea\hspace{0.1cm} "911"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} observaciones\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 5: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} sea\hspace{0.1cm} "Cayman"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} observaciones\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 6: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} sea\hspace{0.1cm} "Boxster"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} observaciones\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 7: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} sea\hspace{0.1cm} "718"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} observaciones\hspace{0.1cm} de\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+
+
+**Probabilidad de los eventos:**
+
+Probabilidad del *Evento 1*:
+
+Hallamos la probabilidad que tiene el modelo "Cayenne":
+```{r}
+nrow(filter(BD1,Modelcor=="Cayenne"))/obs
+```
+
+La probabilidad que sea del modelo *Cayenne* es 27%
+
+
+Probabilidad del *Evento 2*:
+
+Hallamos la probabilidad que tiene el modelo "Macan":
+```{r}
+nrow(filter(BD1,Modelcor=="Macan"))/obs
+```
+
+La probabilidad que sea del modelo *Macan* es 29%
+
+
+Probabilidad del *Evento 3:*
+
+Hallamos la probabilidad que tiene el modelo "Panamera":
+```{r}
+nrow(filter(BD1,Modelcor=="Panamera"))/obs
+```
+
+La probabilidad que sea del modelo *Panamera* es 9%
+
+
+Probabilidad del *Evento 4:*
+
+Hallamos la probabilidad que tiene el modelo "911":
+```{r}
+nrow(filter(BD1,Modelcor=="911"))/obs
+```
+
+La probabilidad que sea del modelo *911* es 27%
+
+
+Probabilidad del *Evento 5:*
+
+Hallamos la probabilidad que tiene el modelo "Cayman":
+```{r}
+nrow(filter(BD1,Modelcor=="Cayman"))/obs
+```
+
+La probabilidad sea del modelo *Cayman* es 1%
+
+
+Probabilidad del *Evento 6:*
+
+Hallamos la probabilidad que tiene el modelo "Boxster":
+```{r}
+nrow(filter(BD1,Modelcor=="Boxster"))/obs
+```
+
+La probabilidad que sea del modelo *Boxster* es del 2%
+
+
+Probabilidad del *Evento 7:*
+
+Hallamos la probabilidad que tiene el modelo "718":
+```{r}
+nrow(filter(BD1,Modelcor=="718"))/obs
+```
+
+La probabilidad que sea del modelo *718* es 5%
+
+**Interpretación:** El modelo de auto que tendrá una mayor probabilidad
+de ser seleccionado de una base de datos de 570 autos
+Porsche será del modelo "Macan", con una probabilidad del 29%
+
+
+### Experimento 2 
+
+$Ɛ:\hspace{0.1cm} Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} al\hspace{0.1cm} azar\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche\hspace{0.1cm} a\hspace{0.1cm} gasolina\hspace{0.1cm} usados\hspace{0.1cm} en\hspace{0.1cm} Toronto,\hspace{0.1cm} Canadá\hspace{0.1cm} y\hspace{0.1cm} observar\hspace{0.1cm} el\hspace{0.1cm} precio\hspace{0.1cm} del\hspace{0.1cm} auto.$
+
+Hallamos la cantidad total de autos:
+```{r}
+obs <- nrow(BD1)
+```
+
+Seguimos con la definición del espacio muestral:
+
+**Ω(Ɛ):** {Muy_caro, Caro, Moderado, Accesible, Barato, Muy_barato}
+
+Sacamos 5 rangos de la variable precio
+```{r}
+R<-max(BD1$Precio)-min(BD1$Precio)
+x<-R/5
+
+R1<- min(BD1$Precio)+x
+R2<- min(BD1$Precio)+2*x
+R3<- min(BD1$Precio)+3*x
+R4<- min(BD1$Precio)+4*x
+R5<- min(BD1$Precio)+5*x
+```
+
+Se los asignamos a nuestros *eventos atómicos* 
+```{r}
+Muy_caro<-nrow(filter(BD1,BD1$Precio<R1))
+
+Caro<-nrow(filter(BD1,BD1$Precio>= R1 & BD1$Precio<R2))
+
+Moderado<-nrow(filter(BD1,BD1$Precio>= R2  & BD1$Precio<R3))
+
+Accesible<-nrow(filter(BD1,BD1$Precio>= R3  & BD1$Precio<R4))
+
+Barato<-nrow(filter(BD1,BD1$Precio>= R4  & BD1$Precio<=R5))
+```
+
+Definicion de *eventos*:
+
+$Evento\hspace{0.1cm} 1: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} precio\hspace{0.1cm} se\hspace{0.1cm} encuentre\hspace{0.1cm} en\hspace{0.1cm} el\hspace{0.1cm} intervalo\hspace{0.1cm} de\hspace{0.1cm} los\hspace{0.1cm} "Muy\hspace{0.1cm} caro"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 2: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} precio\hspace{0.1cm} se\hspace{0.1cm} encuentre\hspace{0.1cm} en\hspace{0.1cm} el\hspace{0.1cm} intervalo\hspace{0.1cm} de\hspace{0.1cm} los\hspace{0.1cm}"Caros"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 3: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} precio\hspace{0.1cm} se\hspace{0.1cm} encuentre\hspace{0.1cm} en\hspace{0.1cm} el\hspace{0.1cm} intervalo\hspace{0.1cm} de\hspace{0.1cm} los\hspace{0.1cm}"Moderados"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 4: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} precio\hspace{0.1cm} se\hspace{0.1cm} encuentre\hspace{0.1cm} en\hspace{0.1cm} el\hspace{0.1cm} intervalo\hspace{0.1cm} de\hspace{0.1cm} los\hspace{0.1cm}"Accesibles"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+$Evento\hspace{0.1cm} 5: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} cuyo\hspace{0.1cm} precio\hspace{0.1cm} se\hspace{0.1cm} encuentre\hspace{0.1cm} en\hspace{0.1cm} el\hspace{0.1cm} intervalo\hspace{0.1cm} de\hspace{0.1cm} los\hspace{0.1cm}"Baratos"\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche.$
+
+
+**Se procede a calcular la probabilidad de los eventos atómicos:**
+
+Probabilidad del _Evento 1:_ 
+```{r}
+Muy_caro/obs
+```
+La probabilidad que se encuentre en el intervalo _Muy_caro_ es 71.6%
+
+Probabilidad del _Evento 2:_ 
+```{r}
+Caro/obs
+```
+La probabilidad que se encuentre en el intervalo _Caro_ es 20.2%
+
+
+Probabilidad del _Evento 3:_ 
+```{r}
+Moderado/obs
+```
+La probabilidad que se encuentre en el intervalo _Moderado_ es 5.3%
+
+Probabilidad del _Evento 4:_ 
+```{r}
+Accesible/obs
+```
+La probabilidad que se encuentre en el intervalo _Accesible_ es 2.3%
+
+Probabilidad del _Evento 5:_ 
+```{r}
+Barato/obs
+```
+La probabilidad que se encuentre en el intervalo _Barato_ es 0.7%
+
+
+**Interpretación:** El precio de un auto que tendrá una mayor probabilidad de ser seleccionado de una base de datos de 570 autos Porsche se encontrará en el intervalo de "Muy caro", con una probabilidad del 71.6%.
+
+
+
+## Probabilidad Condicional
+
+### Primer par
+
+**Contexto:**
+
+Se quiere saber la probabilidad de seleccionar un auto Porsche que sea del modelo "Macan" si es de color negro; y la probabilidad que sea de color negro si es del modelo "Macan".
+
+Se evalúa el modelo "Macan", ya que es el modelo con mayor número de unidades a la venta, usando la misma lógica se evalúa el color negro
+
+**Definición de eventos:**
+
+$Evento\hspace{0.1cm} A: {Seleccionar}\hspace{0.1cm}{un}\hspace{0.1cm} auto\hspace{0.1cm} al\hspace{0.1cm} azar\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche\hspace{0.1cm} cuyo\hspace{0.1cm} modelo\hspace{0.1cm} de\hspace{0.1cm} auto\hspace{0.1cm} sea\hspace{0.1cm} "Macan".$
+
+$Evento\hspace{0.1cm} B: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} al\hspace{0.1cm} azar\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche\hspace{0.1cm} cuyo\hspace{0.1cm} color\hspace{0.1cm} exterior\hspace{0.1cm} sea\hspace{0.1cm} "Black".$
+
+```{r}
+Macan_Black <- nrow(filter(BD1,BD1$Modelcor=="Macan"& BD1$Color_exterior=="Black"))
+Macan_Black
+Macan_nBlack <- nrow(filter(BD1,BD1$Modelcor=="Macan"& BD1$Color_exterior!="Black"))
+Macan_nBlack
+```
+
+  
+```{r}
+nMacan_Black <- nrow(filter(BD1,BD1$Modelcor!="Macan"& BD1$Color_exterior=="Black"))
+nMacan_Black 
+nMacan_nBlack <- nrow(filter(BD1,BD1$Modelcor!="Macan"& BD1$Color_exterior!="Black"))
+nMacan_nBlack 
+```
+
+|       Modelo       |Color Black |Color no Black | Total |
+|--------------------|------------|---------------|-------|
+|        Macan       | 41         | 123           | 164   |
+|       No Macan     | 108        | 298           | 406   |
+|   Total            | 149        | 421           | 570   |
+
+
+*Validamos independencia con la fórmula de intersección:*
+
+$$\mathbb{P( a∩b)}=\mathbb{P( a)*P(b)}\hspace{0.1cm}$$
+Calculamos la **P(a)** y la **P(b)**
+```{r}
+Prob_a <- nrow(filter(BD1,BD1$Modelcor=="Macan"))/nrow(BD1)
+Prob_a
+Prob_b <- nrow(filter(BD1,BD1$Color_exterior=="Black"))/nrow(BD1)
+Prob_b
+```
+
+Calculamos **P(a∩b)**:
+
+```{r}
+Prob_a_y_b <- Macan_Black/nrow(BD1)
+```
+
+Calculamos **P(a).P(b)**:
+```{r}
+Pa_x_Pb <- Prob_a * Prob_b
+```
+
+Comprobamos si hay diferencia:
+```{r}
+Prob_a_y_b-Pa_x_Pb
+```
+
+Como nuestro resultado distinto de 0, decimos que no va haber una independencia, va a ser dependientes, no se evidenció eventos que sean independientes.
+
+
+**Calculamos probabilidad condicional**
+
+$$\mathbb{P( a/b)}=\frac{\mathbb{P(a∩b)}}{\mathbb{P(b)}}\hspace{0.1cm}$$
+```{r}
+Prob_a_si_b <- Prob_a_y_b/Prob_b
+Prob_a_si_b
+
+```
+
+Obtenemos que la probabilidad de seleccionar un auto Porshce al azar que sea de modelo "Macan" si es de color negro será de 27.5% 
+
+
+**Se halla la P(b/a) por Bayes**
+
+Se halla la probabilidad **a**, mediante la fórmula de probabilidad total
+
+$$\mathbb{P( a)}={\mathbb{P(a/b)*P(b)+P(a/b')*P(b')}}\hspace{0.1cm}$$
+
+Se calcula la **P(a/b´)**
+```{r}
+Prob_a_si_bº<- (Prob_a - Prob_a_y_b)/(1-Prob_b)
+Prob_a_si_bº
+```
+
+Se calcula la **P(b´)**
+```{r}
+Prob_bº<- 1-Prob_b
+Prob_bº
+```
+
+Se calcula la **P(a)**
+```{r}
+Prob_a1 <- Prob_a_si_b * Prob_b + Prob_a_si_bº *Prob_bº
+Prob_a1
+```
+
+Se comprueba que obtenemos los mismos resultados usando las 2 formas distintas
+```{r}
+Prob_a1- Prob_a
+```
+
+Se halla la **P(b/a)** con lo hallado anteriormente
+
+$$\mathbb{P( b/a)}=\frac{\mathbb{P( b)*P(a/b)}}{\mathbb{P(a)}}\hspace{0.1cm}$$
+```{r}
+Prob_b_si_a <- (Prob_b*Prob_a_si_b)/Prob_a1
+Prob_b_si_a
+```
+
+Obtenemos que la probabilidad de seleccionar un auto Porshce al azar que sea de color negro si es de modelo "Macan" será de 25% 
+
+
+### Segundo par
+
+*Contexto:*
+
+Se quiere saber la probabilidad de seleccionar un auto Porsche que tenga 6
+cilindros si su consumo en ciudad es mayor/igual a la mediana de esta; y la probabilidad que su consumo en ciudad sea mayor/igual a la mediana de esta si tiene 6 cilindros.
+
+Se evalúa 6 cilindros, ya que es la cantidad que la mayoría de Porsche
+usados a la venta tienen; y se usa la mediana como indicador por la cantidad de datos atípicos que existen.
+
+**Definición de eventos:**
+
+$Evento\hspace{0.1cm} A: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} al\hspace{0.1cm} azar\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche\hspace{0.1cm} cuyo\hspace{0.1cm} número\hspace{0.1cm} de\hspace{0.1cm} cilindros\hspace{0.1cm} sea\hspace{0.1cm} igual\hspace{0.1cm} a\hspace{0.1cm} 6.$
+
+$Evento\hspace{0.1cm} B: Seleccionar\hspace{0.1cm} un\hspace{0.1cm} auto\hspace{0.1cm} al\hspace{0.1cm} azar\hspace{0.1cm} de\hspace{0.1cm} una\hspace{0.1cm} base\hspace{0.1cm} de\hspace{0.1cm} datos\hspace{0.1cm} de\hspace{0.1cm} 570\hspace{0.1cm} autos\hspace{0.1cm} Porsche\hspace{0.1cm} cuyo\hspace{0.1cm} consumo\hspace{0.1cm} de\hspace{0.1cm} ciudad\hspace{0.1cm} sea\hspace{0.1cm} por\hspace{0.1cm} encima\hspace{0.1cm} del\hspace{0.1cm} valor\hspace{0.1cm} de\hspace{0.1cm} la\hspace{0.1cm} mediana\hspace{0.1cm} que\hspace{0.1cm} es\hspace{0.1cm} de\hspace{0.1cm} 13.1 L/100km.$
+
+Se procede a calcular la mediana de la variable consumo en ciudad
+```{r}
+median(BD1$Consumo_Ciudad)
+```
+
+```{r}
+M6_C <- nrow(filter(BD1,BD1$Motor==6 & BD1$Consumo_Ciudad>=13.1))
+M6_nC <- nrow(filter(BD1,BD1$Motor==6 & BD1$Consumo_Ciudad<13.1))
+```
+
+```{r}
+nM6_C <- nrow(filter(BD1,BD1$Motor!=6 & BD1$Consumo_Ciudad>=13.1))
+nM6_nC <- nrow(filter(BD1,BD1$Motor!=6 & BD1$Consumo_Ciudad<13.1))
+```
+
+
+| Consumo en ciudad (L/100km) | 6 cilindros | Otros cilindros | Total |
+|-----------------------------|-------------|-----------------|-------|
+| Mayor/ igual a 13.1 L/100km | 252         | 49              | 301   |
+| Menor a 13.1 L/100km        | 177         | 92              | 269   |
+| Total                       | 429         | 141             | 570   |
+
+
+*Validamos independencia con la fórmula de intersección:*
+
+$$\mathbb{P( A∩B)}=\mathbb{P( A)*P(B)}\hspace{0.1cm}$$
+Calculamos la **P(A)** y la **P(B)**
+```{r}
+Prob_A<-nrow(filter(BD1,BD1$Motor==6))/nrow(BD1)
+Prob_A
+Prob_B<-nrow(filter(BD1,BD1$Consumo_Ciudad>=13.1))/nrow(BD1)
+Prob_B
+```
+
+Calculamos **P(A∩B)**:
+```{r}
+Prob_A_y_B <- M6_C/nrow(BD1)
+Prob_A_y_B
+```
+
+Calculamos **P(A)*P(B)**:
+```{r}
+PA_x_PB <- Prob_A * Prob_B
+PA_x_PB
+```
+
+Comprobamos si hay diferencia:
+```{r}
+Prob_A_y_B - PA_x_PB
+```
+
+Como nuestro resultado es distinto de 0, decimos que no va haber una independencia, va a ser dependiente.
+
+**Calculamos probabilidad condicional:**
+
+$$\mathbb{P( A/B)}=\frac{\mathbb{P(A∩B)}}{\mathbb{P(B)}}\hspace{0.1cm}$$
+
+```{r}
+Prob_A_si_B <- Prob_A_y_B/Prob_B
+Prob_A_si_B
+
+```
+
+La probabilidad que el consumo de un auto sea mayor/igual a 13.1 L/100km si tiene 6 cilindros será del 83.7%
+
+
+**Se halla la P(B/A) por Bayes**
+
+Se halla la probabilidad **A**, mediante la fórmula de probabilidad total
+
+$$\mathbb{P( A)}={\mathbb{P(A/B)*P(B)+P(A/B')*P(B')}}\hspace{0.1cm}$$
+
+Se calcula la **P(A/B´)**
+```{r}
+Prob_A_si_Bº<- (Prob_A - Prob_A_y_B)/(1-Prob_B)
+Prob_A_si_Bº
+```
+
+Se calcula la **P(B´)**
+```{r}
+Prob_Bº<- 1-Prob_B
+Prob_Bº
+```
+
+Se calcula la **P(A)**
+```{r}
+Prob_A1 <- Prob_A_si_B * Prob_B + Prob_A_si_Bº *Prob_Bº
+Prob_A1
+```
+
+Se comprueba que obtenemos los mismos resultados usando las 2 formas distintas
+```{r}
+Prob_A1- Prob_A
+```
+
+Se halla la **P(B/A)** con lo hallado anteriormente
+
+$$\mathbb{P( B/A)}=\frac{\mathbb{P( B)*P(A/B)}}{\mathbb{P(A)}}\hspace{0.1cm}$$
+```{r}
+Prob_B_si_A <- (Prob_B*Prob_A_si_B)/Prob_A1
+Prob_B_si_A
+```
+
+La probabilidad de seleccionar un auto Porsche al azar que su consumo de gasolina en ciudad sea mayor/igual a 13.1 L/100km si tiene 6 cilindros será de 58.7% 
+
+
+## Variable aleatoria discreta
+
+1° MODELO BINOMIAL
+$$
+X = # número de autos con el modelo 911 en una muestra de 570 observaciones.
+$$
+
+```{r}
+probabilidad<-round(nrow(filter(BD1,Modelcor=="911"))/obs,2)
+
+probabilidad
+```
+Parámetros:
+$$\mathbb{X}\sim\mathsf{Bin}(p,n)$$
+$$\quad \begin{align} &n : Tamaño \hspace{0.1cm}de\hspace{0.1cm} la \hspace{0.1cm}muestra   =570 \\& p : Probabilidad\hspace{0.1cm} de \hspace{0.1cm}éxito\hspace{0.1cm}de \hspace{0.1cm}los\hspace{0.1cm} autos\hspace{0.1cm}Porsche \hspace{0.1cm}con\hspace{0.1cm} el\hspace{0.1cm} modelo \hspace{0.1cm}911=0.27\qquad\end{align}$$
+$$El\hspace{0.1cm} esperado \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm} BINOMIAL:$$
+```{r}
+E<-570*0.27 
+E
+```
+
+$$La \hspace{0.1cm}varianza \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm} BINOMIAL:$$
+```{r}
+Var<-570*0.27*(1-0.27) 
+Var
+
+```
+$$La \hspace{0.1cm}covarianza \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm} BINOMIAL:$$
+
+```{r}
+COV<-round((sqrt(Var))/E,2)
+COV 
+```
+
+
+*Ejemplo:*
+
+Un millonario desea adquirir autos del modelo *911*, por lo cual se detiene a observar. ¿Cuál es la probabilidad que el millonario haya observado más de 150 autos del modelo *911*?
+
+```{r}
+pbinom(150,570,0.27,lower.tail=FALSE)
+```
+
+$$
+RPTA: La \hspace{0.2cm}probabilidad \hspace{0.2cm}es \hspace{0.1cm}0.62.
+$$
+```{r}
+plot(dbinom(1:570, size = 570, prob =0.27), type = "h", lwd = 5,
+     main = "Función de probabilidad binomial",
+     ylab = "Probabilidad", xlab = "Número de éxitos", col = blues9)
+abline(v = 150, lwd = 1.5, col = "red")
+text(x =350, y = 0.09, 'P(150 < x)' ,cex = 0.9,col = "red")
+```
+
+
+
+
+2° MODELO 
+$$
+X = # autos Porsche seleccionados que son anteriores a los años 2017 en una muestra de tamaño 430.
+$$
+Parámetros:
+$$\mathbb{X}\sim\mathsf{H}(N, M, n)$$
+$$Número\hspace{0.1cm}  de \hspace{0.1cm}éxito\hspace{0.1cm} de \hspace{0.1cm}la\hspace{0.1cm} población:141$$
+```{r}
+nrow(filter(BD1,Año < 2017))
+```
+
+
+$$\quad \begin{align} &N = Tamaño \hspace{0.1cm}de\hspace{0.1cm} la \hspace{0.1cm}población=570 \\& M = Número \hspace{0.1cm} de \hspace{0.1cm}éxito\hspace{0.1cm}de\hspace{0.1cm}la\hspace{0.1cm}población=141\\& n= Tamaño \hspace{0.1cm} de \hspace{0.1cm}la\hspace{0.1cm}muestra\hspace{0.1cm}sin\hspace{0.1cm}reemplazo=430\qquad\end{align}$$
+```{r}
+N<-570
+M<-141
+n<-430
+```
+
+$$El\hspace{0.1cm} esperado \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm} HIPERGEOMÉTRICA:$$
+```{r}
+EHiper<-n*(M/N) 
+EHiper
+```
+$$La \hspace{0.1cm}varianza \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}HIPERGEOMÉTRICA:$$
+```{r}
+VHiper<-n*(M/N)*(1-(M/N))*((N-n)/(N-1)) 
+VHiper
+```
+$$La \hspace{0.1cm}Covarianza \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}HIPERGEOMÉTRICA:$$
+```{r}
+COV<-round((sqrt(VHiper))/EHiper,2)
+COV
+```
+
+*Ejemplo:*
+
+En un concesionario se observan autos de diferentes años según su uso. Deseamos determinar la probabilidad de seleccionar menos de 100 autos al azar, que sean anteriores al año 2017.
+
+```{r}
+phyper(99,141,429,430,lower.tail = TRUE)
+```
+
+Rpta: La probabilidad es 0.06 menores al año 2017.  
+
+```{r}
+barplot(phyper(0:570,141,429,430,lower.tail=TRUE),
+main = "Función de probabilidad acumulada ", ylab = "Probabilidad acumulada", xlab = "Número de autos", col = blues9)
+abline(v = 99, lwd = 3, col = "red")
+text(x =30, y = 0.09, 'P(x< 100)' ,cex = 0.9,col = "red")
+```
+
+
+
+## Variable aleatoria continua
+
+1° Distribución
+$$
+X= # recorrido de los autos Porsche en 205400 km.
+$$
+
+```{r}
+library(modeest)
+hist(BD1$Kilómetros, xlab="Kilometraje", ylab="Número de Porsches", main="Histograma del kilometraje de los Porsche usados a la venta", breaks=12, col="#FFEFDB",border= "black")
+
+abline(v = 120000, lwd = 2.4, col = "purple")
+text(x =50609, y = 30, 'P(x>120.000)' ,cex = 0.9,col = "purple")
+plot((density(BD1$Kilómetros)),main="Densidad de Kilometros",xlim=c(67,205400))
+
+```
+
+
+
+
+Parámetros:
+$$\mathbb{X}\sim\mathsf{Exp}(β)$$
+$$\quad \begin{align} &E(x) = β \hspace{0.1cm}=1/λ \\&V(x)= β ^ 2 \hspace{0.1cm}=1/λ^2\qquad\end{align}$$
+Validar:
+$$El\hspace{0.1cm} esperado \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}EXPONENCIAL(según\hspace{0.1cm} la \hspace{0.1cm}base\hspace{0.1cm} de \hspace{0.1cm}datos):$$
+
+```{r}
+summary(BD1$Kilómetros)
+beta<-1/(mean(BD1$Kilómetros))
+beta
+```
+
+$$La\hspace{0.1cm} varianza\hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}EXPONENCIAL(según\hspace{0.1cm} la \hspace{0.1cm}base\hspace{0.1cm} de \hspace{0.1cm}datos):$$
+```{r}
+V<-beta^2   
+V
+```
+
+
+x ≥ 0, β > 0 -> Beta debe ser positivo [0, +∞), donde la variable aleatoria solo puede tomar valores no negativos.
+```{r}
+f <- function(x) (1/beta)*(exp(-x/beta))
+f_2 <- function(x)(x/beta)*(exp(-x/beta))
+```
+
+$$El\hspace{0.1cm} esperado \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}EXPONENCIAL(según\hspace{0.1cm} la \hspace{0.1cm}función\hspace{0.1cm} de \hspace{0.1cm}integración):$$
+```{r}
+integrate(f,0 ,205400)
+```
+$$La\hspace{0.1cm} varianza \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}EXPONENCIAL(según\hspace{0.1cm} la \hspace{0.1cm}función\hspace{0.1cm} de \hspace{0.1cm}integración):$$
+```{r}
+integrate(f_2,0,205400)
+```
+RPTA: Como el valor es menor a cero no se puede determinar si es una distribución exponencial ya que debería ir en un intervalo de [0, +∞).
+
+
+*Ejemplo:*
+Necesitamos determinar la probabilidad de seleccionar al azar algún vehículo de nuestra flota que haya recorrido menos de 120,000 kilómetros antes de requerir un mantenimiento importante. Para esto, se sabe que tiene un promedio de recorrido de 53409.95 Kilómetros.
+
+
+
+Usamos el modelo exponencial: 
+$$X∼Exp(1.87231e-05) \hspace{0.1cm} y \hspace{0.1cm} determinamos \hspace{0.1cm} P(X<120,000).$$
+
+
+
+```{r}
+pexp(120000, beta,lower.tail=TRUE)
+```
+Respuesta: La probabilidad menores a 120,000 kilómetros es (0.89).
+
+
+2° Distribución Normal 
+$$
+X:# el consumo de gasolina por ciudad que tiene los autos Porsche en 19.40 L/100Km.
+$$
+
+```{r}
+P <- BD1$Consumo_Ciudad[!is.na(BD1$Consumo_Ciudad) & BD1$Consumo_Ciudad != 0]
+Mu <- mean(P)
+Sigma <- sd(P)
+Xs <- seq(min(P) - 5, max(P) + 5, 0.1)
+Ys <- dnorm(Xs, mean = Mu, sd = Sigma)
+
+hist(P, prob = TRUE, ylim = c(0, 0.30), xlim = c(min(P) - 5, max(P) + 5), breaks = seq(0, 30, 3), ylab = "Densidad", xlab = "Consumo en Ciudad", main = paste("Comparación de aproximación normal con histograma de P"), col = "cyan")
+lines(Xs, Ys, type = "l", col = "green", lwd = 2)
+abline(v = mean(BD1$Consumo_Ciudad), col = "red")
+lines(density(BD1$Consumo_Ciudad), col = "black", lwd = 3)
+```
+
+
+
+Parámetros:
+
+$$X\sim\mathsf{Nor}(\mu, \sigma)$$
+$$\mu= Media=13.24$$
+$$\sigma= Desviación\hspace{0.1cm} estándar=1.18$$
+EVIDENCIAR:
+
+$$La\hspace{0.1cm}media \hspace{0.1cm}y\hspace{0.1cm}la\hspace{0.1cm}mediana \hspace{0.1cm}tienen \hspace{0.1cm}un \hspace{0.1cm}aproximado\hspace{0.1cm}casi\hspace{0.1cm}igual\hspace{0.1cm}en\hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}NORMAL(según\hspace{0.1cm} la \hspace{0.1cm}base\hspace{0.1cm} de \hspace{0.1cm}datos):$$
+```{r}
+summary(BD1$Consumo_Ciudad)
+Mediana<-median(P)
+Mediana
+Mu <- mean(P)
+Mu
+```
+$$Desviación\hspace{0.1cm} estándarde \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}NORMAL(según\hspace{0.1cm} la \hspace{0.1cm}base\hspace{0.1cm} de \hspace{0.1cm}datos):$$
+```{r}
+Sigma <- sd(P)
+Sigma
+```
+$$La\hspace{0.1cm} varianza\hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}NORMAL(según\hspace{0.1cm} la \hspace{0.1cm}base\hspace{0.1cm} de \hspace{0.1cm}datos):$$
+```{r}
+Var<-Sigma^2
+Var
+```
+```{r}
+f <- function(x) 1/(sqrt(2*pi*(Sigma**2)))*exp(-(x-Mu)**2/(2*Sigma**2))
+f_2 <- function(x) x/(sqrt(2*pi*(Sigma**2)))*exp(-(x-Mu)**2/(2*Sigma**2))
+f_3 <- function(x) x^2/(sqrt(2*pi*(Sigma**2)))*exp(-(x-Mu)**2/(2*Sigma**2))
+```
+
+$$El\hspace{0.1cm} esperado \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}NORMAL(según\hspace{0.1cm} la \hspace{0.1cm}función\hspace{0.1cm} de \hspace{0.1cm}integración):$$
+```{r}
+integrate(f,Mu,19.40)
+integrate(f_2,7.40,19.40)
+```
+
+
+$$La\hspace{0.1cm} varianza \hspace{0.1cm}de \hspace{0.1cm}la\hspace{0.1cm} distribución\hspace{0.1cm}NORMAL(según\hspace{0.1cm} la \hspace{0.1cm}función\hspace{0.1cm} de \hspace{0.1cm}integración):$$  
+
+
+```{r}
+var<-176.7599-13.24231^2
+var
+```
+
+
+La media y la mediana se aproximan, también el esperado y la varianza. Por lo que es una distribución Normal, ya que cumple la mayoría de las evidencias.  
+
+*Ejemplo:*  
+
+$$X= sigue \hspace{0.1cm} una \hspace{0.1cm} distribución\hspace{0.1cm}  normal \hspace{0.1cm} con \hspace{0.1cm} parámetros\hspace{0.1cm}  μ \hspace{0.1cm} y\hspace{0.1cm}  δ .$$
+
+
+Tenemos interés en determinar cuál es el consumo de gasolina por ciudad más alto en nuestra flota de vehículos. Para ello, nos gustaría calcular la probabilidad de que el consumo de gasolina sea mayor a 12 litros por cada 100 kilómetros recorridos (L/100 km).  
+
+Usamos el modelo normal:   
+$$X∼N(13.24,1.18)\hspace{0.1cm} , determinamos\hspace{0.1cm}  P(X>12).$$
+
+
+```{r}
+round(pnorm(12, mean = 13.24, sd = 1.18,lower.tail=FALSE), 2)
+```
+
+Respuesta:
+La probabilidad que sean mayor a 12 litros es (0.85).  
+
+```{r}
+x2 <- c(12, seq(12,20,length=100),20)
+y2 <- c(0,dnorm(seq(12,20,length=100), mean = 13.24, sd = 1.18),0)
+curve(dnorm(x, mean = 13.24, sd = 1.18), from=8, to=20, ylab = "Probabilidad", xlab = "Consumo en Ciudad")
+polygon(x2, y2, col = "#FFCCCC", border = "blue", lwd = 3)
+text(x = 13, y = 0.05, 'P(12 < X)' ,cex = 0.9)
+```
+
+
+# Conclusiones
+
+1) Se pudo determinar con el análisis probabilístico que existe una dependencia entre el precio y el kilometraje.
+
+2) Se determinó que existe una mayor probabilidad de encontrar autos Porsche caros, por encima de la mediana.
+
+3) De acuerdo a los cálculos estadísticos se pudo determinar que hay un mayor consumo en ciudad y ello se explica a factores como por ejemplo: el tráfico que existe en una ciudad. 

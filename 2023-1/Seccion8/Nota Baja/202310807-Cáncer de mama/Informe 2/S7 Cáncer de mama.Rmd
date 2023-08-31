@@ -1,0 +1,1313 @@
+---
+title: "Informe"
+output: 
+  html_document:
+      toc: true
+      toc_depth: 6
+      theme: readable
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r echo=FALSE, warning=FALSE,message=FALSE}
+# Verificar si las librerías están instaladas y, en caso contrario, instalarlas
+required_packages <- c("ggplot2", "dplyr", "readr","moments",'nortest', 'fitdistrplus', 'nortest')  # Lista de librerías requeridas
+missing_packages <- setdiff(required_packages, installed.packages()[,"Package"])
+if (length(missing_packages) > 0) {
+  install.packages(missing_packages, dependencies = TRUE)
+}
+# Cargar las librerías
+library(moments)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(fitdistrplus)
+library(nortest)
+library(fitdistrplus)
+```
+
+
+# Análisis de las características de las pacientes con cáncer de mama en Estados Unidos entre los años 2017 y 2022
+
+## I. Introducción
+
+### 1. Relevancia
+
+El estudio del cáncer de mama es de suma importancia debido a su alta
+incidencia en las mujeres. Según la Organización Mundial de la Salud,
+cada año se pronostican más de dos millones de casos nuevos en todo el
+mundo. Esta enfermedad es una de las principales causas de muerte por
+cáncer en las mujeres. Nuestra investigación busca describir el
+comportamiento de distintos factores que determinar el estado final de
+una paciente.
+
+### 2. Objetivos
+
+#### 2.1 Objetivo general
+
+Analizar las características de las pacientes con cáncer de mama en
+Estados Unidos entre los años 2017 y 2022 con el fin de describir el
+comportamiento de las variables.
+
+#### 2.2 Objetivos específicos
+
+-   Explorar las distribuciones de las proteínas de las pacientes
+-   Establecer si existe alguna relación entre el tipo de cirugía
+    realizada con las etapas del tumor
+-   Hallar la proporción de pacientes vivas y fallecidas por etapa del
+    tumor
+
+### 3. Conceptos relevantes
+
+-   Nivel de expresión de una proteína: Se definen cuatro proteínas. Los
+    valores asignados a cada una de estas variables se refieren al nivel
+    de expresión del gen de cada una de ellas, por lo que pueden tomar
+    valores positivos y negativos. El término nivel de expresión
+    negativo en el contexto de una proteína indica que no
+    se está produciendo o se encuentra en cantidades muy bajas en una
+    muestra o célula específica. Cuando es positivo es el caso contrario.
+
+-   El estado positivo de HER2 significa que las células cancerígenas de
+    la paciente tienen niveles más altos de HRE2 de lo normal, lo que
+    implica que el cáncer tiende a crecer y propagarse más rápido que
+    otros tipos de cáncer de seno.
+
+-   Con histología nos referimos al tipo de cáncer de mama acorde al
+    tipo específico de células afectadas en cada caso.
+
+-   Se encuentran 4 tipos: `Lumpectomía`, `Mastectomía Simple` y
+    `Mastectomía Radical Modificada` y `Otra`. En el primer tipo de
+    cirugía, se extirpa el ćancer u otro tejido mamario anormal. En
+    "Mastectomía Simple", se extirpa todo el seno (pezón, areola y
+    piel). Para el tercer tipo, se extirpa también todo el seno y se
+    realiza una extirpación de los ganglios linfáticos auxiliares. El
+    cuarto se refiere a alguna operación diferente de las tres
+    mencionadas anteriormente.
+
+-   Etapas del tumor: Existen tres etapas del tumor en la base de datos.
+    La etapa 1 (`I`) indica que el cáncer ocupa un área relativamente
+    pequeña y no se ha propagado a los ganglios linfáticos o que hay una
+    propagación ligera. La etapa 2 (`II`) sugiere que ocupa un área
+    mayor y que se ha propagado a algunos ganglios adyacentes. En la
+    etapa 3 (`III`) se tiene un tumor grande o que invade los tejidos
+    cercanos o que se ha propagado a muchos ganglios linfáticos
+    adyacentes.
+
+-   El estado del paciente indica si es que en el
+    periodo en que se tomaron los datos, el paciente falleció o no
+    durante el periodo de tiempo de 2017 a 2022.
+
+-   Las proteínas quinasas que interactúan con el receptor (RIP) son un
+    grupo de proteínas quinasas de treonina/serina con un dominio
+    quinasa relativamente conservado pero regiones no quinasas
+    distintas. Los miembros de la familia de quinasas de proteínas que
+    interactúan con el receptor (RIP) han surgido como sensores
+    esenciales de estrés intracelular y extracelular. Se ha demostrado
+    que desempeñan un papel importante no solo en la inflamación y otras
+    respuestas inmunitarias, sino también en los procesos que inducen la
+    muerte.
+
+
+### Proceso de recolección de datos
+
+Se obtuvieron los datos a partir de una fuente secundaria. Es un dataset
+que cuenta con 334 observaciones. El enlace es el siguiente:
+<https://www.kaggle.com/datasets/kreeshrajani/breast-cancer-survival-dataset>
+
+### Población, muestra y muestreo
+
+Los datos provienen de [Bio
+GPS](http://biogps.org/dataset/tag/brca1/){.uri} Esta página recopila
+datos de genes regularmente de fuentes de datos comunes (principalmente
+[NCBI](https://www.ncbi.nlm.nih.gov/) y
+[Ensembl](https://www.ensembl.org/index.html)).
+
+```{r include = FALSE}
+CANCER <- read_csv("breast_cancer_survival.csv")
+spec(CANCER)
+```
+
+```{r echo = FALSE}
+colnames(CANCER)[1] <- "Edad"
+colnames(CANCER)[2] <- "Sexo"
+colnames(CANCER)[3] <- "Proteína1"
+colnames(CANCER)[4] <- "Proteína2"
+colnames(CANCER)[5] <- "Proteína3"
+colnames(CANCER)[6] <- "Proteína4"
+colnames(CANCER)[7] <- "Etapa_del_Tumor"
+colnames(CANCER)[8] <- "Histología"
+colnames(CANCER)[9] <- "Estado_ER"
+colnames(CANCER)[10] <- "Estado_PR"
+colnames(CANCER)[11] <- "Estado_HER2"
+colnames(CANCER)[12] <- "Tipo_de_Cirugía"
+colnames(CANCER)[13] <- "Día_de_Cirugía"
+colnames(CANCER)[14] <- "Última_Visita"
+colnames(CANCER)[15] <- "Estado_del_Paciente"
+```
+
+
+```{r echo = FALSE}
+CANCER$Histología[CANCER$Histología == "Infiltrating Ductal Carcinoma"] <- "Carcinoma Ductal Infiltrante"
+CANCER$Histología[CANCER$Histología == "Infiltrating Lobular Carcinoma"] <- "Carcinoma Lobular Infiltrante"
+CANCER$Histología[CANCER$Histología == "Mucinous Carcinoma" ] <- "Carcinoma Mucinoso"
+
+CANCER$Sexo[CANCER$Sexo == "FEMALE"] <- "Femenino"
+CANCER$Sexo[CANCER$Sexo == "MALE"] <- "Masculino"
+
+CANCER$Estado_HER2[CANCER$Estado_HER2 == "Positive"] <- "Positivo"
+CANCER$Estado_HER2[CANCER$Estado_HER2 == "Negative"] <- "Negativo"
+
+CANCER$Estado_del_Paciente[CANCER$Estado_del_Paciente == "Alive"] <- "Vivo"
+CANCER$Estado_del_Paciente[CANCER$Estado_del_Paciente == "Dead"] <- "Fallecido"
+
+CANCER$Tipo_de_Cirugía[CANCER$Tipo_de_Cirugía == "Other"] <- "Otra"
+CANCER$Tipo_de_Cirugía[CANCER$Tipo_de_Cirugía == "Lumpectomy"] <- "Lumpectomía"
+CANCER$Tipo_de_Cirugía[CANCER$Tipo_de_Cirugía == "Simple Mastectomy"] <- "Mastectomía Simple"
+CANCER$Tipo_de_Cirugía[CANCER$Tipo_de_Cirugía == "Modified Radical Mastectomy"] <- "Mastectomía Radical Modificada"
+
+```
+
+
+```{r echo = FALSE}
+CANCER <- subset(CANCER, Sexo=='Femenino')
+
+```
+
+
+```{r echo = FALSE}
+CANCER <- CANCER[,!names(CANCER) %in% c("Sexo")]
+
+```
+
+```{r echo = FALSE}
+CANCER <- CANCER[,!names(CANCER) %in% c("Estado_ER", "Estado_PR")]
+
+```
+
+
+```{r echo = FALSE}
+CANCER <- CANCER[,!names(CANCER) %in% c("Última_Visita", "Día_de_Cirugía")]
+
+```
+
+```{r echo = FALSE}
+NAs<-sum(is.na(CANCER))
+
+```
+
+
+```{r echo = FALSE}
+CANCER <- CANCER[complete.cases(CANCER), ] 
+
+```
+
+```{r echo = FALSE}
+edad <- CANCER$Edad
+proteina1 <- CANCER$Proteína1
+proteina2<- CANCER$Proteína2
+proteina3 <- CANCER$Proteína3
+proteina4 <- CANCER$Proteína4
+etapa_tumor <- CANCER$Etapa_del_Tumor
+histologia <- CANCER$Histología
+estado_HER2 <- CANCER$Estado_HER2
+tipo_cirugía <- CANCER$Tipo_de_Cirugía
+estado_paciente <- CANCER$Estado_del_Paciente
+```
+
+## II. Análisis descriptivo
+
+### 1. Variables de estudio
+
+Antes de continuar, se definirán unas funciones que resultarán útiles
+para describir los datos
+
+```{r}
+CV <- function(x, na.rm=FALSE) {
+  return (sd(x, na.rm=na.rm) / mean(x, na.rm=na.rm))
+}
+```
+
+```{r}
+Moda <- function(x) {
+  return (table(x)[which.max(table(x))])
+}
+```
+
+```{r}
+R <- function(x) {
+  return (round(x, digits=2))
+}
+```
+
+```{r}
+describir <- function(x) {
+  return (c("Min"=min(x, na.rm=TRUE),"Max"=max(x, na.rm=TRUE),"Media"=mean(x, na.rm=TRUE), "Mediana"=median(x, na.rm=TRUE), "Desviación Estándar"=sd(x, na.rm=TRUE), "Coeficiente de Variación"=CV(x, na.rm=TRUE), "Rango Intercuartil"=IQR(x, na.rm=TRUE)) %>% R)
+}
+```
+
+#### Análisis de `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+count_Tumor <- CANCER %>% count(Etapa_del_Tumor)
+count_Tumor <- count_Tumor %>% mutate(FreqRel = n/317)
+count_Tumor
+```
+
+```{r echo = FALSE}
+  ggplot(count_Tumor, 
+       aes(x=Etapa_del_Tumor,y = FreqRel))+
+    geom_col(color =c("#00B9E3", "#00C19F", "#619CFF"), fill = c("#00B9E3", "#00C19F", "#619CFF"))+
+    geom_text(aes(label = R(FreqRel)), vjust=-0.25)+
+    labs(x = "Etapa del Tumor", y = "Proporción", title = "Proporciones de las etapas del tumor en las pacientes")
+
+```
+
+El gráfico sugiere que más de la mitad de las pacientes se encuentra en
+etapa II de cáncer de mama.
+
+#### Análisis de `Histología`
+
+Realizamos una tabla para observar las frecuencias relativa y absoluta
+de la variable `Histología`
+
+```{r echo = FALSE}
+count_Histología <- CANCER %>% count(Histología)
+count_Histología <- count_Histología %>% mutate(FreqRel = n/317)
+count_Histología
+```
+
+A partir de la tabla, graficamos para observar mejor las proporciones
+
+```{r echo = FALSE}
+  ggplot(count_Histología, 
+       aes(x=Histología,y = FreqRel))+
+    geom_col(color = c("#CD9600", "#FF68A1", "#49A0FF"), fill = c("#CD9600", "#FF68A1", "#49A0FF"))+
+    geom_text(aes(label = R(FreqRel)), vjust=-0.25)+
+    labs(x = "Histología", y = "Frecuencia relativa", title = "Proporciones de los tipos histológicos")
+
+```
+
+La mayoría de pacientes tiene cáncer de mama de tipo histológico
+Carcinoma Ductal Infiltrante.
+
+#### Análisis de `Tipo_de_Cirugía`
+
+```{r echo = FALSE}
+count_Cirugía <- CANCER %>% count(Tipo_de_Cirugía)
+count_Cirugía <- count_Cirugía %>% mutate(FreqRel = n/317)
+count_Cirugía
+```
+
+```{r echo = FALSE}
+ ggplot(count_Cirugía, 
+       aes(x= Tipo_de_Cirugía,y = FreqRel))+
+    geom_col(color = c("#EA8331", "#9590FF", "#39B600", "#E76BF3"), fill = c("#EA8331", "#9590FF", "#39B600", "#E76BF3"))+
+    geom_text(aes(label = R(FreqRel)), vjust=-0.25)+
+    labs(x = "Tipo de cirugía", y = "Frecuencia relativa", title = "Proporciones de los tipos de cirugía realizadas a las pacientes")
+
+```
+
+La mayoría de pacientes se sometió a una operación diferente de una
+Lumpectomía, Mastectomía Radical Modificada o Mastectomía Simple.
+Además, existe una proporción similar entre pacientes que se realizaron
+una Lumpectomía y una Mastectomía Simple.
+
+#### Análisis de `Edad`
+
+Como es una variable numérica discreta, se analizará con descriptores
+numéricos
+
+```{r echo = FALSE}
+CANCER$Edad %>% describir
+```
+
+El coeficiente de variación es bajo, por lo que hay una baja dispersión
+entre los datos, lo que significa que la media es representativa para
+esta variable.
+
+```{r}
+Moda(CANCER$Edad)
+```
+
+Se observa que la edad más frecuente es 59 con 15 pacientes.
+
+```{r echo = FALSE}
+hist(CANCER$Edad, freq=F, ylab="Frecuencia relativa", xlab="Edades", main="Edades de los pacientes", col = "#88CFE0") 
+abline(v=c(median(edad, na.rm=TRUE)), col=c("blue"), lwd=c(2))
+abline(v=c(mean(edad, na.rm=TRUE)), col=c("red"), lwd=c(2))
+
+legend("topleft", legend = c("Mediana"), col = c("blue"), lwd=2)
+legend("topright", legend = c("Media"), col = c("red"), lwd=2)
+
+```
+
+Observamos que se obtiene la siguiente relación:
+
+$$ 
+  mediana < media
+$$
+
+Se sugiere que podría existir un sesgo hacia la derecha. Para comprobar
+esto, empleamos el índice de simetría
+
+```{r}
+skewness(CANCER$Edad)
+```
+
+El valor obtenido es positivo, por lo que se confirma que existe un
+sesgo hacia la derecha. Sin embargo, puesto que el resultado se
+encuentra dentro del rango [-0.5 - 0.5], podríamos decir que la
+distribución de la variable `Edad` es aproximadamente simétrica.
+
+### 2. Interacción entre variables
+
+#### 2.1 Análisis bivariado
+
+##### Análisis de `Etapa_del_Tumor` y `Estado_del_Paciente`
+
+```{r echo = FALSE, warning=FALSE}
+ggplot(CANCER, aes(x = factor(Estado_del_Paciente), 
+                          y = prop.table(stat(count)), 
+                          fill = factor(Estado_del_Paciente), 
+                          label = scales::percent(prop.table(stat(count))))) +
+    geom_bar(position = "dodge") + 
+    facet_wrap(~Etapa_del_Tumor) + 
+    geom_text(stat = 'count',
+              position = position_dodge(.9), 
+              vjust = -0.5, 
+              size = 3) + 
+    scale_y_continuous(labels = scales::percent) + 
+    labs(x = 'Estado del Paciente', y = 'Proporción', fill = 'Estado del Paciente')
+```
+
+Más del 80% de pacientes se encuentran vivos. Existe una tendencia
+similar en en ambos estados: la mayoría de pacientes se encuentra en
+etapa II y la menor cantidad en etapa I.
+
+##### Análisis de `Tipo_de_Cirugía` y `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+mosaicplot(table(CANCER$Tipo_de_Cirugía, CANCER$Etapa_del_Tumor), col= c("#00B9E3", "#00C19F", "#619CFF"), main = "Tipos de cirugías realizadas en las etapas del tumor", xlab="Tipos de cirugía", ylab = "Etapas del tumor")
+```
+
+En la etapa I, la mayoría de pacientes se sometieron a una Lumpectomía;
+en la II, a una Mastectomía Simple; y, a la etapa III, a una Mastectomía
+Radical Modificada. Esto sugiere que mientras más avanza el cáncer, la
+operación correspondiente se vuelve más compleja, puesto que hay que
+retirar más tejidos.
+
+#### 2.2 Análisis de las distribuciones de las proteínas
+
+##### Análisis de `Proteína1` respecto a `Estado_del_Paciente` y `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+ggplot(CANCER, aes(color =  Estado_del_Paciente, y= Proteína1, x = factor(Estado_del_Paciente, levels=c('Vivo', 'Fallecido')))) +
+  geom_violin()+
+  geom_boxplot(width = 0.1) +
+  facet_grid(~Etapa_del_Tumor) +
+  labs(title = "Proteína 1 según estado y etapa del tumor del paciente",
+       x = "Estado del Paciente", 
+       y = "Nivel de expresión de la proteína 1")
+```
+
+En pacientes fallecidos observamos que, a medida que la etapa progresa,
+el nivel de expresión de la proteína tiende a concentrarse en un nivel
+positivo. En pacientes vivos, observamos que, a medida que progresa la
+etapa, el nivel de expresión de la proteína suele tender a niveles
+positivos, iniciando desde un nivel negativo.
+
+##### Análisis de `Proteína2` respecto a `Estado_del_Paciente` y `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+ggplot(CANCER, aes(color =  Estado_del_Paciente, y= Proteína2, x = factor(Estado_del_Paciente, levels=c('Vivo', 'Fallecido')))) +
+  geom_violin()+
+  geom_boxplot(width=0.1) +
+  facet_grid(~Etapa_del_Tumor) +
+  labs(title = "Proteína 2 según estado y etapa del tumor del paciente",
+       x = "Estado del Paciente", 
+       y = "Nivel de expresión de la Proteína2")
+```
+
+El gráfico sugiere que, a medida que progresa el cáncer, el nivel de
+expresión de la proteína 2 es similar en ambos estados. Ambos empiezan
+con un mayor nivel positivo y terminan con un mayor nivel negativo. La
+diferencia es que en la etapa II, los fallecidos toman una similar
+cantidad de niveles positivos y negativos.
+
+##### Análisis de `Proteína3` respecto a `Estado_del_Paciente` y `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+ggplot(CANCER, aes(color =  Estado_del_Paciente, y= Proteína3, x = factor(Estado_del_Paciente, levels=c('Vivo', 'Fallecido')))) +
+  geom_violin()+
+  geom_boxplot(width=0.1) +
+  facet_grid(~Etapa_del_Tumor) +
+  labs(title = "Proteína 3 según estado y etapa del tumor del paciente",
+       x = "Estado del Paciente", 
+       y = "Nivel de expresión de la proteína 3")
+
+```
+
+El gráfico sugiere que, a medida que progresa el cáncer, el nivel de
+expresión de la proteína 3 es similar en ambos estados. Ambos empiezan y
+terminan con un mayor nivel negativo. La diferencia es que en la etapa
+II, en los fallecidos toman una similar cantidad de niveles positivos y
+negativos.
+
+##### Análisis de `Proteína4` respecto a `Estado_del_Paciente` y `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+ggplot(CANCER, aes(color =  Estado_del_Paciente, y= Proteína4, x = factor(Estado_del_Paciente, levels=c('Vivo', 'Fallecido'))))+
+  geom_violin()+
+  geom_boxplot(width=0.1) +
+  facet_grid(~Etapa_del_Tumor) +
+  labs(title = "Proteína 4 según estado y etapa del tumor del paciente",
+       x = "Estado del Paciente", 
+       y = "Nivel de expresión de la Proteína4")
+```
+
+El gráfico sugiere que en pacientes vivos el nivel de expresión de la
+proteína 4 disminuye, distribuyéndose progresivamente hacia -1, lo que
+quiere decir que cada vez es menos notable. Asimismo, en pacientes
+fallecidos, tiende aumentar hacia 1, lo que quiere decir que va ganado
+presencia progresivamente.
+
+##### Análisis de `Edad` respecto a `Estado_del_Paciente` y `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+ggplot(CANCER, aes(color = Estado_del_Paciente, x = factor(Estado_del_Paciente, levels=c('Vivo', 'Fallecido')), y = Edad)) +
+  geom_violin()+
+  geom_boxplot(width=0.1) +
+  facet_grid(~Etapa_del_Tumor) +
+  labs(title = "Edad según estado y etapa del tumor del paciente",
+       x = "Estado del Paciente", 
+       y = "Edades")
+
+```
+
+A medida que avanza la etapa del cáncer, los pacientes fallecidos son
+más jóvenes. En cuanto a pacientes vivos, la frecuencia de las edades es
+cada vez más uniforme, lo que quiere decir que mientras más avanzada sea
+la etapa del cáncer, las afectadas son de edades más diversas.
+
+## III. Análisis probabilístico
+
+### Probabilidad empírica
+
+#### Experimento 1
+
+Se selecciona al azar de una muestra de 317 pacientes con cáncer de mama
+y se observa su etapa de cáncer.
+
+-   *Justificación*
+
+La variable `Etapa_del_Tumor` es una de las más importantes del estudio,
+puesto que divide a las pacientes en tres grupos que presentan
+características similares, modificando los comportamientos de las
+variables de estudio.
+
+Un ejemplo de ello es lo siguiente:
+
+```{r echo = FALSE}
+boxplot(CANCER$Edad ~ CANCER$Etapa_del_Tumor, ylab="Edad", xlab="Etapa del Tumor")
+```
+
+Como podemos observar, si clasificamos a los pacientes respecto a `Edad`
+por `Etapa_del_Tumor` podemos observar una relación clara que indica que
+a medida que progresa la etapa, la edad de los pacientes es menor. De
+esta manera podemos analizar a los pacientes según este variable de una
+forma más especializada.
+
+-   *Espacio muestral*
+
+Se define el espacio muestral como las posibles etapas de cáncer que
+podría presentar la paciente.
+
+categórica ordinal
+
+$$ Ω = \{I, II, III\}$$
+
+- $E_1$: Seleccionar una paciente que se encuentre en la etapa I
+
+- $E_2$: Seleccionar una paciente que se encuentre en la etapa II
+
+- $E_3$: Seleccionar una paciente que se encuentre en la etapa III
+
+```{r echo = FALSE}
+etapas <- CANCER %>% count(Etapa_del_Tumor)
+etapas <- etapas %>% mutate(Probabilidad = n/317)
+etapas
+```
+
+-   $P(E_1)$: 0.1924290
+
+-   $P(E_2)$: 0.5646688
+
+-   $P(E_3)$: 0.2429022
+
+Se observa que existe una mayor proporción de pacientes en la etapa II,
+lo que implica que existe una mayor probabilidad de que la paciente
+aleatoria se encuentra en la etapa II.
+
+#### Experimento 2
+
+Seleccionar una persona del estudio de pacientes con cáncer de mama y
+observar su estado.
+
+-   *Justificación*
+
+La variable `Estado_del_Paciente` es una de las más importantes del
+estudio, puesto que divide a las pacientes en dos grupos que presentan
+características similares para realizar un análisis más detallado,
+permitiendo obtener más información.
+
+Un ejemplo de ello es lo siguiente:
+
+```{r echo = FALSE}
+boxplot(CANCER$Edad ~ CANCER$Etapa_del_Tumor + CANCER$Estado_del_Paciente, ylab="Edad", xlab="Etapa del Tumor y Estado del Paciente")
+```
+
+Si bien es cierto que al clasificar a los pacientes por
+`Etapa_del_Tumor` obtenemos información relevante, si también la
+segmentamos por `Estado_del_Paciente`, obtenemos datos todavía más
+específicos sobre la tendencia de `Edad`.
+
+-   *Espacio muestral*
+
+Se define el espacio muestral como los posibles estados que podría
+presentar la paciente.
+
+$$ \Omega = \{Vivo, Fallecido\}$$
+- $E_1$: Seleccionar una paciente con estado vivo
+- $E_2$: Seleccionar una paciente con estado fallecido
+
+```{r echo = FALSE}
+estado <- CANCER %>% count(Estado_del_Paciente)
+estado <- estado %>% mutate(Probabilidad = n/317) %>% arrange(-n)
+estado
+```
+
+-   $P(E_1)$: 0.7949527
+
+-   $P(E_2)$: 0.2050473	
+
+Se observa que existe una mayor proporción de pacientes vivas, por lo
+que al seleccionar aleatoriamente es más probable seleccionar a una
+paciente viva.
+
+### Probabilidad condicional
+
+#### Dependientes
+
+Se crea una tabla de contingencia para observar las frecuencias de las
+variables `Tipo_de_Cirugía` y `Etapa_del_Tumor`
+
+```{r echo = FALSE}
+tabla_contingencia <- table(CANCER$Tipo_de_Cirugía, CANCER$Etapa_del_Tumor)
+addmargins(tabla_contingencia)
+```
+
+Se definen dos eventos:
+
+-   Evento A: Seleccionar a una paciente que se encuentre en la etapa I
+-   Evento B: Seleccionar a una paciente que se haya sometido a una Lumpectomía
+
+Hipótesis: Los eventos son **dependientes**. 
+
+a.  Validar independencia $$P(A\cap B) = P(A)\cdot P(B)$$ Probabilidad
+    observada en la tabla de contingencia
+
+```{r}
+AinterB <- 21/317
+```
+
+```{r}
+pA <- 61/317
+pB <- 66/317
+AinterBcmp <- pA * pB
+```
+
+```{r}
+AinterB
+AinterBcmp
+```
+
+Como podemos observar, los valores no coinciden, por lo tanto, por este
+método, se obtiene que los eventos son dependientes.
+
+b.  Probabilidad condicional: $$P(A|B)=\frac{P(A ∩ B)}{P(B)}$$
+
+```{r}
+AdadoB <- AinterB / pB
+```
+
+```{r}
+AdadoB
+pA
+```
+
+Puesto que se cumple que $P(A) \neq P(A|B)$ se dice que los eventos son
+independientes
+
+c.  Teorema de Bayes: $$P(B|A)=\frac{P(A|B)\cdot P(B)}{P(A)}$$
+
+```{r}
+BdadoA <- (AdadoB * pB) / pA
+```
+
+```{r}
+BdadoA
+pB
+```
+
+Puesto que se cumple que $P(B) \neq P(B|A)$ se dice que los eventos son
+dependientes
+
+d.  Probabilidad total $$P(A) = P(A|B)\cdot P(B) + P(A|B')\cdot P(B')$$
+
+```{r}
+probTotal <- AdadoB * pB + ((pA - AinterB)/(1-pB)) * (1-pB)
+```
+
+```{r}
+probTotal
+pA
+```
+
+Dado que ambos valores son iguales, se comprueba que los cálculos han
+sido realizados correctamente.
+
+Por lo tanto, la probabilidad del evento A dado B es la siguiente
+
+```{r echo = FALSE}
+AdadoB
+```
+
+- *Interpretación*: Existe aproximadamente un 31% de probabilidad de
+que una paciente que se haya sometido a una Lumpectomía se encuentre en
+la etapa I del cáncer de mama.
+
+#### Independientes
+
+***Criterio para independencia:*** se toma en cuenta que los eventos son
+independientes si es que las aproximaciones a dos decimales de los
+cálculos tienen a lo mucho una diferencia absoluta de 0.01
+
+Se crea una tabla de contingencia para observar las frecuencias de las
+variables `Etapa_del_Tumor` y `Estado_del_Paciente`
+
+```{r echo = FALSE}
+tabla_contingencia <- table(CANCER$Etapa_del_Tumor, CANCER$Estado_del_Paciente)
+addmargins(tabla_contingencia)
+```
+
+Se definen dos eventos:
+
+-   Evento A: Seleccionar a una paciente viva
+-   Evento B: Seleccionar a una paciente que se encuentre en la etapa II
+    del cáncer de mama
+
+Hipótesis: los eventos son **dependientes**. 
+
+a.  Validar independencia $$P(A\cap B) = P(A)\cdot P(B)$$ 
+
+```{r echo = FALSE}
+AinterB <- 142/317
+```
+
+```{r echo = FALSE}
+pA <- 252/317
+pB <- 179/317
+AinterBcmp <- pA * pB
+```
+
+
+```{r echo = FALSE}
+AinterB
+AinterBcmp
+```
+
+Se observa que ambos valores son aproximadamente iguales, pueden ser considerados como independientes.
+
+b.  Probabilidad condicional: $$P(A|B)=\frac{P(A ∩ B)}{P(B)}$$
+
+```{r echo = FALSE}
+AdadoB <- AinterB / pB
+```
+
+```{r echo = FALSE}
+AdadoB
+pA
+```
+
+Se cumple que $P(A)\approx P(A|B)$, por lo que se podría decir que B no afecta a A.
+
+c.  Teorema de Bayes: $$P(B|A)=\frac{P(A|B)\cdot P(B)}{P(A)}$$
+
+```{r echo = FALSE}
+BdadoA <- (AdadoB * pB) / pA
+```
+
+```{r echo = FALSE}
+BdadoA
+pB
+```
+
+Puesto que se cumple que $P(B) \approx P(B|A)$ se dice que A no afecta a B.
+
+d.  Probabilidad total $$P(A) = P(A|B)\cdot P(B) + P(A|B')\cdot P(B')$$
+
+```{r echo = FALSE}
+probTotal <- AdadoB * pB + ((pA - AinterB)/(1-pB)) * (1-pB)
+```
+
+```{r echo = FALSE}
+probTotal
+pA
+```
+
+Dado que ambos valores son iguales, se comprueba que los cálculos han
+sido realizados correctamente.
+
+Las pruebas indican que los eventos son independientes Por lo tanto, la probabilidad del evento A dado B es la
+siguiente
+
+```{r echo = FALSE}
+AdadoB <- pA
+AdadoB
+```
+
+- *Interpretación*: Se valida que el hecho de que la paciente esté en etapa II no influye en que la paciente esté viva, así que la probabilidad de que esté viva dado que está en etapa II es igual a la probabilidad de que esté viva, que es 79%.
+
+### Distribuciones discretas
+
+#### Variable `Edad`
+
+1.  Distribución a utilizar: **Binomial**
+
+2.  Construir la variable aleatoria
+
+-   X: número de pacientes con edad mayor o igual a 65 años con cáncer
+    de mama en el conjunto de la muestra de tamaño 317
+
+3.  Definición de parámetros
+
+$$X \sim Bin(n, p)$$
+- Éxito: seleccionar a una paciente con edad mayor o
+igual a 65 años
+
+p: probabilidad de éxito
+
+```{r echo = FALSE}
+p <-nrow(CANCER %>% filter(Edad >= 65))/nrow(CANCER)
+p
+```
+
+n: tamaño de la muestra
+
+```{r echo = FALSE}
+n <- 317
+n
+```
+
+$$X∼Bin(317,0.3028391)$$
+4. Gráfica de densidad
+
+```{r echo = FALSE}
+plot(0:317, dbinom(0:317,size = 317, prob = p),
+type='h',
+main='Distribución Binomial',
+ylab='Probabilidad',
+xlab ='Número de pacientes con edad mayor o igual a 65',
+lwd=3)
+```
+
+5.  Validación de propiedades
+
+-   Esperanza
+
+$$\sum_{i = 0}^{n} x_i \cdot p(x_i)$$
+
+```{r echo = FALSE}
+var <- 0
+for (i in 0:317) {
+   var <- var + (i) * dbinom(i, n, p)
+}
+var
+```
+
+$$n \cdot p$$
+
+```{r echo = FALSE}
+mu <- n*p
+mu 
+```
+
+-   Varianza
+
+
+$$\sum_{i = 0}^{n} (x_i-\mu)^2 \cdot p(x_i)$$
+
+```{r echo = FALSE}
+var <- 0
+for (i in 0:n) {
+   var <- var + (i - mu)^2 * dbinom(i, n, p)
+}
+var
+```
+
+$$n \cdot p \cdot q$$ 
+- q: probabilidad de fracaso (1 - p)
+
+```{r echo = FALSE}
+n*p*(1-p)
+```
+
+-   Desviación estándar
+
+$$\sqrt{\sum_{i = 0}^{n} (x_i-\mu)^2 \cdot p(x)}$$
+
+```{r echo = FALSE}
+sqrt(var)
+```
+
+$$\sqrt{n \cdot p \cdot q}$$
+- q: probabilidad de fracaso (1 - p)
+
+```{r echo = FALSE}
+sqrt(n*p*(1-p))
+```
+
+6.  Ejemplo
+
+Si elegimos a 10 pacientes al azar del estudio de cáncer de mama. ¿Cuál
+es la probabilidad de que a lo mucho 3 de ellas sean tengan una edad mayor o igual a 65?
+
+```{r echo = FALSE}
+pbinom(3, 10, p)
+```
+
+```{r echo = FALSE}
+plot(0:5, dbinom(0:5,size = 10, prob = p),
+type='h',
+main='Distribución Binomial',
+ylab='Probabilidad',
+xlab ='Número de adultos mayores con edad >= 65',
+lwd=3)
+```
+
+#### Variable `Estado_del_Paciente`
+
+1.  Distribución a utilizar: **Hipergeométrica**
+
+-   Éxito: seleccionar a un paciente fallecido
+
+2.  Variable aleatoria
+
+-   X: Cantidad de pacientes fallecidas en una muestra elegida
+    aleatoriamente de 20 pacientes del estudio de cáncer de mama de
+    tamaño 317
+
+3.  Definición de parámetros
+
+$$X \sim Hiper(n, m, k)$$
+
+- m: tamaño de la población 
+- n: número de pacientes fallecidas en la
+población 
+- k: tamaño de la muestra
+
+```{r echo = FALSE}
+CFallecidos <- CANCER %>% filter(Estado_del_Paciente == "Fallecido")
+```
+
+```{r echo = FALSE}
+m <-nrow(CANCER)
+n <- nrow(CFallecidos)
+k <- 20
+m
+n
+k
+```
+
+$$X \sim Hiper(317, 65, 20)$$
+
+4.  Gráfica de densidad
+
+```{r echo = FALSE}
+success<-0:317
+plot(success,dhyper(0:317,m, n, 137) , type='h', main='Distribución Hipergeométrica', ylab='Probabilidad', xlab ='Número de intentos', lwd=3)
+```
+
+5.  Validación de propiedades
+
+-   Esperanza
+
+$$\sum_{i = 0}^{n} x_i \cdot p(x_i)$$
+
+```{r echo = FALSE}
+var <- 0
+for (i in 0:20) {
+   var <- var + (i) * dhyper(i, n, 317-n, k)
+}
+var
+```
+
+$$k \cdot p$$
+
+donde p es la proporción de éxitos
+
+```{r echo = FALSE}
+p <- n/m
+mu <- k * p
+mu
+```
+
+-   Varianza
+
+$$\sum_{i = 0}^{n} (x_i-\mu)^2 \cdot p(x_i)$$
+
+```{r echo = FALSE}
+var <- 0
+for (i in 0:n) {
+   var <- var + (i - mu)^2 * dhyper(i, n, 317-n, k)
+}
+var
+```
+
+$$k \cdot p\cdot (1-p) \cdot (\frac{m - k}{m-1})$$
+
+```{r echo = FALSE}
+k * p * (1 - p) * ((m-k)/(m-1))
+```
+
+-   Coeficiente de variación
+
+$$\sqrt{\sum_{i = 0}^{n} (x_i-\mu)^2 \cdot p(x)}$$
+
+```{r echo = FALSE}
+sqrt(var)
+```
+
+$$\sqrt{k \cdot p\cdot (1-p) \cdot (\frac{m - k}{m-1})}$$
+
+```{r echo = FALSE}
+sqrt(k * p * (1 - p) * ((m-k)/(m-1)))
+```
+
+6.  Construcción del ejemplo para validar
+
+Se tienen 317 pacientes de las cuales 252 están vivas. Si se selecciona
+una muestra de tamaño 20, ¿cuál es la probabilidad de seleccionar 3
+pacientes fallecidas si se sabe que no hay reposición?
+
+```{r echo = FALSE}
+k <- 3
+fracaso <- 252
+exito <- 317 - 252
+muestra <- 20
+dhyper(k, exito, fracaso, muestra)
+```
+
+```{r echo = FALSE}
+success<-0:5
+plot(success,dhyper(0:5, exito, fracaso, 20) , type='h', main='Distribución Hipergeométrica', ylab='Probabilidad', xlab ='Número de pacientes', lwd=3)
+```
+
+### Distribuciones continuas
+
+```{r echo = FALSE}
+expected_value <- function(.density_function, ..., .g = identity) {
+  
+  integral <- integrate(function(x) .g(x) * .density_function(x, ...), 
+                        lower = -Inf, 
+                        upper = Inf)
+  integral$value 
+}
+
+```
+
+
+#### `Proteína 2` en la etapa I en pacientes vivas
+
+1.  Análisis gráfico
+
+```{r echo = FALSE}
+data <- CANCER %>% filter(Etapa_del_Tumor == "I" & Estado_del_Paciente == "Vivo")
+data <- data$Proteína2
+```
+
+```{r echo = FALSE}
+hist(data, xlab = "Nivel de expresión de la Proteína 2", ylab = "Frecuencia relativa", main = "Histograma de la Proteína 2 en pacientes vivos en etapa I")
+```
+
+Se observa una forma similar a una campana y que es unimodal, por lo que
+podría ajustarse a una distribución normal.
+
+
+```{r echo = FALSE, message=FALSE}
+descdist(data, boot = 500)
+```
+Se observa que la distribución tiende a una normal
+
+
+```{r echo = FALSE}
+fit <- fitdist(data, "norm")
+
+para <- fit$estimate
+
+hist(data, prob = TRUE, main = "Histograma de la Proteína 2 en la etapa I en pacientes vivos", ylab = "Densidad", xlab = "Nivel de expresión de la proteína 2")
+curve(dnorm(x, para[1], para[2]), col = 2, add = TRUE)
+```
+Observación de la gráfica con los parámetros propuestos
+
+```{r}
+plot(fit)
+```
+
+
+Se observa con más detalle cómo se comportan los datos con el ajuste
+
+
+Los parámtros obtenidos son los siguientes
+
+```{r echo = FALSE}
+para
+```
+
+2.  Verificamos las propiedades con los parámetros propuestos
+
+-   Media es aproximadamente igual a la mediana
+
+```{r echo = FALSE}
+hist(data, xlab = "Nivel de expresión de la Proteína 2", ylab = "Frecuencia relativa", main = "Histograma de la Proteína 2 en pacientes vivos en etapa I", prob = TRUE)
+abline(v=c(median(data, na.rm=TRUE)), col=c("blue"), lwd=c(2))
+abline(v=c(mean(data, na.rm=TRUE)), col=c("red"), lwd=c(2))
+
+legend("topleft", legend = c("Mediana"), col = c("blue"), lwd=2)
+legend("topright", legend = c("Media"), col = c("red"), lwd=2)
+```
+
+```{r echo = FALSE}
+paste("Media:" ,mean(data))
+paste("Mediana", median(data))
+```
+
+La media y la mediana son cercanas entre sí, por lo que se consideramos que se cumple este criterio.
+
+-   Esperanza = media
+
+$$E[g(X)] = \int_{-\infty}^{+\infty}g(x)f(x)dx$$ 
+
+Donde $f(x)$ es la
+función de densidad de probabilidad y $g(x)$ es $x$.
+
+```{r echo = FALSE}
+expected <- expected_value(dnorm, mean = para[1], sd = para[2])
+```
+
+Comparamos el valor esperado obtenido con la media
+
+```{r}
+expected
+mean(data)
+```
+
+Se podría decir que se cumple el criterio de la esperanza dado que lso resultados son aproximadamente iguales
+
+-   Varianza = sd^2^
+
+$$Var[X] = E[(x - \mu)^2]$$
+
+```{r echo = FALSE}
+expected_var <- expected_value(dnorm, .g = function(x) (x - expected)^2, sd = para[2], mean  = para[1])
+```
+
+Comparamos la varianza esperada con la el valor observado de la
+varianza:
+
+```{r}
+expected_var
+sd(data)^2
+```
+
+Se ve que los valores son aproximadamente iguales, por lo que se considera que se cumple este criterio
+
+- Test de normalidad
+
+```{r echo = FALSE}
+l <- lillie.test(data)
+l$p.value
+```
+
+El p-value es mayor a 0.05, por lo que podemos tomar la hipótesis nula de que sigue una distribución aproximadamente normal.
+
+3.  Parámetros
+
+$X$: Nivel de expresión de la proteína 2 en pacientes vivos en etapa I
+
+```{r echo = FALSE}
+para
+```
+
+
+De tal forma que: 
+$$X \sim N(0.9769698, 0.8938387)$$ 
+
+4. Ejemplo
+
+Se requiere calcular la probabilidad de que el nivel de expresión de la
+proteína 2 en pacientes vivas en etapa I, sea menor a 0. Se sabe que
+sigue una distribución normal con media = 0.9769698 y desviación
+estándar = 0.8938387.
+
+```{r echo = FALSE}
+pnorm(0, mean = 0.9769698, sd = 0.8938387)
+```
+
+Existe una probabilidad de aproximadamente el 14% de que la paciente
+tenga un nivel de expresión de la proteína 1 menor a 0.
+
+#### `Proteína 1` en pacientes en etapa II
+
+1.  Análisis gráfico
+
+```{r echo = FALSE}
+data <- CANCER %>% filter(Etapa_del_Tumor == 'II')
+data <- data$Proteína1
+```
+
+```{r echo = FALSE}
+hist(data, prob = TRUE,xlab = "Nivel de expresión de la Proteína 1", ylab = "Frecuencia relativa", main = "Histograma de la Proteína 1 en pacientes en etapa II")
+```
+
+Se observa que parece acampanada y es unimodal, por lo que tal vez podría representarse con una distribución normal.
+
+```{r echo = FALSE, message = FALSE, warning=FALSE}
+library(fitdistrplus)
+descdist(data, boot = 500)
+```
+El gráfico indica que se acerca a una distribución normal.
+
+```{r warning = FALSE, echo = FALSE}
+fit <- fitdist(data, 'norm')
+
+para <- fit$estimate
+
+hist(data, prob = TRUE, main = "Nivel de expresión de la proteína 1 en pacientes en etapa II", ylab = "Proporción", xlab = "Nivel de expresión de la proteína 1")
+curve(dnorm(x, para[1], para[2]), col = 2, add = TRUE)
+```
+
+Se observa la distribución normal con los parámetros propuestos en el ajuste.
+
+```{r echo = FALSE}
+plot(fit)
+```
+Con más claridad, se observa cómo es que se ajustan los datos a la distribución propuesta.
+
+Los parámetros propuestos son los siguientes
+
+```{r echo = FALSE}
+para
+```
+
+2.  Verificamos con los parámetros propuestos
+
+-   Media es aproximadamente igual a la mediana
+
+```{r echo = FALSE}
+hist(data, xlab = "Nivel de expresión de la Proteína 1", ylab = "Frecuencia relativa", main = "Histograma de la Proteína 1 en pacientes fallecidas en etapa I")
+abline(v=c(median(data, na.rm=TRUE)), col=c("blue"), lwd=c(2))
+abline(v=c(mean(data, na.rm=TRUE)), col=c("red"), lwd=c(2))
+
+legend("topleft", legend = c("Mediana"), col = c("blue"), lwd=2)
+legend("topright", legend = c("Media"), col = c("red"), lwd=2)
+```
+
+```{r echo = FALSE}
+paste("Media: ",mean(data))
+paste("Mediana: ", median(data))
+```
+
+Se observa que la media y la mediana son cercanas, pero no aproximadamente iguales.
+
+-   Esperanza = media
+
+$$E[g(X)] = \int_{-\infty}^{+\infty}g(x)f(x)dx$$ Donde $f(x)$ es la
+función de densidad de probabilidad y $g(x)$ es $x$.
+
+```{r echo = FALSE}
+expected <- expected_value(dnorm, mean = para[1], sd = para[2])
+```
+
+Comparamos el valor esperado obtenido con la media
+
+```{r}
+expected
+mean(data)
+```
+
+Se comprueba que se cumple el criterio de la esperanza
+
+-   Varianza = sd^2^
+
+$$Var[X] = E[(x - \mu)^2]$$
+
+```{r echo = FALSE}
+expected_var <- expected_value(dnorm, .g = function(x) (x - expected)^2, sd = para[2])
+```
+
+Comparamos la varianza esperada con la el valor observado de la
+varianza:
+
+```{r}
+expected_var
+sd(data)^2
+```
+
+Dado que son aproximadamente iguales, se considera que se cumple este criterio. 
+
+- Test de normalidad
+
+```{r echo = FALSE}
+l <- lillie.test(data)
+l$p.value
+```
+
+Se obtiene un p-value mayor a 0.05, por lo que podríamos aceptar la hipótesis nula de que se distribuye de forma aproximmadamente normal a pesar de que no se cumple que la media es aproximadamente igual a la mediana.
+
+3.  Parámetros
+
+$X$: Nivel de expresión de la proteína 2
+
+```{r echo = FALSE}
+para
+```
+
+De tal forma que:
+
+$$X \sim N(-0.03308183, 0.54053754)$$ 
+
+4. Ejemplo
+
+Se requiere calcular la probabilidad de que el nivel de expresión de la
+proteína 1 en pacientes en etapa II sea mayor a 0. Se sabe que
+sigue una distribución normal con media = -0.03308183 y desviación
+estándar = 0.54053754.
+
+```{r echo = FALSE}
+pnorm(0, mean = para[1], sd = para[2], lower.tail = F)
+```
+
+Existe una probabilidad de aproximadamente el 48% de que la paciente
+tenga un nivel de expresión positivo de la proteína 1.
+
+## Conclusiones
+
+- Se ha determinado que existe una mayor proporción de pacientes vivas en cuanto a fallecidas en la muestra de estudio. Asimismo, se observa una tendencia en cuanto a la edad y el estado del paciente por etapa. Mientras más avanzada sea la etapa, suelen fallecer pacientes más jóvenes. En cuanto a pacientes vivas, a medida que progresa la etapa, el cáncer podría afectar a diversas edades.
+
+- El tipo de cirugía realizada tiene una relación con la etapa del tumor. Se sugiere que, en general, mientras más avanzada sea la etapa, se requiere una cirugía más invasiva que remueva una mayor cantidad de tejidos. 
+
+- Las proteínas 1, 2 y 3 no parecen tener un efecto tan significativo en el estado final del paciente, puesto que se observa que en ambos estados tienen tendencias similares. En cuanto a proteína 4, su visibilidad aumenta a medida que progresa la etapa en pacientes fallecidos; mientras que en vivos, es cada vez menor. 
+
+
