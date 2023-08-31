@@ -1,0 +1,730 @@
+---
+title: "Expectativas Laborales de los estudiantes de UTEC en el ciclo 2023-1"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Introduccion
+
+#### **Relevancia:**
+
+<H4>Analizar las expectativas laborales es relevante tanto para los estudiantes de UTEC como para las empresas empleadoras, ya que ayuda a tomar decisiones informadas, planificar y desarrollar carreras profesionales, mejorar la retención y satisfacción laboral, atraer talento y adaptarse a los cambios en el entorno laboral.
+.</H4>
+
+#### **Objetivo General:**
+
+<H4>Analizar las expectativas laborales de los estudiantes de la UTEC durante el periodo 2023-1..</H4>
+
+
+
+#### **Objetivo específicos:**
+
+<H4>*Examinar el cambio de las expectativas laborales respecto a variaciones de edad o ciclo académico de los estudiantes..</H4>
+
+<H4>*Estudiar el comportamiento de la tendencia en cuanto a los rubros/campos laborales que atraigan a los estudiantes..</H4>
+
+<H4>*Examinar la tendencia de la predilección de los estudiantes en cuanto al espacio geográfico en el que desean trabajar en un futuro..</H4>
+
+<H4>*Analizar en qué magnitud afecta el salario a las preferencias laborales de los estudiantes..</H4>
+
+<H4>*Identificar qué factores influyen en las expectativas de los estudiantes...</H4>
+
+#### **Contexto:**
+
+<H4>Este estudio será factible a través del uso de la encuesta. Por un lado, tenemos la facilidad de interactuar con todos los miembros presentes en los varios grupos, donde se encuentra un gran número de estudiantes de UTEC. Esto es importante debido a que nuestra investigación se centra en las expectativas laborales de los mismos estudiantes de nuestra universidad. En este sentido, nuestra muestra deberá abarcar a los mismos estudiantes de la Universidad de Ingeniería y Tecnología y en virtud de ello promoveremos la representatividad.
+</H4>
+
+
+```{r results='hide', warning = FALSE, message = FALSE, echo=F}
+rm(list=ls())
+library(stringr)
+library(knitr)
+library(readr)
+library(dplyr)
+library(vcd)
+library(ggplot2)
+library(Mediana)
+library(plotrix)
+library(kableExtra)
+library(plotly)
+library(rriskDistributions)
+library(MASS)
+library(survival)
+
+DFC <- read_csv("Data (1).csv", show_col_types = FALSE)
+```
+
+### Analisis Descriptivo
+
+Gráfico 1: 
+sobre las Habilidades que poseen los estudiantes
+```{r}
+hist(DFC$habilidades,
+     xlab = "Habilidades",
+     ylab = "numero de estudiantes",
+     main = "Gráfico 10: Habilidades de los estudiantes",
+     col = "green",
+     border = "white",
+     xlim = c(0,10),
+     breaks = "Sturges")
+abline(v = mean(DFC$habilidades), col = "red", lwd = 2)
+legend("topright", legend = "Media", col = "red", lwd = 2)
+```
+
+Esta gráfica representa sutilmente la distribución de habilidades que presentan los estudiantes, mismas habilidades que el empleador busca cuando requiere contratar a un trabajador. Se logra observar que mas de 30 estudiantes, cuentan con 4 habilidades que las empresas buscan para contratar a un trabajador, por otro lado también se logra identificar que la media oscila entre 4 y 6.
+En resumen la mayoría estudiantil tiene al menos 4 habilidades requeridas por los empleadores.
+
+
+
+Gráfico 2:
+```{r}
+library(vcd)
+
+par(mar = c(5, 4, 4, 12))  
+mosaicplot(table(DFC$carrera, DFC$Sexo),
+           col = c("green", "pink", "lightblue", "orange", "yellow"),
+           main = "Gráfico 13: Sexo vs Carrera",
+           cex.axis = 0.45,
+           las = 1.1
+)
+```
+
+Este gráfico de mosaicos no da información muy relevante de la cual podemos extraer lo siguiente:
+
+- Las mujeres son predominantes en las carreras de Ingeniería Química, Ingeniería Industrial y Bioingeniería.
+-Los hombres son mayoría en la carreras de Ingeniería Mecatrónica,Ingeniería Mecánica, Ingeniería Electrónica, Ciencia de Datos y Ciencia de la computación.
+-La distribución mas pareja entre nuestra variable sexo se encuentran en las carreras de Administración y Negocios Digitales, Ingeniería Ambiental,Ingeniería Civil y Ingeniería de la Energía.
+
+Este análisis es muy importante debido a que la igualdad de género en puestos de liderazgo y en la toma de decisiones comerciales puede generar una variedad de perspectivas, experiencias y habilidades, lo que a su vez puede conducir a decisiones más informadas y equilibradas.Esto promueve un entorno de justicia y la equidad en el entorno laboral.
+
+
+Gráfico 3:
+
+```{r}
+promedio_por_ciclo<- aggregate(DFC$promedio, by = list(DFC$ciclo), FUN = mean)
+
+
+plot(promedio_por_ciclo$Group.1, promedio_por_ciclo$x,
+  type = "l", 
+  xlab = "Ciclo", 
+  ylab = "Promedio de calificaciones", 
+  main = "Tendencia del promedio de calificaciones por ciclo",
+  col = "blue", 
+  lwd = 2 
+)
+
+legend("topleft",
+  legend = c("Promedio"),
+  lty = 1, 
+  lwd = 2, 
+  col = "blue" 
+)
+```
+
+
+Se puede observar una variación significativa en las tendencias durante los diferentes ciclos;sin embargo, lo que destaca es que los estudiantes en el tercer, cuarto y quinto ciclo presentan un promedio menor en comparación con los demás ciclos. Este gráfica es muy importante debido a sus datos podemos plantear algunas hipótesis del porque el promedio de un alumno disminuye en esos ciclos.
+Hipótesis:
+-Los cursos de tercer, cuarto y quinto ciclo son los mas complicados de la carrera.
+-Hay descuido de los estudiantes en ese rango de ciclos.
+-Existe una necesidad de asesores o asistentes que ayuden a los estudiantes a reforzar lo aprendido.
+
+
+### Análisis Probabilístico
+
+
+```{r}
+
+# Función de Esperanza para continuas
+expected_value <- function(.density_function, ..., exp=1) {
+  if(!is_density(.density_function, ..., .tolerance = 1e-5)) {
+    return(NA)
+  }
+  
+  integral <- integrate(function(x) x^exp * .density_function(x, ...), 
+                        lower = -Inf, 
+                        upper = Inf)
+  integral$value
+}
+
+# Verificador de la existencia de una función de densidad, la integral debe valer 1
+is_density <- function(.func, ..., .tolerance = 1.5e-8) {
+  integral <- integrate(function(x) .func(x, ...), 
+                        lower = -Inf, 
+                        upper = Inf)
+  
+  equals_one = isTRUE(all.equal(integral$value, 1, tolerance = .tolerance))
+  
+  if (!equals_one) {
+    cat(sprintf("Warning: function is not a density function. Integral equals %0.9f", 
+                integral$value))
+  }
+  
+  equals_one
+}
+
+# Función de Varianza para continuas
+variance <- function(.func, ...){
+  return( expected_value(.func, ..., exp=2) - (expected_value(.func, ..., exp=1))^2)
+}
+
+# Función de Esperanza para discretas
+esperanza <- function(.func, ..., muestra, exp=1){
+    return( sum(c(0:muestra)^exp*c(.func(0:muestra, ...))))
+}
+
+# Función de Varianza para discretas
+varianza <- function(.func, ..., muestra){
+    return( esperanza(.func, ..., muestra=muestra, exp=2) - (esperanza(.func, ..., muestra=muestra, exp=1))^2)
+}
+```
+
+
+### Probabilidad Empirica
+
+#### Habilidades que possen los alumnos para trabajar en una empresa
+
+variable: Habilidades
+
+$$\Omega = `r nrow(DFC)`$$
+
+###### Calculamos los eventos atómicos 
+
+```{r}
+table(DFC$habilidades)
+```
+
+
+Aquí podemos observar con cuantas habilidades se caracterizan los estudiantes de UTEC 
+
+Podemos observar que para el caso de las habilidades tenemos 10 posibles casos.
+$$\{1, 2, 3, 4 ,5 ,6, 7 ,8, 9, 10 \}$$
+
+$1:$ Seleccionar al azar un alumno de UTEC que posea 1 habilidad técnica.
+
+$2:$ Seleccionar al azar un alumno de UTEC que posea 2 habilidades técnicas.
+
+$3:$ Seleccionar al azar un alumno de UTEC que posea 3 habilidades técnicas.
+
+$4:$ Seleccionar al azar un alumno de UTEC que posea 4 habilidades técnicas.
+
+$5:$ Seleccionar al azar un alumno de UTEC que posea 5 habilidades técnicas.
+
+$6:$ Seleccionar al azar un alumno de UTEC que posea 6 habilidades técnicas.
+
+$7:$ Seleccionar al azar un alumno de UTEC que posea 7 habilidades técnicas.
+
+$8:$ Seleccionar al azar un alumno de UTEC que posea 8 habilidades técnicas.
+
+$9:$ Seleccionar al azar un alumno de UTEC que posea 9 habilidades técnicas.
+
+$10:$ Seleccionar al azar un alumno de UTEC que posea 10 habilidades técnicas.
+
+
+
+###### Calculamos las probabilidades de los eventos atómicos
+
+
+```{r echo=FALSE, results='hide'}
+# Tabla de frecuencias de los eventos atómicos
+P <- table(DFC$habilidades)
+
+# Probabilidad de cada evento atómico
+P / nrow(DFC)
+
+# Se comprueba la suma
+sum(P/nrow(DFC))
+```
+
+
+
+$P(1) = \frac{`r P[1]`}{`r nrow(DFC)`} = `r P[1]/nrow(DFC)`$
+
+$P(2) = \frac{`r P[2]`}{`r nrow(DFC)`} = `r P[2]/nrow(DFC)`$
+
+$P(3) = \frac{`r P[3]`}{`r nrow(DFC)`} = `r P[3]/nrow(DFC)`$
+
+$P(4) = \frac{`r P[4]`}{`r nrow(DFC)`} = `r P[4]/nrow(DFC)`$
+
+$P(5) = \frac{`r P[5]`}{`r nrow(DFC)`} = `r P[5]/nrow(DFC)`$
+
+$P(6) = \frac{`r P[6]`}{`r nrow(DFC)`} = `r P[6]/nrow(DFC)`$
+
+$P(7) = \frac{`r P[7]`}{`r nrow(DFC)`} = `r P[7]/nrow(DFC)`$
+
+$P(8) = \frac{`r P[8]`}{`r nrow(DFC)`} = `r P[8]/nrow(DFC)`$
+
+$P(9) = \frac{`r P[9]`}{`r nrow(DFC)`} = `r P[9]/nrow(DFC)`$
+
+$P(10) = \frac{`r P[10]`}{`r nrow(DFC)`} = `r P[10]/nrow(DFC)`$
+
+Comentario: Si seleccionamos a un estudiante de UTEC al azar este tendrá un `r round(sum(P[4:7])/nrow(DFC),3) * 100`% de tener entre 4 y 7 habilidades técnicas. 
+Además hemos observado que la probabilidad de que un alumno seleccionado al azar tenga 5 o 7 habilidades es mayor en comparación con otras cantidades de habilidades.
+
+##### Lugar de trabajo deseado
+
+variable: Ubicación deseada
+
+$$\Omega = `r nrow(DFC)`$$
+
+##### Calcular los eventos atómicos 
+
+
+```{r}
+table(DFC$ubic_des)
+```
+
+$$\{ \text{Extranjero,}\ \text{Zona Rural,}\ \text{Zona Urbana} \}$$
+
+Un número significativo de alumnos(90), expresan su aspiración de buscar oportunidades profesionales fuera del país, posiblemente motivados por la búsqueda de experiencias internacionales. Asimismo, algunos alumnos muestran su interés en contribuir al desarrollo de comunidades rurales, aplicando sus conocimientos en proyectos que beneficien a estas áreas
+
+
+$Extranjero:$ Seleccionar al azar un alumno de UTEC que desee trabajar en el extranjero.
+
+$Zona Rural:$ Seleccionar al azar un alumno de UTEC que desee trabajar en una Zona rural.
+
+$Zona Urbana:$ Seleccionar al azar un alumno de UTEC que desee trabajar en una Zona Urbana.
+
+
+##### Calcular las probabilidades de los eventos atómicos
+
+
+```{r echo=FALSE, results='hide'}
+# Tabla de frecuencias de los eventos atómicos
+P <- table(DFC$ubic_des)
+
+# Probabilidad de cada evento atómico
+P / nrow(DFC)
+
+# Se comprueba la suma
+sum(P/nrow(DFC))
+```
+
+$P(Extranjero) = \frac{`r P[1]`}{`r nrow(DFC)`} = `r P[1]/nrow(DFC)`$
+
+$P(Zona Rural) = \frac{`r P[2]`}{`r nrow(DFC)`} = `r P[2]/nrow(DFC)`$
+
+$P(Zona Urbana) = \frac{`r P[3]`}{`r nrow(DFC)`} = `r P[3]/nrow(DFC)`$
+
+Comentario: Al seleccionar al azar a 152 estudiantes de UTEC, se observa que el 59.21% de ellos expresan su deseo de trabajar en el extranjero, el 24.34% prefiere trabajar en zonas urbanas y el 16.44% muestra interés en trabajar en zonas rurales. Estos resultados destacan la preferencia mayoritaria por empleos internacionales, seguida de la atracción por áreas urbanas y una menor preferencia por zonas rurales entre los estudiantes de UTEC.
+
+
+### Probabilidad Condicional
+
+#### Edad y Expectativa de sueldo (Presunta DEPENDENCIA)
+
+- Definimos los eventos 
+
+$A:$ Seleccionar a un estudiante de UTEC al azar y que este tenga menos de 20 años
+
+$B:$ Seleccionar a un estudiante de UTEC al azar y que este tenga una expectativa de sueldo mayor a dos veces el salario mínimo del Perú (S/. 2050)
+
+```{r}
+PA <- nrow(filter(DFC, DFC$edad < 20)) / nrow(DFC)
+PB <- nrow(filter(DFC, DFC$exp_sueldo > 2050)) / nrow(DFC)
+
+PAc <- 1 - PA
+PBc <- 1 - PB
+    
+p11 <- nrow(filter(DFC, DFC$edad < 20 & DFC$exp_sueldo > 2050)) / nrow(DFC)
+p12 <- nrow(filter(DFC, DFC$edad >= 20 & DFC$exp_sueldo > 2050)) / nrow(DFC)
+p21 <- nrow(filter(DFC, DFC$edad < 20 & DFC$exp_sueldo <= 2050)) / nrow(DFC)
+p22 <- nrow(filter(DFC, DFC$edad >= 20 & DFC$exp_sueldo <= 2050)) / nrow(DFC)
+
+
+```
+
+Realizamos una tabla de probabilidades
+
+
+|            |   A         |     Ac      |        |
+|:----------:|:-----------:|:-----------:|:-------|
+|    **B**   |   `r p11`   | `r p12`     | `r PB` |
+|    **Bc**  |   `r p21`   | `r p22`     | `r PBc`|
+|            |   `r PA`    | `r PAc`     |    1   |    
+
+Posteriormente analizaremos la dependencia estableciendo un margen de error del +-3%
+
+$$ P(A)\cap P(B) = P(A) \cdot P(B)$$
+
+```{r}
+p11 * 97/100 < PA*PB & PA*PB < p11*103/100
+```
+
+El resultado es falso por lo tanto estos dos eventos son dependientes
+
+
+##### Probabilidad de A dado B
+
+$$P(A|B) = \frac{P(A \cap B)}{P(B)}$$
+
+```{r}
+PAB <- p11/PB
+```
+
+$$P(A|B) = `r PAB`$$
+
+##### Probabilidad de B dado A
+
+$$P(B|A) = \frac{P(A|B)\cdot P(B)}{P(A|B)\cdot P(B) + P(A|Bc)\cdot P(Bc)}$$
+
+```{r}
+PBA <- (PAB * PB)/(p11/PB*PB + p21/PBc * PBc)
+```
+
+$$ P(B|A) = `r PBA`$$
+Comentario: Se observa que aproximadamente el 60% de alumnos UTEC menores de 20 años, es decir adolescentes tienen una expectativa de sueldo mayor a dos veces el salario mínimo en el Perú (S/. 2050).
+
+
+#### Sexo y rubro de los campos relacionados con la ingeniería (Presunta Independencia)
+
+
+- Definimos los eventos 
+
+$A:$ Seleccionar a un estudiante de UTEC al azar y que este sea mujer
+
+$B:$ Seleccionar a un estudiante de UTEC al azar y que este no desee trabajar en el rubro de los campos relacionados con la ingeniería
+
+```{r}
+PA <- nrow(filter(DFC, DFC$Sexo == "Mujer")) / nrow(DFC)
+PB <- nrow(filter(DFC, DFC$rubro != "Campos relacionados con la ingeniería")) / nrow(DFC)
+
+PAc <- 1 - PA
+PBc <- 1 - PB
+    
+p11 <- nrow(filter(DFC, DFC$Sexo == "Mujer" & DFC$rubro != "Campos relacionados con la ingeniería")) / nrow(DFC)
+p12 <- nrow(filter(DFC, DFC$Sexo != "Mujer" & DFC$rubro != "Campos relacionados con la ingeniería")) / nrow(DFC)
+p21 <- nrow(filter(DFC, DFC$Sexo == "Mujer" & DFC$rubro == "Campos relacionados con la ingeniería")) / nrow(DFC)
+p22 <- nrow(filter(DFC, DFC$Sexo != "Mujer" & DFC$rubro == "Campos relacionados con la ingeniería")) / nrow(DFC)
+
+cat("PA:", round(PA, 2), "\n")
+cat("PB:", round(PB, 2), "\n")
+cat("PAc:", round(PAc, 2), "\n")
+cat("PBc:", round(PBc, 2), "\n")
+cat("P(A and B):", round(p11, 2), "\n")
+cat("P(A and not B):", round(p12, 2), "\n")
+cat("P(not A and B):", round(p21, 2), "\n")
+cat("P(not A and not B):", round(p22, 2), "\n")
+
+```
+
+
+
+Realizamos una tabla de probabilidades
+
+
+|            |   A         |     Ac      |        |
+|:----------:|:-----------:|:-----------:|:-------|
+|    **B**   |   `r p11`   | `r p12`     | `r PB` |
+|    **Bc**  |   `r p21`   | `r p22`     | `r PBc`|
+|            |   `r PA`    | `r PAc`     |    1   |    
+
+Posteriormente analizaremos la dependencia estableciendo un margen de error del +-3%
+
+$$ P(A)\cap P(B) = P(A) \cdot P(B)$$
+
+```{r}
+p11 * 97/100 < PA*PB & PA*PB < p11*103/100
+```
+Podemos observar que la probabilidad conjunta P(A ∩ B) no es igual al producto de las probabilidades individuales
+P(A) · P(B). Esto indica que los eventos "Ser mujer" y "Tener un rubro no relacionado con la ingeniería" no son eventos independientes en el contexto de los datos proporcionados.
+Por lo tanto, podemos concluir que los eventos "Ser mujer" y "Tener un rubro no relacionado con la ingeniería" son eventos dependientes en función de los resultados obtenidos.
+
+
+##### Probabilidad de A dado B
+
+$$P(A|B) = \frac{P(A \cap B)}{P(B)}$$
+
+```{r}
+PAB <- p11/PB
+```
+
+$$P(A|B) = `r PAB`$$
+
+##### Probabilidad de B dado A
+
+$$P(B|A) = \frac{P(A|B)\cdot P(B)}{P(A|B)\cdot P(B) + P(A|Bc)\cdot P(Bc)}$$
+
+```{r}
+PBA <- (PAB * PB)/(p11/PB*PB + p21/PBc * PBc)
+```
+
+$$ P(B|A) = `r PBA`$$
+Comentario: Se observa que la probabilidad que un estudiante de UTEC elija un rubro para trabajar relacionado a los campos de la ingeniería siendo mujer es del 42.25%. Esto nos puede decir que más de la mitad de estudiantes UTEC mujeres no quisieran un rubro de trabajo relacionado a los campos de la ingeniería
+
+
+## Variables Discretas
+
+### 1 variable aleatoria (Binomial)
+
+Definimos nuestra variable aleatoria:
+
+$X:$ Numero de alumnos que tienen un promedio menor a 15 en el conjunto de 152 alumnos
+
+```{r echo=FALSE}
+p <- nrow(filter(DFC, DFC$promedio < 15)) / nrow(DFC)
+```
+
+El éxito es definido como seleccionar un alumno que tiene un promedio menor a 15
+
+$Éxito\ (p): `r round(p*100,2)`$ 
+
+$Fracaso\ (q): `r round((1-p)*100,2)`$ 
+
+n es el tamaño de la muestra
+
+$X \sim Bin(`r round(p*100,2)`,152)$
+
+Graficamos:
+
+
+
+```{r echo=FALSE}
+prob<- dbinom(0:152,152,p)
+fig <- plot_ly(DFC, y=prob,
+               x=0:152,
+               type = "bar",
+               marker = list(color = '#57cc99')
+               ) %>%
+    layout(title = "Distribución Binomial",
+           xaxis = list( title = "Alumnos"),
+           yaxis = list( title = "Probabilidad de éxito"))
+
+fig
+
+```
+
+Validamos propiedades:
+
+
+```{r warning=F, echo=F}
+Ecalculo <- esperanza(dbinom, size=152, prob=p, muestra=152)
+Eteoria <- 152 * p
+
+Ecalculo
+Eteoria
+
+Vcalculo <- varianza(dbinom, size=152, prob=p, muestra=152)
+Vteoria <- 152 * p * (1-p)
+
+Vcalculo
+Vteoria
+```
+
+De gráfico binomial podemos concluir que la mayor probabilidad que se tiene para que los alumnos tengan el promedio mayor o igual que 15 es escoger a 47 estudiantes dando un 6.99%.
+
+Ejemplo: En la universidad se desea calcular la probabilidad de que 90 estudiantes(2 salones enteros) tengan un promedio menor a 15 para poder poner asesores a estos 2 salones y que los estudiantes puedan mejorar sus notas, si se sabe que en esa escuela hay 152 estudiantes.
+¿Cual es la probabilidad de que hayan exactamente 90 estudiantes con un promedio de nota menor a 15?
+Primero ponemos los datos en la Formula:
+
+```{r}
+knitr::asis_output("$$P(X = k) = C(n,k) \\cdot p^k \\cdot (1-p)^{n-k}$$")
+```
+
+donde n es el tamaño de la muestra (152 estudiantes), k es el número de éxitos deseados (90 estudiantes) y p es la probabilidad de éxito (0.618421052631579) o (61.8421052631579%)
+```{r}
+knitr::asis_output("$$P(X = 90) = C(152,90) \\cdot 0.618421052631579^90 \\cdot (1-0.618421052631579)^{152-90}$$")
+
+
+```
+
+
+
+```{r}
+n <- 152 # Número total de estudiantes
+p <- sum(DFC$promedio<15.00)/nrow(DFC) # Probabilidad de tener un promedio menor a 15
+
+prob <- dbinom(90, n, p)
+
+
+cat("La probabilidad de que 45 de los estudiantes tengan un promedio menor a 15 es:", prob)
+
+```
+Comprobando con la formula:
+```{r}
+print( factorial(152) / (factorial(152 - 90) * factorial(90)) * 0.61842105263157990^90 * (1 - 0.618421052631579)^(152 - 90))
+```
+Con esto podemos ver que la probabilidad de que hayan 2 salones enteros de estudiantes(90) con un promedio menor a 15 es de 5.268644%, redondeando seria 5.3%
+
+
+### 2da variable Aleatoria (Hipergeométrica)
+
+- Definimos nuestra variable aleatoria:
+Primero vemos los alumnos que quieren llegar al nivel de educación de Doctor:
+```{r}
+
+library(dplyr)
+library(stringr)
+DFC %>%filter(str_detect(niv_ed_des, "Doctor"))->DFCDOCT
+
+nrow(DFCDOCT)
+```
+
+
+$X:$ Queremos saber la probabilidad de que el número de alumnos que desean llegar al nivel de educación de doctorado sea un poco mas de la mitad de un salón(22.5->23 alumnos),todo esto en una muestra de 45 alumnos escogida al azar de una población de 152 alumnos donde 80 de ellos desea llegar al nivel de educación de doctorado y 72 de ellos prefieren alcanzar otro nivel.
+
+Nuestro éxito esta definido en que tengamos un número de alumnos con el nivel de educación de doctorado en una muestra de toda la población.
+
+$X \sim Hyper(80,72,45)$
+
+Graficamos:
+
+
+```{r echo=FALSE}
+prob <- dhyper(0:45,80,152-80,45)
+
+fig <- plot_ly(DFC, y=prob,
+               x=0:45,
+               type = "bar",
+               marker = list(color = '#57cc99')
+               ) %>%
+    layout(title = "Distribución Hipergeométrica",
+           xaxis = list( title = "Alumnos"),
+           yaxis = list( title = "Probabilidad de éxito"))
+
+fig
+
+```
+Validamos propiedades:
+
+```{r warning=F, echo=F}
+
+# k: muestra
+# m: éxitos totales que
+# n: fracasos totales
+# n: población
+# p:m/N
+
+p <- 80/152
+Ecalculo <- esperanza(dhyper, m=80, n=72, k=45, muestra=45)
+Eteoria <- 45*p
+
+Ecalculo
+Eteoria
+
+Vcalculo <- varianza(dhyper, m=80, n=72, k=45, muestra=45)
+Vteoria <- 45*p*(1-p)*(152-45)/(152-1)
+
+Vcalculo
+Vteoria
+```
+
+Ahora vemos cual es el porcentaje de tener 23 alumnos en una muestra de 45 personas, de una población de 152. 
+```{r}
+dhyper(23,80,72,45)
+```
+
+Vemos que hay una probabilidad de 13.69->13.7% de que si se escogen al azar 45 de 152 
+alumnos hayan 23 alumnos en un salón(45) .
+
+Ejemplo:
+
+Existe una universidad que posee 10000 estudiantes, de estos se saben que 500 no tienen intereses en continuar sus estudios superiores y 1000 desean ser doctores, si se selecciona una muestra de 200 estudiantes, ¿Cuál es la probabilidad que 10 de ellos quieran ser doctores?
+
+```{r}
+dhyper(10,1000,10000,200)
+```
+Vemos que la probabilidad es del 1.14%
+
+## Variables Continuas
+
+### Variable expectativa de sueldo en dolares
+
+```{r}
+# Crear el histograma
+hist(DFC$exp_sueldo * 0.28, breaks = 10, freq = FALSE, col = "pink", main = "Histograma del Sueldo Expresado", xlab = "Sueldo Expresado", ylab = "Densidad")
+
+# Agregar la densidad
+lines(density(DFC$exp_sueldo * 0.28, na.rm = TRUE), col = "orange3", lwd = 2)
+
+# Agregar la curva de densidad normal
+mean_val <- mean(DFC$exp_sueldo * 0.28, na.rm = TRUE)
+sd_val <- sd(DFC$exp_sueldo * 0.28, na.rm = TRUE)
+curve(dnorm(x, mean = mean_val, sd = sd_val), lwd = 2, col = "green2", add = TRUE)
+
+# Agregar la leyenda
+legend("topleft", c("C.O", "C.N.T"), lty = 1, lwd = 2, col = c("orange3", "green2"), bty = "n", cex = 0.8)
+
+
+```
+
+
+```{r echo=FALSE}
+fig <- plot_ly(DFC, x=DFC$exp_sueldo*0.28,
+               type = "histogram",
+               marker = list(color = '#57cc99')
+               ) %>%
+    layout(title = "Dolares")
+
+fig
+
+```
+
+```{r}
+f <- fit.cont(DFC$exp_sueldo * 0.28)
+```
+
+```{r}
+shape = 2.949151556
+rate = 0.003542864
+
+Eteoria <- shape*1/rate
+Eteoria
+mean(DFC$exp_sueldo * 0.28)
+
+Vteoria <- shape*(1/rate)^2
+Vteoria
+var(DFC$exp_sueldo *0.28)
+
+```
+
+**Observamos que la distribución gamma pese a contar con solo un indicador de bondad aceptable, al revisar las propiedades nos damos cuenta que es una aproximación lo suficientemente buena.**
+
+### 2da variable continua
+
+Variable: Indice de competencias
+Usaremos las variables Promedio y Habilidades y multiplicarlas para sacar el indice de competencia de un alumno, esto debido a que las empresas quieren a un alumno que sea bueno y tenga habilidades blandas que lo ayuden a exprimir su posible potencial.
+
+```{r echo=FALSE}
+
+fig <- plot_ly(DFC, x= DFC$promedio * DFC$habilidades,
+               type = "histogram",
+               marker = list(color = '#57cc99')
+               ) %>%
+    layout(title = "Indice de competencias")
+
+fig
+
+```
+
+```{r}
+
+#Indice de competencia
+fit.cont(DFC$promedio * DFC$habilidades)
+```
+
+
+```{r echo}
+mean = 78.59414
+sd = 33.73646
+
+Ecalculada <- expected_value(dnorm,mean=mean, sd=sd)
+Ecalculada
+mean(DFC$promedio * DFC$habilidades)
+
+
+
+Vcalculo <- variance(dnorm,mean=mean, sd=sd)
+Vcalculo
+var(DFC$promedio * DFC$habilidades)
+```
+
+**Observamos que la distribución normal marca como aceptables ambos indicadores de bondad, al realizar la comprobación con las propiedades nos damos cuenta que esta distribución se acerca mucho a nuestro conjunto de datos siendo la más ideal para el mismo.**
+
+
+Considerando que el indice de competencia para una empresa es muy importante, queremos saber la probabilidad de que un alumno tenga mas de 90 puntos en el indice de competencia,ya que lo que busca esta compañía es que si la media del indice de competencia es 78.59 , se quisiera a alguien que tenga mas que estos puntos, como lo es 90 puntos que es bastantes puntos mas que la media, para esto usamos la formula dnorm que nos calculara la probabilidad de tener un alumno que tenga 90 o más de indice de competencia.
+```{r}
+
+dnorm(90,mean,sd)
+```
+Con esto vemos que la probabilidad de obtener un alumno con 90 o mas de indice de competencia, es de tan solo 1.1%, viendo que es bastante difícil encontrar a una persona con tan alto indice de competencia.

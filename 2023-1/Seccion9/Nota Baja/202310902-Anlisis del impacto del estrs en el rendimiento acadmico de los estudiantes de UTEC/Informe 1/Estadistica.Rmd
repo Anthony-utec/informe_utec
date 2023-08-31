@@ -1,0 +1,297 @@
+---
+title: "Estadistica"
+output:
+  html_document:
+    df_print: paged
+---
+
+Abrir archivo
+
+```{r}
+rm(list = ls())
+library(readr)
+datos <- read_csv("datos.csv")
+```
+
+Limpieza
+
+```{r}
+library(chron)
+#Eliminación de columnas inutiles
+datos <- datos[, !(names(datos) %in% c("Marca temporal", "Ingresa tu correo institucional", "Ingresa tu número de teléfono (opcional)" ))]
+#Cambio de nombre de las columnas
+colnames(datos) <- c("Carrera","LlevoCalculo","Si,Intento","No,razon","Promedio","Estrésante","AfectaNotas","NivelEstres","CausaEstres","Desestresamiento","AprobarEstrategia","HorasEstudios","HorasSueño","HorasLibres","ApoyoDocente","Recomendaciones")
+
+#Adaptacion de datos
+for (i in seq_along(datos$`Si,Intento`)) {
+  if (datos$`Si,Intento`[i] =="1") {
+    datos$`Si,Intento`[i] <- "Primer Intento"
+  }
+  else if (datos$`Si,Intento`[i] =="2") {
+    datos$`Si,Intento`[i] <- "Segundo Intento"
+  }
+  else if (datos$`Si,Intento`[i] =="3") {
+    datos$`Si,Intento`[i] <- "Tercer Intento"
+  }
+  
+}
+
+
+#Adaptacion de las pregugunta de opción multiple
+datos$CausaEstres <- strsplit(datos$CausaEstres, split=";")
+OpcionesEstres <- c("Las actividades de aula","Las actividades grupales","Las tareas semanales","El proyecto","Los exámenes parcial y final","La mala explicación del profesor","Los temas tan confusos","La gran cantidad de evaluaciones","Ninguno (todo fue fácil)"
+)
+for (i in seq_along(datos$CausaEstres)) {
+  for (j in seq_along(datos$CausaEstres[[i]])) {
+    if (!datos$CausaEstres[[i]][j] %in% OpcionesEstres) {
+      datos$CausaEstres[[i]][j] <- "Otros"
+    }
+  }
+}
+
+datos$Desestresamiento <- strsplit(datos$Desestresamiento, split=";")
+OpcionesDesestresamiento <- c("Deporte","Escuchar música","Videojuegos","Tomarte el día libre","Ayuda psicológica","Pedir ayuda a tus compañeros","Estudiar otro curso","Maldecir al profesor y al curso","Dormir")
+
+for (i in seq_along(datos$Desestresamiento)) {
+  for (j in seq_along(datos$Desestresamiento[[i]])) {
+    if (!datos$Desestresamiento[[i]][j] %in% OpcionesDesestresamiento) {
+      datos$Desestresamiento[[i]][j] <- "Otros"
+    }
+  }
+}
+
+datos$AprobarEstrategia <- strsplit(datos$AprobarEstrategia,split = ";")
+OpcionesEstrategia <- c("Mentorías","Asesorías","Libros de la biblioteca","Estudios grupales","Profesor particular","Solo estudié lo aprendido en clase")
+
+for (i in seq_along(datos$AprobarEstrategia)) {
+  for (j in seq_along(datos$AprobarEstrategia[[i]])) {
+    if (!datos$AprobarEstrategia[[i]][j] %in% OpcionesEstrategia) {
+      datos$AprobarEstrategia[[i]][j] <- "Otros"
+    }
+  }
+}
+
+datos$Recomendaciones <- strsplit(datos$Recomendaciones, split = ";")
+OpcionesRecomendaciones <- c("Colocar el 100% de tu esfuerzo desde la primera semana","Estudiar de antemano el curso","Buscar ayuda de estudiantes de ciclos superiores","Orar","Rendirse","No recomendar nada (el curso es fácil no hay necesidad de preparación)")
+
+for (i in seq_along(datos$Recomendaciones)) {
+  for (j in seq_along(datos$Recomendaciones[[i]])) {
+    if (!datos$Recomendaciones[[i]][j] %in% OpcionesRecomendaciones) {
+      datos$Recomendaciones[[i]][j] <- "Otros"
+    }
+  }
+}
+
+```
+
+Análisis
+
+```{r}
+#Llevo calculo:
+datos$LlevoCalculo[datos$`No,razon` == "Me retiré"] <- "Si"
+datoSI <- datos[datos$LlevoCalculo == "Si", ]
+datoNo <- datos[datos$LlevoCalculo != "Si", ]
+datoNo <- subset(datoNo,select = c("Carrera","LlevoCalculo","No,razon"))
+```
+
+```{r}
+#Grafico de porque no se llevo calculo
+RzNoCalc <- table(datoNo$`No,razon`)
+pie(RzNoCalc, labels = paste(names(prop.table(RzNoCalc)*100), "(", round(prop.table(RzNoCalc)*100, 1), "%)"), main = "Razones por las que no se llevo Cálculo de una variable")
+RzNoCalc
+```
+
+```{r}
+#En que intento se aprobó calculo
+SiInCalc <- table(datoSI$`Si,Intento`)
+dev.new(width = 12, height = 3)
+pie(SiInCalc, labels = paste(names(prop.table(SiInCalc)*100), "(", round(prop.table(SiInCalc)*100, 1), "%)"), main = "Intento donde se aprobo Cálculo de una variable")
+SiInCalc
+```
+
+```{r}
+#Promedio de las notas
+valores_no_numericos <- grepl("[^0-9.]+", datoSI$Promedio)
+datoSIs <- subset(datoSI, !valores_no_numericos)
+datoSIs$Promedio <- as.numeric(datoSIs$Promedio)
+boxplot(datoSIs$Promedio, main = "Distribución de Notas", ylab = "Promedio")
+cat("Promedio: ", mean(datoSIs$Promedio),"\n")
+cat("Minimo: ", min(datoSIs$Promedio),"\n")
+cat("Maximo: ", max(datoSIs$Promedio),"\n")
+P_cuartiles <- quantile(datoSIs$Promedio, probs = c(0.25, 0.5, 0.75))
+cat("Primer cuartil (Q1):", P_cuartiles[1], "\n")
+cat("Mediana:", P_cuartiles[2], "\n")
+cat("Tercer cuartil (Q3):", P_cuartiles[3], "\n")
+```
+
+```{r}
+Estr<-table(datoSI$Estrésante)
+pie(Estr, labels = paste(names(prop.table(Estr)*100), "(", round(prop.table(Estr)*100, 1), "%)"), main = "¿El curso es estresante?")
+Estr
+```
+
+```{r}
+AfNt <- table(datoSI$AfectaNotas)
+pie(AfNt, labels = paste(names(prop.table(AfNt)*100), "(", round(prop.table(AfNt)*100, 1), "%)"), main = "¿El estres afecta a tus notas?")
+AfNt
+```
+
+```{r}
+boxplot(datoSI$NivelEstres, main = "Cuanto estres te produce el curso", ylab = "Nivel del Estres")
+cat("Promedio: ", mean(datoSI$NivelEstres),"\n")
+cat("Minimo: ", min(datoSI$NivelEstres),"\n")
+cat("Maximo: ", max(datoSI$NivelEstres),"\n")
+NE_cuartiles <- quantile(datoSI$NivelEstres, probs = c(0.25, 0.5, 0.75))
+cat("Primer cuartil (Q1):", NE_cuartiles[1], "\n")
+cat("Mediana:", NE_cuartiles[2], "\n")
+cat("Tercer cuartil (Q3):", NE_cuartiles[3], "\n")
+```
+
+```{r}
+barplot(table(unlist(datoSI$CausaEstres)),main = "Que te estresa más del curso")
+table(unlist(datoSI$CausaEstres))
+```
+
+```{r}
+barplot(table(unlist(datoSI$Desestresamiento)),main = "Que te ayuda a desestresarte")
+table(unlist(datoSI$Desestresamiento))
+```
+
+```{r}
+barplot(table(unlist(datoSI$AprobarEstrategia)),main = "Que estrategia tuviste para aprobar")
+table(unlist(datoSI$AprobarEstrategia))
+```
+
+```{r}
+# Convertir las columnas a tipo character
+datoSI$HorasEstudios <- as.character(datoSI$HorasEstudios)
+datoSI$HorasSueño <- as.character(datoSI$HorasSueño)
+datoSI$HorasLibres <- as.character(datoSI$HorasLibres)
+
+# Función para convertir horas en formato "HH:MM:SS" a número entero de horas
+to_horas <- function(horas) {
+  horas_separadas <- strsplit(horas, ":")
+  horas_numericas <- sapply(horas_separadas, function(x) {
+    as.numeric(x[1])
+  })
+  return(horas_numericas)
+}
+
+# Convertir las columnas a número entero de horas
+datoSI$HorasEstudios <- to_horas(datoSI$HorasEstudios)
+datoSI$HorasSueño <- to_horas(datoSI$HorasSueño)
+datoSI$HorasLibres <- to_horas(datoSI$HorasLibres)
+
+# Calcular la suma de las horas
+datoSI$suma_horas <- datoSI$HorasEstudios + datoSI$HorasSueño + datoSI$HorasLibres
+
+# Eliminar las filas que cumplan la condición
+datoSIw <- datoSI[datoSI$suma_horas <= 24, ]
+
+# Eliminar las columnas auxiliares
+datoSI$suma_horas <- NULL
+
+```
+
+```{r}
+boxplot(datoSIw$HorasEstudios, main = "Cuantas Horas Estudias", ylab = "Horas")
+cat("Promedio: ", mean(datoSIw$HorasEstudios),"\n")
+cat("Minimo: ", min(datoSIw$HorasEstudios),"\n")
+cat("Maximo: ", max(datoSIw$HorasEstudios),"\n")
+HE_cuartiles <- quantile(datoSIw$HorasEstudios, probs = c(0.25, 0.5, 0.75))
+cat("Primer cuartil (Q1):", HE_cuartiles[1], "\n")
+cat("Mediana:", HE_cuartiles[2], "\n")
+cat("Tercer cuartil (Q3):", HE_cuartiles[3], "\n")
+```
+
+```{r}
+boxplot(datoSI$HorasSueño, main = "Cuantas Horas Duermes", ylab = "Horas")
+cat("Promedio: ", mean(datoSIw$HorasSueño),"\n")
+cat("Minimo: ", min(datoSIw$HorasSueño),"\n")
+cat("Maximo: ", max(datoSIw$HorasSueño),"\n")
+HS_cuartiles <- quantile(datoSIw$HorasSueño, probs = c(0.25, 0.5, 0.75))
+cat("Primer cuartil (Q1):", HS_cuartiles[1], "\n")
+cat("Mediana:", HS_cuartiles[2], "\n")
+cat("Tercer cuartil (Q3):", HS_cuartiles[3], "\n")
+```
+
+```{r}
+boxplot(datoSI$HorasLibres, main = "Cuantas Horas tienes libre", ylab = "Horas")
+cat("Promedio: ", mean(datoSIw$HorasLibress),"\n")
+cat("Minimo: ", min(datoSIw$HorasLibres),"\n")
+cat("Maximo: ", max(datoSIw$HorasLibres),"\n")
+HL_cuartiles <- quantile(datoSIw$HorasLibres, probs = c(0.25, 0.5, 0.75))
+cat("Primer cuartil (Q1):", HL_cuartiles[1], "\n")
+cat("Mediana:", HL_cuartiles[2], "\n")
+cat("Tercer cuartil (Q3):", HL_cuartiles[3], "\n")
+```
+
+```{r}
+ApyD <- table(datoSI$ApoyoDocente)
+pie(ApyD, labels = paste(names(prop.table(ApyD)*100), "(", round(prop.table(ApyD)*100, 1), "%)"), main = "El Docente resuelve tus dudas")
+ApyD
+```
+
+```{r}
+barplot(table(unlist(datoSI$Recomendaciones)),main = "Recomendaciones")
+table(unlist(datoSI$Recomendaciones))
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(datoSIs, aes(x = Carrera, y = Promedio)) +
+  geom_boxplot(fill = "steelblue", color = "black") +
+  labs(x = "Carrera", y = "Promedio académico") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+aggregate(Promedio ~ Carrera, data = datoSIs, FUN = mean)
+```
+
+```{r}
+ggplot(datoSI, aes(x = Carrera, y = NivelEstres)) +
+  geom_boxplot(fill = "steelblue", color = "black") +
+  labs(x = "Carrera", y = "Nivel del Estres") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+aggregate(NivelEstres ~ Carrera, data = datoSI, FUN = mean)
+```
+
+```{r}
+grupo_estres <- aggregate(HorasSueño ~ NivelEstres, data = datoSIw, FUN = mean)
+
+library(ggplot2)
+ggplot(datoSIw, aes(x = NivelEstres, y = HorasSueño)) +
+  geom_point(color = "steelblue") +
+  labs(x = "Nivel de estrés", y = "Horas de sueño") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grupo_estres
+```
+
+```{r}
+grupo_estudio <- aggregate(HorasEstudios ~ NivelEstres, data = datoSIw, FUN = mean)
+
+library(ggplot2)
+ggplot(datoSIw, aes(x = NivelEstres, y = HorasEstudios)) +
+  geom_point(color = "steelblue") +
+  labs(x = "Nivel de estrés", y = "Horas de estudio") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grupo_estudio
+```
+
+```{r}
+grupo_libre <- aggregate(HorasLibres ~ NivelEstres, data = datoSIw, FUN = mean)
+
+library(ggplot2)
+ggplot(datoSIw, aes(x = NivelEstres, y = HorasLibres)) +
+  geom_point(color = "steelblue") +
+  labs(x = "Nivel de estrés", y = "Horas libres") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grupo_libre
+```
