@@ -1,0 +1,911 @@
+---
+title: "S15_ Estudio de los factores beneficiosos según la música o tipo de instrumento musical de preferencia del estudiante UTEC en el ciclo 2023-I desde un punto de vista instrospectivo"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include = FALSE}
+if(!require(readr)){install.packages('readr')}
+if(!require(knitr)){install.packages('knitr')}
+if(!require(plyr)){install.packages('plyr')}
+if(!require(dplyr)){install.packages('dplyr')}
+if(!require(graphics)){install.packages('graphics')}
+if(!require(ggplot2)){install.packages('ggplot2')}
+if(!require(plotrix)){install.packages('plotrix')}
+if(!require(MASS)){install.packages('MASS')}
+if(!require(stats)){install.packages('stats')}
+```
+
+```{r, echo=FALSE}
+library(readr)
+library(knitr)
+library(plyr)
+library(dplyr)
+library(graphics)
+library(ggplot2)
+library(plotrix)
+library(MASS)
+library(stats)
+```
+
+
+# **INTRODUCCIÓN**
+
+## **Relevancia y objetivos:**
+
+-   Comparar y analizar el impacto que genera el conocimiento de un tipo de instrumento musical o el tipo de música que escuchan en el aprendizaje universitario de los estudiantes UTEC que están cursando el periodo 2023-I.
+
+-   Identificar si la música representa un beneficio para ellos en la rutina diaria del estudiante.
+
+-   Animar y motivar el aprendizaje de un instrumento musical en el estudiante. De esta manera estaríamos impulsando aún más la educación musical en la universidad.
+
+## **Planificación:**
+
+
+Para nuestra PG2 decidimos ocupar la semana 14 y 15 para realizar los respectivos avances.
+
+El informe de la pg2 no ha sido tan tedioso ya que poseemos todos lo avances en Rmarkdown presentation y solo tuvimos que pasarlo a Rnotebook. Este ha sido realizado en un plazo de 2 días entre el lunes 03/07/2023 y el miércoles 05/07/2023, al igual que en la PG1 solo ha sido pasar nuestros avances hecho en Markdown presentation y pasarlo a Rnotebook.
+
+# **DATOS**
+
+## Recolección de datos
+
+-   La recolección de los datos se realizará mediante un formulario-encuesta en google forms, todo se guardará en nuestro archivo csv llamado DATA_BASE_EyP_PG5.csv. Estará divido en 3 tablas: Aquellos que tocan instrumentos, aquellos que no y los datos de entrada.
+
+## Población, Muestra Y Muestreo
+
+-   Nuestra población a estudiar es la población UTEC. La muestra estará formada por 150 observaciones limpias, tuplas o unidades muestrales (que vienen a ser los estudiantes UTEC) , 5 variables en la primera tabla , 12 en la segunda y 11 en la tercera, son las características para obtener nuestra información.
+
+-   Luego de haber realizado las encuestas y haber obtenido la data necesaria, procederemos a limpiar la data de las unidades muestrales que manchen y dañen nuestra base de datos.
+
+-   Nuestro muestreo será aplicado al muestreo aleatorio simple. Se hará uso de un generador de números aleatorios de cada uno de los pisos recreativos que hay en la UTEC (son tres, el piso 1, piso 6 y piso 11). Así todos los alumnos que se encuentren disponibles en cada piso tendrán la misma probabilidad de formar parte de nuestra muestra.
+
+## Limpieza de los datos [YA HECHA]
+
+```{r, include = FALSE}
+#DATOS DE ENTRADA
+DATOS <- read_csv("DATA_BASE_EyP_G5 - DATOS_ENTRADA.csv")
+#TOCAN INSTRUMENTOS
+DATOS_TOCAN <- read_csv("DATA_BASE_EyP_G5 - TOCAN_INSTRUMENTOS.csv")
+#NO TOCAN INSTRUMENTOS
+DATOS_NO_TOCAN <- read_csv("DATA_BASE_EyP_G5 - NO_TOCAN_INSTRUMENTOS.csv")
+```
+
+
+```{r, include = FALSE}
+names(DATOS)
+names(DATOS_TOCAN)
+names(DATOS_NO_TOCAN)
+```
+
+
+```{r, include = FALSE}
+table(DATOS_TOCAN$horas_instrumento)
+table(DATOS_TOCAN$tiempo_tocando)
+```
+
+```{r, include = FALSE}
+table(DATOS$edad)
+mean(DATOS$edad, na.rm=T)
+```
+
+```{r, include = FALSE}
+DATOS_TOCAN$horas_instrumento=gsub("h","",DATOS_TOCAN$horas_instrumento)
+```
+
+```{r, include = FALSE}
+DATOS_TOCAN <- DATOS_TOCAN %>%
+  mutate(horas_instrumento = as.numeric(horas_instrumento))
+```
+
+```{r, include = FALSE}
+DATOS_TOCAN$tiempo_tocando <- ifelse(DATOS_TOCAN$tiempo_tocando == "desde mi niñez",10,DATOS_TOCAN$tiempo_tocando)
+DATOS_TOCAN <- DATOS_TOCAN %>%
+  mutate(tiempo_tocando = as.numeric(tiempo_tocando))
+```
+
+```{r, include = FALSE}
+table(DATOS_TOCAN$horas_estudio)
+table(DATOS_TOCAN$horas_estudio>50, useNA="always")
+```
+
+```{r, include = FALSE}
+DATOS_TOCAN <- DATOS_TOCAN %>%
+  mutate(horas_estudio = if_else(horas_estudio > 50, NA_real_, horas_estudio))
+```
+
+
+```{r, include = FALSE}
+table(DATOS_TOCAN$instrumento_dominante)
+```
+
+```{r, include = FALSE}
+DATOS_TOCAN$instrumento_dominante <- ifelse(DATOS_TOCAN$instrumento_dominante == "Ninguno",NA,DATOS_TOCAN$instrumento_dominante)
+DATOS_TOCAN$instrumento_dominante <- ifelse(DATOS_TOCAN$instrumento_dominante == "No domino, pero si practico tocar la guitarra.","Guitarra",DATOS_TOCAN$instrumento_dominante)
+
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="guitarra"] <- "Guitarra"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Guitarra clásica"] <- "Guitarra"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Guitarrra"] <- "Guitarra"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="guitarra electrica"] <- "Guitarra"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Guitarra/piano"] <- "Guitarra"
+
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Ukulele"] <- "Ukelele"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Bateria"] <- "Batería"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Flauta dulce"] <- "Flauta"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Clarinete soprano y clarinete bajo"] <- "Clarinete"
+
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="órgano eléctrico"] <- "Piano"
+
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="saxofón"] <- "Saxofón"
+DATOS_TOCAN$instrumento_dominante[DATOS_TOCAN$instrumento_dominante=="Saxofon tenor"] <- "Saxofón"
+
+DATOS_TOCAN$instrumento_dominante <- ifelse(DATOS_TOCAN$instrumento_dominante == "0", NA,DATOS_TOCAN$instrumento_dominante)
+```
+
+
+```{r, include = FALSE}
+DATOS_TOCAN$beneficios <- ifelse(DATOS_TOCAN$beneficios == "0", NA,DATOS_NO_TOCAN$beneficios)
+```
+
+
+```{r, include = FALSE}
+DATOS_TOCAN$tipo_instrumento <- ifelse(DATOS_TOCAN$tipo_instrumento == "Instrumento de viento(flauta, saxofón, trompeta, clarinete, etc)","Instrumento de viento",DATOS_TOCAN$tipo_instrumento)
+
+DATOS_TOCAN$tipo_instrumento <- ifelse(DATOS_TOCAN$tipo_instrumento == "Instrumento de cuerda(guitarra, bajo, piano , ukulele, charango, violin, arpa, etc)","Instrumento de cuerda",DATOS_TOCAN$tipo_instrumento)
+
+DATOS_TOCAN$tipo_instrumento <- ifelse(DATOS_TOCAN$tipo_instrumento == "Instrumento de percusión(cajón, xilófono, batería, maracas, etc)","Instrumento de percusión",DATOS_TOCAN$tipo_instrumento)
+
+
+
+DATOS_TOCAN$tipo_instrumento <- ifelse(DATOS_TOCAN$tipo_instrumento == "Instrumento de viento(flauta, saxofón, trompeta, clarinete, etc), Instrumento de cuerda(guitarra, bajo, piano , ukulele, charango, violin, arpa, etc)","Instrumento de viento, Instrumento de cuerda",DATOS_TOCAN$tipo_instrumento)
+
+DATOS_TOCAN$tipo_instrumento <- ifelse(DATOS_TOCAN$tipo_instrumento == "Instrumento de viento(flauta, saxofón, trompeta, clarinete, etc), Instrumento de cuerda(guitarra, bajo, piano , ukulele, charango, violin, arpa, etc), Instrumento de percusión(cajón, xilófono, batería, maracas, etc)","Instrumento de viento, Instrumento de cuerda, Instrumento de percusión",DATOS_TOCAN$tipo_instrumento)
+
+DATOS_TOCAN$tipo_instrumento <- ifelse(DATOS_TOCAN$tipo_instrumento == "Instrumento de cuerda(guitarra, bajo, piano , ukulele, charango, violin, arpa, etc), Voz","Instrumento de cuerda, Voz",DATOS_TOCAN$tipo_instrumento)
+
+DATOS_TOCAN$tipo_instrumento <- ifelse(DATOS_TOCAN$tipo_instrumento == "Instrumento de viento(flauta, saxofón, trompeta, clarinete, etc), Voz","Instrumento de viento, Voz",DATOS_TOCAN$tipo_instrumento)
+```
+
+
+```{r, include = FALSE}
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de percusión" & instrumento_dominante == "Cajón" ,"Instrumento de percusión",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de cuerda, Voz" & instrumento_dominante == "Piano" ,"Instrumento de cuerda",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de cuerda, Instrumento de percusión" & instrumento_dominante == "Guitarra/Piano" ,"Instrumento de cuerda",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de cuerda, Voz" & instrumento_dominante == "Viola" ,"Instrumento de cuerda",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda" & instrumento_dominante == "Guitarra" ,"Instrumento de cuerda",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de cuerda, Voz" & instrumento_dominante == "Voz" ,"Voz",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda" & instrumento_dominante == "Zampoña" ,"Instrumento de viento",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda" & instrumento_dominante == "Saxofón" ,"Instrumento de viento",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda" & instrumento_dominante == "Flauta" ,"Instrumento de viento",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda, Instrumento de percusión" & instrumento_dominante == "Flauta" ,"Instrumento de viento",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de cuerda, Voz" & instrumento_dominante == "Guitarra" ,"Instrumento de cuerda",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Voz" & instrumento_dominante == "Saxofón" ,"Instrumento de viento",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda" & instrumento_dominante == "Guitarra" ,"Instrumento de cuerda",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda" & instrumento_dominante == "Ukelele" ,"Instrumento de cuerda",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Voz" & instrumento_dominante == "Flauta" ,"Instrumento de viento",tipo_instrumento))
+
+DATOS_TOCAN <- DATOS_TOCAN %>% mutate(tipo_instrumento = if_else(tipo_instrumento == "Instrumento de viento, Instrumento de cuerda, Voz" & instrumento_dominante == "Zampoña","Instrumento de viento",tipo_instrumento))
+```
+
+```{r, include = FALSE}
+DATOS_NO_TOCAN$momentos <- ifelse(DATOS_NO_TOCAN$momentos == "3" | DATOS_NO_TOCAN$momentos == "12","Por las tardes",DATOS_NO_TOCAN$momentos)
+```
+
+```{r, include = FALSE}
+DATOS_NO_TOCAN$tipo_musica[DATOS_NO_TOCAN$tipo_musica=="BTS"] <- "K-POP"
+DATOS_NO_TOCAN$tipo_musica[DATOS_NO_TOCAN$tipo_musica=="Rock indie"] <- "Rock and Roll"
+DATOS_NO_TOCAN$tipo_musica[DATOS_NO_TOCAN$tipo_musica=="Rock y metal"] <- "Rock and Roll"
+DATOS_NO_TOCAN$tipo_musica[DATOS_NO_TOCAN$tipo_musica=="Dembow"] <- "Reggaeton"
+```
+
+
+```{r, include = FALSE}
+DATOS_NO_TOCAN$genero_relajacion[DATOS_NO_TOCAN$genero_relajacion=="balada"] <- "Baladas"
+DATOS_NO_TOCAN$genero_relajacion[DATOS_NO_TOCAN$genero_relajacion=="BTS"] <- "K-POP"
+DATOS_NO_TOCAN$genero_relajacion[DATOS_NO_TOCAN$genero_relajacion=="Varias musica no sólo uno"] <- "Rock and Roll"
+DATOS_NO_TOCAN$genero_relajacion[DATOS_NO_TOCAN$genero_relajacion=="Varias musicas"] <- "Rock and Roll"
+```
+
+```{r, include = FALSE}
+DATOS_NO_TOCAN$genero_motivacion[DATOS_NO_TOCAN$genero_motivacion=="BTS"] <- "K-POP"
+DATOS_NO_TOCAN$genero_motivacion[DATOS_NO_TOCAN$genero_motivacion=="Rock y metal"] <- "Rock and Roll"
+DATOS_NO_TOCAN$genero_motivacion[DATOS_NO_TOCAN$genero_motivacion=="soundtracks  hans zimmer"] <- "Orquesta sinfónica"
+```
+
+```{r, include = FALSE}
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="por las tardes"] <- "Por las tardes"
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="tardes"] <- "Por las tardes"
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="por la noche"] <- "Por las noches"
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="Por la noche"] <- "Por las noches"
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="En la noche"] <- "Por las noches"
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="por la mañana"] <- "Por las mañanas"
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="Mañana"] <- "Por las mañanas"
+DATOS_NO_TOCAN$momentos[DATOS_NO_TOCAN$momentos=="Mañanas"] <- "Por las mañanas"
+```
+
+-   DATOS DE ENTRADA (150)
+
+-   DATOS DE TOCAN INSTRUMENTOS (65)
+
+-   DATOS DE NO TOCAN INSTRUMENTOS (90)
+
+```{r, include = FALSE}
+sum(complete.cases(DATOS))
+sum(complete.cases(DATOS_TOCAN))
+sum(complete.cases(DATOS_NO_TOCAN))
+```
+
+Se encuestó a 155 personas pero 5 de esas muestras se perdieron o no mostraron la representatividad que buscábamos.
+
+# ANÁLISIS DE DESCIPTORES
+
+## DESCRIPTORES NUMÉRICOS Y GRÁFICOS - TOCAN INSTRUMENTOS
+
+Analizemos la tabla TOCAN INSTRUMENTOS y veamos que variables son numéricas y obtener información con el comando summary().
+
+```{r}
+summary(DATOS_TOCAN)
+```
+
+
+
+#### Horas ocupadas para tocar instrumento a la semana
+
+```{r, include=FALSE}
+range(DATOS_TOCAN$horas_instrumento) #rango
+round((sd(DATOS_TOCAN$horas_instrumento, na.rm = TRUE)/mean(DATOS_TOCAN$horas_instrumento))*100,2) #coeficiente de variación
+round(sd(DATOS_TOCAN$horas_instrumento, na.rm = TRUE),2) #desviación estándar
+#####var(TOCAN$horas_estudio, na.rm = TRUE) #variación
+moda <- as.numeric(names(table(DATOS_TOCAN$horas_instrumento)[table(DATOS_TOCAN$horas_instrumento) == max(table(DATOS_TOCAN$horas_instrumento), na.rm = TRUE)]))
+moda # MODA
+DATOS_TOCAN %>% summarise_at('horas_instrumento', funs(mean,median,sd,min,max,IQR),na.rm=T)
+```
+
+
+```{r}
+boxplot(DATOS_TOCAN$horas_instrumento, col="cyan", medlty=2, medlwd=2, medpch=20, medcex = 3, horizontal = TRUE)
+```
+
+#### Tiempo tocando instrumentos musicales
+
+```{r, include=FALSE}
+range(DATOS_TOCAN$tiempo_tocando) #rango
+round((sd(DATOS_TOCAN$tiempo_tocando, na.rm = TRUE)/mean(DATOS_TOCAN$tiempo_tocando))*100,2) #coeficiente de variación
+round(sd(DATOS_TOCAN$tiempo_tocando, na.rm = TRUE),2) #desviación estándar
+moda <- as.numeric(names(table(DATOS_TOCAN$tiempo_tocando)[table(DATOS_TOCAN$tiempo_tocando) == max(table(DATOS_TOCAN$tiempo_tocando), na.rm = TRUE)]))
+moda # MODA
+DATOS_TOCAN %>% summarise_at('tiempo_tocando',
+                             funs(mean,median,sd,min,max,IQR),na.rm=T)
+```
+
+```{r}
+
+boxplot(DATOS_TOCAN$tiempo_tocando, col="yellow", medlty=2, medlwd=2, medpch=20, medcex = 3, horizontal = TRUE)
+```
+
+## DESCRIPTORES NUMÉRICOS Y GRÁFICOS - NO TOCAN INSTRUMENTOS
+
+Analizemos la tabla NO TOCAN INSTRUMENTOS y veamos que variables son numéricas y obtener información con el comando summary().
+
+```{r}
+summary(DATOS_NO_TOCAN)
+```
+
+#### Horas ocupadas al día a oír música de los estudiantes que no tocan instrumentos musicales.
+
+```{r, include=FALSE}
+range(DATOS_NO_TOCAN$horas_musica) #rango
+round((sd(DATOS_NO_TOCAN$horas_musica, na.rm = TRUE)/mean(DATOS_NO_TOCAN$horas_musica))*100,2) #coeficiente de variación
+round(sd(DATOS_NO_TOCAN$horas_estudio, na.rm = TRUE),2) #desviación estándar
+moda <- as.numeric(names(table(DATOS_NO_TOCAN$horas_musica)[table(DATOS_NO_TOCAN$horas_musica) == max(table(DATOS_NO_TOCAN$horas_musica), na.rm = TRUE)]))
+moda # MODA
+DATOS_NO_TOCAN %>% summarise_at('horas_musica', funs(mean,median,sd,min,max,IQR),na.rm=T)
+```
+
+```{r}
+
+boxplot(DATOS_NO_TOCAN$horas_musica, col="orange", medlty=2, medlwd=2, medpch=20, medcex = 3, horizontal = TRUE)
+```
+
+
+Es apreciable que el promedio es mayor que la mediana (4.95 \> 3). Esto quiere decir que hay un sesgo hacia la derecha. (**sesgo positivo**)
+
+
+#### Concentración al oír música para los estudiantes que no tocan instrumentos musicales.
+
+```{r, include=FALSE}
+range(DATOS_NO_TOCAN$concentracion) #rango
+round((sd(DATOS_NO_TOCAN$concentracion, na.rm = TRUE)/mean(DATOS_NO_TOCAN$concentracion))*100,2) #coeficiente de variación
+round(sd(DATOS_NO_TOCAN$concentracion, na.rm = TRUE),2) #desviación estándar
+#####var(TOCAN$horas_estudio, na.rm = TRUE) #variación
+moda <- as.numeric(names(table(DATOS_NO_TOCAN$concentracion)[table(DATOS_NO_TOCAN$concentracion) == max(table(DATOS_NO_TOCAN$concentracion), na.rm = TRUE)]))
+moda # MODA
+DATOS_NO_TOCAN %>% summarise_at('concentracion', funs(mean,median,sd,min,max,IQR),na.rm=T)
+```
+
+```{r}
+
+barplot(table(DATOS_NO_TOCAN$concentracion), main = "Fecuencia de concentración al escuchar música", xlab = "Concentración", ylab = "Frecuencia", col=c("yellow","magenta","cyan","grey","brown"))
+```
+
+
+# ANÁLISIS PROBABILÍSTICO
+
+## PROBABILIDAD EMPÍRICA
+Procederemos a realizar las respectivas probabilidades tanto
+**empírica** como **condicional**.
+
+-   Tocan instrumentos: las variable a utilizar es salud mental.
+
+-   No tocan instrumentos: la variable a utilizar es concentración.
+
+Además debemos definir nuestro **espacio muestral** divido en las dos
+tablas [TOCAN Y NO TOCAN].
+
+Analizemos la variables salud mental en la tabla TOCAN y concentración
+en la tabla NO TOCAN, y propongamos un ejemplo
+
+#### **Probabilidad que tanto puede ayudar a tu salud mental el saber tocar instrumentos musicales**
+
+-   Espacio muestral: {Poco importante, Moderadamente importante,
+    Importante, Muy importante}
+-   Evento a analizar: Probabilidad de que el saber tocar instrumentos
+    musicales ayudé a controlar tu salud mental.
+
+Calculemos la función probabilidad para ese evento.
+
+Frecuencias: Total de 65.
+
+```{r}
+table(DATOS_TOCAN$salud_mental)
+```
+Es poco importante: 1 
+
+Es moderadamente importante: 12 
+
+Es importante: 21
+
+Es muy importante: 31
+
+Existen 4 eventos atómicos:
+
+-   Es poco importante: "Tocar instrumentos musicales es poco importante
+    para controlar la salud mental"
+
+-   Es moderamente importante: "Tocar instrumentos musicales es
+    moderamente importante para controlar la salud mental"
+
+-   Es importante: "Tocar instrumentos musicales es importante para
+    controlar la salud mental"
+
+-   Es muy importante: "Tocar instrumentos musicales es muy importante
+    para controlar la salud mental"
+
+La función probabilidad correspondiente para cada valor sería:
+
+-   Probabilidad de que sea poco importante: 1/65 = 0.02
+
+-   Probabilidad de que sea moderadamente importante: 12/65 = 0.18
+
+-   Probabilidad de que sea importante: 21/65 = 0.32
+
+-   Probabilidad de que sea muy importante: 31/65 = 0.48
+
+#### **Probabilidad que el escuchar música ayude a tu concentración en tus actividades diarias**
+
+-   Espacio muestral: {1, 2, 3, 4, 5}
+-   Evento a analizar: Probabilidad de que el escuchar música ayude a tu
+    concentración en tus actividades diarias.
+
+Calculemos la función probabilidad para ese evento.
+
+Frecuencias: Total de 90.
+
+```{r}
+table(DATOS_NO_TOCAN$concentracion)
+```
+
+Analizamos en un rango del 1 al 5 que representan.
+
+1 -\> No me ayuda en lo absoluto: 9
+
+2 -\> Me ayuda mínimamente: 16
+
+3 -\> Me ayuda moderadamente: 17
+
+4 -\> Me ayuda mucho: 31
+
+5 -\> Me ayuda muchísimo: 17
+
+Existen 5 eventos atómicos:
+
+-   No me ayuda en lo absoluto: "Escuchar música no me ayuda a
+    concentrarme"
+
+-   Me ayuda mínimamente: "Escuchar música me ayuda mínimamente a
+    concentrarme"
+
+-   Me ayuda moderadamente: "Escuchar música me ayuda moderadamente a
+    concentrarme"
+
+-   Me ayuda mucho: "Escuchar música me ayuda mucho a concentrarme"
+
+-   Me ayuda muchísimo: "Escuchar música me ayuda muchísimo a
+    concentrarme"
+
+La función probabilidad correspondiente para cada valor sería:
+
+-   Probabilidad de que no me ayude en lo absoluto: 9/90 = 0.1
+
+-   Probabilidad de que me ayude mínimamente: 16/90 = 0.18
+
+-   Probabilidad de que me ayude moderadamente: 17/90 = 0.19
+
+-   Probabilidad de que me ayude mucho: 31/90 = 0.34
+
+-   Probabilidad de que me ayude muchísimo: 17/90 = 0.19
+
+## PROBABILIDAD CONDICIONAL
+
+### Eventos dependientes:
+
+Pares de eventos dependientes:
+
+Tabla => "No_tocan_instrumentos" 
+
+Variables => Género musical de motivación y "Sí" ayuda en su ánimo.
+
+Evento A: Seleccionar a una persona cuyo género musical de motivación
+sea "Rock and Roll"
+
+Evento B: "Seleccionar un estudiante que afirme que la música ayuda en
+su ánimo".
+
+La fórmula de probabilidad condicional es: P(A\|B) = P(A ∩ B) / P(B)
+
+#### Calculamos la probabilidad empírica de P(A ∩ B)
+
+```{r, include = FALSE}
+table(DATOS_NO_TOCAN$genero_motivacion)
+table (DATOS_NO_TOCAN$animo)
+```
+
+```{r}
+# P(A ∩ B)
+num_casos_favorables <- sum(DATOS_NO_TOCAN$genero_motivacion == "Rock and Roll" & DATOS_NO_TOCAN$animo == "Sí")
+TotalCasosPosibles <- nrow(DATOS_NO_TOCAN)
+PEmpAB = num_casos_favorables/TotalCasosPosibles
+PEmpAB
+```
+
+Evalúamos el número de casos favorables donde el género que más te
+motive sea el Rock and Roll y sientas que ayuda a tu estado de ánimo.
+Encontramos que 20 personas escogieron que el Rock logra motivarles,
+pero hay 2 que no les afecta en su estado de ánimo, por lo que los casos
+favorables vendrían a ser 18.
+
+Procederemos a dividor por lo que la probabilidad empírica nos dará:
+
+PEmpAB = P(A ∩ B)  = casos favorables / total de casos = 18/90 = 0.20
+
+Calculamos la probabilidad empírica de P(A):
+
+```{r}
+# P(A)
+TotalCasosPosibles <- nrow(DATOS_NO_TOCAN)
+num_casos_favorablesA <- sum(DATOS_NO_TOCAN$genero_motivacion == "Rock and Roll")
+probabilidad_empiricaA <- num_casos_favorablesA / TotalCasosPosibles
+probabilidad_empiricaA
+```
+
+En este caso, si solo consideramos el evento A el cual es que el rock te
+motive obtendríamos esas 2 personas extrar y una probabilidad de 0.22.
+
+Calculamos la probabilidad empírica de P(B)
+
+```{r}
+num_casos_favorables_B <- sum(DATOS_NO_TOCAN$animo == "Sí")
+probabilidad_empirica_B <- num_casos_favorables_B / TotalCasosPosibles
+probabilidad_empirica_B
+```
+
+Aquella a la que la música influye en medida en su estado de ánimo sin
+especificar el género es un número mucho mayor (ya que no solo abarca el
+rock sino otros géneros).
+
+El resultado que nos da es 74 / 90 = 0.82.
+
+Verificamos la dependencia o independencia: Comparamos P(A ∩ B) con P(A)
+\* P(B) 
+
+Debemos de verificar si se cumple que P(A ∩ B) = P(A)P(B). 
+
+Si no se cumple, entonces es dependiente, por lo cual P(A\|B) =P(A ∩ B) /P(B).
+Si fuera independiente, es fácil darse cuenta de que se cumple P(A\|B) = P(A).
+
+```{r}
+# P(A ∩ B) con P(A) * P(B)
+PEmpAB = 0.2 #hallado arriba
+probabilidad_independencia <- probabilidad_empiricaA * probabilidad_empirica_B
+## Si la diferencia entre estas probabilidades es significativa, sugiere que existe una dependencia entre los eventos.
+if (abs(PEmpAB - probabilidad_independencia) < 0.01) {   
+  print("Los eventos son aproximadamente independientes.")
+} else {
+  print("Los eventos son dependientes.")
+}
+PAb = PEmpAB / probabilidad_empirica_B
+PAb
+probabilidad_empiricaA
+```
+POR TEOREMA DE BAYNES:
+
+P(A ∩ B) = 0.2 Y P(B) = 0.82
+
+
+P(A\|B) = P(A ∩ B)/ P(B)
+
+
+P(A\|B) = 0.2 / 0.82 = 0.2439
+
+no se cumple P(A\|B) = P(A) -\> 0.24 != 0.22. Por lo tanto son eventos
+dependientes.
+
+**significa que la ocurrencia de uno de los eventos puede influir en la
+ocurrencia del otro evento. Entonces a partir de esto se puede decir que
+la dependencia entre estos eventos podría indicar que ciertos géneros
+musicales tienen más probabilidades de influir positivamente en el ánimo
+de las personas.**
+
+
+
+### Eventos Independientes:
+
+tabla : TOCAN INSTRUMENTOS Para considerar si son independientes deben
+cumplir que :
+
+P(A\|B)= P(A)
+
+P(B\|A) = P(B)
+
+P(A ∩ B) = P(A)\*P(B)
+
+Datos_Tocan
+
+Evento A: "Seleccionar un estudiante que toque algún tipo de instrumento de cuerda.
+
+Evento B: "Seleccionar un estudiante que lleve tocando menos de 5 años
+un tipo de instrumento musical".
+
+```{r, include=FALSE}
+table(DATOS_TOCAN$tipo_instrumento)
+table(DATOS_TOCAN$tiempo_tocando)
+```
+
+total de casos:
+
+.Seleccionar un estudiante que toca solamente instrumentos de cuerda. (para realizar comparación)
+
+.Seleccionar un estudiante que lleve tocando menos de 5 años un tipo de
+instrumento musical.
+
+
+Probabilidades de tocar algún tipo de instrumento
+
+```{r, include=FALSE}
+prop.table(table(DATOS_TOCAN$tipo_instrumento))
+```
+$$ P(E-cuerda)= 0.6462 $$
+$$ P(E-percusión)= 0.0769 $$
+$$ P(E-vientos)= 0.2154 $$
+$$ P(E-todo)= 0.0154 $$
+$$ P(E-voz)= 0.0462 $$
+
+Gráfico de barras de las probabilidad de tocar un tipo de instrumento.
+
+```{r}
+barplot(prop.table(table(DATOS_TOCAN$tipo_instrumento)))
+```
+
+
+Creamos una variable booleana en base al tiempo que lleva tocando.
+
+```{r, include=FALSE}
+DATOS_TOCAN$tiempo_tocando_bool <-  DATOS_TOCAN$tiempo_tocando < 5
+DATOS_TOCAN$tiempo_tocando_bool
+```
+
+```{r}
+(prop.table(table(DATOS_TOCAN$tiempo_tocando_bool)))
+```
+
+Probabilidad de encontrar un estudiante que toque instrumentos musicales hace 5 o más años:
+
+$$ P(E_>=5)= 0.2615$$
+
+Probabilidad de encontrar un estudiante que toque instrumentos musicales hace menos de 5 años:
+
+$$P(E_<5)= 0.7384$$
+
+
+### TABLA CRUZADA DE FRECUENCIAS RELATIVAS
+
+Usaremos prop.table() y table() para encontrar las probabilidades de la INTERSECCIÓN de los eventos.
+También, reunimos las Probabilidades Empíricas de los eventos y las Probabilidades de sus intersecciones:
+
+
+Ahora usaremos prop.table() y table() para encontrar P(A ∩ B).
+
+```{r}
+(prop.table(table(DATOS_TOCAN$tiempo_tocando_bool, DATOS_TOCAN$tipo_instrumento)))
+```
+TRUE: "Seleccionar un estudiante que toca algún tipo de instrumento de cuerda desde hace menos de 5 años".
+
+FALSE: "Seleccionar un estudiante que toca algún tipo de instrumento de cuerda desde hace 5 años o más".
+
+PROBABILIDADES EMPÍRICAS DE LOS ESTUDIANTES QUE TOCAN UN INSTRUMENTO DE TIPO CUERDA (COMPARACIÓN).
+
+$$ P(E_cuerda)= 0.6462 $$
+$$P(E_cuerda')=0.3538 $$
+
+PROBABILIDADES EMPÍRICAS DE LOS EVENTOS COMPUESTOS OBTENIDOS DE LA VARIABLE TIEMPO TOCANDO (x<5 or x>=5): (sumamos las probabilidades)
+
+$$ P(TRUE) = 0.7384$$
+$$ P(FALSE) = 0.26153847$$
+Sumamos en orden: cuerda + percusión + viento + todo + voz
+
+FALSE: 0.26 =\>
+0.20000000+0.01538462+0.04615385+0.00000000+0.00000000
+
+TRUE: 0.74 =\> 0.44615385+0.06153846+0.16923077+0.01538462+0.04615385
+
+Al ver que la probabilidad no varía, obtenemos que son independientes.
+
+$$P(A)=42/65 = 0.6462, P(B) = 0.7384$$ 
+
+Donde P(A)=42/65 -\> Probabilidad de encontrar un estudiante que toque instrumentos musicales de tipo cuerda. 
+
+Donde P(B)=48/65 -\> Probabilidad de encontrar un estudiante que
+toque instrumentos musicales hace menos de 5 años.
+
+$$ P(A ∩ B) = P(A) * P(B) = 0.7384 * 0.6462 = 0.477$$
+
+$$P(A|B) = P(A) = P(A ∩ B)/P(B) $$
+
+$$ P(A|B) = 0.477 / 0.7384 = 0.6462 = P(A)$$ 
+
+Finalmente demostramos la independencia de eventos.
+
+## VARIABLES ALEATORIAS DISCRETAS
+
+### Distribución Geométrica
+
+Problema: Se ha encuestado a 150 personas(con data limpia) para nuestra muestra estadística y 90 de esas personas que no tocan instrumentos musicales, además de ello sabemos que existen 22 tiempos distintos en horas semanales a la que los estudiantes dedican su tiempo de estudio fuera de la universidad. Ahora deseamos saber que probabilidad hay que al intento número 3 se obtenga un estudiante que no toque instrumentos. Y si tomamos a los 10 estudiantes que no tocan instrumentos y dediquen 5 horas de estudio semanales fuera de la universidad, cuántos ensayos serán necesarios para obtener uno de esos estudiantes.
+
+Desarrollo: En este caso consideramos que es geométrica porque en el problema te dan una cantidad de intentos hasta obtener el primer éxito. Además, nos brinda la probabilidad de que un estudiante que no toque instrumentos. Usando los conocimientos de la clase podemos obtener los siguientes datos.
+```{r}
+table(DATOS_NO_TOCAN$horas_estudio)
+```
+
+```{r}
+prob_geom2 <- dgeom(3-1,90/150)
+prob_geom2
+```
+$$ dgeom(2,0.6)$$
+Donde: 
+$$ dgeom(fracasos, probabilidad-éxito)$$
+probabilidad-exito: estudiante que no toque instrumentos.
+
+Para responder la segunda incógnita, el número de ensayos aproximado es la inversa de nuestra probabilidad de éxito definida:
+
+$$ 1/(probabilidad-éxito) $$
+probabilidad-exito:estudiantes que no tocan instrumentos y dediquen 5 horas de estudio semanales fuera de la universidad
+
+```{r}
+1/(10/90)
+```
+En conclusión la probabilidad de que al tercer intento se obtenga por primera vez un estudiante que no toque instrumentos musicales es de tan solo el 0.096, es decir es poco probable que ocurra ese evento. Por otro lado, el número de ensayos estimados para obtener el primer estudiante que no toque instrumentos musicales y dedique 5 horas semanales a estudiar sería 9. Esto significa que se tendría que se esperaría realizar una cantidad de intentos menor a 10 para obtener el resultado que se desea, lo cual no es tan alto.
+
+### Distribución Binomial
+
+Problema: Se ha encuestado a 65 personas que tocan instrumentos y hemos encontrado 13 diferentes tiempos en años que llevan tocandon un tipo de instrumento en nuestra población muestral.Sabemos que la probabilidad de obtener un estudiante lleve tocando un tipo de instrumento menor a 5 años es de 0.7385 o 48/65. Ahora deseamos saber la probabilidad de escoger 30 estudiantes que toquen un tipo de instrumento musical hace menos de 5 años de una muestra de 40 estudiantes.
+```{r, eval=FALSE}
+table(DATOS_TOCAN$tiempo_tocando)
+```
+
+
+Desarrollo: En este caso consideramos que es binomial porque se cuenta con la cantidad de éxitos y la cantidad total de estudiantes que tocan algún tipo de instrumento. Además, nos brinda la probabilidad de que encontremos un estudiante que lleve tocando menos de 5 años (éxito). Usando los conocimientos de la clase podemos obtener los siguientes datos.
+
+X: Cantidad de estudiantes que llevan tocando algún tipo de instrumento musical hace menos de 5 años X ~ Binom(n=40, p=0.73)
+
+Usando dbinom podemos hallar la probabilidad para que suceda este caso, usamos este comando porque nos pide la probabilidad de un solo número.
+
+Probabilidad de obtener 30 personas que toquen instrumentos hace menos de 5 años de 40, teniendo una probabilidad de éxito de 48/65.
+```{r, eval=FALSE}
+n <- 40    # Número de ensayos
+p <- sum(DATOS_TOCAN$tiempo_tocando < 5) / length(DATOS_TOCAN$tiempo_tocando)  # Probabilidad de éxito en cada ensayo
+
+prob_binom2 <- dbinom(30,n,p)
+prob_binom2
+```
+$$ dbinom(30,40,0.7384615)$$
+Donde: 
+$$ dbiom(exitos, ensayos, probabilidad-éxito)$$
+La probabilidad de que de los 40 estudiantes en total 30 de ellos toquen hace menos de 5 años es de 0.14 o 14.24%. En otras palabras es un poco difícil que esta condición se pueda cumplir. Con una gráfica de función de probabilidad se podría observar cual de todos los casos es el más probable a ocurrir.
+
+```{r}
+coloresbarra <-colores <- c(rep("chocolate2",2), 'coral2')
+barplot(dbinom(0:40,size = 40,prob = 0.7385),names.arg=c(0:40),main="Función de masa de probabilidad de la variable X", ylab="Probabilidad", xlab="Cantidad de estudiantes que tocan hace menos de 5 años",col=coloresbarra)
+```
+
+Observando la gráfica se puede concluir que de los 40 estudiantes es más probable que entre 29 y 30 estudaintes toquen hace menos de 5 años y que en los intervalos del 0 al 18 y del 38 al 40 sean casi imposible tener esa cantidad.
+
+### Distribución de Poisson
+
+Problema: Como se mencionó en el estudio sabemos que 65 personas tocan instrumentos musical dentro de las 150 muestras limpias. Sabiendo que esta encuesta se ha realizado en ciclo regular 2023-I y considerando 5 dias (obviamos fin de semana como día de estudio) y ¿cuál sería la probabilidad que un estudiante que toca instrumentos musicales dedique más de 8 horas a la semana a estudiar pero  menos de 16 horas a la semana fuera del horario académico?
+
+Desarrollo: En este caso consideramos que es poisson porque nos dan una cantidad de éxitos en un determinado tiempo. Además, nos brinda los datos necesarios para hallar lambda y  un rango de días en donde se los estudiantes que tocan instrumentos dediquen cierta cantidad de horas semanales.
+
+Para responder la pregunta, obtenemos el lambda del promedio de horas semanales que dedican a estudiar, el cual es 12.5 horas a la semana aprox.
+
+Ahora procederemos hallar la probabilidad de encontrar únicamente a un estudiante que estudie en ese rango de días (8 a 16 a la semana).
+
+```{r}
+table(DATOS_TOCAN$horas_estudio)
+```
+
+
+
+```{r, eval=FALSE}
+lambda2 = mean(DATOS_TOCAN$horas_estudio, na.rm=T) ##promedio
+
+prob_poisson <- ppois(16, lambda2) - ppois(8,lambda2)
+prob_poisson
+
+```
+
+$$ ppois(16,12.5)$$
+$$ ppois(8,12.5)$$
+Donde: 
+$$ ppois(exitos-rango, lambda)$$
+y lambda es el promedio de las personas que tocan instrumentos menos de 5 años.
+
+Una probabilidad del 74.44%, una probabilidad relativamente alta que cubre casi las 3/4 partes.
+
+## VARIABLES ALEATORIAS CONTINUAS
+
+### DISTRIBUCIÓN UNIFORME Y EXPONENCIAL
+
+Para las variables aleatorias continuas escogeremos la variable
+`horas_musica` de la tabla `NO_TOCAN`, esta es una variable numérica
+continua que representa las horas que las personas que no tocan ningún
+instrumento se la pasan escuchando música al día.
+
+Rango original de la variable:
+
+```{r}
+range(DATOS_NO_TOCAN$horas_musica, na.rm = T)
+```
+
+```{r}
+table(DATOS_NO_TOCAN$horas_musica)
+```
+
+Seleccionamos los datos más comunes para el análisis, aquellos que
+cumplen la restricción x=\>1 & x \<=4
+
+```{r}
+uniforme1 <- DATOS_NO_TOCAN$horas_musica[DATOS_NO_TOCAN$horas_musica>=1 & DATOS_NO_TOCAN$horas_musica<=4]
+```
+
+Ahora hallemos la distribución de densidad usando el intervalo:
+
+$$ 1/(4-1) $$
+
+```{r}
+1/(4-1)
+```
+
+Grafiquemos el histograma:
+
+```{r}
+hist(uniforme1, breaks = 4, probability =TRUE, ylim=c(0, 0.5), xlab = "X", ylab = "Densidad", main = "Aproximación con el modelo uniforme", cex.axis = 0.95)
+curve(dunif(x, min = 1, max = 4),add = TRUE,col=c("red"),lwd=3)
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "grey")
+legend("topright",legend = c("Dis. Uniforme"),fill = c("red"))
+```
+
+En conclusión, no hay una distribución uniforme, sino una distribución
+exponencial y lo vamos a comprobar ahora:
+
+Primero encontramos el valor de Beta es cual es 2.383 y la cantidad de
+valores dentro de ese intervalo es 60.
+
+```{r}
+summary(uniforme1)
+```
+
+Hallaremos la densidad, usando el comando pexp(intervalo o x, lambda):
+
+```{r}
+pexp(60,1/2.383, lower.tail = T)
+```
+
+Procedemos a graficar el histograma:
+
+```{r}
+hist(uniforme1, breaks = 4, probability =TRUE, ylim=c(0, 0.5), xlab = "X", ylab = "Densidad", main = "Aproximación con el modelo exponencial", cex.axis = 0.95)
+curve(dexp(x),add = TRUE,col=c("red"),lwd=3)
+grid(nx = NA, ny = NULL, lwd = 1, lty = 1, col = "grey")
+legend("topright",legend = c("Dis. Exponencial"),fill = c("red"))
+```
+
+Como el modelo va decrecienciendo gradualmente se concluye que estamos
+frente a una distribución exponencial conociendo esto pasamos a
+encontrar los demás datos.
+
+-   ESPERANZA:
+
+```{r}
+esperanza <- 2.383
+esperanza
+```
+
+-   VARIANZA:
+
+```{r}
+varianza <- 2.383 * 2.383
+varianza
+```
+
+Comparación con histograma completo:
+
+```{r}
+hist(DATOS_NO_TOCAN$horas_musica, breaks = 20, freq = F, xlim = c(0.4, 24), ylim = c(0, 0.3), main = "Histograma de Horas_musica", xlab = "Horas_musica", ylab = "Densidad", col = "lightgray")
+```
+
+En el histograma se puede observar que la variable, a primera vista,
+pareciera que tuviera una distribución exponencial.
+
+```{r}
+HM_prima <- DATOS_NO_TOCAN %>% filter(DATOS_NO_TOCAN$horas_musica != is.na(DATOS_NO_TOCAN$horas_musica) & DATOS_NO_TOCAN$horas_musica >= 2 &DATOS_NO_TOCAN$horas_musica <= 20) %>% dplyr::select(horas_musica) %>% pull
+
+lambda <- 1 / mean(HM_prima)
+Xs <- seq(0, 25, by = 0.005)
+Ys <- dexp(Xs, lambda)
+
+histogramac <- hist(DATOS_NO_TOCAN$horas_musica, breaks = 30, freq = F, xlim = c(0, 24), ylim = c(0, 0.3), main = "Histograma de Horas_musica", xlab = "Horas_musica", ylab = "Densidad", col = "lightgray")
+
+lines(density(DATOS_NO_TOCAN$horas_musica), col = "blue", lwd = 2)
+lines(Xs, Ys, col = "red", lwd = 2)
+```
+
+El histograma presenta ya los valores teóricos y los reales. La línea de
+color azul representa la curva real y la línea de color rojo la curva
+teórica. El histograma sugiere que los datos de la muestra siguen
+aproximadamente una distribución exponencial con una tasa de decaimiento
+similar a la establecida por la teoría. Claramente existen excepciones,
+pero en es bastante acertada.
+
+
+# CONCLUSIÓN
+
+En todo el proceso de realización de este estudio coincidimos con muchas estudiantes que ven y piensan en la música tanto en sentido orientado al relajo como al sentido artístico y pasional, descubrimos los grandes beneficios que trae consigo las actividades relacionadas con la música. Finalizaremos este proyecto con el último objetivo, en este estudio queda demostrado que cualquier tipo de práctica relacionada altamente a la música tiene un alto rango de probabilidad de influir positivamente desde la perspectiva instrospectiva de los estudiantes en su calidad de vida, estado de ánimo, concentración, control de estrés y mente. Invitamos a los estudiantes UTEC a adentrarse en el mundo de la música, un hobbie sano y pacífico. Muchas gracias a todos los participantes de este estudio, tanto al grupo como a los encuestados.

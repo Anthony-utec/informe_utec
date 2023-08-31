@@ -1,0 +1,995 @@
+---
+title: "Informe"
+format: 
+  html:
+    toc: TRUE
+    toc_float: TRUE
+    theme: lux
+    monofont: courier new
+---
+
+Carga de librerías
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(anytime)
+library(zoo)
+library(lubridate)
+```
+
+Carga de datos
+
+```{r include=FALSE, echo=FALSE}
+VENTAS    <- read_csv("ventas.csv")
+PRODUCTOS <- read_csv("productos.csv")
+PBI       <- read_csv("PBImensual.csv")
+TC        <- read_csv("TipodeCambioDiario.csv")
+TD        <- read_csv("TasaDesempleoMensual.csv")
+```
+
+# Título: Análisis de ventas de una empresa y su relación con indicadores macroeconómicos.
+
+## ÍNDICE:
+
+## 1. INTRODUCCIÓN
+
+### 1.1 Contexto
+
+Para nuestro proyecto trabajamos con la base de datos de la empresa Importaciones Hibrida S.A.C. Los miembros de la empresa llenan datos sobre cada venta que realizan y cada producto que ingresa. Sin embargo un análisis de la frecuencia de venta de ciertos productos en relación a las temporadas del año puede ser de ayuda al momento de solicitar inventario o poner ofertas. De esa forma las ganancias serán mayores y la empresa podrá seguir creciendo.
+
+### 1.2 Relevancia
+
+Al analizar la data podremos compararla con los indicadores macroeconómicos de nuestro país y la empresa podrá preparase para aumentos en la tasa de desempleo, el tipo de cambio, o el cambio en el PBI.
+
+### 1.3 Objetivos
+
+-   Comparar las ventas de la empresa con indicadores macroeconómicos específicos del país (PBI, tasa de inflación, tasa de desempleo y tipo de cambio) para identificar cómo la economía del país afectó las ventas de la empresa.
+
+-   Identificar si existe popularidad de productos según la estacionalidad, días festivos, vacaciones o temporadas especificas del año.
+
+-   Verificar si el alza o disminución del PBI influyó en el volumen de ventas de la empresa. Usamos el indicador del PBI ya que este mide la salud general económica de un país.
+
+-   Conocer si el incremento de la tasa de desempleo (mayor porcentaje de personas en busca de trabajo sin encontrarlo) significó una reducción en las ventas de la empresa o viceversa.
+
+-   Verificar si la apreciación o depreciación en el valor de nuestra moneda local (Soles Peruanos) en relación con los Dólares Estadounidenses significó un cambio en el volumen de ventas.
+
+## 2. DATOS
+
+### 2.1 Recolección de datos
+
+Para el desarrollo de este proyecto estamos haciendo uso de bases de datos secundarias en formato `.csv`. La tabla contiene datos desde el primero de Junio del 2022 hasta el 9 de Abril de 2023. Un total de 10 meses.\
+Por lo tanto, no hacemos uso de ninguna herramienta de recolección de datos.
+
+### 2.2 Población, muestra y muestreo
+
+-   **Población:** Ventas de la empresa desde Junio de 2022 hasta Marzo de 2023
+
+-   **Muestra:** La muestra tiene 13040 obervaciones y 18 columnas con datos; sin embargo solo nos sirven 11 de esas variables.
+
+-   **Muestreo:** Utilizamos una base de datos externa.
+
+### 2.3 Variables
+
+VENTAS Y PRODUCTOS:
+
+Tenemos inicialmente `r nrow(VENTAS)` observaciones y `r ncol(VENTAS)` variables para la tabla VENTAS y `r nrow(PRODUCTOS)` observaciones y `r ncol(PRODUCTOS)` para la tabla PRODUCTOS. Sin embargo, para nuestro nuestro estudio usaremos solo las siguientes variables:
+
+```{r echo=FALSE}
+mat1 <- matrix(c("FECHA", "Categórica Ordinal*","Es la fecha en la que se registró la compra, los datos deben cumplir con el formato DD/MM/AA y encontrarse entre el primero de Junio de 2022 y fines de marzo del año 2023.",
+                 "STATUS", "Categórica Nominal","Define el estado del pedido: Puede ser un pedido no confirmado, confirmado, entregado o anulado.",
+                 "DOC", "Categórica Nominal", "Es el número de documento de identidad (DNI o CE) el cual identifica al cliente. El DNI cuenta con 8 números enteros del 0 al 9 y el carnet de extranjería con 9 número enteros del 0 al 9.",
+                 "NAME", "Categórica Nominal", "Son los registros de nombres y apellidos de los clientes, según lo que ingresa el usuario.", 
+                 "DISTRICT", "Categórica Nominal", "El distrito al que está destinado el producto, ya sea dentro o fuera de Lima. Debe ser una localidad existente.", 
+                 "CODE", "Categórica Nominal", "Es el código único identificador de los productos. Debe ser una serie de números letras y otros símbolos, pero en formato char.",
+                 "PRODUCTO", "Categórica Nominal", "Es el nombre del producto. Este nombre contine una serie de espacios, números y letras.", 
+                 "MARCA", "Categórica Nominal", "Es la marca de la empresa que fabrica el producto. Debe ser una marca existente a la fecha.", 
+                 "METODO_VENTA", "Categórica Nominal", "Hay dos métodos de venta: la venta directa y la venta a través de una plataforma en línea (MercadoLibre, OLX/FB, Linio, Ripley, Falabella). Debe ser un método válido; es decir, solo uno de los dos tipos.", 
+                 "PRECIO", "Numérica Discreta", "El precio de cada producto individual. Es un número entero o decimal redondeado a la centésima.",
+                 "ENVIO", "Numérica Discreta", "Es el costo de envío que se le aplica a cada producto. Es un número entero o decimal redondeado a la centésima."), 
+               nrow = 11, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat1, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+PBI:
+
+Tenemos `r nrow(PBI)` observaciones y `r ncol(PBI)` variables en la tabla PBI.
+
+```{r echo=FALSE}
+mat2 <-  matrix(c("FECHA", "Categórica Ordinal*", "Mes en el que se registró el PBI. Debe registrar el nombre de cada mes. Desde enero a diciembre del 2022.", 
+                  "PBI", "Numérica Discreta", "El producto bruto interno define el valor de los bienes y servicios producidos en nuestro país. Deben ser decimales redondeados a la décima."), nrow = 2, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat2, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+TIPO DE CAMBIO:
+
+Contiene el tipo de cambio de dólares a soles diario del año 2022. Esta tabla cuenta con `rnrow(TIPO_CAMBIO)` observaciones y `ncol(TIPO_CAMBIO)`variables.
+
+```{r echo=FALSE}
+mat3 <-  matrix(c("FECHA", "Categórica Ordinal*", "Día en el que se registro el valor del tipo de cambio, los datos deben cumplir con el formato DD/MM/AA y encontrarse entre el primero de enero de 2022 y el 31 de diciembre del mismo año.", 
+                  "TC_COMPRA", "Numérica Discreta", "Valor del cambio a dólares en compras. Deben ser decimales redondeados a la centésima.", 
+                  "TC_VENTA", "Numérica Discreta", "Valor del cambio a dólares en ventas. Deben ser decimales redondeados a la centésima."), nrow = 3, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat3, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+TASA DE DESEMPLEO:
+
+Contiene la tasa de desempleo mensual del año 2022. Esta tabla cuenta con `nrow(TASA_DESEMPLEO)` observaciones y `ncol(TASA_DESEMPLEO)` variables.
+
+```{r echo=FALSE}
+mat4 <-  matrix(c("FECHA", "Categórica Ordinal*", "Mes en el que se registro la tasa de desempleo. Debe registrar el nombre de cada mes. Desde enero a diciembre del 2022.", 
+                  "TASA_DESEMPLEO", "Numérica Continua", "Porcentaje de desempleo en el país. Es un número con entre 7 y 9 decimales que mide el porcentaje de personas que están buscando trabajo pero no pueden encontrarlo."), nrow = 2, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat4, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+### 2.4 Limpieza de base de datos
+
+Las bases de datos usadas para este estudio cuentan con 1 variable por columna y 1 observación por fila. Es decir, son prolijas.
+
+Copia de nuestra base de datos
+
+```{r}
+VENTAS_    <- VENTAS
+PRODUCTOS_ <- PRODUCTOS
+PBI_       <- PBI
+TC_        <- TC
+TD_        <- TD
+```
+
+Borrando variables que no usaremos
+
+```{r}
+# En tabla VENTAS
+VENTAS %>% select(FECHA, TYPE, STATUS, METODO_VENTA, CODE, NOMBRE_ALTERNO, DOC, NAME, ADRESS, GPS, District) -> VENTAS_
+
+# En tabla PRODUCTOS
+PRODUCTOS %>% select(CODE, MARCA, DATA, PUBLIC, `costo de ENVIO`) -> PRODUCTOS_
+```
+
+Analizando la tabla productos
+
+```{r}
+str(PRODUCTOS_)
+```
+
+Analizando la tabla ventas
+
+```{r}
+str(VENTAS_)
+```
+
+Renombramos las variables
+
+```{r}
+# En tabla VENTAS
+VENTAS_ <- VENTAS_ %>%
+  rename("DISTRICT" = District)
+
+# En tabla PRODUCTOS
+PRODUCTOS_ <- PRODUCTOS_ %>%
+  rename("ENVIO" = `costo de ENVIO`,
+         "PRECIO" = PUBLIC,
+         "PRODUCTO" = DATA)
+
+# En tabla TC
+TC_ <- TC_ %>%
+  rename("COMPRA" = `Tipo de cambio - TC Interbancario (S/ por US$) - Compra`,
+         "VENTA" = `Tipo de cambio - TC Interbancario (S/ por US$) - Venta`,
+         "FECHA" = ...1)
+```
+
+Limpiando la tabla `PRODUCTOS`
+
+Observamos que la variable `ENVIO` es de tipo `chr` por defecto. La cambiamos a numérica.
+
+```{r}
+PRODUCTOS_$ENVIO <- as.numeric(PRODUCTOS_$ENVIO)
+```
+
+Borramos todas aquellas filas que no tienen información sobre el código y nombre del producto.
+
+```{r}
+PRODUCTOS_ <- PRODUCTOS_ %>% filter(!is.na(CODE) & !is.na(PRODUCTO))
+```
+
+Analizamos aquellas que no tienen precio.
+
+```{r}
+PRODUCTOS_ %>% select(CODE, PRECIO) %>% filter(is.na(PRECIO))
+```
+
+Observamos que son pocas las observaciones en las que no figura el precio. Al ser este un dato importante dentro de nuestro estudio, decidimos consultar la fuente original para completar los precios faltantes de la variable `PRECIO`.
+
+Luego, insertamos manualmente aquellos valores.
+
+```{r}
+PRODUCTOS_[which(PRODUCTOS_$CODE == "TRHLI20228"), "PRECIO"]       <- 668
+PRODUCTOS_[which(PRODUCTOS_$CODE == "THT1411023"), "PRECIO"]       <- 32
+PRODUCTOS_[which(PRODUCTOS_$CODE == "TCVLI202301"), "PRECIO"]      <- 254
+PRODUCTOS_[which(PRODUCTOS_$CODE == "LUZLEDBACK-RED"), "PRECIO"]   <- 12
+PRODUCTOS_[which(PRODUCTOS_$CODE == "LUZLEDBACK-BLUE"), "PRECIO"]  <- 12
+PRODUCTOS_[which(PRODUCTOS_$CODE == "LUZLEDBACK-WHITE"), "PRECIO"] <- 12
+PRODUCTOS_[which(PRODUCTOS_$CODE == "MH200"), "PRECIO"]            <- 22
+PRODUCTOS_[which(PRODUCTOS_$CODE == "ORANGGREEN40K"), "PRECIO"]    <- 105
+PRODUCTOS_[which(PRODUCTOS_$CODE == "RED40K"), "PRECIO"]           <- 110
+PRODUCTOS_[which(PRODUCTOS_$CODE == "BIGRED40K"), "PRECIO"]        <- 125
+```
+
+Analizando la variable `ENVIO` observamos que tiene muchos datos faltantes. Borrar estas unidades muestrales afectaría gravemente nuestro análisis estadístico. Por ello, decidimos consultar la fuente original.
+
+Habiendo hecho la consulta, sabemos que el costo de envío de estos productos se calcula a partir de la siguiente fórmula:
+
+$$
+ENVIO = (PRECIO*0.03)+8
+$$
+
+Creamos una función para esta ecuación
+
+```{r}
+calcula_envio <- function(precio_producto) {
+  r =  (precio_producto*0.03)+8
+  r <- round(r, digits=2)
+  return(r)
+}
+```
+
+Recorremos nuestra tabla con un `bucle for` que llena cada observación faltante en la variable `ENVIO` con nuestra función `calcula_envio`.
+
+```{r}
+n_filas <- nrow(PRODUCTOS_)
+for (i in 1:n_filas){
+  obs <- PRODUCTOS_$PRECIO[i]
+  
+  if (is.na(PRODUCTOS_$ENVIO[i])) {
+    PRODUCTOS_[i, 5] <- calcula_envio(obs)
+  }
+}
+```
+
+Identificamos que los casos incompletos de nuestra tabla son aquellos productos que no figuran con una marca en específico. Además, son pocos casos. Entonces, decidimos rellenar este espacio con ***"Otras"***. Que hace referencia a ***"Otras marcas"***
+
+```{r}
+PRODUCTOS_ %>% filter(!complete.cases(PRODUCTOS_)) 
+sum(is.na(PRODUCTOS_$MARCA))
+
+for (i in 1:n_filas){
+  if (is.na(PRODUCTOS_$MARCA[i])) {
+    PRODUCTOS_[i, 2] <- "Otras"
+  }
+}
+```
+
+Tabla `PRODUCTOS` limpia.\
+\
+Limpiando la tabla `VENTAS`:
+
+Utilizamos la librería `zoo` para completar las fechas
+
+```{r}
+library(zoo)
+VENTAS_$FECHA <- na.locf(VENTAS_$FECHA)
+```
+
+Utilizamos la función `grepl` para mantener solo las fechas que contengan los caracteres : "-" y "/"
+
+```{r}
+patron1 <- "-"
+patron2 <- "/"
+patron_combinado <- paste(patron1, patron2, sep="|")
+VENTAS_ <-VENTAS_%>% 
+  filter(grepl(patron_combinado,VENTAS_$FECHA))
+```
+
+Borrando las observaciones innecesarias:
+
+```{r}
+n_filas <- nrow(VENTAS_)
+for (i in 1:n_filas){
+  if (VENTAS_[i, 1] == "MERCADO  04/06") {
+    VENTAS_[i, 1] <- "4-Jun-22"
+  }
+  else if (VENTAS_[i, 1] == "30/07") {
+    VENTAS_[i, 1] <- "30-Jul-22"
+  }
+  else if (VENTAS_[i, 1] == "23/08/2022") {
+    VENTAS_[i, 1] <- "23-Aug-22"
+  }
+  else if (VENTAS_[i, 1] == "26/08/2022") {
+    VENTAS_[i, 1] <- "26-Aug-22"
+  }
+  else if (VENTAS_[i, 1] == "27/08/2022") {
+    VENTAS_[i, 1] <- "27-Aug-22"
+  }
+  else if (VENTAS_[i, 1] == ("2/setiembre")) {
+    VENTAS_[i, 1] <- "2-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == ("02/setiembre")) {
+    VENTAS_[i, 1] <- "2-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "05/setiembre") {
+    VENTAS_[i, 1] <- "5-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "06/setiembre" ) {
+    VENTAS_[i, 1] <- "6-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "7/SETIEMBRE") {
+    VENTAS_[i, 1] <- "7-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "8/setiembre") {
+    VENTAS_[i, 1] <- "8-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "29/09") {
+    VENTAS_[i, 1] <- "29-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "30/09") {
+    VENTAS_[i, 1] <- "30-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "10-Jan") {
+    VENTAS_[i, 1] <- "10-Jan-23"
+  }
+  else if (VENTAS_[i, 1] == "salio 7/10") {
+    VENTAS_[i, 1] <- "7-Oct-22"
+  }
+  else if (VENTAS_[i, 1] == "se envío 11/10") {
+    VENTAS_[i, 1] <- "11-Oct-22"
+  }
+  else if (VENTAS_[i, 1] == "vendra entre 9 - 11 am" ) {
+    VENTAS_[i, 1] <- "21-Oct-22"
+  }
+  else if (VENTAS_[i, 1] == "11-Mar") {
+    VENTAS_[i, 1] <- "11-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "sale 10/11") {
+    VENTAS_[i, 1] <- "10-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "SALE 11/11") {
+    VENTAS_[i, 1] <- "11-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "MANIFESTEMOS 11/11 DINERITO DINERITO DINERITO") {
+    VENTAS_[i, 1] <- "11-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "VIENE ENTRE LA 1 -2 PM" ) {
+    VENTAS_[i, 1] <- "11-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "RECOJO- CON CARGO") {
+    VENTAS_[i, 1] <- "28-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "-") {
+    VENTAS_[i, 1] <- "28-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "VENDRA  ENTRE 6-8PM") {
+    VENTAS_[i, 1] <- "30-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "VIENE 9AM-10AM" ) {
+    VENTAS_[i, 1] <- "7-Jan-23"
+  }
+  else if (VENTAS_[i, 1] == "VISITA 3-4PM") {
+    VENTAS_[i, 1] <- "10-Feb-23"
+  }
+  else if (VENTAS_[i, 1] == "16/03") {
+    VENTAS_[i, 1] <- "16-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "17/03") {
+    VENTAS_[i, 1] <- "17-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "18/03") {
+    VENTAS_[i, 1] <- "18-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "21/03") {
+    VENTAS_[i, 1] <- "21-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "24/03") {
+    VENTAS_[i, 1] <- "24-Mar-23"
+  }
+}
+```
+
+Observamos que hay algunas fechas faltantes. Aquellas fechas faltantes coinciden con Domingos, feriados o días en la que no se trabajó en la empresa. En aquellos días no se realizó ninguna venta.\
+
+Mantenemos las observaciones que tienen el código del producto o su nombre alterno (se pierden 1244 datos)
+
+```{r}
+VENTAS_ <- VENTAS_%>%
+  filter(complete.cases(CODE)|complete.cases(NOMBRE_ALTERNO))
+```
+
+Mantenemos las observaciones que tienen la dirección, o el distrito (Se pierden 1555 datos):
+
+```{r}
+VENTAS_<- VENTAS_%>%
+  filter(complete.cases(ADRESS) | complete.cases(GPS) | complete.cases(DISTRICT))
+```
+
+Convertimos `FECHA` a formato `Date`
+
+```{r}
+VENTAS_$FECHA <- as.Date(VENTAS_$FECHA, format = "%d-%b-%y")
+```
+
+Variable `FECHA` limpia.
+
+```{r}
+ventas_mensuales <- VENTAS_ %>% group_by(FECHA = format(FECHA, "%Y-%m")) %>% summarize(n_ventas = n())
+boxplot_datos <- boxplot(ventas_mensuales$n_ventas, horizontal=TRUE)
+atipicos <- boxplot_datos$out
+
+casos_atipicos <- ventas_mensuales[ventas_mensuales$n_ventas %in% atipicos, ]
+
+```
+
+Observamos que los casos atípicos presentes en nuestra tabla corresponden a enero 2022 y abril 2023. Estos datos se presentan en menor escala ya que la empresa empezó a llenar su base de datos a fines de enero 2022. Además, esta base de datos se nos brindó a inicios de abril 2023. Para objetivos de nuestro estudio no necesitaremos el registro de ventas de esos meses ya que es muy reducido y no representa el flujo real de ventas que tuvo la empresa en ese mes. De considerarlo, sería una información sesgada. Por ello, decidimos eliminar aquellos casos.
+
+```{r}
+ventas_mensuales <- subset(ventas_mensuales, !(rownames(ventas_mensuales) %in% c(1, 12)))
+ventas_mensuales$n_ventas <- as.numeric(ventas_mensuales$n_ventas)  
+```
+
+**Limpiando la variable METODO_VENTA**
+
+```{r}
+table(VENTAS_$METODO_VENTA)
+```
+
+Observamos que existen observaciones de nombre "ALISSON", "ANA", "FIXED", "JUAN", "VALE" y "XIO". Por consulta directa con la fuente original, conocemos que estos grupos de observaciones y los NA hacen referencia a las personas que ingresaron una venta realizada directamente a la empresa. Es decir, sin ninguna plataforma de por medio. Por ello, renombraremos estas observaciones con el nombre "DIRECTA" ya que el método de venta aplicado es de forma directa con la empresa.
+
+```{r}
+posiciones <- which(VENTAS_$METODO_VENTA == "ALISSON")
+VENTAS_$METODO_VENTA[posiciones] <- "DIRECTA"
+posiciones <- which(VENTAS_$METODO_VENTA == "ANA")
+VENTAS_$METODO_VENTA[posiciones] <- "DIRECTA"
+posiciones <- which(VENTAS_$METODO_VENTA == "FIXED")
+VENTAS_$METODO_VENTA[posiciones] <- "DIRECTA"
+posiciones <- which(VENTAS_$METODO_VENTA == "JUAN")
+VENTAS_$METODO_VENTA[posiciones] <- "DIRECTA"
+posiciones <- which(VENTAS_$METODO_VENTA == "VALE")
+VENTAS_$METODO_VENTA[posiciones] <- "DIRECTA"
+posiciones <- which(VENTAS_$METODO_VENTA == "XIO")
+VENTAS_$METODO_VENTA[posiciones] <- "DIRECTA"
+posiciones <- which(VENTAS_$METODO_VENTA == "ALI")
+VENTAS_$METODO_VENTA[posiciones] <- "ALI EXPRESS"
+VENTAS_$METODO_VENTA[is.na(VENTAS_$METODO_VENTA)] <- "DIRECTA"
+```
+
+TABLA PBI
+
+Renombramos la variable `MES` por `FECHA`.
+
+```{r}
+PBI_ <- PBI_ %>% rename(FECHA = MES)
+```
+
+Cambiamos el formato de las fechas y el PBI.
+
+```{r}
+PBI_$FECHA<- c("2022-6", "2022-7", "2022-8", "2022-9", "2022-10", "2022-11", "2022-12", "2023-1", "2023-2", "2023-3")
+
+PBI_$FECHA <- as.Date(paste(PBI_$FECHA, "-01", sep = ""), format = "%Y-%m-%d")
+PBI_$FECHA <- format(PBI_$FECHA, "%Y-%m")
+
+PBI_$PBI <- gsub(",", ".", PBI_$PBI)
+PBI_$PBI <- as.numeric(PBI_$PBI)
+```
+
+Tabla `Tipo de cambio`
+
+Cambiamos el formato de las fechas, esta debe coincidir con la tabla `VENTAS_`
+
+```{r}
+fechas_tc <- as.Date(TC_$FECHA, format = "%m/%d/%Y")
+fechas_nf <- format(fechas_tc, "%Y-%m-%d")
+TC_$FECHA <- fechas_nf
+
+```
+
+Cambiamos el tipo de variable que está inicialmente en Character a formato Date con el comando `as.Date()`.
+
+```{r}
+class(VENTAS_$FECHA)
+TC_$FECHA <- as.Date(TC_$FECHA)
+class(TC_$FECHA)
+```
+
+**COMBINANDO TABLAS**
+
+Cambinamos nuestras tablas en una sola con el objetivo de facilitar nuestro análisis estadístico.
+
+```{r}
+Tabla_general <- merge(VENTAS_, PRODUCTOS_, by = "CODE")
+Tabla_general <- merge(Tabla_general, TC_, by = "FECHA")
+Tabla_general <- merge(Tabla_general, PRODUCTOS_, by = "CODE")
+# Para combinar satisfactoriamente las tablas renombramos FECHA por MES
+PBI_ <- PBI_ %>% rename(MES = FECHA)
+Tabla_general$FECHA <- as.Date(Tabla_general$FECHA, format = "%Y-%m-%d")
+Tabla_general$MES <- format(Tabla_general$FECHA, "%Y-%m")
+Tabla_general <- merge(Tabla_general, PBI_, by = "MES")
+```
+
+Estandarizamos el nombre de las marcas.
+
+```{r}
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "EZVIZ"] <- "INGCO"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "2500W"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "550 W"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "1600 W"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "2350"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "GIGABYTE"] <- "KINGSTON"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "TEROS"] <- "KINGSTON"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "teros"] <- "KINGSTON"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "corsair"] <- "KINGSTON"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "hp"] <- "HP"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "ingco"] <- "INGCO"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "TOTAL - LACELA"] <- "TOTAL"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "CUBULL HERRAMIENTAS"] <- "CUBULL"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "600W"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "1500W"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "2000W"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "550"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "ERROR"] <- "CROWN"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "gigabyte"] <- "KINGSTON"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "teamgroup"] <- "KINGSTON"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "TOTAL + INGCO"] <- "TOTAL"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "POWERMAQ + TOTAL"] <- "POWERMAQ"
+Tabla_general$MARCA.x[Tabla_general$MARCA.x == "total"] <- "TOTAL"
+
+
+```
+
+## 3. ANÁLISIS DESCRIPTIVO
+
+En este apartado realizamos un análisis de nuestras variables haciendo uso de descriptores univariados y bivariados de tipo numérico y gráfico.
+
+PBI
+
+```{r}
+nombres_meses <- c("Jun22", "Jul22", "Ago22", "Sep22", "Oct22", "Nov22", "Dic22", "Ene23", "Feb23", "Mar23")
+plot(PBI_$PBI, type = "o", pch = 16, ylim = c(-2, 4), xlab = "Meses", ylab = "PBI", main = "Variabilidad del PBI")
+axis(1, at = 1:length(nombres_meses), labels = nombres_meses)
+```
+
+Con el grafico de variabilidad observamos que existen meses que tienen un PBI mas bajo como Enero 2023 y otros con un valor como en Junio 2022
+
+Ventas mensuales
+
+```{r}
+nombres_meses <- c("jun", "jul", "ago", "sep", "oct", "nov", "dic", "ene", "feb", "mar")
+barplot(ventas_mensuales$n_ventas, names.arg = nombres_meses, main = "Ventas Mensuales", xlab = "Mes", ylab = "Ventas", space=0)
+
+plot(ventas_mensuales$n_ventas, type = "l", main = "Ventas Mensuales", xlab = "Mes", ylab = "Ventas")
+```
+
+-   **Análisis:** Observamos que el mes con mayor cantidad de ventas realizadas fue Noviembre y el mes con menor cantidad de ventas realizadas fue Diciembre.
+
+```{r}
+mediana <- median(ventas_mensuales$n_ventas)
+desviacion <- sd(ventas_mensuales$n_ventas)
+```
+
+-   **Análisis:** Observamos que tenemos una mediana de 745 y una desviación estandar de 118.43
+
+PBI vs. Ventas por mes
+
+```{r}
+PBI_mensual <- PBI_$PBI
+ventas <- ventas_mensuales$n_ventas
+plot(PBI_mensual, ventas, xlab = "PBI mensual", ylab = "Ventas totales por mes", main = "Correlación PBI vs Ventas Mensuales" )
+
+correlacion <- cor(PBI_mensual, ventas)
+
+text(x = max(PBI_mensual), y = max(ventas), labels = paste("Correlación:", round(correlacion, 2))) #Agrega el coeficiente de correlación al gráfico
+```
+
+-   **Análisis:** Observamos que el coeficiente de correlación es de -0.09. Eso nos indica que existe una correlación lineal débil y negativa en el PBI mensual y el número de ventas mensuales de la empresa. Es decir, no hay una conexión clara entre ellos y es poco significativo en el contexto analizado.
+
+```{r}
+table(Tabla_general$METODO_VENTA)
+
+
+table(Tabla_general$TYPE)
+
+
+table(Tabla_general$MARCA)
+
+```
+
+## 4. ANÁLISIS PROBABILÍSTICO
+
+### 4.1 Probabilidad empírica
+
+#### 4.1.1 Variable 1: MÉTODO DE VENTA
+
+**Experimento:** Seleccionar una persona que realizó una compra en la empresa Importaciones Híbrida y se observa el `METODO_VENTA`.
+
+El método de venta por el cual un cliente puede realizar una compra se conoce como método de venta.
+
+**Espacio de resultados teórico:** Para esta variable, es el nombre de las metodologías de venta involucradas en nuestro estudio.
+
+```{r}
+unique(Tabla_general$METODO_VENTA)
+```
+
+**Espacio muestral:**
+
+```{r}
+sum(!is.na(Tabla_general$METODO_VENTA))
+```
+
+observaciones.
+
+**Eventos atómicos:**
+
+-   A1: Seleccionar una observación que represente una compra hecha a través de la plataforma Linio, de una muestra de 2708 observaciones.
+
+-   A2: Seleccionar una observación que represente una compra hecha a través de la plataforma Ripley, de una muestra de 2708 observaciones.
+
+-   A3: Seleccionar una observación que represente una compra hecha de forma Directa a la empresa, de una muestra de 2708 observaciones.
+
+-   A4: Seleccionar una observación que represente una compra hecha a través de la plataforma OLX, de una muestra de 2708 observaciones.
+
+-   A5: Seleccionar una observación que represente una compra hecha a través de la plataforma Falabella, de una muestra de 2708 observaciones.
+
+-   A6: Seleccionar una observación que represente una compra hecha a través de la plataforma Ali Express, de una muestra de 2708 observaciones.
+
+$$
+Ω = {A1, A2, A3, A4, A5, A6}
+$$
+
+Función de probabilidad:
+
+$P(x) = f(x)/n$
+
+donde:
+
+f(x): Frecuencia de x en el conjunto de datos.
+
+n: Número total de observaciones.
+
+A continuación mostramos los resultados usando la función de probabilidad descrita:
+
+```{r}
+tabla_frecuencias <- table(Tabla_general$METODO_VENTA)
+prob_empirica <- prop.table(tabla_frecuencias)
+prob_redondeada <- round(prob_empirica, 6)
+resultado <- paste("P(x); donde x = ", names(prob_redondeada), ": ", prob_redondeada)
+cat(resultado, sep = "\n")
+```
+
+Preguntas:
+
+-   ¿Cuál es la probabilidad de que al seleccionar una venta esta haya sido realizada a través de la plataforma Linio?
+
+    **Resultado:** La probabilidad de que una venta haya sido efectuada por Linio es de 0.21418. Es decir 21% aproximadamente.
+
+-   ¿Cuál es la probabilidad de que al seleccionar una venta esta haya sido realizada a través de la plataforma Ripley?
+
+    **Resultado:** La probabilidad de que una venta haya sido efectuada por Ripley es de 0.031388. Es decir 3% aproximadamente.
+
+-   ¿Cuál es la probabilidad de que al seleccionar una venta esta haya sido realizada de forma directa con la empresa?
+
+    **Resultado:** La probabilidad de que una venta haya sido efectuada por Linio es de 0.013294. Es decir 1% aproximadamente.
+
+El principio de que la suma de las probabilidades debe ser igual a 1 se conoce como el axioma de la probabilidad. Es una propiedad fundamental de las probabilidades y se basa en la idea de que cuando consideramos todos los posibles resultados de un evento o experimento, la probabilidad total de que uno de esos resultados ocurra debe ser igual a 1.
+
+En un contexto discreto, como el caso de una variable categórica con distintas categorías, la probabilidad empírica se calcula dividiendo el número de veces que ocurre una categoría específica entre el total de observaciones. Dado que estamos considerando todas las categorías posibles, la suma de estas probabilidades empíricas debe ser igual a 1, lo que significa que la probabilidad total de que ocurra uno de los resultados posibles es del 100%.
+
+Comprobamos el axioma de probabilidad con el siguiente extracto de código:
+
+```{r}
+sum(prob_empirica)
+```
+
+#### 4.1.1 Variable 2: MARCA
+
+**Experimento:** Seleccionar una persona que realizó una compra en la empresa Importaciones Híbrida y se observa la `MARCA` del producto que compró.
+
+La marca la cual identifica a la herramienta adquirida en una compra se conoce como `MARCA`.
+
+**Espacio de resultados teórico:** Para esta variable, es el nombre de todas las marcas de herramientas involucradas en nuestro estudio. Son las siguientes:
+
+```{r}
+unique(Tabla_general$MARCA.x)
+```
+
+**Cantidad total de observaciones:**
+
+```{r}
+sum(!is.na(Tabla_general$MARCA.x))
+```
+
+observaciones.
+
+**Eventos atómicos:**
+
+-   E1: Seleccionar una observación que representa la compra de una herramienta de marca XTD, dentro de una muestra de 2708.
+
+-   E2: Seleccionar una observación que representa la presencia de una herramienta de marca CUBULL dentro del almacén de la empresa, dentro de una muestra de 2708.
+
+-   E3: Seleccionar una observación que representa la presencia de una herramienta de marca SAFARI dentro del almacén de la empresa, dentro de una muestra de 2708.
+
+-   E4: Seleccionar una observación que representa la compra de una herramienta de marca LACELA, dentro de una muestra de 2708.
+
+-   E5: Seleccionar una observación que representa la compra de una herramienta de marca INGCO, dentro de una muestra de 2708.
+
+-   E6: Seleccionar una observación que representa la compra de una herramienta de marca CROWN, dentro de una muestra de 2708.
+
+-   E7: Seleccionar una observación que representa la compra de una herramienta de marca EMPTOP, dentro de una muestra de 2708.
+
+-   E8: Seleccionar una observación que representa la compra de una herramienta de marca SAMSUNG, dentro de una muestra de 2708.
+
+-   E9: Seleccionar una observación que representa la compra de una herramienta de marca KINGSTON, dentro de una muestra de 2708.
+
+-   E10: Seleccionar una observación que representa la compra de una herramienta de marca POWERMAQ, dentro de una muestra de 2708.
+
+-   E11: Seleccionar una observación que representa la compra de una herramienta de marca TOTAL, dentro de una muestra de 2708.
+
+$$
+Ω = {E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11}
+$$
+
+A continuación mostramos los resultados usando la función de probabilidad descrita previamente:
+
+```{r}
+tabla_frecuencias <- table(Tabla_general$MARCA.x)
+prob_empirica <- prop.table(tabla_frecuencias)
+prob_redondeada <- round(prob_empirica, 6)
+resultado <- paste("P(x); donde x = ", names(prob_redondeada), ": ", prob_redondeada)
+cat(resultado, sep = "\n")
+```
+
+Preguntas:
+
+-   ¿Cuál es la probabilidad de que al seleccionar una venta esta haya sido de un producto de la marca XTD?
+
+    **Resultado:** La probabilidad de seleccionar un producto de la marca XTD es de 0.250369. Es decir 25% aproximadamente.
+
+-   ¿Cuál es el producto con mayor probabilidad de venta?
+
+    **Resultado:** El producto con mayor probabilidad de ser seleccionado es:
+
+    ```{r}
+    names(prob_empirica)[which.max(prob_empirica)]
+    ```
+
+    con una probabilidad de 0.322378. Es decir 32% aproximadamente.
+
+<!-- -->
+
+Finalmente, comprobamos el axioma de probabilidad haciendo la suma de probabilidades.
+
+```{r}
+sum(prob_empirica)
+```
+
+### 4.2 Probabilidad condicional
+
+#### 4.2.1 Eventos independientes
+
+Primero, definimos dos eventos independientes:
+
+-   **Evento A:** Seleccionar una persona que haya comprado un producto de marca INGCO.
+
+<!-- -->
+
+-   **Evento B:** Seleccionar una persona que haya hecho una compra cuando el tipo de cambio (Compra) fue el mínimo de todas las ventas registradas.
+
+    ```{r}
+    valor_minimo <- min(Tabla_general$COMPRA)
+    print(valor_minimo)
+    ```
+
+Identificamos si los eventos son independientes o dependientes siguiendo la Regla del Producto o Regla de Multiplicidad.
+
+De ser independientes, la probabilidad de que ambos ocurran (A y B) es igual al producto de las probabilidades. Entonces, se cumple que:
+
+$$
+P(A ∩ B) = P(A)*P(B)
+$$
+
+O
+
+$$
+P(A|B)=P(A)
+$$
+
+O
+
+$$
+P(B|A)=P(B)
+$$
+
+O
+
+$$
+|P(A).P(B)-P(A∩B)| <0.01
+$$
+
+En esta fórmula, P(A\|B) representa la probabilidad de que ocurra el evento A dado que el evento B ha ocurrido. P(A) es la probabilidad del evento A por sí mismo.
+
+A continuación, hallamos las probabilidades de que ocurra cada evento.
+
+Para el evento A, P(A):
+
+```{r}
+p_A <- sum(Tabla_general$MARCA.x == "INGCO")/length(Tabla_general$MARCA.x)
+print(p_A)
+```
+
+Para el evento B, P(B):
+
+```{r}
+ocurrencias <- sum(Tabla_general$COMPRA == valor_minimo)
+prob_B <- ocurrencias/length(Tabla_general$COMPRA)
+print(prob_B)
+```
+
+Seguimos la siguiente propiedad para verificar independencia:
+
+$$
+|P(A).P(B)-P(A∩B)| <0.01
+$$
+
+```{r}
+p_A_interseccion_B <- sum(Tabla_general$MARCA.x == "INGCO" & Tabla_general$COMPRA == valor_minimo) / nrow(Tabla_general)
+
+ind <- abs(p_A * prob_B - p_A_interseccion_B)
+print(ind)
+```
+
+Comprobado.
+
+Entonces, concluimos que la ocurrencia o no ocurrencia de que el tipo de cambio sea el mínimo registrado, no afecta la probabilidad de que se compre una herramienta de la marca INGCO.
+
+#### 4.2.2 Eventos dependientes
+
+```{r}
+Tabla_general$FECHA <- as.Date(Tabla_general$FECHA, format = "%Y-%m-%d")
+Tabla_general$MES <- format(Tabla_general$FECHA, "%Y-%m")
+table(Tabla_general$MES)
+
+```
+
+Primero, definimos dos pares de eventos dependientes.
+
+**Evento A:** Seleccionar una compra que haya sido realizada en Julio del 2022.
+
+**Evento B:** Seleccionar una compra que haya sido realizado cuando el Producto Bruto Interno es promedio.
+
+| PBI      | RANGO    |
+|----------|----------|
+| \<1      | INFERIOR |
+| \[1, 2\] | PROMEDIO |
+| \> 2     | SUPERIOR |
+
+Comprobamos que los eventos son dependientes a partir de la siguiente propiedad:
+
+$$
+P(A ∩ B) ≠ P(A) * P(B)
+$$
+
+Hallamos
+
+$$
+P(A) =
+$$
+
+```{r}
+p_A <- sum(Tabla_general$MES == "2022-07")/length(Tabla_general)
+print(p_A)
+```
+
+Hallamos
+
+$$
+P(B) =
+$$
+
+```{r}
+p_B <- sum(Tabla_general$PBI == 1.8 | Tabla_general$PBI == 2.0)/length(Tabla_general)
+print(p_B)
+```
+
+Comprobamos la propiedad
+
+```{r}
+A_interseccion_B <- sum(Tabla_general$MES == "2022-07" & Tabla_general$PBI == 1.8 | Tabla_general$PBI == 2.0) / nrow(Tabla_general)
+print(paste("P(A ∩ B) =", A_interseccion_B))
+print(paste("P(A) * P(B) =", p_A*p_B))
+```
+
+Difieren.
+
+Por lo tanto, al ser eventos dependientes, existe una relación causal entre ellos. Es decir,la probabilidad de que una compra haya sido realizada en el mes de Julio del 2022 guarda relación con el PBI "regular".
+
+### 4.3 Variables Discretas
+
+**Variable PRECIO**
+
+Esta variable es interesante para nuestro estudio porque nos puede dar una idea del número de clientes potenciales con un poder adquisitivo alto a los que se le pueden ofrecer posteriormente otros artículos de albañilería.
+
+**Variable aleatoria:** Número de personas que realizaron una compra por un monto mayor a 300 soles en el registro de ventas de la empresa Importaciones Hibrida de Junio a Septiembre del 2022.
+
+Para esta variable usaremos la Distribución Binomial.
+
+X \~ Bin(p, n)
+
+donde:
+
+-   n : número total de observaciones
+
+```{=html}
+<!-- -->
+```
+-   X : número de éxitos en n observaciones.
+
+-   p : P(E). El éxito (E) es definido como seleccionar una persona que hizo la compra de un producto cuyo precio es mayor a 300.
+
+**Construyendo función masa de probabilidad**
+
+Número de éxitos de en un total de 5 ensayos con una probabilidad de 0.5.
+
+```{r}
+n <- length(Tabla_general)
+x <- 0:n
+probabilidades <- dbinom(x, size = 5, prob = 0.5)
+barplot(probabilidades, names.arg = x, xlab = "Número de éxitos", ylab = "Probabilidad",
+        main = "Distribución Binomial")
+
+```
+
+Observamos una distribución sesgada a la izquierda en forma de campana simétrica. Esto indica que hay valores centrales bajos más probables y en sus extremos menos probables.
+
+Validamos las propiedades:
+
+**Esperanza**
+
+Número promedio de éxitos esperados en 5 ensayos.
+
+```{r}
+# Parámetro de la distribución binomial
+n <- 5
+p <- 0.5
+esperanza <- n * p
+print(esperanza)
+```
+
+**Varianza**
+
+```{r}
+varianza <- n*p*(1-p)
+print(varianza)
+```
+
+**Coeficiente de variación**
+
+Medida de la relación entre la variabilidad y la magnitud esperada de los resultados.
+
+```{r}
+des_est <- sqrt(varianza)
+coef_variacion <- (des_est/esperanza)*100
+print(coef_variacion)
+```
+
+**Ejemplo:**
+
+La empresa Importaciones Híbrida asiste a un evento donde tiene la oportunidad de vender cualquiera de sus productos. Se desea conocer la probabilidad de que más del 50% realicen compras inferiores a 250 soles. Se sabe que asisten 500 personas al evento.
+
+```{r}
+n <- 500 # nº total de personas en el evento
+p <- 0.5 # probabilidad de éxito
+pbinom(250, prob= p, size = n, lower.tail = TRUE) 
+```
+
+## 5. CONCLUSIONES:
+
+-   Encontramos que el mayor volumen de ventas fue realizado en el mes de Julio seguidamente Agosto 2022. Por lo que podríamos decir que hay un factor de estacionalidad involucrado en causalidad del valor promedio del PBI.
+
+-   La marca INGCO es la que presenta mayor volumen de ventas frente a las demás marcas ofrecidas por la empresa con un valor aproximado del 32%.
+
+-   El Tipo de Cambio no influyó en el volumen de ventas de la empresa para su marca más vendida.
+
+-   La marca Samsung es la menos vendida dentro de la empresa debido a factores como 1) Variedad de productos reducidos y 2) Público objetivo distinto .
+
+-   La plataforma que representa mas de la mitad de las ventas realizadas es Mercado Libre. Mientras que la que tiene menos presencia es Falabella.com. Esto coincide con la información proporcionada por la empresa ya que manifestaron que la última plataforma es nueva detro del mercado.

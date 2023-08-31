@@ -1,0 +1,856 @@
+---
+title: "Expectativas de los estudiantes de UTEC en el periodo 2023-1 acerca del uso de la inteligencia artificial en la medicina"
+output:
+  
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: lumen
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Análisis Probabilístico
+
+## Objetivos
+
+1.  Analizar el orden de prioridad que debería tener el uso de la inteligencia artificial(IA) en la medicina desde la perspectiva de los estudiantes de UTEC durante el periodo 2023-I y su disposición para recibir atención por parte de la IA en caso de futuras patologías a traves del enfoque de probabilidad empírica.
+
+2.  Analizar la dependencia entre la carrera de los estudiantes de UTEC durante el periodo 2023-I, la elección de los factores limitantes en la implementación de la IA en la medicina y la percepción de los estudiantes sobre si la IA podría reemplazar a un médico en el futuro mediante el uso de probabilidad condicional para identificar posibles relaciones y patrones entre estas variables.
+
+3.  Determinar modelos probabilisticos discretos que permitan analizar los años de consolidación de IA en la práctica médica y la relevancia que esta tendrá según los estudiantes de UTEC durante el periodo 2023-I.
+
+4.  Determinar modelos probabilisticos continuos que permitan analizar las horas de uso diarias de IA de los estudiantes de UTEC durante el periodo 2023-I y el precio que consideran que tendrá su implementación.
+
+```{r}
+if(!require(readr)){install.packages('readr')}
+if(!require(ggplot2)){install.packages('ggplot2')}
+if(!require(dplyr)){install.packages('dplyr')}
+if(!require(DescTools)){instal.packages('DescTools')}
+if(!require(stringr)){instal.packages('stringr')}
+if(!require(stringr)){install.packages("rriskDistributions")}
+if(!require(stringr)){install.packages("fastGraph")}
+
+```
+
+```{r}
+library(stringr)
+library(dplyr)
+library(DescTools)
+library(ggplot2)
+library(readr)
+library(rriskDistributions)
+library(fastGraph)
+```
+
+```{r}
+D1<- read_csv("Base_de_datos_2.csv")
+```
+
+```{r}
+BD <- D1
+```
+
+## Limpieza de datos
+```{r}
+BD <- select(D1,-"Marca temporal")
+```
+
+```{r}
+names(BD) <- c("Nombre_Completo","Correo","Edad","Carrera","Ciclo","Ha_escuchado","IA_uso_cotidiano","Horas_dia","Campos_aplicacion","Debe_usarse_medicina","Aspectos_medicos","Relevancia_medicina","Años_consolidacion","Reemplazara_medico","Rango_precio","Disposicion_ser_atendido","Interes_desarrollo_IA","Orden_prioridad","Factores_limitantes")
+```
+
+```{r}
+BD$Rango_precio=recode(BD$Rango_precio,'50 - 100'='75', '100 - 300'='200','300 - 500'='400','500 - 700'='600','700+'='800')
+BD$Rango_precio<-as.numeric(BD$Rango_precio)
+```
+
+```{r}
+BD$Años_consolidacion=as.character(BD$Años_consolidacion)
+BD$Años_consolidacion=recode(BD$Años_consolidacion,'2025'='2')
+BD$Edad=as.integer(BD$Edad)
+BD$Años_consolidacion=as.integer(BD$Años_consolidacion)
+```
+
+```{r}
+vec<-which(BD$Ha_escuchado=="No")
+for (i in 1:length(vec)){
+  BD[vec[i],7]="No"
+  }
+```
+
+```{r}
+vec2<-which(BD$Debe_usarse_medicina=="No")
+for (i in 1:length(vec2)){
+  BD[vec2[i],12]="Poco relevante"
+  BD[vec2[i],14]="No"
+  BD[vec2[i],16]="No"
+  BD[vec2[i],17]="No"
+  BD[vec2[i],18]=5
+  }
+```
+
+```{r}
+vec2<-which(BD$IA_uso_cotidiano=="No")
+for (i in 1:length(vec2)){
+  BD[vec2[i],8]=0
+}
+sum(is.na(BD$Horas_dia))
+
+```
+
+```{r}
+BD$Orden_prioridad=recode(BD$Orden_prioridad,'1'='Máxima prioridad', '2'='Notable prioridad','3'='Prioridad media','4'='Poca prioridad','5'='Mínima prioridad')
+```
+
+```{r}
+BD$Ciclo<-recode(BD$Ciclo,'Primero'='1','Segundo'= '2','Tercer'='3','Cuarto'='4','Quinto'='5','Sexto'='6','Séptimo'='7','Octavo'='8','Noveno'='9','Décimo'='10')
+```
+
+## Probabilidad empírica
+
+### Variables a estudiar: Relevancia_medicina y Disposicion_ser_atendidos
+
+#### Total de encuestados:
+
+```{r}
+sum(complete.cases(BD$Orden_prioridad))
+sum(complete.cases(BD$Disposicion_ser_atendido))
+#Ambas variables tienen 180 casos completos, por lo que creamos una segunda base con datos limpios para el análisis probabilístico.
+which(!complete.cases(BD$Disposicion_ser_atendido))
+BD2=BD[-c(111,121,154,170,179,181),]
+```
+
+#### Espacio muestral:
+
+```{r}
+disposicion=c(unique(BD2$Disposicion_ser_atendido))
+length(disposicion)
+orden=c(unique(BD2$Orden_prioridad))
+length(orden)
+```
+
+#### Definimos frecuencia absoluta para cada espacio muestral
+
+```{r}
+data.frame(count(BD2,Disposicion_ser_atendido))
+data.frame(count(BD2,Orden_prioridad))
+```
+
+Nota: Fueron utilizadas 180 de 186 observaciones para la realización de estas tablas debido a que 6 encuestados no han escuchado sobre la IA y por ende, no tienen una respuesta a esta pregunta.
+
+#### Definimos la probabilidad de los eventos atómicos:
+
+```{r}
+round(prop.table(table(BD2$Orden_prioridad)),4)
+round(prop.table(table(BD2$Disposicion_ser_atendido)),4)
+```
+
+Probabilidad de que un estudiante piense que el uso de la IA en la medicina debería tener mínima prioridad
+
+P(MP)=0.0667
+
+Probabilidad de que un estudiante piense que el uso de la IA en la medicina debería tener poca prioridad P(PP)=0.1944
+
+Probabilidad de que un estudiante piense que el uso de la IA en la medicina debería tener prioridad media
+
+P(PM)=0.4167
+
+Probabilidad de que un estudiante piense que el uso de la IA en la medicina debería tener notable prioridad
+
+P(NP)=0.2444
+
+Probabilidad de que un estudiante piense que el uso de la IA en la medicina debería tener máxima prioridad
+
+P(MXP)=0.0778
+
+a)  Determinar qué tan probable es que que un estudiante piense que el uso de la IA en la medicina deba tener mínima O poca prioridad. $$P\left(MP\right)\:U\:P\left(PP\right)\:=\:P\left(MP\right)\:+\:P\left(PP\right)$$
+
+```{r}
+0.0667+0.1944
+```
+
+b)  Determinar qué tan probable es que que un estudiante piense que el uso de la IA en la medicina deba tener notable o máxima prioridad. $$P\left(NP\right)\:U\:P\left(MP\right)\:=\:P\left(NP\right)\:+\:P\left(MP\right)$$
+
+```{r}
+0.2444+0.0778
+```
+
+Observamos que los estudiantes se inclinan más por la elección de que la IA debería ser prioritaria en la medicina.
+
+```{r}
+plot(round(prop.table(table(BD2$Orden_prioridad)),4), main = "Probabilidad del orden prioridad",
+        xlab = "Escala de prioidad", ylab = "Probabilidad",col=palette("R3"))
+```
+
+*[Gráfico 1]*
+
+Los eventos que denotan un enfoque positivo en cuanto a la prioridad de uso de la IA en la medicina superan a los enfoques negativos. Sin embargo, la tendencia mayoritaria es la de prioridad media.
+
+#### Variable Disposicion_ser_atendido
+
+S: Seleccionar un estudiante que esté dispuesto a ser atendido por una IA ante una futura patología.
+
+P(S)=0.5167
+
+N: Seleccionar un estudiante que no esté dispuesto a ser atendido por una IA ante una futura patología.
+
+P(N)= 0.1000
+
+T: Seleccionar un estudiante que tal vez esté dispuesto a ser atendido por una IA ante una futura patología.
+
+P(T)=0.3833
+
+c)  Determinar qué tan probable es que un estudiante sí este dispuesto o tal vez esté dispuesto a ser atendido por una IA ante una futura patología. $$P\left(S\right)\:U\:P\left(T\right)\:=\:P\left(S\right)\:+\:P\left(T\right)$$
+
+```{r}
+0.5167+0.3833
+```
+
+El 90% de los estudiantes muestran una respuesta positiva ante el uso de la IA en la medicina, pues considerarían ser atendidos por una si fuese necesario.
+
+```{r}
+plot(prop.table(table(BD$Disposicion_ser_atendido)),col=palette("R3"),ylab="Probabilidad",xlab="Respuesta",main="Probabilidad de la disposición para ser atendidos por una IA")
+```
+
+*[Gráfico 2]*
+
+Se denota que más de la mitad de los encuestados no dudarían en ser atendidos por una IA ante una patología y aproximadamente 18 estudiantes (10% de la muestra) no les gustaría serlo.
+
+## Probabilidad condicional
+
+Analizando las variables Factores_limitantes, Carrera y Reemplazara_medico
+
+### Variables a estudiar: Carreras y Factores_limitantes
+#### Espacio muestral
+
+```{r}
+carreras=c(unique(BD$Carrera))
+length(carreras)
+```
+
+```{r}
+Medico=c(unique(BD$Reemplazara_medico))
+length(Medico)
+```
+
+```{r}
+#Usamos una tabla definida anteriormente que contiene los factores limitantes por separado, ya que esta era una variable de opción múltiple.
+factores=c(unique(R))
+length(factores)
+```
+
+#### Definimos frecuencia absoluta para cada espacio muestral para una data sin observaciones incompletas
+
+```{r}
+which(!complete.cases(BD))
+BD3 <-BD[-c(101,111,121,149,154,157,170,179,181),]
+```
+
+```{r}
+count(BD3,Carrera)
+```
+
+```{r}
+Factores_Limitantes <- data.frame(FacLimitantes = c(BD3$Factores_limitantes))
+```
+
+```{r}
+Factores_Limitantes$FacLimitantes<-str_split_fixed(Factores_Limitantes$FacLimitantes, ",", 5)
+
+```
+
+```{r}
+Factores_Limitantes1<-str_trim(Factores_Limitantes$FacLimitantes,side="both")
+Factores_Limitantes1[Factores_Limitantes1 ==""]<- NA
+R <- table(Factores_Limitantes1)
+R
+```
+
+```{r}
+count(BD3,Reemplazara_medico)
+```
+
+#### Definimos la probabilidad de los eventos:
+
+```{r}
+FL=data.frame(R)
+FL$probabilidaes = round(FL$Freq/177,4)
+FL
+```
+
+```{r}
+round(prop.table(table(BD3$Reemplazara_medico)),4)
+```
+
+```{r}
+round(prop.table(table(BD3$Carrera)),4)
+```
+
+#### Realizamos una tabla cruzada Carrera-Factores_limitantes
+
+```{r}
+datos_industrial <- subset(BD, Carrera == "Ingeniería Industrial")
+respuestas1 <- paste(na.omit(datos_industrial$Factores_limitantes, collapse = ", "))
+frecuencia_opciones1 <- as.data.frame(table(unlist(strsplit(respuestas1, ", "))))
+colnames(frecuencia_opciones1)[2]="IngenieriaIndustrial"
+```
+
+```{r}
+datos_civil <- subset(BD, Carrera == "Ingeniería Civil")
+respuestas2 <- paste(na.omit(datos_civil$Factores_limitantes), collapse = ", ")
+frecuencia_opciones2 <- as.data.frame(table(unlist(strsplit(respuestas2, ", "))))
+colnames(frecuencia_opciones2)[2]="IngenieriaCivil"
+```
+
+```{r}
+datos_energía <- subset(BD, Carrera == "Ingeniería de la Energía")
+respuestas3 <- paste(na.omit(datos_energía$Factores_limitantes, collapse = ", "))
+frecuencia_opciones3 <- as.data.frame(table(unlist(strsplit(respuestas3, ", "))))
+frecuencia_opciones3<- as.data.frame(c(2,1,0,0,2))
+colnames(frecuencia_opciones3)[1]="IngenieriaEnergia"
+```
+
+```{r}
+datos_bio <- subset(BD, Carrera == "Bioingeniería")
+respuestas4 <- paste(na.omit(datos_bio$Factores_limitantes, collapse = ", "))
+frecuencia_opciones4 <- as.data.frame(table(unlist(strsplit(respuestas4, ", "))))
+colnames(frecuencia_opciones4)[2]="Bioingenieria"
+```
+
+```{r}
+datos_mecanica <- subset(BD, Carrera == "Ingeniería Mecánica")
+respuestas5 <- paste(na.omit(datos_mecanica$Factores_limitantes, collapse = ", "))
+frecuencia_opciones5 <- as.data.frame(table(unlist(strsplit(respuestas5, ", "))))
+colnames(frecuencia_opciones5)[2]="IngenieriaMecanica"
+```
+
+```{r}
+datos_datascience <- subset(BD, Carrera == "Data Science")
+respuestas6 <- paste(na.omit(datos_datascience$Factores_limitantes, collapse = ", "))
+frecuencia_opciones6 <- as.data.frame(table(unlist(strsplit(respuestas6, ", "))))
+frecuencia_opciones6=as.data.frame(c(6,2,7,0,5))
+colnames(frecuencia_opciones6)[1]="DataScience"
+```
+
+```{r}
+datos_mecatronica <- subset(BD, Carrera == "Ingeniería Mecatrónica")
+respuestas7 <- paste(na.omit(datos_mecatronica$Factores_limitantes, collapse = ", "))
+frecuencia_opciones7<- as.data.frame(table(unlist(strsplit(respuestas7, ", "))))
+colnames(frecuencia_opciones7)[2]="IngenieriaMecatronica"
+```
+
+```{r}
+datos_ambiental <- subset(BD, Carrera == "Ingeniería Ambiental")
+respuestas8 <- paste(na.omit(datos_ambiental$Factores_limitantes, collapse = ", "))
+frecuencia_opciones8 <- as.data.frame(table(unlist(strsplit(respuestas8, ", "))))
+colnames(frecuencia_opciones8)[2]="IngenieriaAmbiental"
+```
+
+```{r}
+datos_admin <- subset(BD, Carrera == "Administración y negocios digitales")
+respuestas9 <- paste(na.omit(datos_admin$Factores_limitantes, collapse = ", "))
+frecuencia_opciones9 <- as.data.frame(table(unlist(strsplit(respuestas9, ", "))))
+frecuencia_opciones9 = as.data.frame(c(1,0,0,1,1))
+colnames(frecuencia_opciones9)[1]="Admin"
+```
+
+```{r}
+datos_cs <- subset(BD, Carrera == "Computer Science")
+respuestas10 <- paste(na.omit(datos_cs$Factores_limitantes, collapse = ", "))
+frecuencia_opciones10 <- as.data.frame(table(unlist(strsplit(respuestas10, ", "))))
+colnames(frecuencia_opciones10)[2]="ComputerScience"
+```
+
+```{r}
+datos_electronica <- subset(BD, Carrera == "Ingeniería Electrónica")
+respuestas11 <- paste(na.omit(datos_electronica$Factores_limitantes, collapse = ", "))
+frecuencia_opciones11 <- as.data.frame(table(unlist(strsplit(respuestas11, ", "))))
+frecuencia_opciones11 = as.data.frame(c(4,3,6,2,0))
+colnames(frecuencia_opciones11)[1]="IngenieriaElectronica"
+```
+
+```{r}
+datos_quimica <- subset(BD, Carrera == "Ingeniería Química")
+respuestas12 <- paste(na.omit(datos_quimica$Factores_limitantes, collapse = ", "))
+frecuencia_opciones12 <- as.data.frame(table(unlist(strsplit(respuestas12, ", "))))
+colnames(frecuencia_opciones12)[2]="IngenieriaQuimica"
+```
+
+```{r}
+tabla_cruzada1=data.frame(frecuencia_opciones1,frecuencia_opciones2,frecuencia_opciones3,frecuencia_opciones4,frecuencia_opciones5,frecuencia_opciones6,frecuencia_opciones7,frecuencia_opciones8,frecuencia_opciones9,frecuencia_opciones10,frecuencia_opciones11,frecuencia_opciones12)
+
+tabla_cruzada1[ , c('Var1.1', 'Var1.2','Var1.3','Var1.4','Var1.5','Var1.6','Var1.7')] <- list(NULL)
+tabla_cruzada1$total = rowSums(tabla_cruzada1[, c(2:13)])
+tabla_cruzada1
+```
+
+#### Realizamos una tabla cruzada Carrera-Reemplazara_medico
+
+```{r}
+table(BD3$Carrera, BD3$Reemplazara_medico)
+```
+
+#### Definimos los eventos atómicos
+
+#### Carreras
+
+E1:Seleccionar un estudiante de Bioingeniería
+
+P(E1)=0.1751
+
+E2: Seleccionar un estudiante de Ingeniería Industrial
+
+P(E2)=0.2034
+
+E3: Seleccionar un estudiante de Ingeniería Ambiental
+
+P(E3)=0.0508
+
+E4: Seleccionar un estudiante de Ingeniería de la Energia
+
+P(E4)=0.0113
+
+E5: Seleccionar un estudiante de Ingeniería Mecatrónica
+
+P(E5)=0.1186
+
+E6: Seleccionar un estudiante de Ingeniería Civil
+
+P(E6)=0.2147
+
+E7: Seleccionar un estudiante de Ingeniería Electrónica
+
+P(E7)=0.0395
+
+E8: Seleccionar un estudiante de Ingeniería Mecánica
+
+P(E8)=0.0452
+
+E9: Seleccionar un estudiante de Ingeniería Química
+
+P(E9)=0.0282
+
+E10: Seleccionar un estudiante de Data Science
+
+P(E10)=0.0452
+
+E11: Seleccionar un estudiante de Administración y negocios digitales
+
+P(E11)=0.0056
+
+E12: Seleccionar un estudiante de Computer Science
+
+P(E12)=0.0618
+
+#### Factores_limitantes
+
+E13: Seleccionar un estudiante que piense que uno de los factores limitantes en el uso de la IA en la medicina sea la accesibilidad en zonas de bajos recursos
+
+P(E13)=0.7006
+
+E14: Seleccionar un estudiante que piense que uno de los factores limitantes en el uso de la IA en la medicina sean los conflictos éticos
+
+P(E14)=0.4294
+
+E15: Seleccionar un estudiante que piense que uno de los factores limitantes en el uso de la IA en la medicina sea la credibilidad y/o confianza de los pacientes
+
+P(E15)=0.7119
+
+E16: Seleccionar un estudiante que piense que uno de los factores limitantes en el uso de la IA en la medicina sea la poca flexibilidad para diagnósticos/tratamientos
+
+P(E16)=0.3503
+
+E17: Seleccionar un estudiante que piense que uno de los factores limitantes en el uso de la IA en la medicina sea el precio de implementación
+
+P(E17)=0.5480
+
+#### Reemplazara_médico
+
+P(E18)=Seleccionar un estudiante que piense que la IA podrá reemplazar a un médico en el futuro
+
+P(E18)=0.3708
+
+P(E19)=Seleccionar un estudiante que piense que la IA no podrá reemplazar a un médico en el futuro
+
+P(E19)=0.6292
+
+#### Comprobando independencia de los eventos
+
+**A: Seleccionar un estudiante de ingeniería Civil que piense que uno de los factores limitantes en el uso de la IA en la medicina sea la accesibilidad en zonas de bajos recursos.**
+
+Debe cumplirse $$ P\left(E6\cap E13\right)=P\left(E6\right)\cdot P\left(E13\right)$$ para decir que los eventos son independientes.
+
+$$ P\left(E6\cap E13\right)$$
+
+```{r}
+29/177
+```
+
+$$P\left(E6\right)\cdot P\left(E13\right)$$
+
+```{r}
+0.2135*0.7006
+```
+
+La igualdad no se comprueba, por lo que son eventos **dependientes**
+
+#### Aplicando Bayes
+
+$$P\left(A|B\right)=\frac{P\left(B|A\right)\cdot P\left(A\right)}{P\left(B\right)}$$
+
+```{r}
+(29/177)/0.7006
+```
+
+```{r}
+((29/177)/0.2135)*0.2135/0.7006
+```
+
+Comprobamos por Bayes que los eventos son dependientes.
+
+**B: Seleccionar un estudiante de Ingeniería Industrial que piense que uno de los factores limitantes en el uso de la IA en la medicina sea la poca flexibilidad para diagnósticos/tratamientos.** $$ P\left(E2\cap E16\right)$$
+
+```{r}
+14/177
+```
+
+$$P\left(E2\right)\cdot P\left(E16\right)$$
+
+```{r}
+0.2022*0.3503
+```
+
+La igualdad es cercana, mas no se comprueba, por lo que son eventos **dependientes**
+
+#### Aplicando Bayes
+
+$$P\left(A|B\right)=\frac{P\left(B|A\right)\cdot P\left(A\right)}{P\left(B\right)}$$
+
+```{r}
+(14/177)/0.3503
+```
+
+```{r}
+((14/177)/0.2022)*0.2022/0.3503
+```
+
+Comprobamos por Bayes que los eventos son dependientes.
+
+**C: Seleccionar un estudiante de Bioingeniería que piense que la IA podrá reemplazar a un médico en el futuro.** $$ P\left(E1\cap E18\right)$$
+
+```{r}
+8/177
+```
+
+$$P\left(E1\right)\cdot P\left(E18\right)$$
+
+```{r}
+0.1742*0.3708
+```
+
+La igualdad no se comprueba, por lo que son eventos **dependientes**
+
+#### Aplicando Bayes
+
+$$P\left(A|B\right)=\frac{P\left(B|A\right)\cdot P\left(A\right)}{P\left(B\right)}$$
+
+```{r}
+(8/177)/0.3708
+```
+
+```{r}
+((8/177)/0.1742)*0.1742/0.3708
+```
+
+Comprobamos por Bayes que los eventos son dependientes.
+
+**D: Seleccionar un estudiante de Ingeniería Ambiental que piense que la IA no podrá reemplazar a un médico en el futuro.** $$ P\left(E3\cap E19\right)$$
+
+```{r}
+5/177
+```
+
+$$P\left(E3\right)\cdot P\left(E19\right)$$
+
+```{r}
+0.0506*0.6292
+```
+
+La igualdad no se comprueba, por lo que son eventos **dependientes**
+
+#### Aplicando Bayes
+
+$$P\left(A|B\right)=\frac{P\left(B|A\right)\cdot P\left(A\right)}{P\left(B\right)}$$
+
+```{r}
+(5/177)/0.6292
+```
+
+```{r}
+((5/177)/0.0506)*0.0506/0.6292
+```
+
+Comprobamos por Bayes que los eventos son dependientes.
+
+## Análisis de modelos de probabilidad discreta
+
+### Variable Años_consolidación
+
+#### Definimos el evento 1
+
+Determinar que tan probable es que en una muestra de 15 estudiantes, 3 piensen que la IA se consolidará en menos de 5 años.
+
+Encontramos el número de éxitos en nuestra base de datos: (Trabajaremos con la base de datos BD3 pues contiene solo observaciones completas)
+
+```{r}
+años_menores_5 <- filter(BD3, BD3$Años_consolidacion <5)
+nrow(años_menores_5)
+nrow(BD3)
+```
+
+Observamos gráficamente la cantidad de estudiantes de los eventos mutuamente excluyentes:
+
+```{r}
+BD3$A_15 <- ifelse(BD3$Años_consolidacion < 5, "Mayores o iguales a cinco", "Menores a cinco")
+barplot(table(BD3$A_15), main = "Años de consolidación", ylab = "Frecuencia", xlab="Clasificación", col = c("lightblue", "brown"))
+```
+
+*[Gráfico 3]*
+
+Variable Aleatoria X: Número de estudiantes que piensen que la IA se consolidará en menos de 5 años
+
+**Usamos el modelo Binomial** el cual describe el número de éxitos al realizar n experimentos o ensayos de Bernoulli independientes entre sí.
+
+X\~B(50,51/177)
+
+n = tamaño de la muestra p = probabilidad de éxito X: número de estudiantes dentro de la muestra que piensen que la IA se consolidará en menos de 5 años.
+
+```{r}
+dbinom(3,15,51/177)
+```
+
+**Respuesta:** Al escoger una muestra de 15, la probabilidad de que 3 estudiantes piensen que la IA se consolidará en menos de 5 años es de 18.43187% .
+
+#### Definimos el evento 2
+
+Determinar qué tan probable es que de una muestra de 20 estudiantes se escoja a más de 10 estudiantes que piensen que la IA se consolidara en 10 años o más.
+
+Encontramos el número de éxitos en nuestra base de datos:
+
+```{r}
+años_mayores_10 <- filter(BD3, BD3$Años_consolidacion >=10)
+nrow(años_mayores_10)
+nrow(BD3)
+```
+
+Observamos gráficamente la cantidad de estudiantes de los eventos mutuamente excluyentes:
+
+```{r}
+BD3$A_10 <- ifelse(BD3$Años_consolidacion >=10, "Mayores o iguales a diez","Menores a diez")
+barplot(table(BD3$A_10), main = "Años de consolidación", ylab = "Frecuencia", xlab="Clasificación", col = c("lightblue", "brown"),ylim=c(0,150))
+
+```
+
+*[Gráfico 4]*
+
+**Usamos el modelo Binomial**
+
+X\~B(20,59/177)
+
+n = tamaño de la muestra p = probabilidad de éxito X: estudiantes que piensen que la IA se consolidara en 10 años o más
+
+```{r}
+1-pbinom(10,20,59/177)
+```
+
+**Respuesta:** Al escoger una muestra de 20 estudiantes, la probabilidad de que más de 14 estudiantes piensen que la IA se consolidará en más de 10 años es de 3.763657%.
+
+### Variable relevancia medicina
+
+Observamos la frecuencia para la variable Relevancia_medicina, enfocandonos en la respuesta "Muy relevante".
+
+```{r}
+table(BD3$Relevancia_medicina)
+```
+
+Se tiene un total de 75 estudiantes de 177 estudiantes que creen muy relevante la aplicación de la IA en la medicina, ahora definiremos la probabilidad de éxito.
+
+$$P(éxito) \;=\; \frac{65}{157}=0.4237288136$$
+
+$$P(fracaso) \;=\; \frac{92}{157}=0.5762711864$$
+
+Ahora, si repetimos un ensayo en la universidad realizando encuestas hasta encontrar al primero que crea que es muy relevante la IA en la aplicación de la medicina, se plantean los siguientes eventos.
+
+#### Definimos el evento 3
+
+Determinar qué tan probable es se tenga que encuestar a 3 alumnos hasta encontrar el primero que crea que es muy relevante la IA en la aplicación de la medicina
+
+Y: número de estudiantes encuestados necesarios hasta encontrar al primero que considere muy relevante la IA en la apolicación de la medicina
+
+**Utilizamos el modelo geométrico**, pues es adecuado para procesos en los que se repiten pruebas hasta el primer éxito. Este también implica la existencia de una dicotomía de posibles resultados y la independencia de las pruebas entre sí.
+
+Y\~G(p=0.4237288136) Entonces, se pide lo siguiente: P(Y=3)
+
+```{r}
+dgeom(3-1,0.4237288136)
+```
+
+**Respuesta:** Se observa que la probabilidad que el cuarto estudiante encuestado sea el primero que crea que es muy relevante la IA en el campo de la medicina es igual al 14.07155%.
+
+#### Definimos el evento número 4
+
+Ahora, si repetimos un ensayo en la universidad, se busca determinar cuantos estudiantes se espera seleccionar hasta obtener el primero que piense que es muy relevante la IA en la medicina
+
+X: Número de estudiantes encuestados hasta que uno crea que la IA es poco relevante en la medicina
+
+**Utilizamos el modelo geométrico**
+
+X\~G(p=0.4237288136)
+
+```{r}
+E=(1-0.4237288136)/0.4237288136
+round(E)
+```
+
+**Respuesta:** Se espera que el primer encuestado sea el estudiante que piense que la Inteligencia Artifical es muy relevante en el campo de la medicina.
+
+## Analisis de modelos de probabilidad continua
+
+### Variable Rango_precio
+
+```{r}
+fit.cont(BD3$Rango_precio)
+```
+
+No se acopla a ninguna distribución, por lo que segmentamos la base de datos para trabajarla.
+
+```{r}
+BD5 =filter (BD3, BD3$Orden_prioridad=="Máxima prioridad")
+```
+
+```{r}
+fit.cont(BD5$Rango_precio)
+```
+
+Se ajusta a un modelo exponencial donde: 1/β = 0.004148148 β =241.0714372
+
+#### Definimos el evento 5
+
+Determinar la probabilidad de que un estudiante elegido al azar considere que el precio de implementación es mayor a 50 pero menor a 200 tomando en cuenta que opina que la IA debería tener máxima prioridad en la medicina
+
+X\~Exp(β)
+
+X: Precio ed implementación entre 50 y 200 considerado por un alumno que considere que la IA debería tener máxima prioridad en la medicina.
+
+$$P\left(200,\frac{1}{\beta }\right)-P\left(50,\frac{1}{\beta }\right)$$
+
+```{r}
+pexp(200, 1/241.0714372) - pexp(50,1/241.0714372)
+```
+
+```{r}
+shadeDist(c(50,200),"dexp",0.004148148,xlab="Rango de precio",lower.tail=F)
+```
+
+*[Gráfico 5]*
+
+**Respuesta**: La probabilidad de seleccionar a un estudiante aleatorio que piense que la IA debería tener máxima prioridad en la medicina considere que el precio de implementación es mayor a 50 pero menor a 200 soles es de 37.64777%
+
+#### Definimos el evento 6
+
+Determinar la probabilidad de que un estudiante elegido al azar considere que el precio de implementación es mayor o igual a 300 soles.
+
+X\~Exp(β)
+
+X:Precio mayor o igual a 300 soles considerado por un alumno que considere que la IA debería tener máxima prioridad en la medicina.
+
+$$P\left(300,\frac{1}{\beta }\right)$$
+
+```{r}
+1-pexp(300, 1/241.0714372)
+```
+
+```{r}
+shadeDist(c(300),"dexp",0.004148148,xlab="Rango de precio",lower.tail=F)
+```
+
+*[Gráfico 6]*
+
+**Respuesta** La probabilidad de seleccionar a un estudiante aleatorio que considere que el precio de implementación de la IA en la medicina es mayor o igual a 300 soles considerando que opinan que la IA debería tener máxima prioridad en la medicina es de 28.881009%.
+
+### Variable Horas_dia
+
+```{r}
+fit.cont(BD3$Horas_dia)
+```
+
+Observamos que no se ajusta a ningún modelo, por lo que segmentamos la base de datos de la misma forma que en la variable anterior.
+
+```{r}
+BD6 = filter(BD3,BD3$Orden_prioridad=="Máxima prioridad")
+fit.cont(BD6$Horas_dia)
+```
+
+Se ajusta a un modelo normal donde: σ = 1.42315 µ = 1.950000
+
+#### Definimos el evento 7:
+
+Determinar qué tan probable es que un estudiante haga uso de la IA más de 5 horas, teniendo en cuenta que opina que esta esta debería tener máxima prioridad en la medicina.
+
+X\~N(µ,σ\^2)
+
+X: Horas al día de uso de la IA mayores a 5 reportados por estudiantes que consideren que la IA debería tener máxima prioridad en la medicina.
+
+$$1-P\left(5,µ,σ\right)$$
+
+```{r}
+1-pnorm(5, 1.950000,1.42315)
+```
+
+```{r}
+shadeDist(c(5),"dnorm",1.950000,1.42315,xlab="Horas de uso de IA al día",lower.tail=F)
+```
+
+*[Gráfico 7]*
+
+**Respuesta:** La probabilidad de seleccionar a un estudiante aleatorio que hace uso de la IA más de 5 horas al día considerando que opina que la IA debería tener máxima prioridad en la medicina es de 1.60512%.
+
+#### Definimos el evento 8:
+
+Determinar qué tan probable es que un estudiante haga uso de la IA de 2 a 4 horas, teniendo en cuenta que opina que esta esta debería tener máxima prioridad en la medicina.
+
+X\~N(µ,σ\^2)
+
+X= Horas al día de uso de la IA mayores a 2 y menores a 4 reportados por estudiantes que consideren que la IA debería tener máxima prioridad en la medicina.
+
+$$P\left(4,µ,σ\right)-P\left(2,µ,σ\right)$$
+
+```{r}
+pnorm(4, 1.950000,1.42315)-pnorm(2, 1.950000,1.42315)
+```
+
+```{r}
+shadeDist(c(2,4),"dnorm",1.950000,1.42315,xlab="Horas de uso de IA al día",lower.tail=F)
+```
+
+*[Gráfico 8]*
+
+**Respuesta** La probabilidad de seleccionar a un estudiante aleatorio que hace uso de la IA entre 2 a 4 horas al día considerando que opina que la IA debería tener máxima prioridad en la medicina es de 41.1119%.
+
+Conclusiones
+
+1.  41.67% de los estudiantes de UTEC del periodo 2023-I piensan que el orden de prioridad de uso de la IA debería ser uno medio, lo cual indica que podrían tener aún dudas acerca de la credibilidad de los métodos de diagnóstico y tratamiento que esta podría ofrecerles. Esto se ve reforzado por el resultado probabilístico que otorgó la variable disposición ser atendidos, donde, a pesar de que más de la mitad sí están de acuerdo, un 38.33% presentan incertidumbre ante la desición. Para realizar un análisis más profundo, se propusieron nuevos eventos que serían trabajados con la distribución binomial y la geométrica.
+
+2.  Se comprobó mediante el teorema de Bayes que los cuatro eventos propuestos eran dependientes, por lo que concluímos que la carrera de los estudiantes del periodo 2023-I se relaciona directamente con los factores limitantes que piensan que tendrá el uso la IA en la medicina y con su opinión acerca de que si logrará reemplazar un médico.
+
+3.  Se concluye que la variable que almacena los años de consolidación puede utilizarse para definir eventos que se adapten al modelo binomial. Mediante estos eventos se pudo determinar que que el rango aproximado de años de consolidación se encuentra entre 5 y 10. Por otro lado, se definieron eventos a partir de la variable de Relevancia en la medicina (en un supuesto de repetir el experimento en la univerisdad), los cuales se adaptaban a un modelo gemétrico. Los resultados de estos eventos evidenciaron que se espera que sea el primer estudiante encuestado que piense que el uso de la IA en la medicina sea muy relevante.
+
+4.  Se concluye que la variable que almacena el precio estimado del uso de la IA en medicina para los estudiantes del periodo 2023-I se adapta a una distribución exponencial al ser segmentada de forma que solo se trabajen los datos de los encuestados que consideran que la IA debería tener máxima prioridad en la medicina. Los eventos definidos a raíz de esta variable otorgan como resultado que un porcentaje significativo de encuestados opina que el precio del uso IA será menor a 200 soles, sin embargo, casi la tercera parte de la muestra piensa que el precio podría ser mayor a 300 soles. Asimismo, se observó que la variable que almacena las horas diarias de uso de la IA se adapta a un modelo de distribución normal al segmentar la muestra de la misma forma que se mencionó anteriormente. Los eventos definidos evidencian que la probabilidad de que los estudiantes hagan uso de la IA más de 5 horas es mínima, ya que la mayoría la usan en un intervalo de 0 a 4 horas.

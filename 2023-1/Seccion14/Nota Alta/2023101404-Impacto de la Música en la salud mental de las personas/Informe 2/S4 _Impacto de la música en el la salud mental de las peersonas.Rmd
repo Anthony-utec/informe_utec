@@ -1,0 +1,970 @@
+---
+title: "INFORME_FINAL"
+output: html_document
+---
+
+```{r include=FALSE, paged.print=FALSE, results=FALSE}
+list.of.packages <- c("readr", "dplyr", "modeest", "Rlab", "knitr", "gt", "tidyverse", "readxl", "rriskDistributions", "ggplot2","reshape2")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(readr)
+library(dplyr)
+library(modeest)
+library(gt)
+library(tidyverse)
+library(readxl)
+library(rriskDistributions)
+library(ggplot2)
+library(reshape2)
+```
+
+
+# ***Impacto de la Música en la salud mental de las personas***
+
+## Introducción
+
+En el presente proyecto, se explorará la relación entre la música y su influencia en la salud mental de las personas, centrándose específicamente en los trastornos de ansiedad, depresión, insomnio y el Trastorno Obsesivo Compulsivo (TOC). Para llevar a cabo este análisis, se utilizará una base de datos recopilada a partir de una encuesta realizada en diversas plataformas web, que se llevó a cabo desde el 27 de agosto de 2022 hasta el 9 de noviembre de 2022.
+
+
+#### Objetivos:
+
+-   Calcular las probabilidades empíricas de todos los eventos atómicos posibles para las variables "Age" que significa edad y "Anxiety" que significa Ansiedad en un nivel de 0 a 10.
+
+-   Determinar si los dos pares de eventos son dependientes y los otros dos pares independientes tomando en cuenta los resultados de la probabilidad empírica.
+
+-   Estudiar dos variables continuas asociadas a nuestros datos, si las variables siguen algún modelo del curso y presentar evidencia que lo respalde (en caso contrario mostrar las razones que refutan el modulo).
+
+-   Estudiar dos variables discretas asociadas a nuestros datos, si las variables siguen algún modelo del curso y presentar evidencia que lo respalde (en caso contrario mostrar las razones que refutan el modulo).
+
+
+### Limpieza de base de datos
+
+#### Información relevante sobre la base de datos
+
+```{r}
+BD <- read_csv("mxmh_survey_results.csv")
+```
+
+```{r}
+#observaciones
+nrow(BD)
+#columnas
+ncol(BD)
+#datos incompletos y porcentaje
+a<- sum(is.na(BD))
+a
+di = round((sum(is.na(BD))*100)/(ncol(BD)*nrow(BD)),2)
+di
+#casos incompletos y porcentaje
+sum(!complete.cases(BD))
+ci = round((sum(!complete.cases(BD))*100)/nrow(BD),2)
+ci
+```
+
+La base de datos tiene un total de 736 observaciones y 33 variables(solo se usarán 30). Hay 129 datos incompletos, que representan el 0.53% del total de datos, y 120 casos incompletos, que representan el 16.3% de casos.
+
+#### Limpieza
+
+Como primer paso, se eliminaran las columnas de las variables que no se usarán en el proyecto. Posteriormente, se eliminarán los casos incompletos para desarrollar un análisis mas preciso.
+
+```{r}
+#Eliminar observaciones incompletas
+DFF2 <- BD
+DFF2$BPM <- NULL
+DFF2$Timestamp <- NULL
+DFF2$Permissions <- NULL
+DFF2 <- na.omit(DFF2) 
+```
+
+Consideraremos la siguiente clasificación de edad para el presente proyecto:
+
+-   Adolescente(12-17 años)
+-   Joven(18-29 años)
+-   Adulto(30-59 años)
+-   Adulto mayor(60 a más)
+
+*Esto según la clasificación de edades estándar en Perú*
+
+Consideramos que a partir de la adolescencia, las personas tienen conocimientos básicos sobre problemas de salud mental como ansiedad, depresión, insomnio y OCD (trastorno obsesivo compulsivo). Por lo tanto, en nuestro data frame, consideraremos la edad a partir de los 12 años.
+
+Además, en promedio, una persona duerme 8 horas al día. Eliminaremos los valores atípicos en la variable `Hours_per_day` que sean mayores a 16, ya que es improbable que una persona escuche música mientras duerme.
+
+Para obtener resultados más uniformes en nuestro análisis, convertiremos algunas variables numéricas de tipo double a int.
+
+```{r}
+#Eliminar datos atípicos
+DFF2 = DFF2[DFF2$Age >=12,] # Consideramos edad a partir de 12 años (adolescentes, jóvenes, adultos y adultos mayores)
+
+DFF2 <- DFF2[DFF2$`Hours per day` <= 16 & DFF2$`Hours per day` > 0,] # Elimina valores atípicos de la variable Hours per day
+#cambiar tipo de dato a entero en las siguientes variables:
+DFF2$`Hours per day`= as.integer(DFF2$`Hours per day`) # convertir variable horas por día a entero
+DFF2$`Anxiety`= as.integer(DFF2$`Anxiety`) # convertir variable NIVEL DE ANSIEDAD a entero
+DFF2$`Depression`= as.integer(DFF2$`Depression`) # convertir variable NIVEL DE DEPRESION a entero
+DFF2$`Insomnia`= as.integer(DFF2$`Insomnia`) # convertir variable NIVEL DE INSOMNIA a entero
+DFF2$`OCD`= as.integer(DFF2$`OCD`) # convertir variable NIVEL DE OCD a entero
+```
+
+Ahora que ya tenemos nuestra base de datos limpia, procederemos a renombrar variables con el fin de que sean más accesibles
+
+```{r}
+DFF2=rename(DFF2,While_working="While working",Foreign_languages="Foreign languages",Primary_streaming_service="Primary streaming service",Hours_per_day="Hours per day",Fav_genre="Fav genre",Music_effects="Music effects",Frequency_Country= "Frequency [Country]",Frequency_HipHop="Frequency [Hip hop]",Frequency_Lofi="Frequency [Lofi]",Frequency_Rap="Frequency [Rap]",Frequency_EDM="Frequency [EDM]",Frequency_Jazz="Frequency [Jazz]",Frequency_Metal="Frequency [Metal]",Frequency_Rock="Frequency [Rock]",Frequency_Folk="Frequency [Folk]", Frequency_K_pop = "Frequency [K pop]",Frequency_Pop="Frequency [Pop]",Frequency_Video_game_music="Frequency [Video game music]",Frequency_Classical="Frequency [Classical]",Frequency_Gospel="Frequency [Gospel]",Frequency_Latin="Frequency [Latin]",Frequency_R_B="Frequency [R&B]")
+```
+
+Finalmente renombraremos los valores de algunos datos de la columna `Fav_genre` en donde la respuesta sea `Video game music`, la cuál será reemplazada por `Video Game`. Esto para obtener una mejor visualización en los gráficos que se realizarán más adelante.
+
+```{r}
+for(i in 1:sum(complete.cases(DFF2))){
+  if(DFF2$Fav_genre[i] == "Video game music"){
+    DFF2$Fav_genre[i] = "Video       Game"
+  }
+}
+  
+```
+
+Colores a usar.
+
+```{r}
+colors1 = c("#207498", "#2bb4c8", "#26ba8f", "#a7db8a", "#e2e2a3", "#e5e5e5")
+```
+
+-----------------------------------------------------------------------------------------------------------------------
+
+```{r}
+install.packages("ggplot2")
+library(ggplot2)
+```
+
+```{r}
+install.packages("reshape2")
+library(reshape2)
+```
+
+
+#### Diagrama de Gantt de la planificación del proyecto.
+
+```{r}
+Organización <- c('Planteamiento del tema','Definición de objetivos', 'Recolección de datos','Limpieza de datos','Análisis de los datos','Entrega  PG1','Elaboración del informe','Probabilidad de variables aleatorias','Probabilidad Empírica','Probabilidad Condicional','Variables aleatorias continuas','variables aleatorias discretas','Variables de estudio', 'Conclusiones')
+
+inicio <- as.Date(c("2023-03-28","2023-04-01","2023-04-10","2023-04-25", "2023-05-18","2023-05-26","2023-06-04","2023-06-13","2023-06-17","2023-06-18","2023-06-24","2023-06-28","2023-07-01","2023-07-03"))
+
+fin <- as.Date(c("2023-03-30","2023-04-06","2023-04-20","2023-05-15", "2023-05-25","2023-05-29","2023-06-12","2023-06-17","2023-06-22","2023-06-24"
+,"2023-06-29","2023-06-30","2023-07-03","2023-07-06"))
+```
+
+Crear un data frame con los datos proporcionados.
+
+```{r}
+datos <- data.frame(Organización, inicio, fin)
+```
+ Calcular la duración de cada tarea.
+
+```{r}
+datos$duracion <- as.numeric(datos$fin - datos$inicio)
+```
+
+ Crear una variable de tarea para usar como etiqueta en el gráfico.
+
+```{r}
+datos$Organización <- factor(datos$Organización, levels = datos$Organización)
+```
+
+
+ Crear un data frame "melted" para usar con ggplot de la librería ggplot2.
+
+```{r}
+datos_melted <- melt(datos, measure.vars = c("inicio", "fin"))
+```
+
+ Definir los colores personalizados para cada tarea que se realizó.
+
+```{r}
+colores <- c("#8B8378", "#FFBBFF", "#90EE90", "#FFEFCC", "#C1CDCD", "#FFC0CB", "#4876FF", "#CAE1FF", "#EE0000", "#7AC5CD", "#8EE5EE", "#7B68EE", "#FF8C69", "#FF69B4")
+```
+
+Crear el gráfico de Gantt con colores personalizados
+
+```{r}
+ggplot(datos_melted, aes(x = value, y = Organización, color = Organización)) +
+  geom_line(size = 5) +
+  scale_color_manual(values = colores) +
+  labs(x = "Fecha", y = "Organización") +
+  theme_bw()
+```
+
+
+## Probabilidades
+
+### Variables Aleatorias
+
+| Variable        | Tipo de variable            | Descripción                                                                                       |
+|-------------------|-------------------|----------------------------------|
+| `Age`           | Variable aleatoria discreta | Toma valores del intervalo [12, 80]. Representa la edad en años cumplidos de cada                 |
+| `Hours_per_day` | Variable aleatoria Continua | Variable aleatoria que representa el tiempo que una persona escucha música durante el día         |
+| `Anxiety`       | Variable aleatoria discreta | Define el nivel de ansiedad de la persona(en una horquilla del 1 al 10)                           |
+| `Depression`    | Variable aleatoria discreta | Define el nivel de depresión de la persona(en una horquilla del 1 al 10)                          |
+| `Insomnia`      | Variable aleatoria discreta | Define el nivel de Insomnio de la persona(en una horquilla del 1 al 10)                           |
+| `OCD`           | Variable aleatoria discreta | Define el nivel de OCD(Trastorno obsesivo compulsivo) de la persona(en una horquilla del 1 al 10) |
+
+------------------------------------------------------------------------------------------------------------
+
+### Probabilidad Empírica
+
+#### Análisis de la variable Edad
+
+-   Se utilizó la variable Edad ya que esta representa la edad en años cumplidos de las personas y se considera de 12 a más.
+
+Haremos un análisis de la variable:
+
+```{r}
+table(DFF2$Age)
+```
+
+```{r}
+ed_c1 = c(12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 48, 49, 50, 51, 53, 54, 55, 56, 57, 58, 59, 60, 61, 63, 64, 65, 67, 68, 69, 70, 71, 72, 73, 74, 80)
+
+ed_c2 = c(3,  7, 16, 20, 43, 57, 80, 59, 40, 48, 39, 37, 20, 22, 22, 17, 13, 13,  9, 12, 16,  8,  7,  7,  7,  5,  6,  1,  5,  4,  5,  3,  3,  1,  2,  5,  1,  1, 3 , 2 , 1 , 5 , 3 , 3 , 2 , 6 , 2 , 2 , 3 , 1 , 2 , 1 , 1 , 1 , 1 , 1 , 1 , 1 , 1)
+
+APAge <-data.frame(Edad = ed_c1, fi = ed_c2, hi = round(ed_c2/707, 4), Ex  = round(ed_c2/707,4) * ed_c1)
+```
+
+```{r}
+
+fun1 <- function(DF, cadena, n){
+  
+  row_max = 0
+  row_min = c()
+  
+  for (i in 1:nrow(DF)){
+    if((DF$hi)[i] == max(DF$hi)){
+      row_max = i;
+    }
+    if((DF$hi)[i] == min(DF$hi)){
+      row_min = c(row_min, i)
+    }
+  }
+  
+  gt(DF) %>%
+  tab_header(
+    title = paste("Tabla 1.",n,": Función Probabilística",sep = ""), 
+    subtitle = paste("Variable Edad(",cadena,")",sep = "")) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[3])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = row_max)
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[2])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = row_min)
+  )
+}
+```
+
+```{r}
+AD_ED = fun1(APAge[1:6,], "Adolescente", "1")
+JOV_ED = fun1(APAge[7:18,], "Joven", "2") 
+ADU_ED = fun1(APAge[19:45,], "Adulto", "3")
+ADU_M_ED = fun1(APAge[46:59,], "Adulto mayor", "4")
+AD_ED
+JOV_ED
+ADU_ED
+ADU_M_ED
+```
+
+La tabla original se dividió en 4 grupos para una mejor visibilidad de los datos, en cada grupo se toma cada uno de los rangos de edades establecidos anteriormente (Adolescente, Joven, Adulto y Adulto mayor).
+En cada grupo se muestra las observaciones de cada instancia, su probabilidad y su valor esperado. Así mismo se resalta la probabilidad menor y la probabilidad mayor en donde el color verde resalta la probabilidad mayor y el celeste la probabilidad menor.
+
+
+```{r}
+hist(DFF2$Age,main="Histograma de la variable Edad", ylab = "Frecuencia", xlab = "Edad(años cumplidos)")
+```
+
+Como podemos observar en este gráfico, no hay similitud con alguna distribución de probabilidad conocida. Además, según lo que se ve en el gráfico y las tablas, la variable edad no es equiprobable. Lo más probable es que una persona que respondió el formulario tenga 18 años, mientras que lo menos probable es que tenga una edad mayor a 65 años.
+
+#### Análisis de la variable Ansiedad
+
+-   Se usará la variable `Anxiety` ya que define el nivel de ansiedad de una persona en una horquilla del 1 al 10
+
+```{r}
+table(DFF2$Anxiety)
+```
+
+```{r}
+APAnxiety = data.frame(`Nivel de ansiedad` = c(  0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 ), fi = c(32 ,27, 44, 64, 54, 58, 83, 119, 111,  52,  63 ), hi = round(c(32 ,27, 44, 64, 54, 58, 83, 119, 111,  52,  63 )/707,4), Ex = round(c(32 ,27, 44, 64, 54, 58, 83, 119, 111,  52,  63 )/707,4) * c(  0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 )) 
+```
+
+```{r}
+min(APAnxiety$hi)
+max(APAnxiety$hi)
+```
+
+```{r}
+gt(APAnxiety) %>%
+  tab_header(
+    title = "Tabla 2: Función Probabilística", 
+    subtitle = "Variable Anxiety") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[3])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 8)
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[2])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 2)
+  )
+```
+
+```{r}
+hist(DFF2$Anxiety, freq = FALSE,main="Distribución de Ansiedad", ylab = "Función de probabilidad", xlab = "Nivel de Ansiedad")
+```
+
+### Probabilidad Condicional
+
+#### Variables dependientes
+
+#### Primer caso:
+
+Variables a usar : `Anxiety` y `Frecuency_Rock`
+
+Caso probabilístico: ¿Cuál es la probabilidad de que una persona tenga un nivel 7 de ansiedad y escuche rock muy frecuentemente?
+
+```{r}
+table( DFF2$Frequency_Rock, DFF2$Anxiety)
+```
+
+```{r}
+table(DFF2$Anxiety, DFF2$Frequency_Rock)
+
+```
+
+```{r}
+APC1 = data.frame(Nivel = c(0,1,2,3,4,5,6,7,8,9,10), Nunca = c(4, 2, 5, 10, 10, 7, 6, 14, 9,  8, 10), `Rara Vez` = c(3,  4 , 8 ,14 , 6 ,11 ,13,14, 9 , 3, 5), `A veces` = c(11 , 7 ,13, 19, 19, 13, 30, 40, 38, 11, 10), `Con mucha frecuencia` = c(14, 14, 18, 21, 19, 27, 34, 51, 55, 30, 38), N1 = round(c(4, 2, 5, 10, 10, 7, 6, 14, 9,  8, 10)/707,4), N2 = round(c(3,  4 , 8 ,14 , 6 ,11 ,13,14, 9 , 3, 5)/707,4), N3 = round(c(11 , 7 ,13, 19, 19, 13, 30, 40, 38, 11, 10)/707,4), N4 = round(c(14, 14, 18, 21, 19, 27, 34, 51, 55, 30, 38)/707,4) )
+```
+
+```{r}
+gt(APC1) %>%
+  cols_hide(columns = c(Nunca,Rara.Vez, A.veces,Con.mucha.frecuencia))%>%
+  tab_header(
+    title = "Tabla 3: Función Probabilística", 
+    subtitle = "Variable Anxiety desgregada por Frecuencia de escucha del género Rock") %>%
+  cols_label(
+    N1 = "Nunca",
+    N2 = "Rara vez",
+    N3 = "A veces",
+    N4 = "Muy frecuentemente"
+  )%>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[3])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 8)
+  )  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[2])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      columns = 9)
+    )%>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[4])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      columns = 9, rows = 8)
+  )
+  
+```
+
+$$P(A|B) = P(A∩B)/P(B)$$
+
+```{r}
+round((0.0721/0.1683),4)
+```
+
+La probabilidad de que una persona escuche rock muy frecuentemente dado que su nivel de ansiedad es 7 es del 42.84%
+
+#### Segundo caso:
+
+Variables a usar : `Depression` y `Composer`
+
+Caso probabilístico: ¿Cuál es la probabilidad de que una persona tenga un nivel 7 de depresión y que componga música?
+
+```{r}
+table(DFF2$Depression)
+```
+
+```{r}
+APDepression = data.frame(`Nivel de depresion` = c(  0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 ), fi = c(78, 39, 87, 58, 58, 54, 87, 93, 75, 37, 41 ), hi = round(c(78, 39, 87, 58, 58, 54, 87, 93, 75, 37, 41)/707,4), Ex = round(c(78, 39, 87, 58, 58, 54, 87, 93, 75, 37, 41 )/707,4) * c(  0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 )) 
+```
+
+```{r}
+min(APDepression$hi)
+max(APDepression$hi)
+```
+
+```{r}
+gt(APDepression) %>%
+  tab_header(
+    title = "Tabla 4: Función Probabilística", 
+    subtitle = "Variable Depression") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[3])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 7)
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[2])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 10)
+  )
+```
+
+```{r}
+table( DFF2$Composer, DFF2$Depression)
+```
+
+```{r}
+APC2 = data.frame(Nivel = c(0,1,2,3,4,5,6,7,8,9,10), No = c(69, 32, 74, 46, 46, 48, 73, 74, 62, 29, 31), Yes = c(9 , 7, 13, 12, 12 , 6, 14, 19, 13,  8, 10), no = round(c(69, 32, 74, 46, 46, 48, 73, 74, 62, 29, 31)/707,4), si = round(c(9 , 7, 13, 12, 12 , 6, 14, 19, 13,  8, 10)/707,4) )
+```
+
+```{r}
+gt(APC2) %>%
+  cols_hide(columns = c(No,Yes))%>%
+  tab_header(
+    title = "Tabla 5: Función Probabilística", 
+    subtitle = "Variable Depression desgregada por variable Composer") %>%
+  # cols_label(
+  #   N1 = "Nunca",
+  #   N2 = "Rara vez",
+  #   N3 = "A veces",
+  #   N4 = "Muy frecuentemente"
+  # )%>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[3])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 8)
+  )  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[2])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      columns = 5)
+    )%>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[4])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      columns = 5, rows = 8)
+  )
+```
+
+$$P(A|B) = P(A∩B)/P(B)$$
+
+```{r}
+round((0.0269/0.1315),4)
+```
+
+La probabilidad de que una persona componga música dado que tiene un nivel 7 de depresión es del 20.46%
+
+-------------------------------------------------------------------------------------------------
+
+#### Variables independientes
+
+#### Tercer caso:
+
+demostrar que las variables `age` y `hours_per_day` son independientes
+
+Sean los eventos:
+
+Evento A : Personas adolescentes y jóvenes (entre 12 y 29 años)\
+Evento B : Personas que escuchan personas que escuchan entre 1 y 3 horas al día
+
+Para demostrar que las variables son independientes se tiene que cumplir lo siguiente:
+
+$$P(A < 30)$$ $$P(1<B<3) = P(B<=3)-P(B<1)$$
+
+CASO1: $$P(A|B) = P(A)$$ CASO2: $$P(B|A) = P(B)$$ CASO3: $$P(B∩A) = P(A)*P(B)$$
+
+$$P(B):$$
+
+```{r}
+PROB_B = nrow(DFF2[DFF2$Hours_per_day<4 & DFF2$Hours_per_day>0,])/707
+PROB_B
+```
+
+$$P(A):$$
+
+```{r}
+PROB_A = nrow(DFF2[DFF2$Age < 30 ,])/707
+PROB_A
+```
+
+$$P(B∩A):$$
+
+```{r}
+X = DFF2[DFF2$Age < 30 & DFF2$Hours_per_day<4 & DFF2$Hours_per_day>0,]
+PROB_INT = (nrow(X)/707)
+```
+
+CASO 1:
+
+```{r}
+PROB_A_B = PROB_INT/PROB_B
+round(PROB_A_B,4)
+round(PROB_A,4)
+```
+
+CASO 2:
+
+```{r}
+PROB_B_A = PROB_INT/PROB_A
+round(PROB_A_B,4)
+round(PROB_B,4)
+```
+
+CASO 3:
+
+```{r}
+PROD = PROB_A * PROB_B
+PROB_INT
+PROD
+```
+
+Dado los resultados obtenidos, se puede comprobar que las variables no son independientes. Por lo tanto aplicamos el teorema de Bayes:
+
+$$P(A|B) = P(A∩B)/P(B)$$
+
+```{r}
+round(PROB_INT/PROB_B,4)
+```
+
+Por lo tanto la probabilidad de que una persona sea adolescente o joven dado que escuche música entre 1 y 3 horas al día y es del 76.79%
+
+#### Cuarto caso:
+
+Demostrar que las variables `Insomnio` y `Instrumentalist` son independientes
+
+Sean los eventos:
+
+Evento A : Personas con insomnio con niveles entre 7 y 10(incluido) Evento B : Personas que si tocan instrumentos
+
+Para demostrar que las variables son independientes se tiene que cumplir lo siguiente:
+
+$$P(A < 30)$$ $$P(1<B<3) = P(B<=3)-P(B<1)$$
+
+CASO1: $$P(A|B) = P(A)$$ CASO2: $$P(B|A) = P(B)$$ CASO3: $$P(B∩A) = P(A)*P(B)$$
+
+$$P(B):$$
+
+```{r}
+PROB_B = nrow(DFF2[DFF2$Instrumentalist == "Yes",])/707
+PROB_B
+```
+
+$$P(A):$$
+
+```{r}
+PROB_A = nrow(DFF2[DFF2$Insomnia > 6 ,])/707
+PROB_A
+```
+
+$$P(B∩A):$$
+
+```{r}
+X = DFF2[DFF2$Instrumentalist == "Yes" & DFF2$Insomnia > 6,]
+PROB_INT = (nrow(X)/707)
+PROB_INT
+```
+
+CASO 1:
+
+```{r}
+PROB_A_B = PROB_INT/PROB_B
+round(PROB_A_B,4)
+round(PROB_A,4)
+```
+
+CASO 2:
+
+```{r}
+PROB_B_A = PROB_INT/PROB_A
+round(PROB_A_B,4)
+round(PROB_B,4)
+```
+
+CASO 3:
+
+```{r}
+PROD = PROB_A * PROB_B
+PROB_INT
+PROD
+```
+
+Dado los resultados obtenidos, se puede comprobar que las variables no son independientes. Por lo tanto aplicamos el teorema de Bayes:
+
+$$P(A|B) = P(A∩B)/P(B)$$
+
+```{r}
+round(PROB_INT/PROB_B,4)
+```
+
+Por lo tanto la probabilidad de que una persona escuche y toque instrumentos, tenga niveles de insomnio entre 7 y 10 es del 25.66%
+
+----------------------------------------------------------------------------------------------------------------
+
+$$ Variables\ Aleatorias\ Continuas $$
+
+En este informe estadístico, se pidió utilizar dos variables continuas, pero al solo contar con una disponible en la base de datos, trabajaremos con la misma 2 veces. Para superar esta limitación, se dividió la única variable en rangos representativos y se analizó cada subgrupo por separado. Aunque esta estrategia no reemplaza la presencia de dos variables independientes, nos permitió explorar diferencias y similitudes entre los rangos. Si bien existen limitaciones y pérdida de precisión al comparar con dos variables separadas, esta aproximación proporcionó información valiosa sobre el fenómeno estudiado.
+
+| Variable        | Tipo de variable            | Descripción                                                                               |
+|-------------------|-------------------|----------------------------------|
+| `Hours_per_day` | Variable aleatoria Continua | Variable aleatoria que representa el tiempo que una persona escucha música durante el día |
+
+
+VARIABLE A INVESTIGAR : `Hours per day`
+
+#### Análisis de la variable "Hours per day" - rango[0-7]
+
+- Al ejecutar el siguiente código obtennos en una tabla que nos permite visualizar los datos que manejamos. 
+
+```{r}
+R1_H_DFF2 = DFF2[DFF2$Hours_per_day >=0 & DFF2$Hours_per_day <=7,]
+table(R1_H_DFF2$Hours_per_day)
+
+view(DFF2)
+```
+
+```{r}
+hp_c1 = c(0, 1, 2, 3, 4, 5, 6, 7)
+hp_c2 = c(25, 129, 175, 114, 84, 53, 47, 15)
+APHoras_por_dia <-data.frame(Horas_por_dia = hp_c1, fi = hp_c2, hi = round(hp_c2/707, 4))
+```
+
+
+```{r}
+gt(APHoras_por_dia) %>%
+  tab_header(
+    title = "Tabla 1: Función Probabilística", 
+    subtitle = "Variable Hours_per_day")
+```
+
+
+Para ver la dispersión de las variables en este rango usaremos un boxplot.
+
+```{r}
+boxplot(R1_H_DFF2$Hours_per_day, main = "Distribución de la variable 
+        Hour_per_day en el rango de 0 a 7", xlab = "Valores", ylab = "Dispersión")
+```
+
+Para poder observar la densidad de la variable usaremos un plot.
+
+```{r}
+HP_density <- density(R1_H_DFF2$Hours_per_day)
+
+plot(HP_density, main = "Gráfico de Densidad", xlab = "Valores", ylab ="Densidad")
+```
+
+Haciendo uso de la librería "rriskDistributions" con la función fit.cont, nos dará una posible forma de distribución que podría seguir la variable.
+
+```{r}
+fit.cont(R1_H_DFF2$Hours_per_day)
+```
+
+Al ver el análisis de la variable "hours_per_day" en el rango de 0 a 7 concluimos que no se asemeja a ningún tipo de distribución conocida.
+
+------------------------------------------------------------------------------------------------------------
+
+#### Análisis de la variable "Hours per day" - rango[8-16]
+
+- Al ejecutar el siguiente código obtennos en una tabla que nos permite visualizar los datos que manejamos. 
+
+```{r}
+R2_H_DFF2 = DFF2[DFF2$Hours_per_day >=8 & DFF2$Hours_per_day <=16,]
+table(R1_H_DFF2$Hours_per_day)
+```
+
+```{r}
+hp_c1 = c(8, 9, 10, 11, 12, 14, 15, 16)
+hp_c2 = c(29 , 3 ,20,  1,  8,  1,  2,  1 )
+APHoras_por_dia <-data.frame(Horas_por_dia = hp_c1, fi = hp_c2, hi = round(hp_c2/707, 4))
+```
+
+
+```{r}
+gt(APHoras_por_dia) %>%
+  tab_header(
+    title = "Tabla 1: Función Probabilística", 
+    subtitle = "Variable Hours_per_day")
+```
+
+
+Para ver la dispersión de las variables en este rango usaremos un boxplot.
+
+```{r}
+boxplot(R2_H_DFF2$Hours_per_day, main = "Distribución de la variable 
+        Hour_per_day en el rango de 8 a 16", xlab = "Valores", ylab = "Dispersión")
+```
+
+Para poder observar la densidad de la variable usaremos un plot.
+
+```{r}
+HP_density <- density(R2_H_DFF2$Hours_per_day)
+
+plot(HP_density, main = "Gráfico de Densidad", xlab = "Valores", ylab ="Densidad")
+```
+
+Haciendo uso de la librería "rriskDistributions" con la función fit.cont, nos dará una posible forma de distribución que podría seguir la variable.
+
+```{r}
+fit.cont(R2_H_DFF2$Hours_per_day)
+```
+
+
+Al ver el análisis de la variable "hours_per_day" en el rango de 8 a 16 concluimos que no se asemeja a ningún tipo de distribución conocida.
+
+
+
+$$ Variables\ Aleatorias\ Discretas$$
+
+| Variable     | Tipo de variable            | Descripción                                                                                       |
+|-------------------|-------------------|----------------------------------|
+| `Age`        | Variable aleatoria discreta | Toma valores del intervalo [12, 80]. Representa la edad en años cumplidos de cada                 |
+| `Anxiety`    | Variable aleatoria discreta | Define el nivel de ansiedad de la persona(en una horquilla del 1 al 10)                           |
+| `Depression` | Variable aleatoria discreta | Define el nivel de depresión de la persona(en una horquilla del 1 al 10)                          |
+| `Insomnia`   | Variable aleatoria discreta | Define el nivel de Insomnio de la persona(en una horquilla del 1 al 10)                           |
+| `OCD`        | Variable aleatoria discreta | Define el nivel de OCD(Trastorno obsesivo compulsivo) de la persona(en una horquilla del 1 al 10) |
+
+--------------------------------------------------------------------------------------------------------------
+
+
+### Variable a estudiar : `OCD` del nivel 2.
+
+#### Análisis de la variable OCD con un nivel 2.
+
+-   Se usará la variable `OCD` ya que define el nivel que padece una persona en una horquilla de 0 al 10.
+
+Con el siguiente código podemos apreciar la medida de distribución de la variable OCD en la data.
+
+```{r}
+hist(DFF2$OCD,main="Distribución de OCD", ylab = "Función de probabilidad", xlab = "Nivel de OCD")
+```
+Este gráfico 
+
+***Para ello crearemos una Distribución binomial:***
+
+Variable del estudio Nivel de OCD es una escala de 0 a 10.
+
+> Ω = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10 }
+
+***Probabilidad de éxito:***
+
+Lo definimos como como la cantidad de personas que padecen de un nivel 2 de OCD.
+
+```{r}
+table(DFF2$OCD)
+```
+
+```{r}
+APOCD = data.frame(`Nivel de OCD` = c(  0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 ), fi = c(237 ,91, 93, 62, 48, 53, 33, 30, 28, 13, 19 ), hi = round(c(237 ,91, 93, 62, 48, 53, 33, 30, 28, 13, 19)/707,4),Ex = round(c(237 ,91, 93, 62, 48, 53, 33, 30, 28, 13, 19 )/707,4) * c(0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 )) 
+```
+
+```{r}
+gt(APOCD) %>%
+  tab_header(
+    title = "Tabla 1: Función Probabilística", 
+    subtitle = "OCD") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[3])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 3)
+  )
+```
+
+Definiremos nuestra probabilidad de éxito "p" como las personas que presentan un nivel 2 de OCD.
+
+```{r}
+# Parámetros de la población
+poblacion <- 707 #Tamaño de la población
+ocd <- 93          # Número de personas que padecen de OCD nivel 2
+
+# Cálculo de la probabilidad de éxito
+probabilidad_exito <- ocd / poblacion
+probabilidad_exito
+```
+Esto significa que la probabilidad de que una persona elegida al azar padezca de un nivel 2 de OCD es del 13.15%.
+
+
+Definición de la variable aleatoria discreta.
+
+```{r}
+# Parámetros del experimento binomial
+n <- 50    # Número total de ensayos
+p <- 0.1315417   # Probabilidad de éxito en un ensayo
+
+# Cálculo de la esperanza matemática utilizando la fórmula E(X) = n * p
+esperanza_matematica <- n * p
+round(esperanza_matematica,digits = 2)
+```
+Este valor nos indica de que aproximadamente 7 personas de una muestra de 50 de ellas padezcan de un nivel 2 de OCD.
+
+> *** X = La cantidad de personas que presentan un nivel 2 de OCD en una encuesta de 707 personas, tomando una muestra de 50 personas ***
+
+Rango o recorrido de la variable aleatoria discreta: 
+
+> *** Rx =(1;2;3;4;5;....50) ***
+
+
+Identificación de parámetros:
+
+> *** p = probabilidad de exito ***
+> *** n = tamaño de muestra***
+> *** q = probabilidad de fracaso***
+
+Para calcular la probabilidad de fracaso:
+
+```{r}
+q = 1 - 0.1315417
+print(q)
+```
+Para definir nuestra función binomial usaremos la siguiente formula: 
+
+$$ X\sim B(n = 50 , p = 0.1315417)$$
+```{r}
+plot(type = "h",dbinom(0:50 ,size = 50,prob = 0.1315), main = "Función de probabilidad de la Binomial de la variable OCD", ylab = "Probabilidad", xlab = "Cantidad de personas que tienen un nivel 2 de OCD.",xlim = c(1,30))
+```
+
+Esta gráfica nos explica que por ejemplo 10 personas de un ensayo de 50 personas tienen aproximadamente 8 % de probabilidad de sufrir de un nivel 2 de OCD.
+
+
+
+### Variable a estudiar : `Insomnia` del nivel 5.
+
+#### Análisis de la variable `Insomnia` del nivel 5.
+
+-   Se usará la variable `Insomnia` ya que define el nivel que padece una persona en una horquilla de 0 al 10.
+
+Con el siguiente código podemos apreciar la medida de distribución de la variable Insomnia en la data.
+
+```{r}
+hist(DFF2$Insomnia,main="Distribución de Imsomnia", ylab = "Función de probabilidad", xlab = "Nivel de Imsomnia")
+```
+
+***Para ello crearemos una Distribución binomial:***
+
+Variable del estudio Nivel de Insomnia es una escala de 0 a 10.
+
+> Ω = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10 }
+
+***Probabilidad de éxito:***
+
+Lo definimos como como la cantidad de personas que padecen de un nivel 2 de OCD.
+
+```{r}
+table(DFF2$Insomnia)
+```
+
+```{r}
+APOCD = data.frame(`Nivel de OCD` = c(  0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 ), fi = c(144 ,79, 83, 68, 58, 54, 60, 59, 48, 24, 30), hi = round(c(144 ,79, 83, 68, 58, 54, 60, 59, 48, 24, 30)/707,4),Ex = round(c(144 ,79, 83, 68, 58, 54, 60, 59, 48, 24, 30)/707,4) * c(0 ,1, 2,  3, 4, 5, 6, 7, 8, 9, 10 )) 
+```
+
+```{r}
+gt(APOCD) %>%
+  tab_header(
+    title = "Tabla 1: Función Probabilística", 
+    subtitle = "Insomnia") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = colors1[3])),
+    locations = cells_body(
+      #columns = vars(V1, V2), # not needed if coloring all columns
+      rows = 6)
+  )
+```
+
+Definiremos nuestra probabilidad de éxito "p" como las personas que presentan un nivel 5 de Insomnia.
+
+```{r}
+# Parámetros de la población
+poblacion <- 707 #Tamaño de la población
+Insomnia <- 54          # Número de personas que padecen de Insomnia
+
+# Cálculo de la probabilidad de éxito
+probabilidad_exito <- Insomnia / poblacion
+probabilidad_exito
+```
+Esto significa que la probabilidad de que una persona elegida al azar padezca de un nivel 5 de Insomnia es del 7,64%.
+
+
+Definición de la variable aleatoria discreta.
+
+```{r}
+# Parámetros del experimento binomial
+n <- 30 # Número total de ensayos
+p <- 0.07637907   # Probabilidad de éxito en un ensayo
+
+# Cálculo de la esperanza matemática utilizando la fórmula E(X) = n * p
+esperanza_matematica <- n * p
+round(esperanza_matematica,digits = 2)
+```
+
+Este valor nos indica de que aproximadamente 2 personas de una muestra de 30 de ellas padezcan de un nivel 5 de Insomnio.
+
+> *** X = La cantidad de personas que presentan un nivel 5 de OCD en una encuesta de 707 personas ***
+
+
+Rango de la variable aleatoria discreta:
+
+> *** Rx =(1;2;3;4;5;....30) ***
+
+
+Identificación de parámetros:
+
+> *** p = probabilidad de exito ***
+> *** n = tamaño de muestra***
+> *** q = probabilidad de fracaso***
+
+Para calcular la probabilidad de fracaso
+
+```{r}
+q = 1 - 0.07637907
+print(q)
+```
+Para definir nuestra función binomial usaremos la siguiente formula: 
+
+$$ X\sim B(n = 30 , p = 0.07637907)$$
+```{r}
+plot(type = "h",dbinom(0:30,size=30,prob = 0.07637907), main = "Función de probabilidad de la Binomial de la variable Insomnia", ylab = "Probabilidad", xlab = "Cantidad de personas que tienen un nivel 5 de Insomnia.",xlim = c(0,30))
+```
+Esta gráfica nos explica que por ejemplo 5 personas tienen aproximadamente 12 % de probabilidad de sufrir de un 
+nivel 5 de Insomnio. 
+
+
+#### Conclusiones:
+
+Con los resultados obtenidos de las probabilidades empíricas, pudimos calcular las probabilidades condicionales y determinar si los eventos escogidos eran dependientes o independientes. Este análisis nos permitió comprender mejor las relaciones entre las variables y su influencia en los resultados.
+
+Al realizar un análisis exhaustivo de la variable aleatoria continua "Hours_per_day", concluimos que no todas las variables continuas se ajustan a una distribución conocida. Esto nos lleva a considerar la posibilidad de explorar modelos o métodos alternativos para analizar y comprender adecuadamente esta variable.
+
+Mediante el análisis de las variables aleatorias discretas "OCD" (Trastorno Obsesivo Compulsivo) e "Insomnia" (Insomnio), logramos crear una distribución binomial. Esta distribución nos permitió calcular la probabilidad de éxito y fracaso en relación con estas variables. Estos hallazgos son importantes para comprender la prevalencia y la probabilidad de ocurrencia de dichas condiciones en una población determinada.

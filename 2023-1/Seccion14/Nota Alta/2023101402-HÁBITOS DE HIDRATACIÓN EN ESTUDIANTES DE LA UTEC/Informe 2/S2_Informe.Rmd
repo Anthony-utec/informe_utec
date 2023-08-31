@@ -1,0 +1,1065 @@
+---
+title: '**HÁBITOS DE HIDRATACIÓN EN ESTUDIANTES DE LA UTEC EN ABRIL DEL 2023**'
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: yeti
+---
+
+# [**Introducción**]{style="color:#00008B"}
+
+```{r, include=FALSE}
+
+packages <- c(
+    "ggplot2", "dplyr", "tidyverse", "readr","DescTools", "corrplot","knitr", "rriskDistributions", "fastGraph", "gt")
+
+missing.packages = packages[!(packages %in% rownames(installed.packages()))]
+
+if (length(missing.packages) > 0) {
+    install.packages(missing.packages)
+}
+lapply(packages, library, character.only = TRUE)
+
+```
+
+
+## Relevancia
+
+Diversas investigaciones han comprobado que tanto la deshidratación como la hiperhidratación en niveles leves y moderados pueden tener efectos perjudiciales en el rendimiento académico y en la salud, tanto física como mental, de las personas. Dado que el bienestar de los estudiantes es de suma importancia, consideramos que este estudio puede proporcionar información relevante sobre este tema.
+
+## Contexto
+
+En este estudio, se pretende analizar la calidad de los hábitos de hidratación de los estudiantes de la UTEC, con el objetivo de proporcionar una fuente actualizada de información que ayude a la institución educativa a tomar medidas para mejorar dichos hábitos. Este enfoque no solo busca favorecer la salud de los alumnos, sino también potenciar su rendimiento académico.
+
+## Objetivos:
+
+### Objetivo general:
+
+-   Identificar los hábitos de hidratación en los estudiantes de la UTEC en abril del ciclo 2023-1
+
+### Objetivos específicos:
+
+-   Analizar los eventos atómicos para la sed que presentan en clase y el tipo líquido que consumen por preferencia los alumnos cuando están cansados
+
+-   Analizar la posible dependencia o independencia de pares de eventos interesantes para el estudio
+
+-   Analizar qué tipo de distribución discreta presenta la edad y la cantidad de cursos que llevan el grupo de estudiantes con buenos hábitos de hidratación
+
+-   Determinar el comportamiento probabilístico del peso y los litros de líquido consumidos por los estudiantes que presentan tanto buenos como malos hábitos de hidratación 
+
+# [**Planificación**]{style="color:#00008B"}
+
+```{r, include=FALSE}
+
+packages <- c(
+    "ggplot2", "dplyr", "tidyverse", "readr","DescTools", "corrplot","knitr", "rriskDistributions", "fastGraph", "gt")
+
+missing.packages = packages[!(packages %in% rownames(installed.packages()))]
+
+if (length(missing.packages) > 0) {
+    install.packages(missing.packages)
+}
+lapply(packages, library, character.only = TRUE)
+
+```
+
+
+```{r}
+data <- data.frame(name = c('Elección del tema y objetivos', 'Elaboración y recolección de datos','Relevancia y clasificación de variables','Limpieza de datos','Desarrollo de descriptores numéricos y gráficos','Probabilidad empírica, condicional y variables aleatorias'), 
+start = c(0, 1, 3,5,7,12),
+end = c(1, 3, 5, 6,10,14),
+Estado = c('completado','completado','completado','completado','completado','completado'))
+ggplot(data, aes(x=start, xend=end, y=name, yend=name, color=Estado)) +
+  theme_bw()+
+  geom_segment(size=6) + 
+  labs(title='Diagrama de Gantt', x='Semana', y='Actividades')+
+  scale_colour_manual(values = c('#EE6363'))
+```
+
+
+# [Variables utilizadas]{style="color:#00008B"}
+
+-   Resumen de las variables:
+
+```{r, echo = FALSE}
+
+
+Vars <- matrix(c ("Edad", "Numérica discreta", "Restricción: ser un número entero positvo del 10 al 39",
+                   "Género", "Categórica nominal", "Opcion única: \"femenino\", \"masculino\" y \"otro\"",
+                   "Peso", "Numérica continua", "Restricción: ser un número entre 35 - 200 kilos",
+                   "Estatura", "Numérica continua","Restricción: ser un número entre 1.20 - 2.20 metros",
+                   "Carrera", "Categórica nominal", "Opcion única: carreras presentes en la UTEC",
+                   "Ciclo", "Categórica ordinal", "Opcion única: ciclos desde el primero hasta el décimo",
+                   "Litros_por_dia", "Numérica continua", "Restricción: valor fraccionario del 0.1 - 6",
+                   "Tipos_liquido", "Categórica nominal", "Opcion múltiple: \"Agua\", \"Gaseosas\", \"Refrescos o jugos\", \"Bebidas energizantes\", \"Infusiones\" y \"Otro\"",
+                   "Litros_clase", "Numérica continua", "Restricción: valor fraccionario del 0.1 - 6.",
+                   "Sed_clase", "Categórica ordinal", "Opción única: donde 1 representa \"Muy poca sed\" y 5 \"Mucha sed\"",
+                   "Agua_clase", "Categórica ordinal", "Opción única: donde 1 representa \"Nunca\" y 5 \"Siempre\"",
+                   "Gaseosas_clase", "Categórica ordinal", "Opción única: donde 1 representa \"Nunca\" y 5 \"Siempre\"",
+                   "Bebidas_energeticas_clase", "Categórica ordinal", "Opción única: donde 1 representa \"Nunca\" y 5 \"Siempre\"",
+                   "Infusiones_clase", "Categórica ordinal", "Opción única: donde 1 representa \"Nunca\" y 5 \"Siempre\"",
+                   "Cansado_tipo_liquido", "Categórica nominal", "Opcion única: \"Agua\", \"Gaseosas\", \"Refrescos o jugos\", \"Bebidas energizantes\", \"Infusiones\" y \"Otro\"",
+                   "Liquido_mejora_rendimiento", "Categórica nominal", "Opcion única: \"Agua\", \"Gaseosas\", \"Refrescos o jugos\", \"Bebidas energizantes\", \"Infusiones\" y \"Otro\"",
+                   "Rendimiento_hidratado", "Categórica nominal", "Opción única: \"Sí\", \"No\" y \"Tal vez\"",
+                   "Concentracion_clase", "Categórica ordinal", "Opción única: donde 1 representa \"No me concentro en lo absoluto\" y 5 \"Me concentro completamente\"",
+                   "Memoria", "Categórica ordinal", "Opción única: donde 1 representa \"Muy mala\" y 5 \"Muy buena\"",
+                   "Deshidratacion_efectos", "Categórica nominal", "Opción única: \"Sí\", \"No\" y \"Tal vez\"",
+                   "Salud_fisica", "Categórica ordinal", "Opción única: donde 1 representa \"Nada saludable\" y 5 \"Muy saludable\"",
+                   "Migrañas", "Categórica ordinal", "Opción única: donde 1 representa \"Nunca\" y 5 \"Siempre\"",
+                   "Fatiga", "Categórica ordinal", "Opción única: donde 1 representa \"Nunca\" y 5 \"Siempre\"",
+                   "Salud_mental", "Categórica ordinal", "Opción única: donde 1 representa \"Muy mala\" y 5 \"Muy buena\"",
+                   "Ansiedad", "Categórica nominal", "Opción única: \"Sí\" y \"No\"",
+                   "Estres", "Categórica nominal", "Opción única: \"Sí\" y \"No\"",
+                   "CF_no_ingesta_liquido", "Categórica nominal","Opción única: \"Sí\", \"No\" y \"A veces\"",
+                   "Horas_en_universidad", "Numérica continua", "Restricción: ser un número positivo entre 2 - 59",
+                   "Cantidad_cursos", "Numérica discreta", "Opción única: valores del 1 al 8"), ncol = 3 , byrow = TRUE ) 
+colnames (Vars) <- c ('Variable', 'Clase', 'Descripción')
+
+kable(Vars)
+```
+
+
+Se importa la base de datos con el nombre de Bdatos:
+
+```{r}
+Bdatos<- read_csv("Bdatos.csv")
+```
+
+# [**PROBABILIDAD EMPÍRICA:**]{style="color:#00008B"}
+
+## Variable: Sed_clase
+
+-   Cantidad de distintos valores para la variable:
+
+```{r}
+length(c(unique(Bdatos$Sed_clase)))
+```
+
+-   El espacio muestral (Ω) de esta variable:
+
+```{r}
+unique(Bdatos$Sed_clase)
+```
+
+Ω = {"Ni mucha ni poca" "Poca", "Mucha", "Muy poca", "Moderada"}
+
+-   Definición de los eventos atómicos y sus respectivas probabilidades:
+
+1)  Evento A: el estudiante de la UTEC presenta "Demasiada" sed durante clases en abril del ciclo 2023-1.
+
+2)  Evento B: el estudiante de la UTEC presenta "Mucha" sed durante clases en abril del ciclo 2023-1.
+
+3)  Evento C: el estudiante de la UTEC presenta "Ni mucha ni poca" sed durante clases en abril del ciclo 2023-1.
+
+4)  Evento D: el estudiante de la UTEC presenta "Poca" sed durante clases en abril del ciclo 2023-1.
+
+5)  Evento E: el estudiante de la UTEC presenta "Muy poca" sed durante clases en abril del ciclo 2023-1.
+
+```{r}
+invisible(
+table(Bdatos$Sed_clase))
+
+
+Tabla <- data.frame(Evento = c("A","B" , "C", "D", "E"),
+                      Frecuencia = c(13, 41, 82, 29, 15),       
+                      Probabilidades = round(c(13, 41, 82, 29, 15)/180, 4))
+```
+
+En la tabla presentada se pueden apreciar las probabilidades para cada evento:
+
+```{r}
+gt(Tabla) %>%
+  tab_header(
+    title = "Tabla 1 de función probabilística", 
+    subtitle = "Variable Sed_clase")%>%
+tab_style(
+    style = list(
+      cell_fill(color = "skyblue")),
+    locations = cells_body(
+      rows = 2)
+  )%>%
+  tab_style(
+    style = list(
+      cell_fill(color = "purple")),
+    locations = cells_body(
+      rows = 1)
+  )
+```
+
+-   **Caso probabilístico**:
+
+Determinar la probabilidad de que un estudiante de la muestra presente demasiada o mucha sed durante clases.
+
+Donde: Los eventos son mutuamente excluyentes.
+
+-   Evento X: representa a un alumno de la muestra que presenta demasiada o mucha sed.
+-   Evento A: representa a un alumno de la muestra que presenta demasiada sed.
+-   Evento B: representa a un alumno de la muestra que presenta mucha sed.
+
+$$P(X) = P(A∪B) = P(A) + P(B)$$ $$P(X) = 0.0722 + 0.2278 = 0.3$$
+
+La probabilidad de que un alumno de la muestra presente demasiada o mucha sed es igual a 0.3.
+
+## Variable: Cansado_tipo_liquido
+
+-   Cantidad de distintos valores para la variable:
+
+```{r}
+length(c(unique(Bdatos$Cansado_tipo_liquido)))
+```
+
+-   El espacio muestral (Ω) de esta variable:
+
+```{r}
+unique(Bdatos$Cansado_tipo_liquido)
+```
+
+Ω = {"Agua", "Bebidas energizantes", "Gaseosas", "Infusiones", "Refrescos o jugos", "Otro"}
+
+-   Definición de los eventos atómicos y sus respectivas probabilidades:
+
+1)  Evento A: estudiante de la UTEC que prefiere consumir agua cuando se siente cansado en abril del ciclo 2023-1.
+
+2)  Evento B: estudiante de la UTEC que prefiere consumir bebidas energizantes cuando se siente cansado en abril del ciclo 2023-1.
+
+3)  Evento C: estudiante de la UTEC que prefiere consumir gaseosas cuando se siente cansado en abril del ciclo 2023-1.
+
+4)  Evento D: estudiante de la UTEC que prefiere consumir infusiones cuando se siente cansado en abril del ciclo 2023-1.
+
+5)  Evento E: estudiante de la UTEC que prefiere consumir refrescos o jugos cuando se siente cansado en abril del ciclo 2023-1.
+
+6)  Evento F: estudiante de la UTEC que prefiere consumir otro tipo de líquido cuando se siente cansado en abril del ciclo 2023-1.
+
+
+```{r}
+
+invisible(table(Bdatos$Cansado_tipo_liquido))
+
+
+Tabla <- data.frame(Evento = c("A","B" , "C","D","E","F"),
+                      Frecuencia = c(127, 20, 10, 7, 13, 3),       
+                      Probabilidades = round(c(127, 20, 10, 7, 13, 3)/180, 4))
+```
+
+En la tabla presentada se pueden apreciar las probabilidades para cada evento:
+
+```{r}
+gt(Tabla) %>%
+  tab_header(
+    title = "Tabla 1 de función probabilística", 
+    subtitle = "Variable Cansado_tipo_liquido") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "green")),
+    locations = cells_body(
+      rows = 2)
+  )%>%
+  tab_style(
+    style = list(
+      cell_fill(color = "orange")),
+    locations = cells_body(
+      rows = 1)
+  )
+  
+```
+
+-   **Caso probabilístico**:
+
+Determinar la probabilidad de que un alumno de la muestra prefiera consumir agua o bebidas energéticas cuando se siente cansado.
+
+Donde: Los eventos son mutuamente excluyentes
+
+-   Evento X: representa a un alumno de la muestra que prefiere consumir agua o bebidas energéticas cuando se siente cansado.
+
+-   Evento A: representa a un alumno de la muestra que prefiere consumir agua cuando se siente cansado.
+
+-   Evento B: representa a un alumno de la muestra que prefiere consumir bebidas energéticas cuando se siente cansado.
+
+$$P(X) = P(A∪B) = P(A) + P(B)$$
+
+$$P(X) = 0.7056 + 0.1111 = 0.8167$$
+
+La probabilidad de que un alumno de la muestra prefiera consumir agua o bebidas energéticas cuando se siente cansado es igual a 0.8167.
+
+# [**PROBABILIDAD CONDICIONAL:**]{style="color:#00008B"}
+
+## Análisis de par de eventos independientes
+
+### Variables: Agua_clase y Género
+
+1)  Se analizará la probabilidad de que un estudiante de la muestra tome agua en clase "Casi siempre", dado que sea de género masculino.
+
+Tabla cruzada:
+
+```{r}
+(addmargins(table(Bdatos$Agua_clase, Bdatos$Género)))
+```
+
+Donde:
+
+-   El evento A: representa a un alumno de la muestra que toma agua "Casi siempre" durante clase.
+
+-   El evento B: representa a un alumno de la muestra que es de género masculino.
+
+$$P(A) = 0.2388889 $$
+
+```{r}
+nrow(filter(Bdatos, Agua_clase=="Casi siempre"))/nrow(Bdatos)
+```
+
+$$P(B) = 0.5777778 $$
+
+```{r}
+nrow(filter(Bdatos, Género=="Masculino"))/nrow(Bdatos)
+
+```
+
+A partir de la tabla cruzada se puede obtener el valor de la intersección de ambos eventos:
+
+$$P(A\cap B) = 23/180 = 0.1277778$$
+
+-   Para comprobar que los eventos son independientes:
+
+$$P(A\cap B) = P(A)*P(B)$$
+
+$$P(A)*P(B) = 0.2388889*0.5777778 = 0.1380247 $$
+```{r}
+0.2388889*0.5777778
+```
+
+
+$$0.1277778≠0.1380247$$
+
+A partir de este análisis, se puede notar que los eventos son dependientes. 
+
+-   Comprobando con el teorema de Bayes
+
+$$ P(A|B) = \frac{P\left(A\:\cap \:B\right)}{P\left(B\right)}= \frac{0.1277778}{0.5777778} = 0.2211539$$
+```{r}
+0.1277778/0.5777778
+```
+
+
+
+$$ P(B|A) = \frac{P\left(B\:\cap \:A\right)}{P\left(A\right)}=\frac{0.1277778}{0.2388889}=0.5348838$$
+```{r}
+0.1277778/0.2388889
+```
+
+
+$$P(A|B)*P(B)=P(B|A)*P(A)$$
+$$0.2211539*0.5777778=0.5348838* 0.2388889$$
+```{r}
+0.2211539*0.5777778
+0.5348838* 0.2388889
+```
+
+
+$$0.1277778=0.1277778 $$
+Los eventos cumplen con el teorema de Bayes.
+
+### Variables: Cansado_tipo_líquido y Género
+
+2)  Se determinará la probabilidad de que un estudiante de la muestra ingiera "Bebidas energéticas" cuando presenta cansancio, dado que sea de género masculino.
+
+Tabla cruzada:
+
+```{r}
+(addmargins(table(Bdatos$Cansado_tipo_liquido, Bdatos$Género)))
+```
+
+Donde:
+
+El evento A: representa a un alumno de la muestra que ingiera "bebidas energéticas" cuando presente cansancio.
+
+El evento B: representa a un alumno de la muestra que sea del género masculino.
+
+$$P(A) = 0.1111111$$
+
+```{r}
+(nrow(filter(Bdatos,Cansado_tipo_liquido=="Bebidas energizantes"))/nrow(Bdatos))
+```
+
+$$P(B) = 0.5777778$$
+
+```{r}
+(nrow(filter(Bdatos, Género=="Masculino"))/nrow(Bdatos))
+```
+
+A partir de la tabla cruzada se puede observar que la intersección de ambos eventos es igual a:
+
+$$P(A\cap B) = 11/180 = 0.06111111$$
+
+```{r}
+11/180
+```
+
+-   Para comprobar que los eventos son independientes:
+
+$$P(A\cap B) = P(A)*P(B)$$ 
+$$P(A)*P(B) = 0.1111111*0.5777778 = 0.06419753$$
+
+```{r}
+ 0.1111111*0.5777778
+```
+
+$$0.06111111≠0.06419753$$
+
+Ambos eventos, en contra de lo supuesto inicialmente, no son independientes.
+
+-   Aplicando el teorema de Bayes:
+
+$$P(A|B) =  \frac{P\left(A\:\cap \:B\right)}{P\left(B\right)} = \frac{0.06111111}{0.5777778} = 0.1057692$$
+
+```{r}
+0.06111111/0.5777778
+```
+
+
+$$P(B|A) =  \frac{P\left(B\:\cap \:A\right)}{P\left(A\right)}=\frac{0.06111111}{0.1111111}=0.55$$
+
+```{r}
+0.06111111/0.1111111
+```
+
+
+$$P(A|B)*P(B)=P(B|A)*P(A)$$
+$$0.1057692*0.5777778=0.55*0.1111111$$
+```{r}
+0.1057692*0.5777778
+0.55*0.1111111
+```
+
+$$0.0611111=0.0611111$$
+Los eventos cumplen con el teorema de Bayes.
+
+
+## Análisis de par de eventos dependientes
+
+### Variables: Deshidratación_efectos y edad
+
+1) Se determinará la probabilidad de que un alumno de la muestra considere que la deshidratación "Sí" afecta en sus funciones congnitivas, dado que sea del género "Masculino".
+
+Tabla cruzada:
+
+```{r}
+(addmargins(table(Bdatos$Deshidratacion_efectos, Bdatos$Género)))
+```
+
+Donde:
+
+-   El evento A: representa a un alumno de la muestra que considere que la deshidratación afecta en sus funciones cognitivas.
+
+-   El evento B: representa a un alumno de la muestra que sea del género Masculino.
+
+
+$$P(A) = 0.7277778$$
+
+```{r}
+nrow(filter(Bdatos, Deshidratacion_efectos =="Si"))/nrow(Bdatos)
+```
+
+
+
+$$P(B) = 0.5777778$$
+
+```{r}
+nrow(filter(Bdatos, Género =="Masculino"))/nrow(Bdatos)
+```
+
+A partir de la tabla cruzada se puede observar que la intersección de ambos eventos es igual a:
+
+$$P(A\cap B) = 80/180 = 0.4444444$$
+
+```{r}
+80/180
+```
+
+-   Para determinar si los eventos son independientes:
+
+$$P(A\cap B) = P(A)*P(B)$$
+
+$$P(A)*P(B) = 0.2111111*0.6722222 = 0.4204939$$
+
+```{r}
+0.7277778*0.5777778
+```
+
+$$ 0.4444444≠0.4204939$$
+
+Como se puede observar, ambos eventos no son independientes. 
+
+-   Comprobando con el teorema de Bayes:
+
+$$ P(A|B) = \frac{P\left(A\:\cap \:B\right)}{P\left(B\right)}= \frac{0.4444444}{0.5777778} = 0.7692307$$
+
+```{r}
+0.4444444/0.5777778
+```
+
+
+$$ P(B|A) = \frac{P\left(B\:\cap \:A\right)}{P\left(A\right)}=\frac{0.4444444}{0.7277778} = 0.6106869$$
+
+```{r}
+0.4444444/0.7277778
+```
+
+$$P(A|B)*P(B)= P(B|A)*P(A)$$
+
+$$0.7692307*0.5777778=0.6106869*0.7277778 $$
+
+```{r}
+0.7692307*0.5777778
+```
+
+```{r}
+0.6106869*0.7277778
+```
+
+$$0.4444444=0.4444444$$
+
+Los eventos cumplen con el teorema de Bayes.
+
+
+### Variables: Carrera y Liquido_mejora_rendimiento
+
+2)  Se analizará la probabilidad de que un alumno de la muestra pertenezca a la carrera de Ingeniería Industrial, dado que considere que el líquido que mejora su rendimiento sea el "agua" durante clases.
+
+Tabla cruzada:
+
+```{r}
+(addmargins(table(Bdatos$Carrera, Bdatos$Liquido_mejora_rendimiento)))
+```
+
+Donde:
+
+-   El evento A: representa a un alumno de la muestra que pertenezca a la carrera de "Ingeniería industrial".
+
+-   El evento B: representa a un alumno que considere que el líquido que mejora su rendimiento sea el "agua" durante clases.
+
+$$P(A) = 0.2111111 $$
+
+```{r}
+nrow(filter(Bdatos, Carrera=="Ingeniería industrial"))/nrow(Bdatos)
+```
+
+$$P(B) =  0.6722222$$
+
+```{r}
+nrow(filter(Bdatos, Liquido_mejora_rendimiento=="Agua"))/nrow(Bdatos)
+```
+
+A partir de la tabla cruzada se puede observar que la intersección de ambos eventos es igual a:
+
+$$P(A\cap B) = 28/180 = 0.1555556$$
+
+```{r}
+28/180
+```
+
+-   Para determinar si los eventos son independientes:
+
+$$P(A\cap B) = P(A)*P(B)$$
+
+$$P(A)*P(B) = 0.2111111*0.6722222 = 0.1419136$$
+
+$$ 0.1555556≠0.1419136$$
+
+Como se puede observar, ambos eventos son dependientes. 
+
+-   Comprobando con el teorema de Bayes:
+
+$$ P(A|B) = \frac{P\left(A\:\cap \:B\right)}{P\left(B\right)}=\frac{0.1555556}{0.6722222} = 0.231405$$
+```{r}
+0.1555556/0.6722222
+```
+
+
+$$ P(B|A) = \frac{P\left(B\:\cap \:A\right)}{P\left(A\right)}=\frac{0.1555556}{0.2111111} = 0.7368424$$
+
+```{r}
+ 0.1555556/0.2111111
+```
+
+
+
+$$P(A|B)*P(B)= P(B|A)*P(A)$$
+
+$$0.231405*0.6722222=0.7368424*0.2111111$$
+
+```{r}
+0.231405*0.6722222
+```
+
+```{r}
+0.7368424*0.2111111 
+```
+
+$$0.1555556=0.1555556$$
+
+Los eventos cumplen con el teorema de Bayes.
+
+# [**VARIABLES ALEATORIAS DISCRETAS:**]{style="color:#00008B"}
+
+Muestra total:
+
+```{r}
+nrow(Bdatos)
+```
+
+Para esta parte la muestra total se dividirá en 2 grupos:
+
+En este caso, "para vivir y respirar, (...), se requiere la ingesta de aproximadamente 2.5 litros de líquido al día" (Ojeda, 2015, p. 37). Con esto se puede entender que un alumno bien hidratado debería consumir como mínimo 2.5 litros de líquidos. Es importante destacar que una ingesta de 3 litros de agua diarios es todavía considerado aceptable. Sin embargo, ingestas mayores a las mencionadas pueden causar problemas en la salud, así como ingestas menores a 2.5 litros diarios. A partir de esta información se analizarán los datos registrados.
+
+BH: Representa a aquellos estudiantes de la muestra que llevan una buena hidratación (64 estudiantes).
+
+```{r}
+BH=filter(Bdatos,!(Litros_por_dia<2.5 | Litros_por_dia>3))
+nrow(filter(Bdatos,!(Litros_por_dia<2.5 | Litros_por_dia>3)))
+```
+
+MH: Representa a aquellos estudiantes de la muestra que llevan una mala hidratación (116 estudiantes).
+
+```{r}
+MH=filter(Bdatos,(Litros_por_dia<2.5 | Litros_por_dia>3))
+nrow(filter(Bdatos,(Litros_por_dia<2.5 | Litros_por_dia>3)))
+```
+
+
+## Analizar que tipo de distribución discreta notable lleva la variable discreta *EDAD(EN AÑOS CUMPLIDOS)* en el grupo de estudiantes que llevan una buena hidratación (BH):
+
+Aquí se ve qué valores se tienen para variable edad, cuantas veces se repite cada valor y cuál es el porcentaje que representa cada valor en el grupo BH. 
+
+```{r}
+fi=table((filter(Bdatos,!(Litros_por_dia<2.5 | Litros_por_dia>3)))$Edad)
+pi=round(prop.table(fi)*100,2)
+cbind(fi,pi)
+```
+
+Se identifica el recorrido y función de probabilidad de la variable *Edad* en este grupo.
+
+X: Edad de un estudiante
+
+Rx={17,18,19,20,21,22,23,24}
+
+-   Función de probabilidad:
+
+```{r}
+fi=table((filter(Bdatos,!(Litros_por_dia<2.5 | Litros_por_dia>3)))$Edad)
+pi=round(prop.table(fi),4)
+pi
+```
+
+Se observa que la variable *Edad*, para el grupo BH, se asemeja a una distribución geométrica.
+
+```{r}
+hist(BH$Edad, col="skyblue2", main="Gráfico 1: Histograma de la variable edad(BH)", xlab="Edad", ylab = "Frecuencia")
+```
+
+Considerando que la variable *Edad* se comporta como una distribución geométrica para la muestra de alumnos, se determinará la probabilidad de que al extraer de la muestra a un alumno, 1 por 1, se encuentre recién al primer alumno que es menor de edad en el octavo alumno extraído.
+
+Entonces, para este caso:
+
+El éxito (X): encontrar a un alumno de la muestra que sea menor de edad
+
+La probabilidad de éxito será: $$P(X) = 0.140625$$
+
+```{r}
+nrow(filter(BH,Edad<18))/nrow(BH)
+```
+
+Con los siguientes datos, se usará el comando "shadeDist" para hallar la probabilidad deseada. Además se graficará la distribución geométrica considerada desde un principio. Esta gráfica y el histograma creado anteriormente serán comparados. De esta manera, si ambas de estas gráficas tienen comportamientos similares significará que la variable *Edad* se asemeja a una distribución geométrica para el grupo de alumnos con buenos hábitos de hidratación. 
+
+```{r}
+shadeDist(8-1,"dgeom",0.140625, main = "Gráfico 2: Distribución geométrica con p=0.140625")
+```
+
+
+En efecto, ambas gráficas se parecen. Por ende, se podría concluir mediante las gráficas que esta variable se asemeja a una distribución geométrica para el grupo BH.
+
+Ahora, se corrobora si la variable posee una distribución geométrica mediante la adaptación al caso teórico.
+
+- Adaptación al caso teórico:
+
+Se halla la esperanza y la varianza de la variable *Edad* en el grupo BH.
+
+```{r}
+X=c(17:24)
+P=c(0.1406, 0.2969, 0.2031, 0.2031, 0.0625, 0.0312, 0.0156, 0.0469)
+(E=sum(X*P))
+(V=sum(X^2*P)-E^2)
+```
+
+
+Como se sabe:
+
+  1. La esperanza en una distribución geométrica es: $$E(x) = 1/p$$
+      
+  2. La varianza en una distribución geométrica es: $$V = (1-p)/(p^2)$$
+      
+Por lo tanto, si es que esta variable lleva una distribución geométrica, entonces la esperanza y la varianza que se tienen deberían de ser iguales a la esperanza y a la varianza de la distribución geométrica:
+
+  1. La esperanza es: 
+  
+  $$E(x) = 19.1386$$
+  Donde:
+  
+  $$p= 0.0522504258409706$$
+  
+  2. La varianza es: 
+  
+  $$V(X) = 3.03219$$ 
+  
+  Donde:
+  
+  $$(1-0.0522504258409706)/(0.0522504258409706)^2 = 347.15$$
+  
+Estos valores no coinciden (varianza) 3.03219 != 347.15. Sin embargo, mediante las gráficas sí parece ser que se está frente a una distribución geométrica. Entonces, debido a la gráfica se considerará que la variable *Edad* para el grupo BH posee una distribución geométrica.
+
+**Caso probabilistico**
+
+Si de la muestra de alumnos de la UTEC en el ciclo 2023-1 que llevan una buena hidratación (BH) se deseaba obtener al primero que es menor de edad. Determinar qué tan probable es que a lo mucho se tenga que extraer a 8 de ellos.
+
+```{r}
+nrow(filter(BH,Edad<18))/nrow(BH)
+```
+
+$$X ∼ G(p)$$
+X: número de alumnos de la muestra extraídos hasta obtener al primero que es menor de edad
+
+$$P(X)= 0.140625$$
+
+$$P(X≤8)$$ 
+
+```{r}
+pgeom(8-1,0.140625)
+```
+
+**Análisis:** La probabilidad de obtener al primer alumno que sea menor de edad de una extracción aleatoria de alumno por alumno de la muestra BH es de 0.7025173.
+
+### En este caso se construirá la variable discreta y el éxito a partir de la distribución Bernoulli para luego pasar a otra distribución discreta:
+
+Se partirá de una distribución Bernoulli y se escogerá como éxito a aquellos estudiantes de la muestra que llevan una buena hidratación.
+
+
+$$X ∼ Bernoulli(p)$$
+
+Donde:
+
+X: estudiantes de la muestra que llevan una buena hidratación
+
+X = 64 (este dato fue hallado al inicio del análisis de variables aleatorias discretas)
+
+$$ p = 64/180 = 0.3555556$$
+```{r}
+64/180
+```
+
+
+Se tiene la variable discreta (éxito) y su probabilidad, por lo que ya es posible dirigirse hacia otras distribuciones discretas.
+Entonces, en este caso se verá si se puede utilizar la distribución binomial negativa.
+
+- Distribución binomial negativa:
+
+1. Se tiene la variable discreta definida y el éxito definido.
+
+2. En la variable discreta todos poseen la misma característica: todos estos alumnos llevan una buena hidratación (BH). Además, todos estos alumnos (BH) poseen la misma probabilidad.
+
+3. Se tiene la probabilidad de éxito definida.
+
+Entonces, se puede notar que sí se puede pasar a esta distribución.
+
+**Caso probabilístico 1**
+
+Si se quisiera obtener al décimo estudiante, el cuál lleve un buena hidratación, de una extracción aleatoria de alumno por alumno de la muestra total. Determinar qué tan probable es que se le encuentre a lo mucho en el décimo quinto estudiante extraído.
+
+$$X ∼ NB(k;p)$$
+Donde:
+
+X: número de estudiantes extraídos hasta obtener al décimo estudiante que lleva una buena hidratación de la muestra
+
+$$k=10$$
+
+
+
+$$p = 0.3555556$$
+
+Entonces, para hallar la probabilidad deseada: $$P(X≤15)$$  
+
+```{r}
+pnbinom(15-10,10,0.3555556)
+```
+
+
+**Análisis:** La probabilidad de encontrar al décimo estudiante de la muestra, el cuál lleve una buena hidratación, en a lo mucho el décimo quinto estudiante extraído es de 0.01404714. Se puede notar que esta probabilidad es pequeña.
+
+
+### Analizar que tipo de distribución discreta notable lleva la variable discreta *Cantidad de cursos por este ciclo 2023-1* en el grupo de estudiantes que llevan una buena hidratación (BH):
+
+Se analizarán los valores que toma, la cantidad de veces que se repite cada valor y el respectivo porcentaje de cada valor de esta variable en el grupo BH.
+
+```{r}
+fi=table((filter(Bdatos,!(Litros_por_dia<2.5 | Litros_por_dia>3)))$Cantidad_cursos)
+pi=round(prop.table(fi)*100,2)
+cbind(fi,pi)
+
+```
+
+
+X: La cantidad de cursos que lleva un estudiante de la muestra en el ciclo 2023-1.
+
+Rx={4,5,6,7}
+
+-   Función de probabilidad.
+
+```{r}
+fi=table((filter(Bdatos,!(Litros_por_dia<2.5 | Litros_por_dia>3)))$Cantidad_cursos)
+pi=round(prop.table(fi),4)
+pi
+```
+
+- Esperanza y la varianza de esta variable.
+
+```{r}
+X=c(4:7)
+P=c(0.0625, 0.2969, 0.5469, 0.0938)
+(E=sum(X*P))
+(V=sum(X^2*P)-E^2)
+```
+
+Se realizará un histograma para ver un poco mejor a que distribución se asemeja esta variable para el grupo BH.
+
+```{r}
+hist(BH$Cantidad_cursos, col="green2", main="Gráfica 3: Histograma de la variable cantidad cursos", xlab = "Cantidad de cursos", ylab = "Frecuencia")
+```
+
+Se verá si para este grupo la variable se comporta como una distribución Binomial.
+
+1. Se sabe que la esperanza en esta variable es 5.6725 y la varianza es 0.5298437. Se sabe que la esperanza y la varianza en la distribución Binomial valen "np" y "np(1-p)" respectivamente.
+
+Si se brinda un caso hipotético considerando que la variable se asemeja a una distribución binomial, entonces:
+
+Si se extrae una nueva muestra de 20 estudiantes con reposición del grupo BH y se quisiera saber que tan probable es que 11 estudiantes de esta nueva muestra estén llevando 6 cursos  en este ciclo 2023-1. Por lo tanto:
+
+La probabilidad de que un estudiante que se encuentre en el grupo BH lleve 6 cursos es de:
+
+```{r}
+nrow(filter(BH,Cantidad_cursos==6))/nrow(BH)
+```
+
+$$X∼B(n;p)$$
+Donde:
+
+X: estudiantes de la UTEC que llevan 6 cursos en este ciclo 2023-1
+
+$$n=20$$
+
+$$p= 0.546875$$
+
+-   Se halla 'p' mediante la esperanza:
+
+$$20p=5.6725$$ 
+$$p= 0.283625$$
+  
+  
+-   Se halla la varianza:
+
+$$20(0.283625)(1-0.283625)= 4.0636371875$$
+
+$$4.0636371875 !=  0.5298437$$
+
+Teóricamente esta variable no presenta una distribución Binomial. Sin embargo, gráficamente se puede observar que la gráfica se asemeja a la del histograma, por lo que se trabajará con esta distribución para la variable *Cantidad_cursos* para el grupo BH.
+
+```{r}
+shadeDist(6,"dbinom",20,0.546875, main="Gráfico 4: Distribución binomial")
+```
+
+
+**Caso probabilístico**
+
+Si se extrae una nueva muestra de 20 estudiantes con reposición del grupo BH. Que tan probable es que 11 estudiantes de esta nueva muestra estén llevando a lo mucho 5 cursos en este ciclo 2023-1.
+
+La probabilidad de que un estudiante que se encuentre en el grupo BH este llevando a lo mucho 5 cursos es de 0.359375 (esta probabilidad fue calculada al inicio de este análisis).
+
+
+$$X ∼ B(n;p)$$
+Donde: 
+
+X: estudiantes que estén llevando a lo mucho 5 cursos en este ciclo 2023-1 (éxito)
+
+$$n=20$$
+$$p= 0.359375$$
+
+$$P(X≤5)=0.2188196$$
+
+```{r}
+pbinom(5,20,0.359375)
+```
+
+**Análisis:** La probabilidad de que 11 estudiantes de esta nueva muestra estén llevando a lo mucho 5 cursos en este ciclo 2023-1 en la UTEC es de 0.2188196.
+
+# [**VARIABLES ALEATORIAS CONTINUAS:**]{style="color:#00008B"}
+
+## Variable aleatoria continua
+
+Para obtener resultados más interesantes y representativos, se evaluarán las variables en dos grupos de alumnos: los que presentan buenos hábitos de hidratación y los que no.
+
+Donde:
+
+-   MH: representa al grupo de alumnos con malos hábitos de hidratación.
+
+-   BH: representa al grupo de alumnos con buenos hábitos de hidratación.
+
+## **Sin distribución conocida: Litros_por_dia (MH y BH) y Litros_clase (MH)**
+
+- Análisis para la variable Litros_por_dia (ambos grupos)
+
+```{r}
+fit.cont(MH$Litros_por_dia)
+```
+
+```{r}
+fit.cont(BH$Litros_por_dia)
+```
+
+Se pudo determinar que la variable no presenta una distribución continua conocida para ninguno de los grupos estudiados en la muestra con las pruebas de Anderson-Darling y Kolmogorov-Smirnov.
+
+
+- Análisis para la variable Litros_clase (MH)
+
+```{r}
+fit.cont(MH$Litros_clase)
+```
+
+Se pudo determinar que para el grupo de alumnos con malos hábitos de hidratación de la muestra, la variable no presenta una distribución continua conocida con las pruebas de Anderson-Darling y Kolmogorov-Smirnov.
+
+- **Distribución Gamma: variable Litros_clase (BH)**
+
+```{r}
+fit.cont(BH$Litros_clase)
+```
+
+La variable de *Litros_clase* para el grupo de alumnos con buenos hábitos de hidratación tiene un comportamiento similar a la distribución Gamma.
+
+$$ X ∼ Gamma(α, β)$$
+
+A partir de la función utilizada se obtuvieron los parámetros necesarios para el modelo Gamma:
+
+
+$$α: 2.140823 $$
+
+$$β: 0.669103 $$
+
+**Caso probabilístico**
+
+Determinar la probabilidad de que un alumno elegido al azar del grupo de estudiantes con buenos hábitos de hidratación consuma más de 1 litro de líquido durante clases
+
+Donde:
+
+X: alumno de la UTEC bien hidratado que consume más de un litro de líquidos durante clases en abril del ciclo 2023-1.
+
+$$P(X>1) = 1 - P(X≤1)$$
+
+```{r}
+1 - pgamma(1, 2.140823 ,1.494539)
+```
+
+```{r}
+shadeDist(1, "dgamma", 2.140823 ,1.494539,lower.tail=F, main="Gráfico 5: Distribución Gamma (Litros_clase-BH)",xlab="Litros de líquido consumidos en horario de clases")
+```
+
+Se pudo determinar que la probabilidad de que un alumno de la muestra que está bien hidratado consuma más de un litro de líquidos durante clases es igual a 0.602734.
+
+## **Distribución Gamma - variable: Peso(MH)**
+
+- Análisis para el grupo mal hidratado
+
+```{r}
+fit.cont(MH$Peso)
+```
+
+$$ X ∼ Gamma(α, β)$$
+A partir de la función utilizada se obtuvieron los parámetros necesarios para el modelo Gamma:
+
+$$α: 35.8369693$$
+
+$$β: 1.77777$$
+
+**Caso probabilístico**
+
+Determinar la probabilidad de que el peso de un alumno, elegido al azar, que pertenece al grupo con malos hábitos de hidratación se encuentre en el rango de 50 a 80 kilogramos
+
+X: peso de un alumno de la UTEC mal hidratado que presenta entre 50 kg y 80 kilogramos en abril del ciclo 2023-1  
+
+$$P(50<X<80) = P(X<80) - P(X<50)$$
+ 
+```{r}
+pgamma(80, 35.8369693,0.5625036) - pgamma(50, 35.8369693,0.5625036)
+```
+
+```{r}
+shadeDist(c(50, 80), "dgamma", 35.8369693,0.5625036,lower.tail=F, main="Gráfico 6: Distribución Gamma (Peso-MH)",xlab="Peso")
+```
+
+A partir de ello se puede notar que, en caso de elegirse a un alumno al azar del grupo de los alumnos mal hidratados, es bastante probable que este pese entre 50 a 80 kg. 
+
+
+## **Distribución normal - variable: Peso(BH)**
+
+La variable *Peso* tiene un comportamiento modelable muy similar al de la distribución normal para el grupo de alumnos bien hidratado.
+
+-   Análisis para el grupo bien hidratado
+
+```{r}
+fit.cont(BH$Peso)
+```
+
+
+
+$$ µ = 66.91094 $$
+
+$$ σ = 10.00695 $$
+
+**Caso probabilístico**
+
+Si se sabe que la variable peso se comporta como un modelo normal para el grupo de alumnos que tiene buenos hábitos de hidratación, determinar que tan probable es que un alumno de la muestra, elegido al azar, dentro de este grupo tenga un peso menor a 60 kg
+
+Donde: 
+
+X: alumno de la UTEC con buenos hábitos de hidratación con un peso menor a 60 kg en abril del ciclo 2023-1.
+
+$$P(X<60)$$
+
+```{r}
+pnorm(60, 66.91094 , 10.00695)
+```
+
+
+```{r}
+shadeDist(60,"dnorm", 66.91094 , 10.00695, main = "Gráfico 7: Distribución normal (Peso-BH)", xlab="Peso")
+```
+
+Existe una probabilidad de 0.2449041 de que el alumno elegido de el grupo analizado pese menos de 60 kilogramos.
+
+
+# [**CONCLUSIONES:**]{style="color:#00008B"}
+
+A partir de este estudio se apreciaron las diferencias en los hábitos de hidratación que presentaron los alumnos en el periodo 2023-1 durante el mes de Abril. Asimismo, se pudo notar que la mayoría de alumnos encuestados presentaron malos hábitos de hidratación. A partir de ello y mediante un análisis probabilístico se pueden presentar las siguientes conclusiones específicas:
+
+-   Se pudo hallar probabilísticamente que los alumnos de la UTEC son más probables a presentar "ni mucha ni poca sed" durante horarios de clase. Asimismo, se determinó que el líquido que consumen mayormente los alumnos cuando se sienten cansados es el agua.
+
+-   Se pudo apreciar que todos los eventos analizados presentaban una cierta dependencia y, por lo tanto, se encuentran relacionados. Cabe mencionar que los casos propuestos fueron analizados con el teorema de Bayes.
+
+-   Se pudo notar que la variable edad se asemejaba gráficamente a una distribución geométrica y que la variable cantidad de cursos era, gráficamente, similar a la distribución binomial. Dicho comportamiento se dió para el grupo bien hidratado para las variables.
+
+-   Mediante las pruebas de Anderson-Darling y Kolmogorov-Smirnov se determinó que la variable *Litros_por_dia*, en ambos grupos estudiados, no presentaba el comportamiento de una distribución continua conocida, mientras que la variable *Peso*, para el grupo de alumnos bien hidratado y mal hidratado presentó un comportamiento similar a la distribución Normal y Gamma respectivamente.
+
+
+# [**REFERENCIAS BIBLIOGRÁFICAS:**]{style="color:#00008B"}
+
+Ojeda, R. (2015). *Hábitos de hidratación en estudiantes universitarios: relación con adhesión a la dieta mediterránea y medida ponderal del peso*. [tesis doctoral]. Universidad de Las Palmas de Gran Canaria. https://lc.cx/BJb3W4
+
+Bologna,E.(2022). Capítulo 7 Probabilidad: los fundamentos. *Un Recorrido por los Métodos Cuantitativos en Ciencias Sociales a bordo de R*. https://estadisticacienciassocialesr.rbind.io/index.html#comit%C3%A9-editorial
+

@@ -1,0 +1,934 @@
+---
+title: "Seguimiento de Instrucciones en Encuestas"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r, echo=FALSE, results='hide'}
+#Library installation and loading
+
+#List libraries
+Library_list <- c("readr", "dplyr", "ggplot2", "stringr", "rgl")
+
+#Package manager
+suppressMessages(if (!require("pacman")) {
+    install.packages("pacman")
+})
+library("pacman")
+#Install and load wrapper
+p_load(Library_list, character.only = TRUE)
+```
+
+## INTRODUCCIÓN
+
+### 1. Contexto
+
+En la Universidad de Ingeniería y Tecnología (UTEC), la realización de encuestas es una práctica común en los proyectos de Estadística y Probabilidades I. Sin embargo, esta tarea puede resultar desafiante para quienes se encargan de la limpieza de la base de datos, debido a que muchos estudiantes no siguen las instrucciones adecuadamente. Por esta razón, el presente estudio tiene como objetivo principal identificar el desempeño de los estudiantes en relación al seguimiento de instrucciones en el desarrollo de encuestas en la UTEC.
+
+### 2. Relevancia
+
+Para ello, se recopilará información de diferentes encuestas realizadas por el equipo de proyecto, incluyendo variables como el tiempo de demora en completar la encuesta, la exactitud en la respuesta de las preguntas y el cumplimiento de las instrucciones dadas. Posteriormente, se realizará un análisis estadístico para identificar patrones y tendencias en el desempeño de los estudiantes en relación al seguimiento de instrucciones, lo que permitirá identificar posibles oportunidades de mejora en la metodología de enseñanza de la UTEC. En resumen, es relevante, porque es un problema vigente y de interés.
+
+### 3. Objetivos
+
+#### 3.1. Objetivo general:
+
+-   Analizar el desempeño de los alumnos de la UTEC en relación con el seguimiento de instrucciones explícitas en el desarrollo de encuestas a través de Google Forms.
+
+#### 3.2. Objetivos específicos:
+
+-   Calcular la cantidad de alumnos de la UTEC que saben seguir instrucciones explícitas en el desarrollo de encuestas.
+
+-   Identificar los principales errores y omisiones cometidos por los estudiantes en el proceso de desarrollo de encuestas.
+
+-   Relacionar la cantidad de alumnos de la UTEC que no saben seguir instrucciones con el tiempo invertido en el desarrollo de las mismas.
+
+-   Relacionar la cantidad de alumnos de la UTEC que saben seguir instrucciones con la cantidad de alumnos de la UTEC que creen que saben seguir instrucciones.
+
+-   Relacionar la cantidad de alumnos de la UTEC que saben seguir instrucciones con la cantidad de instrucciones correctamente ejecutadas y el tiempo invertido en el desarrollo total de la encuesta.
+
+## DATOS
+
+### 4. Marco teórico
+
+#### 4.1. Población Objetiva
+
+Estudiantes de la UTEC.
+
+#### 4.2. Recolección de datos
+
+La recolección de datos se dio a través de Google Forms. A través de el se creó una encuesta con instrucciones específicas y resaltadas en negrita en cada pregunta. Se hizo de esta manera, porque es rápido y eficiente. Además, la principal condición del forms era admitir solo direcciones de estudiantes de UTEC, la población objetivo. Finalmente, la estrategia para conseguir el mínimo de respuestas necesarias para el estudio fue el colocar como incentivo el sorteo de un combo de hamburguesas. Esto, fuera del spam entre contactos del link que contenía a la encuesta.
+
+#### 4.3. Tipo de Muestra
+
+La muestra seleccionada fue aleatoria. Para la construcción de la base de datos se construyó una encuesta de autoría propia.
+
+#### 4.4. Sesgo
+
+Sesgo de selección.
+
+#### 4.5. Unidades muestrales
+
+170 observaciones.
+
+#### 4.6. Variables
+
+| Variable                | Detalle                                                                                           | Tipo               | Restricciones                                                |
+|-------------|-----------------------------|-------------|-----------------|
+| Edad                    | Se cuenta en números enteros.                                                                     | Numérica Discreta  | $x \in N [15, 35]$                                           |
+| Hora de inicio (Hi)     | Se ingresa en fromato hms.                                                                        | Numérica Continua  | $hh,mm,ss>=0, hh\in N [0,23],mm\in N [0,59], ss\in N [0,59]$ |
+| Hora final (Hf)         | Se ingresa en fromato hms.                                                                        | Numérica Continua  | $hh,mm,ss>=0, hh\in N [0,23],mm\in N [0,59], ss\in N [0,59]$ |
+| Tiempo de demora        | Diferencia de Hf y Hi en segundos, después de transformar Hf y Hi a valores enteros en segundos.. | Numérica Continua  | $x \in N [60, 3600]$                                         |
+| Talla                   | Cualquier valor en un rango continuo. Está en metros.                                             | Numérica Continua  | $x>0 , x\in N [120, 220]$                                    |
+| Peso                    | No puede tomar valores negativos. Está en kg.                                                     | Numérica Positiva  | $x \in N [15, 35]$                                           |
+| Veces universidad       | Representa el número de veces que van a UTEC en la semana. Se ingresa un número entero en días.   | Categórica Ordinal | $x \in N [0, 6]$                                             |
+| Cantidad de aciertos    | Respuestas correctas.                                                                             | Numérica Discreta  | $x \in N [0, 19]$                                            |
+| Cantidad de desaciertos | Respuestas incorrectas.                                                                           | Numérica Discreta  | $x \in N [0, 19]$                                            |
+| Salto de instrucción    | Responde a "sí" o "no".                                                                           | Categórica Nominal | No hay restricción, solo se permite check o NA como valores. |
+| Confirmación            | Responde a "sí" o "no".                                                                           | Categórica Nominal | No hay restricción, solo se permite check o NA como valores. |
+
+#### 4.7. Base de Datos
+
+#### 4.7.1. Limpieza de la Base de Datos
+
+##### LIMPIEZA 1
+
+**Propósito:** Tener una base óptimamente limpia para analizar las variables relacionadas a la moda de los participantes.
+
+```{r, echo=FALSE, results='hide'}
+options(repos = c(CRAN = "https://cran.r-project.org"))
+```
+
+```{r}
+library(readr)
+FORMS_1 <- read_csv("FORMS 1.csv")
+
+tabla_1<-FORMS_1
+tabla_1<-data.frame(cbind(tabla_1[3:15], tabla_1[19:21]))
+tabla_1<-data.frame(cbind(tabla_1[1:4], tabla_1[6:16]))
+names(tabla_1)<-c("Hora1","Nombre","Talla","Peso","Carrera","Cantidad1","Edad","Río","Animal", "Pisa","País","Planeta","Confirmación","Casilla","hora2")
+tabla_1
+```
+
+**Limpieza Nombre**
+
+```{r}
+library(stringr)
+tabla_1$Nombre <- str_to_title(tabla_1$Nombre)
+```
+
+**Limpieza talla**
+
+```{r}
+tabla_1$Talla <- gsub("[^[:digit:]]", "", tabla_1$Talla)
+tabla_1$Talla[tabla_1$Talla == "37"]<- NA
+tabla_1$Talla[tabla_1$Talla == "285"]<- 185
+tabla_1$Talla[tabla_1$Talla == "17"]<- 170
+```
+
+**Limpieza Peso**
+
+```{r}
+filas <- c(48,62)
+tabla_1[filas,4] <- NA
+filas <- c(71)
+tabla_1[filas,4] <- 76
+tabla_1$Peso[tabla_1$Peso == "854"]<- NA
+tabla_1$Peso[tabla_1$Peso == "675"]<- 75
+tabla_1$Peso[tabla_1$Peso == "642"]<- 64
+tabla_1$Peso[tabla_1$Peso == "854"]<- 85
+tabla_1$Peso <- gsub("[^[:digit:]]", "", tabla_1$Peso)
+```
+
+**Limpieza Hora 1**
+
+```{r}
+tabla_1$Hora1[tabla_1$Hora1 == "18300"]<- 61500
+tabla_1$Hora1[tabla_1$Hora1 == "4260"]<- 47460
+tabla_1$Hora1[tabla_1$Hora1 == "0"]<- 32400
+tabla_1$Hora1[tabla_1$Hora1 == "8820"]<- 52020
+#Consulta-Yared
+tabla_1$Hora1[tabla_1$Hora1 == "28740"]<- 35940
+tabla_1$Hora1[tabla_1$Hora1 == "3600"]<- 46800
+```
+
+**Limpieza Hora 2**
+
+```{r}
+tabla_1$hora2[tabla_1$hora2 == "26040"]<- 69240
+tabla_1$hora2[tabla_1$hora2 == "6240"]<- 49440
+tabla_1$hora2[tabla_1$hora2 == "3780"]<- 46980
+tabla_1$hora2[tabla_1$hora2 == "37620"]<- 80820
+tabla_1$hora2[tabla_1$hora2 == "11820"]<- 55022
+```
+
+**Limpieza Carrera**
+
+```{r}
+tabla_1$Carrera <- str_to_title(tabla_1$Carrera)
+tabla_1$Carrera[tabla_1$Carrera == "Civil"]<- "Ingeniería Civil"
+tabla_1$Carrera[tabla_1$Carrera == "Ing. Civil"]<- "Ingeniería Civil"
+tabla_1$Carrera[tabla_1$Carrera == "Ing. Civil"]<- "Ingeniería Civil"
+tabla_1$Carrera[tabla_1$Carrera == "Ingenería Química"]<- "Ingeniería Química"
+tabla_1$Carrera[tabla_1$Carrera == "Química"]<- "Ingeniería Química"
+tabla_1$Carrera[tabla_1$Carrera == "Ing. Química"]<- "Ingeniería Química"
+tabla_1$Carrera[tabla_1$Carrera == "Ing Ambiental"]<- "Ingeniería Ambiental"
+tabla_1$Carrera[tabla_1$Carrera == "Ing. Ambiental"]<- "Ingeniería Ambiental"
+tabla_1$Carrera[tabla_1$Carrera == "Ingenieria Ambiental"]<- "Ingeniería Ambiental"
+tabla_1$Carrera[tabla_1$Carrera == "Ambiental"]<- "Ingeniería Ambiental"
+tabla_1$Carrera[tabla_1$Carrera == "Mecánica"]<- "Ingeniería Mecánica"
+tabla_1$Carrera[tabla_1$Carrera == "Mecatrónica"]<- "Ingeniería Mecatrónica"
+tabla_1$Carrera[tabla_1$Carrera == "Electrónica"]<- "Ingeniería Electrónica"
+tabla_1$Carrera[tabla_1$Carrera == "Ing. Electrónica"]<- "Ingeniería Electrónica"
+tabla_1$Carrera[tabla_1$Carrera == "Ingeniería De Energía"]<- "Ingeniería De La Energía"
+tabla_1$Carrera[tabla_1$Carrera == "Industrial"]<- "Ingeniería Industrial"
+tabla_1$Carrera[tabla_1$Carrera == "Futbolista"]<- NA
+```
+
+**Limpieza Cantidad**
+
+```{r}
+tabla_1$Cantidad1 <- gsub("[^[:digit:]]", "", tabla_1$Cantidad1)
+tabla_1$Cantidad1[tabla_1$Cantidad1 == "Cinco"]<- 5
+tabla_1$Cantidad1[tabla_1$Cantidad1 == ""]<- NA
+unique(tabla_1$Cantidad1)
+```
+
+**Limpieza Edad**
+
+```{r}
+tabla_1$Edad <- str_to_title(tabla_1$Edad)
+tabla_1$Edad[tabla_1$Edad == "Dieciséis"]<- 16
+tabla_1$Edad[tabla_1$Edad == "Diecisiete"]<- 17
+tabla_1$Edad[tabla_1$Edad == "Diecisite"]<- 17
+tabla_1$Edad[tabla_1$Edad == "Dieciocho"]<- 18
+tabla_1$Edad[tabla_1$Edad == "Diecinueve"]<- 19
+tabla_1$Edad[tabla_1$Edad == "Veinte"]<- 20
+tabla_1$Edad[tabla_1$Edad == "Veintiuno"]<- 21
+tabla_1$Edad[tabla_1$Edad == "Veintidos"]<- 22
+tabla_1$Edad[tabla_1$Edad == "Veintidós"]<- 22
+tabla_1$Edad[tabla_1$Edad == "Veintitrés"]<- 23
+tabla_1$Edad[tabla_1$Edad == "Veinticuatro"]<- 24
+unique(tabla_1$Edad)
+```
+
+**Limpieza Río**
+
+```{r}
+tabla_1$Río <- str_to_title(tabla_1$Río)
+tabla_1$Río[tabla_1$Río == "Amazonas"]<-"B"
+tabla_1$Río[tabla_1$Río == "B) Amazonas"]<-"B"
+tabla_1$Río[tabla_1$Río == "Amazones"]<-"B"
+tabla_1$Río[tabla_1$Río == "Nilo"]<-"A"
+unique(tabla_1$Río)
+```
+
+**Limpieza Animal**
+
+```{r}
+tabla_1$Animal <- str_to_title(tabla_1$Animal)
+tabla_1$Animal[tabla_1$Animal == "Mamífero"]<-"B"
+tabla_1$Animal[tabla_1$Animal == "Mamifero"]<-"B"
+tabla_1$Animal[tabla_1$Animal == "B) Mamífero"]<-"B"
+tabla_1$Animal[tabla_1$Animal == "M"]<-"B"
+tabla_1$Animal[tabla_1$Animal == "Pez"]<-"A"
+unique(tabla_1$Animal)
+```
+
+**Limpieza Pisa**
+
+```{r}
+tabla_1$Pisa <- str_to_title(tabla_1$Pisa)
+tabla_1$Pisa[tabla_1$Pisa == "Italia"]<-"B"
+tabla_1$Pisa[tabla_1$Pisa == "B)Italia"]<-"B"
+tabla_1$Pisa[tabla_1$Pisa == "B) Italia"]<-"B"
+tabla_1$Pisa[tabla_1$Pisa == "Francia"]<-"A"
+tabla_1$Pisa[tabla_1$Pisa == "España"]<-"C"
+unique(tabla_1$Pisa)
+```
+
+**Limpieza País**
+
+```{r}
+tabla_1$País <- str_to_title(tabla_1$País)
+tabla_1$País[tabla_1$País == "Rusia"]<-"C"
+tabla_1$País[tabla_1$País == "C) Rusia"]<-"C"
+tabla_1$País[tabla_1$País == "C)Rusia"]<-"C"
+tabla_1$País[tabla_1$País == "Russia"]<-"C"
+tabla_1$País[tabla_1$País == "R"]<-"C"
+tabla_1$País[tabla_1$País == "Brazil"]<-"A"
+tabla_1$País[tabla_1$País == "China"]<-"B"
+tabla_1$País[tabla_1$País == "G"]<-NA
+unique(tabla_1$País)
+
+```
+
+**Limpieza Planeta**
+
+```{r}
+tabla_1$Planeta <- str_to_title(tabla_1$Planeta)
+tabla_1$Planeta[tabla_1$Planeta == "C) Neptuno"]<-"C"
+tabla_1$Planeta[tabla_1$Planeta == "A)Saturno"]<-"A"
+tabla_1$Planeta[tabla_1$Planeta == "S"]<-"A"
+tabla_1$Planeta[tabla_1$Planeta == "Saturno"]<-"A"
+tabla_1$Planeta[tabla_1$Planeta == "Neptuno"]<-"C"
+tabla_1$Planeta[tabla_1$Planeta == "Nepturno"]<-"C"
+tabla_1$Planeta[tabla_1$Planeta == "N"]<-"C"
+tabla_1$Planeta[tabla_1$Planeta == "Mercurio"]<-"B"
+unique(tabla_1$Planeta)
+```
+
+**Saltar instrucción**
+
+```{r}
+tabla_1$Casilla[is.na(tabla_1$Casilla)] <- "No"
+tabla_1$Confirmación[is.na(tabla_1$Confirmación)] <- "No"
+```
+
+**Revisión**
+
+```{r}
+#Pasar a numéricas
+tabla_1$Talla <- as.numeric(tabla_1$Talla)
+tabla_1$Peso <- as.numeric(tabla_1$Peso)
+tabla_1$Cantidad1 <- as.numeric(tabla_1$Cantidad1)
+tabla_1$Edad <- as.numeric(tabla_1$Edad)
+#Restar las horas para ver cuánto demoraron
+tabla_1$DiferenciaHora <- tabla_1$hora2 - tabla_1$Hora1
+#Limpiar Nueva casilla
+tabla_1$DiferenciaHora <- ifelse(tabla_1$DiferenciaHora < 0, NA, tabla_1$DiferenciaHora)
+tabla_1$DiferenciaHora <- ifelse(tabla_1$DiferenciaHora > 3600, NA, tabla_1$DiferenciaHora)
+#____________________________________________________________________
+nrow(tabla_1) #Cuenta número de filas (observaciones, muestra)
+ncol(tabla_1) #Cuenta número de columnas (variables)
+sum(is.na(tabla_1)) #Suma las celdas vacías de DF (Datos faltantes)
+sum(!complete.cases(tabla_1)) #Suma las observaciones incompletas
+```
+
+##### LIMPIEZA 2
+
+Limpieza hecha para contar la cantidad de personas que saben contestar una encuesta y desarrollar los objetivos específicos:
+
+```{r}
+tabla_2<-FORMS_1
+tabla_2<-data.frame(tabla_2[3:21])
+names(tabla_2)<-c("Horai24","Nombremay","Tallacm","Pesokg","Fechamda","Carreracom","Vecesnum","Edadmin","Río","Animal", "Pisa","País","Planeta","Pregunta1","Pregunta2","Pregunta3","Confirmación","Saltodeinst","Horaf24")
+tabla_2
+```
+
+**Limpieza hora inicial formato 24 horas**
+
+```{r}
+# Reemplazar los valores en las filas mal ingresadas de la columna 1 (Hora incial, formato 24 horas) por NA
+filas <- c(4,9,31,33,38,41,42,44,74,75,79,81,82,87,88,92,95,102,108,127,131,135,138,142,161,167)
+tabla_2[filas,1] <- NA
+
+```
+
+**Limpieza nombre**
+
+```{r}
+#Elimina lo que no sea solo mayúsculas
+tabla_2$Nombremay <- sapply(strsplit(as.character(tabla_2$Nombremay), "\\s+"), function(x) ifelse(!all(grepl("^[[:upper:]]+$", x)), NA, paste(x, collapse = " ")))
+```
+
+**Limpieza talla**
+
+```{r}
+tabla_2$Tallacm[tabla_2$Tallacm == "150 cm"]<- 150
+tabla_2$Tallacm[tabla_2$Tallacm == "176cm"]<- 176
+tabla_2$Tallacm[tabla_2$Tallacm == "Ciento setenta (170)"]<- 176
+tabla_2$Tallacm <- ifelse(tabla_2$Tallacm < 100, NA, tabla_2$Tallacm)
+tabla_2$Tallacm[tabla_2$Tallacm == "28.5"]<- NA
+tabla_2$Tallacm[tabla_2$Tallacm == "37"]<- NA
+```
+
+**Limpieza peso**
+
+```{r}
+tabla_2$Pesokg[tabla_2$Pesokg == "48kg"]<- 48
+tabla_2$Pesokg[tabla_2$Pesokg == "65kg"]<- 65
+tabla_2$Pesokg[tabla_2$Pesokg == "Sesenta y seis (66)"]<- 66
+```
+
+**Limpieza fecha de nacimiento en formato mm/dd/aa**
+
+```{r,message=FALSE, error=FALSE, results='hide'}
+tabla_2$Fechamda[tabla_2$Fechamda == "24/33/2004"]<- NA
+tabla_2$Fechamda[tabla_2$Fechamda == "15/06/2004"]<- NA
+tabla_2$Fechamda[tabla_2$Fechamda == "05/04/2023"]<- 05/04/2003
+tabla_2$Fechamda[tabla_2$Fechamda == "07-07-2004"]<- 07/07/2004
+tabla_2$Fechamda[tabla_2$Fechamda == "01312001"]<- 01/31/2001
+tabla_2$Fechamda[tabla_2$Fechamda == "29.11.2000"]<- NA
+tabla_2$Fechamda[tabla_2$Fechamda == "11122003"]<- 11/12/2003
+tabla_2$Fechamda[tabla_2$Fechamda == "07112002"]<- 07/11/2002
+#Anulo el siguiente, porque el mes está mal
+tabla_2$Fechamda[tabla_2$Fechamda == "25/09/97"]<- NA
+# Convertir fechas a números y verificar condición
+tabla_2$Fechamda <- ifelse(as.numeric(substr(tabla_2$Fechamda, 1, 2)) <= 12, tabla_2$Fechamda, NA)
+```
+
+**Limpieza de nombre completo de carrera**
+
+```{r}
+library(stringr)
+tabla_2$Carreracom <- str_to_title(tabla_2$Carreracom)
+tabla_2$Carreracom <- str_to_title(tabla_2$Carreracom)
+tabla_2$Carreracom[tabla_2$Carreracom == "Ingeneria Química"]<- "Ingeniería Química"
+tabla_2$Carreracom[tabla_2$Carreracom == "Ingenieria Ambiental"]<- "Ingeniería Ambiental"
+tabla_2$Carreracom[tabla_2$Carreracom == "Ingeniería De Energía"]<- "Ingeniería De La Energía"
+tabla_2$Carreracom[tabla_2$Carreracom == "Civil"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Ing. Civil"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Ing Civil"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Química"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Ing. Química"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Ing Ambiental"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Ing. Ambiental"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Ambiental"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Mecánica"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Mecatrónica"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Electrónica"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Ing. Electrónica"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Industrial"]<- NA
+tabla_2$Carreracom[tabla_2$Carreracom == "Futbolista"]<- NA
+```
+
+**Limpieza de veces que van a la univrersidad en números**
+
+```{r}
+tabla_2$Vecesnum[tabla_2$Vecesnum == "5 veces"]<- 5
+tabla_2$Vecesnum[tabla_2$Vecesnum == "Cinco"]<- NA
+```
+
+**Limpieza edad en minúsculas**
+
+```{r}
+#El código elimina todo lo que no es minúscula
+tabla_2$Edadmin <- sapply(strsplit(as.character(tabla_2$Edadmin), "\\s+"), function(x) ifelse(!all(grepl("^[[:lower:]]+$", x)), NA, paste(x, collapse = " ")))
+```
+
+**Limpieza pregunta de opción múltiple**
+
+```{r}
+#Río más largo del mundo
+tabla_2$Río <- sapply(strsplit(as.character(tabla_2$Río), "\\s+"), function(x) ifelse(!all(grepl("^[[:lower:]]+$", x)), NA, paste(x, collapse = " ")))
+#Tipo de animal que es la ballena
+tabla_2$Animal <- sapply(strsplit(as.character(tabla_2$Animal), "\\s+"), function(x) ifelse(!all(grepl("^[[:lower:]]+$", x)), NA, paste(x, collapse = " ")))
+#Páis de la torre de Pisa
+tabla_2$Pisa <- sapply(strsplit(as.character(tabla_2$Pisa), "\\s+"), function(x) ifelse(!all(grepl("^[[:lower:]]+$", x)), NA, paste(x, collapse = " ")))
+#País más grande
+tabla_2$País <- sapply(strsplit(as.character(tabla_2$País), "\\s+"), function(x) ifelse(!all(grepl("^[[:lower:]]+$", x)), NA, paste(x, collapse = " ")))
+#Planeta
+tabla_2$Planeta <- sapply(strsplit(as.character(tabla_2$Planeta), "\\s+"), function(x) ifelse(!all(grepl("^[[:lower:]]+$", x)), NA, paste(x, collapse = " ")))
+```
+
+**Limpieza preguntas abiertas en mayúsculas**
+
+```{r}
+#Pregunta 1
+#Elimina lo que no sea solo mayúsculas
+tabla_2$Pregunta1 <- sapply(strsplit(as.character(tabla_2$Pregunta1), "\\s+"), function(x) ifelse(!all(grepl("^[[:upper:]]+$", x)), NA, paste(x, collapse = " ")))
+#Pregunta 2
+#Elimina lo que no sea solo mayúsculas
+tabla_2$Pregunta2 <- sapply(strsplit(as.character(tabla_2$Pregunta2), "\\s+"), function(x) ifelse(!all(grepl("^[[:upper:]]+$", x)), NA, paste(x, collapse = " ")))
+#Pregunta 3
+#Elimina lo que no sea solo mayúsculas
+tabla_2$Pregunta3 <- sapply(strsplit(as.character(tabla_2$Pregunta3), "\\s+"), function(x) ifelse(!all(grepl("^[[:upper:]]+$", x)), NA, paste(x, collapse = " ")))
+```
+
+**Limpieza hora final formato 24 horas**
+
+```{r}
+# Reemplazar los valores en las filas mal ingresadas de la columna 1 (Hora incial, formato 24 horas) por NA
+filas <- c(4,9,26,31,33,38,42,60,74,75,79,81,82,87,88,92,95,127,128,134,135,138,142,157,161,167)
+tabla_2[filas,19] <- NA
+```
+
+**COLUMNAS EXTRA**
+
+```{r}
+#ACIERTOS
+tabla_2$Aciertos <- rowSums(!is.na(tabla_2))
+#DESACIERTOS
+tabla_2$Desaciertos <- rowSums(is.na(tabla_2))
+```
+
+## ANÁLISIS DESCRIPTIVO
+
+### 5. Metodología y Resultados
+
+#### 5.1 Descriptores
+
+##### 5.1.1 Descriptores numéricos de posición
+
+Son medidas estadísticas que representan la ubicación o posición relativa de un conjunto de datos en relación con otros valores. Estos descriptores proporcionan información sobre dónde se encuentran los valores en la distribución de los datos y ayudan a comprender la concentración y dispersión de los mismos.
+
+```{r echo=FALSE, message=FALSE}
+tabla_1$Peso <- as.numeric(tabla_1$Peso, na.rm = TRUE)
+tabla_2$Pesokg <- as.numeric(tabla_2$Pesokg, na.rm = TRUE)
+DescriptoresNumericos<-function(X){
+  return(list(Min=round(min(X,na.rm=TRUE),2),
+              Max=round(max(X,na.rm=TRUE),2),
+              Media=round(mean(X,na.rm = TRUE ),2), 
+              Mediana=round(median(X, na.rm = TRUE),2), 
+              Desviacion=round(sd(X,na.rm=TRUE),2), 
+              CV=round((sd(X,na.rm=TRUE)/mean(X,na.rm=TRUE)),2)))
+}
+mapply(DescriptoresNumericos, list("Talla" = tabla_1$Talla,
+                                   "Peso" = tabla_2$Pesokg,
+                                   "Cantidad1" = tabla_1$Cantidad1,
+                                   "Edad" = tabla_1$Edad,
+                                   "Tiempo" = tabla_1$DiferenciaHora))
+```
+
+**TALLA**
+
+| DESCRIPTOR NUMÉRICO | Talla  |
+|:-------------------:|:------:|
+|         Min         |  110   |
+|         Max         |  193   |
+|        Media        | 166.54 |
+|       Mediana       |  168   |
+|     Desviación      | 10.28  |
+|         CV          |  0.06  |
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+
+boxplot(tabla_1$Talla, 
+        horizontal = TRUE,
+        main = "Estatura de los estudiantes encuestados",
+        xlab = "Talla en cm",
+        col = "lightyellow",
+        border = "Orange")
+abline(v=mean(tabla_1$Talla), lwd=2, lty=3, col="darkblue")  
+
+legend("topright", legend = c("Media"),
+       title = "Leyenda", # Título
+       title.adj = 0.5,          # Ajuste horizontal del título
+       title.col = "black",       # Color del título
+       lty = c(3),col = c("darkblue"), lwd = 3,xpd = TRUE,   # Necesario para poner la leyenda fuera del gráfico
+       horiz = TRUE) # Leyenda horizontal)
+
+```
+
+-   **Análisis descriptivo:**
+
+    El boxplot representa para la variable talla:
+
+    -   **Min:** Es el valor mínimo de la variable en el conjunto de datos. En este caso, indica que la menor talla registrada es 110 cm.
+
+    -   **Max:** Es el valor máximo de la variable en el conjunto de datos. En este caso, indica que la mayor talla registrada es 193 cm.
+
+    -   **Media:** Es el promedio aritmético de los valores de la variable en el conjunto de datos. Se calcula sumando todos los valores y dividiendo entre el número total de datos. En este caso, indica que la talla promedio es 166.54 cm.
+
+    -   **Mediana:** Es el valor que ocupa el lugar central de la variable en el conjunto de datos ordenados de menor a mayor. Si hay un número par de datos, se toma el promedio de los dos valores centrales. En este caso, indica que la mitad de las personas tienen una talla menor o igual a 168 cm y la otra mitad tiene una talla mayor o igual a 168 cm.
+
+    -   **Desviación:** Es una medida de la variabilidad o dispersión de los valores de la variable en el conjunto de datos. Se calcula como la raíz cuadrada de la varianza, que es el promedio de las diferencias al cuadrado entre cada valor y la media. En este caso, indica que la talla varía en promedio 10.28 cm respecto a la media.
+
+    -   **CV:** Es el coeficiente de variación, que se calcula como el cociente entre la desviación y la media, expresado en porcentaje. Es una medida relativa de la variabilidad o dispersión de los valores de la variable en el conjunto de datos. En este caso, un CV de 0.06 indica que la variabilidad relativa de la estatura en la base de datos es del 6%. Un CV bajo sugiere que los valores de estatura están relativamente cerca de la media, lo que indica una menor variabilidad en la estatura de las personas en la base de datos.
+
+        Encontramos 2 datos atípicos.
+
+**PESO**
+
+| DESCRIPTOR NUMÉRICO | Peso  |
+|:-------------------:|:-----:|
+|         Min         |  40   |
+|         Max         |  180  |
+|        Media        | 66.67 |
+|       Mediana       |  64   |
+|     Desviación      | 16.52 |
+|         CV          | 0.25  |
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+boxplot(tabla_2$Pesokg, 
+        horizontal = TRUE,
+        main = "Peso de los estudiantes encuestados",
+        xlab = "Peso en kg",
+        col = "purple",
+        border = "orange")
+abline(v=mean(tabla_2$Pesokg), lwd=2, lty=3, col="black")  
+
+legend("topright", legend = c("Media"),
+       title = "Leyenda", # Título
+       title.adj = 0.5,          # Ajuste horizontal del título
+       title.col = "black",       # Color del título
+       lty = c(3),col = c("darkblue"), lwd = 3,xpd = TRUE,   # Necesario para poner la leyenda fuera del gráfico
+       horiz = TRUE) # Leyenda horizontal)
+
+```
+
+-   **Análisis descriptivo:**
+
+    El boxplot nos permite identificar lo siguiente:
+
+    -   **Min:** El valor mínimo de la variable "peso" es 40 kg. Esto significa que al menos una persona en la base de datos tiene un peso de 40 kg.
+
+    -   **Max:** El valor máximo de la variable "peso" es 180 kg. Esto indica que al menos una persona en la base de datos tiene un peso de 180 kg, que es el peso más alto registrado.
+
+    -   **Media:** La media de la variable "peso" es 66.67 kg. Esto implica que, en promedio, las personas en la base de datos tienen un peso de aproximadamente 66.67 kg.
+
+    -   **Mediana:** La mediana de la variable "peso" es 64 kg. La mediana es el valor que se encuentra en el medio de todos los datos cuando se ordenan de forma ascendente. Esto significa que la mitad de las personas en la base de datos tienen un peso igual o menor a 64 kg, y la otra mitad tiene un peso igual o mayor a 64 kg.
+
+    -   **Desviación estándar:** La desviación estándar de la variable "peso" es 16.52 kg. La desviación estándar es una medida de dispersión que indica cuánto se desvían los valores individuales de la media. En este caso, la desviación estándar de 16.52 kg implica que los valores de peso tienden a dispersarse alrededor de la media de 66.67 kg.
+
+    -   **Coeficiente de Variación:** El coeficiente de variación de la variable "peso" es 0.25. El CV se calcula como la desviación estándar dividida por la media, y se expresa como un porcentaje. En este caso, un CV de 0.25 indica que la variabilidad relativa del peso en la base de datos es del 25%. Un CV moderado sugiere que los valores de peso presentan cierta variabilidad en relación con la media.
+
+        Encontramos 6 datos atípicos para esta variable.
+
+**CANTIDAD DE VECES QUE VA A LA UNIVERSIDAD**
+
+| DESCRIPTOR NUMÉRICO | Cantidad de veces que va a la universidad |
+|:-------------------:|:-----------------------------------------:|
+|         Min         |                     0                     |
+|         Max         |                     6                     |
+|        Media        |                   2.91                    |
+|       Mediana       |                     3                     |
+|     Desviación      |                   1.55                    |
+|         CV          |                   0.53                    |
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+boxplot(tabla_1$Cantidad1, 
+        horizontal = TRUE,
+        main = "Tiempo que se solia pasar con los amigos antes de la pandemia",
+        xlab = "Tiempo(horas)",
+        col = "lightgreen",
+        border = "darkgreen")
+abline(v=mean(tabla_1$Cantidad1), lwd=2, lty=3, col="darkblue")  
+
+legend("topright", legend = c("Media"),
+       title = "Leyenda", # Título
+       title.adj = 0.5,          # Ajuste horizontal del título
+       title.col = "black",       # Color del título
+       lty = c(3),col = c("darkblue"), lwd = 3,xpd = TRUE,   # Necesario para poner la leyenda fuera del gráfico
+       horiz = TRUE) # Leyenda horizontal)
+```
+
+-   **Análisis descriptivo:**
+
+    El boxplot nos facilita la siguiente información:
+
+    -   **Min:** El valor mínimo de la variable "Cantidad de veces que va a la universidad" es 0. Esto significa que al menos una persona en la base de datos no ha ido a la universidad.
+
+    -   **Max:** El valor máximo de la variable "Cantidad de veces que va a la universidad" es 6. Esto indica que al menos una persona en la base de datos ha ido a la universidad 6 veces.
+
+    -   **Media:** La media de la variable "Cantidad de veces que va a la universidad" es 2.91. Esto implica que, en promedio, las personas en la base de datos han ido a la universidad aproximadamente 2.91 veces.
+
+    -   **Mediana:** La mediana de la variable "Cantidad de veces que va a la universidad" es 3. La mediana es el valor que se encuentra en el medio de todos los datos cuando se ordenan de forma ascendente. Esto significa que la mitad de las personas en la base de datos han ido a la universidad igual o menos de 3 veces, y la otra mitad ha ido igual o más de 3 veces.
+
+    -   **Desviación estándar:** La desviación estándar de la variable "Cantidad de veces que va a la universidad" es 1.55. La desviación estándar es una medida de dispersión que indica cuánto se desvían los valores individuales de la media. En este caso, la desviación estándar de 1.55 implica que los valores de la cantidad de veces que se va a la universidad tienden a dispersarse alrededor de la media de 2.91.
+
+    -   **Coeficiente de Variación:** El coeficiente de variación de la variable "Cantidad de veces que va a la universidad" es 0.53. El CV se calcula como la desviación estándar dividida por la media, y se expresa como un porcentaje. En este caso, un CV de 0.53 indica que la variabilidad relativa de la cantidad de veces que se va a la universidad en la base de datos es del 53%. Un CV moderado sugiere que los valores de esta variable presentan cierta variabilidad en relación con la media.
+
+        No tenemos datos atípicos.
+
+**EDAD**
+
+| DESCRIPTOR NUMÉRICO | Edades |
+|:-------------------:|:------:|
+|         Min         |   16   |
+|         Max         |   26   |
+|        Media        | 19.74  |
+|       Mediana       |   20   |
+|     Desviación      |  1.72  |
+|         CV          |  0.09  |
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+boxplot(tabla_1$Edad, 
+        horizontal = TRUE,
+        main = "Edades de los estudiantes",
+        xlab = "Edad(años)",
+        col = "lightpink",
+        border = "darkred")
+abline(v=mean(tabla_1$Edad), lwd=2, lty=3, col="darkblue")  
+
+legend("topright", legend = c("Media"),
+       title = "Leyenda", # Título
+       title.adj = 0.5,          # Ajuste horizontal del título
+       title.col = "black",       # Color del título
+       lty = c(3),col = c("darkblue"), lwd = 3,xpd = TRUE,   # Necesario para poner la leyenda fuera del gráfico
+       horiz = TRUE) # Leyenda horizontal)
+```
+
+-   **Análisis descriptivo:**
+
+    El boxplot nos proporciona la siguiente información en relación con la variable analizada:
+
+    -   **Min:** El valor mínimo de la variable "Edades" es 16 años. Esto significa que al menos una persona en la base de datos tiene 16 años.
+
+    -   **Max:** El valor máximo de la variable "Edades" es 26 años. Esto indica que al menos una persona en la base de datos tiene 26 años, que es la edad máxima registrada.
+
+    -   **Media:** La media de la variable "Edades" es 19.74 años. Esto implica que, en promedio, las personas en la base de datos tienen una edad de aproximadamente 19.74 años.
+
+    -   **Mediana:** La mediana de la variable "Edades" es 20 años. La mediana es el valor que se encuentra en el medio de todos los datos cuando se ordenan de forma ascendente. Esto significa que la mitad de las personas en la base de datos tienen una edad igual o menor a 20 años, y la otra mitad tiene una edad igual o mayor a 20 años.
+
+    -   **Desviación estándar:** La desviación estándar de la variable "Edades" es 1.72 años. La desviación estándar es una medida de dispersión que indica cuánto se desvían los valores individuales de la media. En este caso, la desviación estándar de 1.72 años implica que los valores de edad tienden a dispersarse alrededor de la media de 19.74 años.
+
+    -   **Coeficiente de Variación:** El coeficiente de variación de la variable "Edades" es 0.09. El CV se calcula como la desviación estándar dividida por la media, y se expresa como un porcentaje. En este caso, un CV de 0.09 indica que la variabilidad relativa de las edades en la base de datos es del 9%. Un CV bajo sugiere que los valores de edad están relativamente cerca de la media, lo que indica una menor variabilidad en las edades de las personas en la base de datos.
+
+        Tenemos 2 datos atípicos.
+
+**Tiempo**
+
+| DESCRIPTOR NUMÉRICO | Tiempo invertido |
+|:-------------------:|:----------------:|
+|         Min         |        60        |
+|         Max         |       2400       |
+|        Media        |      360.37      |
+|       Mediana       |       300        |
+|     Desviación      |      281.07      |
+|         CV          |       0.78       |
+
+```{r eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+boxplot(tabla_1$DiferenciaHora, 
+        horizontal = TRUE,
+        main = "Tiempo invertido en la encuesta",
+        xlab = "Tiempo (segundos)",
+        col = "skyblue",
+        border = "darkred")
+abline(v=mean(tabla_1$DiferenciaHora), lwd=2, lty=3, col="darkblue")  
+
+legend("topright", legend = c("Media"),
+       title = "Leyenda", # Título
+       title.adj = 0.5,          # Ajuste horizontal del título
+       title.col = "black",       # Color del título
+       lty = c(3),col = c("darkblue"), lwd = 3,xpd = TRUE,   # Necesario para poner la leyenda fuera del gráfico
+       horiz = TRUE) # Leyenda horizontal)
+```
+
+-   **Análisis descriptivo:**
+
+    El boxplot nos proporciona la siguiente información sobre el tiempo invertido en el desarrollo de la encuesta:
+
+    -   **Min:** El valor mínimo de la variable "Tiempo invertido" es 60 segundos. Esto significa que al menos una tarea en la base de datos requiere un mínimo de 60 segundos de tiempo invertido.
+
+    -   **Max:** El valor máximo de la variable "Tiempo invertido" es 2400 segundos. Esto indica que al menos una tarea en la base de datos requiere un máximo de 2400 segundos de tiempo invertido, que es el tiempo más alto registrado.
+
+    -   **Media:** La media de la variable "Tiempo invertido" es 360.37 segundos. Esto implica que, en promedio, las tareas en la base de datos requieren aproximadamente 360.37 segundos de tiempo invertido.
+
+    -   **Mediana:** La mediana de la variable "Tiempo invertido" es 300 segundos. La mediana es el valor que se encuentra en el medio de todos los datos cuando se ordenan de forma ascendente. Esto significa que la mitad de las tareas en la base de datos requieren un tiempo igual o menor a 300 segundos, y la otra mitad requiere un tiempo igual o mayor a 300 segundos.
+
+    -   **Desviación estándar:** La desviación estándar de la variable "Tiempo invertido" es 281.07 segundos. La desviación estándar es una medida de dispersión que indica cuánto se desvían los valores individuales de la media. En este caso, la desviación estándar de 281.07 segundos implica que los valores de tiempo invertido tienden a dispersarse alrededor de la media de 360.37 segundos.
+
+    -   **Coeficiente de Variación:** El coeficiente de variación de la variable "Tiempo invertido" es 0.78. El CV se calcula como la desviación estándar dividida por la media, y se expresa como un porcentaje. En este caso, un CV de 0.78 indica que la variabilidad relativa del tiempo invertido en la base de datos es del 78%. Un CV moderado sugiere que los valores de tiempo invertido presentan cierta variabilidad en relación con la media.
+
+        Tenemos 10 datos atípicos, correspondientes a datos especiales que fueron consultados. Además, a pesar de que 10 personas se hayan tomado más tiempo de lo normal en el desarrollo de la encuesta, solo la mitad de ellas llenaro correctamente la encuesta completa.
+
+##### 5.1.2. Descriptores gráficos
+
+***Alineación a los objetivos***
+
+**i. Calcular la cantidad de alumnos de la UTEC que saben seguir instrucciones explícitas en el desarrollo de encuestas.**
+
+```{r, echo=FALSE, message=FALSE}
+library(ggplot2)
+
+# Contar el número de filas
+num_filas <- nrow(tabla_2)
+filas_con_faltantes <- sum(rowSums(is.na(tabla_2)) > 1)
+filas_correcto_completo= num_filas-filas_con_faltantes
+
+# Crear un data frame para el gráfico
+datos_grafico <- data.frame(
+  Categoria = c("Saben seguir instrucciones", "No saben seguir instrucciones"),
+  Cantidad = c(filas_correcto_completo, filas_con_faltantes)
+)
+
+# Crear el gráfico de barras
+grafico <- ggplot(datos_grafico, aes(x = Categoria, y = Cantidad, fill = Categoria)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Cantidad de Personas que saben seguir instrucciones en encuestas correctamente en su totalidad",
+       x = "Categoría",
+       y = "Cantidad") +
+  theme_minimal()
+
+# Mostrar el gráfico
+print(grafico)
+```
+
+-   **Análisis descriptivo:**
+
+    El gráfico de barras nos muestra una gran diferencia entre la cantidad de personas que saben seguir instrucciones y las que no. Se contó como personas que no saben seguir instrucciones a las que tenían más de un dato faltante por fila. Por lo tanto, respondiendo al objetivo, la cantidad de alumnos de la UTEC que saben seguir instrucciones explícitas en el desarrollo de encuestas es 5. Es decir, el 2.94%.
+
+**ii. Identificar los principales errores y omisiones cometidos por los estudiantes en el proceso de desarrollo de encuestas.**
+
+**- ACIERTOS:**
+
+```{r, echo=FALSE, message=FALSE}
+library(ggplot2)
+# Seleccionar las variables de interés
+variables_seleccionadas <- c("Horai24", "Nombremay","Tallacm","Pesokg","Fechamda","Carreracom","Vecesnum","Edadmin","Río","Animal", "Pisa","País","Planeta","Pregunta1","Pregunta2","Pregunta3","Horaf24")
+
+# Filtrar los datos por las variables seleccionadas
+datos_seleccionados <- tabla_2[, variables_seleccionadas]
+
+# Calcular el número de datos no faltantes para cada variable seleccionada
+no_faltantes <- colSums(!is.na(datos_seleccionados))
+
+# Crear un data frame con los resultados
+datos_no_faltantes <- data.frame(
+  Variable = names(no_faltantes),
+  Aciertos = no_faltantes
+)
+
+# Crear gráfico circular
+grafico <- ggplot(datos_no_faltantes, aes(x = "", y = Aciertos, fill = Variable)) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "NÚMERO DE ACIERTOS POR INSTRUCCIÓN") +
+  theme_minimal() +
+  theme(legend.position = "right",
+        axis.title = element_blank(),    # Eliminar título del eje
+        axis.text = element_blank(),     # Eliminar etiquetas del eje
+        axis.ticks = element_blank(),    # Eliminar marcas del eje
+        plot.title = element_text(size = 14),   # Tamaño del título
+        plot.subtitle = element_text(size = 12),   # Tamaño del subtítulo
+        plot.caption = element_text(size = 10),   # Tamaño de la leyenda
+        legend.text = element_text(size = 10),    # Tamaño de la leyenda
+        panel.grid = element_blank())    # Eliminar cuadrícula
+
+grafico <- grafico +
+  geom_text(aes(label = Aciertos), position = position_stack(vjust = 0.5), color = "white",
+            size = 3)   # Tamaño de los números
+# Mostrar el gráfico
+print(grafico)
+```
+
+-   **Análisis descriptivo:**
+
+    El gráfico circular representa la porción de aciertos por instrucción en la encuesta. En este sentido, las 5 instrucciones con más aciertos son, de más a menos aciertos: Pesokg (Ingresar el peso en kg), Vecesnum (Ingresar como número entero las veces que van a la universidad), Horaf24 y Horai24 (Ingresar la hora de inicio y fin de la encuesta en formato 24 horas), y Tallacm (Ingresar talla en centímetros). Estas instrucciones contienen ejemplos de llenado en la redacción de la instrucción, por lo tanto, podemos concluir que para un seguimiento más exacto, se debe colocar un ejemplo de la instrucción.
+
+```{r, echo=FALSE, message=FALSE}
+library(ggplot2)
+# Seleccionar las variables de interés
+variables_seleccionadas1 <- c("Horai24", "Nombremay","Tallacm","Pesokg","Fechamda","Carreracom","Vecesnum","Edadmin","Río","Animal", "Pisa","País","Planeta","Pregunta1","Pregunta2","Pregunta3","Horaf24")
+
+# Filtrar los datos por las variables seleccionadas
+datos_seleccionados1 <- tabla_2[, variables_seleccionadas1]
+
+# Calcular el número de datos faltantes para cada variable seleccionada
+faltantes1 <- colSums(is.na(datos_seleccionados1))
+
+# Crear un data frame con los resultados
+datos_faltantes1 <- data.frame(
+  Variable1 = names(faltantes1),
+  Desaciertos = faltantes1
+)
+
+# Crear gráfico circular
+grafico1 <- ggplot(datos_faltantes1, aes(x = "", y = Desaciertos, fill = Variable1)) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "DESACIERTOS POR INSTRUCCIÓN") +
+  theme_minimal() +
+  theme(legend.position = "right",
+        axis.title = element_blank(),    # Eliminar título del eje
+        axis.text = element_blank(),     # Eliminar etiquetas del eje
+        axis.ticks = element_blank(),    # Eliminar marcas del eje
+        plot.title = element_text(size = 16),   # Tamaño del título
+        plot.subtitle = element_text(size = 12),   # Tamaño del subtítulo
+        plot.caption = element_text(size = 10),   # Tamaño de la leyenda
+        legend.text = element_text(size = 10),    # Tamaño de la leyenda
+        panel.grid = element_blank())    # Eliminar cuadrícula
+
+grafico1 <- grafico1 +
+  geom_text(aes(label = Desaciertos), position = position_stack(vjust = 0.5), color = "white",
+            size = 3)   # Tamaño de los números
+# Mostrar el gráfico
+print(grafico1)
+```
+
+-   **Análisis descriptivo:**
+
+    El gráfico circular de desaciertos nos muestra por porción, donde más se ha cometido errores. De este gráfico podemos extraer los principales errores y omisiones. Por lo tanto, respondiendo al objetivo, los principales errores y omisiones cometidos por los estudiantes en el proceso de desarrollo de encuestas son los siguientes de más a menos desaciertos: Pisa, Pregunta3, Animal, País y Planeta, la instrucción para estas 5 preguntas fue introducir en minúsculas la respuesta. En el caso de Pregunta3, sin límite de caracteres; en las demás, solo a, b o c. En resumen, el principal error se dio al indicarse que se ingrese la respuesta en minúscula.
+
+**iii. Relacionar la cantidad de alumnos de la UTEC que no saben seguir instrucciones con el tiempo invertido en el desarrollo de las mismas.**
+
+```{r, echo=FALSE, message=FALSE}
+plot((
+  tabla_1$DiferenciaHora), 
+  tabla_2$Desaciertos,
+  xlab = "Tiempo invertido (segundos)",
+  ylab = "Desaciertos",
+  main = "Muestra total")
+```
+
+-   **Análisis descriptivo:**
+
+    El gráfico de dispersión se observa que es sesgado a la izquierda. Esto indica una asociación lineal negativa entre las dos variables, es decir, que cuando una variable aumenta, la otra disminuye. Y, en efecto, hay mayor cantidad de desaciertos entre 0 y 500 segundos, a partir de 500 segundos, los desaciertos empiezan a disminuir un poco, pero aún hay. Por lo tanto, esto en sí mismo responde al objetivo, pues la relación entre la cantidad de alumnos de la UTEC que no saben seguir instrucciones y el tiempo invertido en el desarrollo de las mismas es lineal negativa. Sin embargo, no se cumple para todos los casos, ya que, aún en un tiempo mayor a 2000 segundos, encontramos 2 desaciertos. Para ser un tiempo considerable, aún hay error en el llenado.
+
+**iv. Relacionar la cantidad de alumnos de la UTEC que no saben seguir instrucciones con la cantidad de alumnos de la UTEC que creen que no saben seguir instrucciones.**
+
+```{r, echo=FALSE, message=FALSE}
+# Calcular la cantidad de filas sin datos faltantes y la cantidad de datos no faltantes de variableX
+filas_faltantes <- 165
+datos_faltantes <- sum(is.na(tabla_2$Confirmación))
+
+# Crear un data.frame con los valores calculados
+datos1 <- data.frame(Tipo = c("Personas que no 
+            saben llenar encuestas", "Personas que creen que
+           no saben llenar encuestas"),
+                     Cantidad = c(filas_faltantes, datos_faltantes))
+
+# Graficar el gráfico de barras con colores personalizados
+library(ggplot2)
+
+ggplot(datos1, aes(x = Tipo, y = Cantidad, fill = Tipo)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("black", "skyblue")) +
+  labs(x = "Tipo", y = "Cantidad", title = "Personas que no saben llenar una encuesta y Personas que creen que no saben llenar una encuesta") +
+  theme_bw()
+
+```
+
+-   **Análisis descriptivo:** El gráfico de barras nos muestra la cantidad de personas que creen que no saben llenar encuestas y las personas que no saben llenar encuestas realmente. Respondiendo al objetivo, la relación entre la cantidad de alumnos de la UTEC que no saben seguir instrucciones con la cantidad de alumnos de la UTEC que creen que no saben seguir instrucciones es totalmente opuesta, pues, la cantidad de estudiantes que son conscientes de no saber seguir instrucciones en la encuesta es insignificante en compaarción a la cantidad de estudiantes que no sabe llenar encuestas.
+
+**v. Relacionar la cantidad de alumnos de la UTEC que saben seguir instrucciones con la cantidad de alumnos de la UTEC que creen que saben seguir instrucciones.**
+
+```{r, echo=FALSE, message=FALSE}
+# Calcular la cantidad de filas sin datos faltantes y la cantidad de datos no faltantes de variableX
+filas_sin_faltantes <- 5
+datos_no_faltantes <- sum(!is.na(tabla_2$Confirmación), na.rm = TRUE)
+
+# Crear un data.frame con los valores calculados
+datoss <- data.frame(Tipo = c("Personas que sí 
+            saben llenar encuestas", "Personas que creen que
+           saben llenar encuestas"),
+                     Cantidad = c(filas_sin_faltantes, datos_no_faltantes))
+
+# Graficar el gráfico de barras con colores personalizados
+library(ggplot2)
+
+ggplot(datoss, aes(x = Tipo, y = Cantidad, fill = Tipo)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("orange", "lightgreen")) +
+  labs(x = "Tipo", y = "Cantidad", title = "Creen que saben llenar una encuesta vs saben llenar una encuesta") +
+  theme_bw()
+
+```
+
+-   **Análisis descriptivo:** En este gráfico tenemos la situación contraria al gráfico de barras anterior: personas que creen que sí saben llenar encuestas vs personas que sí saben llenar encuestas; sin embargo, la situación es la misma. Respondiendo al objetivo, la relación entre las variables sigue siendo opuesta e inversamente proporcional. Pues, las personas que sí saben llenar encuestas y lo reconocen, son insignificantes en comparación a las que creen que lo hicieron bien, y en realidad lo hicieron mal.
+
+**vi. Relacionar la cantidad de respuestas correctas e incorrectas por persona, en función del tiempo invertido en el desarrollo total de la encuesta.**
+
+```{r include=FALSE, message=FALSE, error=FALSE, results='hide'}
+   options(rgl.useNULL = TRUE)
+   rgl::setupKnitr(autoprint = TRUE)
+```
+
+```{r, echo=FALSE, message=FALSE, error=FALSE, results='hide'}
+library(rgl)
+plot3d(tabla_2$Aciertos, tabla_1$DiferenciaHora, tabla_2$Desaciertos,
+       xlab = "Aciertos", ylab = "Tiempo", zlab = "Desaciertos",
+       col = c("red", "green", "orange"))
+
+# Crear la leyenda
+legend3d("topright", legend = c("Aciertos", "Tiempo", "Desaciertos"),
+         col = c("red", "green", "orange"), pch = 16, cex=0.8)
+
+```
+
+-   **Análisis descriptivo:** El gráfico en 3D relaciona en estas dimensiones a las variables Aciertos, Desaciertos y el tiempo. Es decir, cumple con el objetivo de relacionar la cantidad de respuestas correctas e incorrectas por persona, en función del tiempo invertido en el desarrollo total de la encuesta. El análisis respectivo correponde a lo siguiente: observamos la linealidad entre aciertosy desaciertos, pues pertenecen a un solo total de 170; sin embargo en la relación con el tiempo, los desaciertos se ven más concentrados en el intervalo menor a 500 segundos; sin embargo, los aciertos también se encuentran dentro de ese rango de tiempo. Además, tenemos valores atípicos de tiempo, mayores a 2000 segundos que no necesariamente se relacionan con más aciertos, sino casi lo mismo de aciertos que desaciertos. Esto nos lleva a concluir que no necesariamente el correcto seguimiento de instrucciones está relacionado a un mayor empleo de tiempo. Es más, por los gráficos circulares podemos ver, que depende un poco más de la especificación y ejemplificación de las instrucciones, pues las más acertadas tienen ejemplificación y las menos acertadas usan tipografía menos atractiva (minúsculas).

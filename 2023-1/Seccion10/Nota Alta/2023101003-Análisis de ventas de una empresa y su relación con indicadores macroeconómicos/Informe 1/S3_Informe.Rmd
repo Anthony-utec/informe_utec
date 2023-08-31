@@ -1,0 +1,504 @@
+---
+title: "Informe"
+format: 
+  html:
+    toc: TRUE
+    toc_float: TRUE
+    theme: lux
+    fontcolor: "#2F5FA5"
+    monofont: courier new
+---
+
+Carga de librerías
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+library(anytime)
+library(zoo)
+```
+
+Carga de datos
+
+```{r echo=FALSE}
+VENTAS    <- read_csv("ventas.csv")
+PRODUCTOS <- read_csv("productos.csv")
+PBI       <- read_csv("PBImensual.csv")
+TC        <- read_csv("TipodeCambioDiario.csv")
+TD        <- read_csv("TasaDesempleoMensual.csv")
+```
+
+# Título: Análisis de ventas de una empresa y su relación con indicadores macroeconómicos.
+
+## ÍNDICE:
+
+## 1. INTRODUCCIÓN
+
+### 1.1 Contexto
+
+Para nuestro proyecto trabajamos con la base de datos de la empresa Importaciones Hibrida S.A.C. Los miembros de la empresa llenan datos sobre cada venta que realizan y cada producto que ingresa. Sin embargo un análisis de la frecuencia de venta de ciertos productos en relación a las temporadas del año puede ser de ayuda al momento de solicitar inventario o poner ofertas. De esa forma las ganancias serán mayores y la empresa podrá seguir creciendo.
+
+### 1.2 Relevancia
+
+Al analizar la data podremos compararla con los indicadores macroeconómicos de nuestro país y la empresa podrá preparase para aumentos en la tasa de desempleo, el tipo de cambio, o el cambio en el PBI.
+
+### 1.3 Objetivos
+
+-   Comparar las ventas de la empresa con indicadores macroeconómicos específicos del país (PBI, tasa de inflación, tasa de desempleo y tipo de cambio) para identificar cómo la economía del país afectó las ventas de la empresa.
+
+-   Identificar si existe popularidad de productos según la estacionalidad, días festivos, vacaciones o temporadas especificas del año.
+
+-   Verificar si el alza o disminución del PBI influyó en el volumen de ventas de la empresa. Usamos el indicador del PBI ya que este mide la salud general económica de un país.
+
+-   Conocer si el incremento de la tasa de desempleo (mayor porcentaje de personas en busca de trabajo sin encontrarlo) significó una reducción en las ventas de la empresa o viceversa.
+
+-   Verificar si la apreciación o depreciación en el valor de nuestra moneda local (Soles Peruanos) en relación con los Dólares Estadounidenses significó un cambio en el volumen de ventas.
+
+## 2. DATOS
+
+### 2.1 Recolección de datos
+
+Para el desarrollo de este proyecto estamos haciendo uso de bases de datos secundarias en formato `.csv`. La tabla contiene datos desde el primero de Junio del 2022 hasta el 9 de Abril de 2023. Un total de 10 meses.\
+Por lo tanto, no hacemos uso de ninguna herramienta de recolección de datos.
+
+### 2.2 Población, muestra y muestreo
+
+-   **Población:** Ventas de la empresa desde Junio de 2022 hasta Marzo de 2023
+
+-   **Muestra:** La muestra tiene 13040 obervaciones y 18 columnas con datos; sin embargo solo nos sirven 11 de esas variables.
+
+-   **Muestreo:** Utilizamos una base de datos externa.
+
+### 2.3 Variables
+
+VENTAS Y PRODUCTOS:
+
+Tenemos inicialmente `r nrow(VENTAS)` observaciones y `r ncol(VENTAS)` variables para la tabla VENTAS y `r nrow(PRODUCTOS)` observaciones y `r ncol(PRODUCTOS)` para la tabla PRODUCTOS. Sin embargo, para nuestro nuestro estudio usaremos solo las siguientes variables:
+
+```{r echo=FALSE}
+mat1 <- matrix(c("FECHA", "Categórica Ordinal*","Es la fecha en la que se registró la compra, los datos deben cumplir con el formato DD/MM/AA y encontrarse entre el primero de Junio de 2022 y fines de marzo del año 2023.",
+                 "STATUS", "Categórica Nominal","Define el estado del pedido: Puede ser un pedido no confirmado, confirmado, entregado o anulado.",
+                 "DOC", "Categórica Nominal", "Es el número de documento de identidad (DNI o CE) el cual identifica al cliente. El DNI cuenta con 8 números enteros del 0 al 9 y el carnet de extranjería con 9 número enteros del 0 al 9.",
+                 "NAME", "Categórica Nominal", "Son los registros de nombres y apellidos de los clientes, según lo que ingresa el usuario.", 
+                 "DISTRICT", "Categórica Nominal", "El distrito al que está destinado el producto, ya sea dentro o fuera de Lima. Debe ser una localidad existente.", 
+                 "CODE", "Categórica Nominal", "Es el código único identificador de los productos. Debe ser una serie de números letras y otros símbolos, pero en formato char.",
+                 "PRODUCTO", "Categórica Nominal", "Es el nombre del producto. Este nombre contine una serie de espacios, números y letras.", 
+                 "MARCA", "Categórica Nominal", "Es la marca de la empresa que fabrica el producto. Debe ser una marca existente a la fecha.", 
+                 "METODO_VENTA", "Categórica Nominal", "Hay dos métodos de venta: la venta directa y la venta a través de una plataforma en línea (MercadoLibre, OLX/FB, Linio, Ripley, Falabella). Debe ser un método válido; es decir, solo uno de los dos tipos.", 
+                 "PRECIO", "Numérica Discreta", "El precio de cada producto individual. Es un número entero o decimal redondeado a la centésima.",
+                 "ENVIO", "Numérica Discreta", "Es el costo de envío que se le aplica a cada producto. Es un número entero o decimal redondeado a la centésima."), 
+               nrow = 11, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat1, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+PBI:
+
+Tenemos `r nrow(PBI)` observaciones y `r ncol(PBI)` variables en la tabla PBI.
+
+```{r echo=FALSE}
+mat2 <-  matrix(c("FECHA", "Categórica Ordinal*", "Mes en el que se registró el PBI. Debe registrar el nombre de cada mes. Desde enero a diciembre del 2022.", 
+                  "PBI", "Numérica Discreta", "El producto bruto interno define el valor de los bienes y servicios producidos en nuestro país. Deben ser decimales redondeados a la décima."), nrow = 2, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat2, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+TIPO DE CAMBIO:
+
+Contiene el tipo de cambio de dólares a soles diario del año 2022. Esta tabla cuenta con `rnrow(TIPO_CAMBIO)` observaciones y `ncol(TIPO_CAMBIO)`variables.
+
+```{r echo=FALSE}
+mat3 <-  matrix(c("FECHA", "Categórica Ordinal*", "Día en el que se registro el valor del tipo de cambio, los datos deben cumplir con el formato DD/MM/AA y encontrarse entre el primero de enero de 2022 y el 31 de diciembre del mismo año.", 
+                  "TC_COMPRA", "Numérica Discreta", "Valor del cambio a dólares en compras. Deben ser decimales redondeados a la centésima.", 
+                  "TC_VENTA", "Numérica Discreta", "Valor del cambio a dólares en ventas. Deben ser decimales redondeados a la centésima."), nrow = 3, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat3, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+TASA DE DESEMPLEO:
+
+Contiene la tasa de desempleo mensual del año 2022. Esta tabla cuenta con `nrow(TASA_DESEMPLEO)` observaciones y `ncol(TASA_DESEMPLEO)` variables.
+
+```{r echo=FALSE}
+mat4 <-  matrix(c("FECHA", "Categórica Ordinal*", "Mes en el que se registro la tasa de desempleo. Debe registrar el nombre de cada mes. Desde enero a diciembre del 2022.", 
+                  "TASA_DESEMPLEO", "Numérica Continua", "Porcentaje de desempleo en el país. Es un número con entre 7 y 9 decimales que mide el porcentaje de personas que están buscando trabajo pero no pueden encontrarlo."), nrow = 2, ncol = 3, byrow = TRUE)
+
+knitr::kable(mat4, row.names = FALSE, col.names = c("Variables", "Tipo", "Descripción"))
+```
+
+### 2.4 Limpieza de base de datos
+
+Las bases de datos usadas para este estudio cuentan con 1 variable por columna y 1 observación por fila. Es decir, son prolijas.
+
+Carga de librerías
+
+```{r}
+library(readr)
+library(dplyr)
+library(anytime)
+library(zoo)
+```
+
+Carga de datos
+
+```{r}
+VENTAS    <- read_csv("ventas.csv")
+PRODUCTOS <- read_csv("productos.csv")
+PBI       <- read_csv("PBImensual.csv")
+TC        <- read_csv("TipodeCambioDiario.csv")
+TD        <- read_csv("TasaDesempleoMensual.csv")
+```
+
+Copia de nuestra base de datos
+
+```{r}
+VENTAS_    <- VENTAS
+PRODUCTOS_ <- PRODUCTOS
+PBI_       <- PBI
+TC_        <- TC
+TD_        <- TD
+```
+
+Borrando variables que no usaremos
+
+```{r}
+# En tabla VENTAS
+VENTAS %>% select(FECHA, TYPE, STATUS, METODO_VENTA, CODE, NOMBRE_ALTERNO, DOC, NAME, ADRESS, GPS, District) -> VENTAS_
+
+# En tabla PRODUCTOS
+PRODUCTOS %>% select(CODE, MARCA, DATA, PUBLIC, `costo de ENVIO`) -> PRODUCTOS_
+```
+
+Analizando la tabla productos
+
+```{r}
+str(PRODUCTOS_)
+```
+
+Analizando la tabla ventas
+
+```{r}
+str(VENTAS_)
+```
+
+Renombramos las variables
+
+```{r}
+# En tabla VENTAS
+VENTAS_ <- VENTAS_ %>%
+  rename("DISTRICT" = District)
+
+# En tabla PRODUCTOS
+PRODUCTOS_ <- PRODUCTOS_ %>%
+  rename("ENVIO" = `costo de ENVIO`,
+         "PRECIO" = PUBLIC,
+         "PRODUCTO" = DATA)
+```
+
+Limpiando la tabla `PRODUCTOS`
+
+Observamos que la variable `ENVIO` es de tipo `chr` por defecto. La cambiamos a numérica.
+
+```{r}
+PRODUCTOS_$ENVIO <- as.numeric(PRODUCTOS_$ENVIO)
+```
+
+Borramos todas aquellas filas que no tienen información sobre el código y nombre del producto.
+
+```{r}
+PRODUCTOS_ <- PRODUCTOS_ %>% filter(!is.na(CODE) & !is.na(PRODUCTO))
+```
+
+Analizamos aquellas que no tienen precio.
+
+```{r}
+PRODUCTOS_ %>% select(CODE, PRECIO) %>% filter(is.na(PRECIO))
+```
+
+Observamos que son pocas las observaciones en las que no figura el precio. Al ser este un dato importante dentro de nuestro estudio, decidimos consultar la fuente original para completar los precios faltantes de la variable `PRECIO`.
+
+Luego, insertamos manualmente aquellos valores.
+
+```{r}
+PRODUCTOS_[which(PRODUCTOS_$CODE == "TRHLI20228"), "PRECIO"]       <- 668
+PRODUCTOS_[which(PRODUCTOS_$CODE == "THT1411023"), "PRECIO"]       <- 32
+PRODUCTOS_[which(PRODUCTOS_$CODE == "TCVLI202301"), "PRECIO"]      <- 254
+PRODUCTOS_[which(PRODUCTOS_$CODE == "LUZLEDBACK-RED"), "PRECIO"]   <- 12
+PRODUCTOS_[which(PRODUCTOS_$CODE == "LUZLEDBACK-BLUE"), "PRECIO"]  <- 12
+PRODUCTOS_[which(PRODUCTOS_$CODE == "LUZLEDBACK-WHITE"), "PRECIO"] <- 12
+PRODUCTOS_[which(PRODUCTOS_$CODE == "MH200"), "PRECIO"]            <- 22
+PRODUCTOS_[which(PRODUCTOS_$CODE == "ORANGGREEN40K"), "PRECIO"]    <- 105
+PRODUCTOS_[which(PRODUCTOS_$CODE == "RED40K"), "PRECIO"]           <- 110
+PRODUCTOS_[which(PRODUCTOS_$CODE == "BIGRED40K"), "PRECIO"]        <- 125
+```
+
+Analizando la variable `ENVIO` observamos que tiene muchos datos faltantes. Borrar estas unidades muestrales afectaría gravemente nuestro análisis estadístico. Por ello, decidimos consultar la fuente original.
+
+Habiendo hecho la consulta, sabemos que el costo de envío de estos productos se calcula a partir de la siguiente fórmula:
+
+$$
+ENVIO = (PRECIO*0.03)+8
+$$
+
+Creamos una función para esta ecuación
+
+```{r}
+calcula_envio <- function(precio_producto) {
+  r =  (precio_producto*0.03)+8
+  r <- round(r, digits=2)
+  return(r)
+}
+```
+
+Recorremos nuestra tabla con un `bucle for` que llena cada observación faltante en la variable `ENVIO` con nuestra función `calcula_envio`.
+
+```{r}
+n_filas <- nrow(PRODUCTOS_)
+for (i in 1:n_filas){
+  obs <- PRODUCTOS_$PRECIO[i]
+  
+  if (is.na(PRODUCTOS_$ENVIO[i])) {
+    PRODUCTOS_[i, 5] <- calcula_envio(obs)
+  }
+}
+```
+
+Identificamos que los casos incompletos de nuestra tabla son aquellos productos que no figuran con una marca en específico. Además, son pocos casos. Entonces, decidimos rellenar este espacio con ***"Otras"***. Que hace referencia a ***"Otras marcas"***
+
+```{r}
+PRODUCTOS_ %>% filter(!complete.cases(PRODUCTOS_)) 
+sum(is.na(PRODUCTOS_$MARCA))
+
+for (i in 1:n_filas){
+  if (is.na(PRODUCTOS_$MARCA[i])) {
+    PRODUCTOS_[i, 2] <- "Otras"
+  }
+}
+```
+
+Tabla `PRODUCTOS` limpia.\
+\
+Limpiando la tabla `VENTAS`:
+
+Utilizamos la librería `zoo` para completar las fechas
+
+```{r}
+library(zoo)
+VENTAS_$FECHA <- na.locf(VENTAS_$FECHA)
+```
+
+Utilizamos la función `grepl` para mantener solo las fechas que contengan los caracteres : "-" y "/"
+
+```{r}
+patron1 <- "-"
+patron2 <- "/"
+patron_combinado <- paste(patron1, patron2, sep="|")
+VENTAS_ <-VENTAS_%>% 
+  filter(grepl(patron_combinado,VENTAS_$FECHA))
+```
+
+Borrando las observaciones innecesarias:
+
+```{r}
+n_filas <- nrow(VENTAS_)
+for (i in 1:n_filas){
+  if (VENTAS_[i, 1] == "MERCADO  04/06") {
+    VENTAS_[i, 1] <- "4-Jun-22"
+  }
+  else if (VENTAS_[i, 1] == "30/07") {
+    VENTAS_[i, 1] <- "30-Jul-22"
+  }
+  else if (VENTAS_[i, 1] == "23/08/2022") {
+    VENTAS_[i, 1] <- "23-Aug-22"
+  }
+  else if (VENTAS_[i, 1] == "26/08/2022") {
+    VENTAS_[i, 1] <- "26-Aug-22"
+  }
+  else if (VENTAS_[i, 1] == "27/08/2022") {
+    VENTAS_[i, 1] <- "27-Aug-22"
+  }
+  else if (VENTAS_[i, 1] == ("2/setiembre")) {
+    VENTAS_[i, 1] <- "2-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == ("02/setiembre")) {
+    VENTAS_[i, 1] <- "2-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "05/setiembre") {
+    VENTAS_[i, 1] <- "5-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "06/setiembre" ) {
+    VENTAS_[i, 1] <- "6-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "7/SETIEMBRE") {
+    VENTAS_[i, 1] <- "7-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "8/setiembre") {
+    VENTAS_[i, 1] <- "8-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "29/09") {
+    VENTAS_[i, 1] <- "29-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "30/09") {
+    VENTAS_[i, 1] <- "30-Sep-22"
+  }
+  else if (VENTAS_[i, 1] == "10-Jan") {
+    VENTAS_[i, 1] <- "10-Jan-23"
+  }
+  else if (VENTAS_[i, 1] == "salio 7/10") {
+    VENTAS_[i, 1] <- "7-Oct-22"
+  }
+  else if (VENTAS_[i, 1] == "se envío 11/10") {
+    VENTAS_[i, 1] <- "11-Oct-22"
+  }
+  else if (VENTAS_[i, 1] == "vendra entre 9 - 11 am" ) {
+    VENTAS_[i, 1] <- "21-Oct-22"
+  }
+  else if (VENTAS_[i, 1] == "11-Mar") {
+    VENTAS_[i, 1] <- "11-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "sale 10/11") {
+    VENTAS_[i, 1] <- "10-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "SALE 11/11") {
+    VENTAS_[i, 1] <- "11-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "MANIFESTEMOS 11/11 DINERITO DINERITO DINERITO") {
+    VENTAS_[i, 1] <- "11-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "VIENE ENTRE LA 1 -2 PM" ) {
+    VENTAS_[i, 1] <- "11-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "RECOJO- CON CARGO") {
+    VENTAS_[i, 1] <- "28-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "-") {
+    VENTAS_[i, 1] <- "28-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "VENDRA  ENTRE 6-8PM") {
+    VENTAS_[i, 1] <- "30-Nov-22"
+  }
+  else if (VENTAS_[i, 1] == "VIENE 9AM-10AM" ) {
+    VENTAS_[i, 1] <- "7-Jan-23"
+  }
+  else if (VENTAS_[i, 1] == "VISITA 3-4PM") {
+    VENTAS_[i, 1] <- "10-Feb-23"
+  }
+  else if (VENTAS_[i, 1] == "16/03") {
+    VENTAS_[i, 1] <- "16-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "17/03") {
+    VENTAS_[i, 1] <- "17-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "18/03") {
+    VENTAS_[i, 1] <- "18-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "21/03") {
+    VENTAS_[i, 1] <- "21-Mar-23"
+  }
+  else if (VENTAS_[i, 1] == "24/03") {
+    VENTAS_[i, 1] <- "24-Mar-23"
+  }
+}
+```
+
+Observamos que hay algunas fechas faltantes. Aquellas fechas faltantes coinciden con Domingos, feriados o días en la que no se trabajó en la empresa. En aquellos días no se realizó ninguna venta.\
+
+Mantenemos las observaciones que tienen el código del producto o su nombre alterno (se pierden 1244 datos)
+
+```{r}
+VENTAS_ <- VENTAS_%>%
+  filter(complete.cases(CODE)|complete.cases(NOMBRE_ALTERNO))
+```
+
+Mantenemos las observaciones que tienen la dirección, o el distrito (Se pierden 1555 datos):
+
+```{r}
+VENTAS_<- VENTAS_%>%
+  filter(complete.cases(ADRESS) | complete.cases(GPS) | complete.cases(DISTRICT))
+```
+
+Convertimos `FECHA` a formato `Date`
+
+```{r}
+VENTAS_$FECHA <- as.Date(VENTAS_$FECHA, format = "%d-%b-%y")
+```
+
+Variable `FECHA` limpia.
+
+```{r}
+ventas_mensuales <- VENTAS_ %>% group_by(FECHA = format(FECHA, "%Y-%m")) %>% summarize(n_ventas = n())
+boxplot_datos <- boxplot(ventas_mensuales$n_ventas, horizontal=TRUE)
+atipicos <- boxplot_datos$out
+
+casos_atipicos <- ventas_mensuales[ventas_mensuales$n_ventas %in% atipicos, ]
+
+```
+
+Observamos que los casos atípicos presentes en nuestra tabla corresponden a enero 2022 y abril 2023. Estos datos se presentan en menor escala ya que la empresa empezó a llenar su base de datos a fines de enero 2022. Además, esta base de datos se nos brindó a inicios de abril 2023. Para objetivos de nuestro estudio no necesitaremos el registro de ventas de esos meses ya que es muy reducido y no representa el flujo real de ventas que tuvo la empresa en ese mes. De considerarlo, sería una información sesgada. Por ello, decidimos eliminar aquellos casos.
+
+```{r}
+ventas_mensuales <- subset(ventas_mensuales, !(rownames(ventas_mensuales) %in% c(1, 12)))
+ventas_mensuales$n_ventas <- as.numeric(ventas_mensuales$n_ventas)  
+```
+
+TABLA PBI
+
+Renombramos la variable `MES` por `FECHA`.
+
+```{r}
+PBI_ <- PBI_ %>% rename(FECHA = MES)
+```
+
+Cambiamos el formato de las fechas y el PBI.
+
+```{r}
+PBI_$FECHA<- c("2022-6", "2022-7", "2022-8", "2022-9", "2022-10", "2022-11", "2022-12", "2023-1", "2023-2", "2023-3")
+
+PBI_$FECHA <- as.Date(paste(PBI_$FECHA, "-01", sep = ""), format = "%Y-%m-%d")
+PBI_$FECHA <- format(PBI_$FECHA, "%Y-%m")
+
+PBI_$PBI <- gsub(",", ".", PBI_$PBI)
+PBI_$PBI <- as.numeric(PBI_$PBI)
+```
+
+COMBINANDO TABLAS
+
+```{r}
+Tabla_general <- merge(VENTAS_, PRODUCTOS_, by = "CODE")
+```
+
+## 3. ANÁLISIS DESCRIPTIVO
+
+En este apartado realizamos un análisis de nuestras variables haciendo uso de descriptores univariados y bivariados de tipo numérico y gráfico.
+
+Ventas mensuales
+
+```{r}
+nombres_meses <- c("jun", "jul", "ago", "sep", "oct", "nov", "dic", "ene", "feb", "mar")
+barplot(ventas_mensuales$n_ventas, names.arg = nombres_meses, main = "Ventas Mensuales", xlab = "Mes", ylab = "Ventas", space=0)
+
+plot(ventas_mensuales$n_ventas, type = "l", main = "Ventas Mensuales", xlab = "Mes", ylab = "Ventas")
+```
+
+-   **Análisis:** Observamos que el mes con mayor cantidad de ventas realizadas fue Noviembre y el mes con menor cantidad de ventas realizadas fue Diciembre.
+
+```{r}
+mediana <- median(ventas_mensuales$n_ventas)
+desviacion <- sd(ventas_mensuales$n_ventas)
+```
+
+-   **Análisis:** Observamos que tenemos una mediana de 745 y una desviación estandar de 118.43
+
+PBI vs. Ventas por mes
+
+```{r}
+PBI_mensual <- PBI_$PBI
+ventas <- ventas_mensuales$n_ventas
+plot(PBI_mensual, ventas, xlab = "PBI mensual", ylab = "Ventas totales por mes", main = "Correlación PBI vs Ventas Mensuales" )
+
+correlacion <- cor(PBI_mensual, ventas)
+
+text(x = max(PBI_mensual), y = max(ventas), labels = paste("Correlación:", round(correlacion, 2))) #Agrega el coeficiente de correlación al gráfico
+```
+
+-   **Análisis:** Observamos que el coeficiente de correlación es de -0.09. Eso nos indica que existe una correlación lineal débil y negativa en el PBI mensual y el número de ventas mensuales de la empresa. Es decir, no hay una conexión clara entre ellos y es poco significativo en el contexto analizado.
