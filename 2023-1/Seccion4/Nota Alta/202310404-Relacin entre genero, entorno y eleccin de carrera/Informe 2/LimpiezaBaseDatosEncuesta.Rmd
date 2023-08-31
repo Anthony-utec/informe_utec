@@ -1,0 +1,212 @@
+---
+title: "LipiezaDeDatos"
+author: "Santi"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+librerias
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(crayon)
+library(DescTools)
+```
+
+carga de datos
+```{r}
+DF <- read_csv("Encuesta.csv")
+```
+eliminamos una columna irrelevante
+```{r}
+DF <- subset(DF, select = -`Marca temporal`)
+```
+
+
+Cambiamos nombres de las variables
+
+```{r}
+names(DF)[1]<-"Genero"
+names(DF)[2]<-"Edad"
+names(DF)[3]<-"Carrera"
+names(DF)[4]<-"Ciclo_actual"
+names(DF)[5]<-"Promedio_primer_ciclo"
+names(DF)[6]<-"Creditos_ciclo_pasado"
+names(DF)[7]<-"Promedio_ciclo_pasado"
+names(DF)[8]<-"Numero_de_cursos"
+names(DF)[9]<-"Rendimiento_academico"
+names(DF)[10]<-"Considera_predominancia_masculino"
+names(DF)[11]<-"Considera_predominancia_femenino"
+names(DF)[12]<-"Factores_eleccion_de_carrera"
+names(DF)[13]<-"considero_cambiar_de_carrera"
+names(DF)[14]<-"carrera_considero_cambiarse"
+names(DF)[15]<-"considero_retirarse_universdad"
+names(DF)[16]<-"razones_considero_retirarse_universdad"
+```
+
+modificamos el tipo de variables
+
+```{r}
+DF$Promedio_primer_ciclo<- as.numeric(DF$Promedio_primer_ciclo)
+DF$Promedio_ciclo_pasado<- as.numeric(DF$Promedio_ciclo_pasado)
+```
+
+
+pedimos un resumen de los datos
+
+```{r}
+summary(DF)
+```
+
+limpiamos datos que no nos sirven 
+
+```{r}
+DF<-subset(DF, Ciclo_actual != 1) #LOS QUE ESTAN EN CICLO 1 NO SON OBJETOS QUE CONTRIBUYAN AL ESTUDIO
+```
+
+
+```{r}
+DF<-subset(DF, Edad != 12)
+DF<-subset(DF, Edad != 188)
+ 	
+DF<-subset(DF, Genero != "Prefiero no decirlo")# NO ES OBJETO DE ESTUDIO O NO ES POSIBLE 
+```
+```{r}
+DF$Considera_predominancia_femenino <- gsub("computación", "Computación", DF$Considera_predominancia_femenino)
+
+```
+
+llenamos N.A.
+```{r}
+DF[DF$considero_cambiar_de_carrera == "2. No", "carrera_considero_cambiarse"] <- "No lo he considerado"
+DF[DF$considero_retirarse_universdad == "2. No", "razones_considero_retirarse_universdad"] <- "7. No lo he considerado"
+
+```
+
+```{r}
+DF <- na.omit(DF)
+
+```
+
+
+```{r}
+data<-read.csv("BaseDeDatosLimpia.csv")
+
+```
+
+## Creditos ciclo pasado
+```{r}
+boxplot(data$Creditos_ciclo_pasado)
+title('Creditos del ciclo pasado')
+summary(data$Creditos_ciclo_pasado)
+```
+En este gráfico se demuestra que como máximo de créditos llevados en la universidad durante el ciclo pasado es el 25% que es de 26 créditos, de los cuales como mínimo se llevó el 25% es de 11 créditos, por otro lado en la gráfica apreciamos que el 50 % de estudiantes llevó en una mediana de 20 créditos y el 75% llevó a lo mucho 21 créditos, finalmente podemos concluir, que la gran mayoría de los estudiantes  llevaron  entre 19 a 21 créditos durante el ciclo 2022-2.
+
+
+
+# Variable promedio del ciclo pasado 
+
+## Promedio del ciclo pasado
+
+```{r}
+boxplot(data$Promedio_ciclo_pasado)
+summary(data$Promedio_ciclo_pasado)
+```
+Definimos mediante este gráfico, que el promedio más alto fue de 20 en un 25% del máximo, el 50% de los alumnos obtuvieron una nota promedio de 14.38, el 25% del mínimo obtuvo una nota de 10.7,  el 75% de los estudiantes de la universidad, el ciclo pasado obtuvieron la nota de 15.58 de nota como promedio del ciclo, finalmente se concluye que mayormente la nota del promedio final del ciclo está entre 13.19 y 15.58.
+
+
+# Variable número de cursos
+
+## Número de cursos
+
+```{r}
+hist(data$Numero_de_cursos,main='Frecuencia de los numeros de cursos')
+summary(data$Numero_de_cursos)
+```
+
+En esta gráfica mostramos que la mayoría de los estudiantes llevaron 6 créditos, dentro de ello existe que un grupo de estudiantes como mínimo que llevó 2 cursos considerado como mínimo, podemos ver también que encontramos un pequeño grupo de estudiantes que llevó 8 cursos lo cual considerando que el el máximo.
+  
+
+# Variable sobre rendimiento académico
+
+## Rendimiento academico
+
+
+```{r}
+barplot(table(data$Rendimiento_academico))
+table(data$Rendimiento_academico)
+Mode(data$Rendimiento_academico)
+```
+
+Mediante este gráfico mostramos que a 93 estudiantes de la universidad, les va regular y a 5 estudiantes les va muy bueno y a 6 estudiantes les va mal, finalmente a 58 estudiantes les va de manera buena.
+
+
+
+
+
+# Objetivo específico 01
+##  Identificar las carreras de ingeniería con mayor presencia femenina y masculino.
+
+```{r}
+library(ggplot2)
+predomina_masc<-data$Considera_predominancia_masculino
+carreras<-c()
+for (f in predomina_masc){
+  for (v in c(strsplit(f,", "))){
+    carreras<-c(carreras,v)
+  }
+}
+carreras<-as.data.frame(carreras)
+carreras %>% group_by(carreras) %>% summarise(cantidad = n())->pre_carrera_masc
+predomina_fem<-data$Considera_predominancia_femenino
+carreras<-c()
+for (f in predomina_fem){
+  for (v in c(strsplit(f,", "))){
+    carreras<-c(carreras,v)
+  }
+}
+carreras<-as.data.frame(carreras)
+carreras %>% group_by(carreras) %>% summarise(cantidad = n())->pre_carrera_fem
+
+```
+
+```{r}
+pre_carrera_masc$Genero <- "Masculino"
+pre_carrera_fem$Genero <- "Femenino"
+pre_carreras <- rbind(pre_carrera_masc, pre_carrera_fem)
+
+ggplot(pre_carreras, aes(x = carreras, y = cantidad, fill = Genero)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Carreras", y = "Cantidad", fill = "Género") +
+  ggtitle("Predominancia en las carreras universitarias de UTEC") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5,hjust=0.1))
+
+```
+En este gráfico realizaremos una comparación de la predominancia en las carreras según el género dentro de la universidad, de los cuales como podemos apreciar tenemos que la carrera de Bioingeniería con sexo femenino, predomina con un aproximado de 118 estudiantes en toda la muestra que se obtuvo en las encuestas, también apreciamos que existe predominancia en la carrera de Ambiental,  por otro lado la carrera de Ingeniería civil con sexo masculino predomina con aproximado de 100 estudiantes durante la universidad.
+
+```{r}
+
+library(ggplot2)
+
+colores <- c("red", "blue", "green", "pink", "yellow")
+
+# Generar el gráfico de barras
+ggplot(DF, aes(x = Genero, fill = Factores_eleccion_de_carrera)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Gráfico de Barras - Género vs. Factores Elección de Carrera",
+       x = "Género", y = "Frecuencia") +
+  scale_fill_manual(values = colores,
+                    labels = c("Entorno familiar", "Amigos", "Entorno Social", "Vocación", "Otros"),
+                    name = "Factores") +
+  theme_minimal()
+```
+
+
+```{r}
+write.csv(DF, "C:/Users/Santiago Perez/ESTADISTICAS/Poryecto/BaseDeDatosLimpia.csv", row.names = FALSE)
+
+```
+
+
