@@ -1,0 +1,697 @@
+---
+title: "**Analizar la relación entre los hábitos de una vida saludable y los niveles de obesidad en personas de Perú, México y Colombia durante el año 2019**"
+output: 
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r echo=FALSE ,include=FALSE, setup}
+# Recomendacion: Correrlo en HTML
+######### AVANCE 1 #########
+
+#Instalar librerias
+packages <- c("dplyr", "DT", "funModeling", "ggplot2", "grid")
+for (package in packages) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+    library(package, character.only = TRUE)
+  }
+}
+
+#Librerias:
+library(dplyr)
+library(DT)
+library(funModeling)
+library(ggplot2)
+library(grid)
+
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+```
+
+### 1. ***Objetivo General***: 
+
+#### 1.1. El objetivo general del estudio estadístico es analizar la relación que existe entre los hábitos de vida y obesidad de las personas de Perú, México y Colombia en el año 2019, para dar a conocer los patrones que conllevan a una posible obesidad.
+    
+### 2. ***Objetivos Específicos***:  
+
+#### 2.1. Reconocer si hay un mayor número de personas fumadoras de México, Perú y Colombia que presentan un índice de masa corporal más alto en comparación con el número de personas no fumadoras en el año 2019.  
+
+#### 2.2. Explorar la asociación entre el uso de diferentes medios de transporte y el índice de masa corporal (IMC) en México, Perú y Colombia durante el año 2019.
+
+#### 2.2.1. Describir qué medios de transporte utilizaron las personas con un índice de masa corporal bajo en los países de México, Perú y Colombia durante el año 2019.
+    
+#### 2.2.2. Describir qué medios de transporte utilizaron las personas con un índice de masa corporal alto en los países de México, Perú y Colombia durante el año 2019.
+
+#### 2.3. Evaluar la relación del consumo de alcohol y el índice de masa corporal de las personas de México, Perú y Colombia en el año 2019.
+
+#### 2.4. Identificar si el tiempo dedicado al uso de dispositivos electrónicos afectó al índice de masa corporal de las personas en los países de México, Perú y Colombia en el año 2019.
+
+#### 2.5 Identificar si las personas de México, Perú y Colombia que tuvieron antecedentes familiares de obesidad tuvieron una mayor probabilidad de presentar un IMC elevado en el año 2019.
+
+### 3. ***Variables***:
+
+```{r echo=FALSE}
+
+columna1 <- c("Género", "Edad", "Talla", "Peso", "Historial de obesidad en la familia",
+              "Consumo frecuente de alimentos con gran contenido calórico",
+              "Frecuencia de consumo de verduras", "Numero de comidas principales",
+              "Consumo de alimento entre comidas", "Fuma", "Consumo de agua diario (Litros_agua_consumidos)",
+              "Seguimiento de consumo de calorías", "Frecuencia de actividad física",
+              "Tiempo usando dispositivos electrónicos (TUE)", "Consumo de alcohol",
+              "Medio de transporte utilizado", "Índice de masa corporal (Clasificacion_IMC)")
+
+columna2 <- c("Female, Male", "Número", "Número con decimales", "Número con decimales",
+              "Yes, No", "Yes, No", "Número", "Número", "No, Sometimes, Frequently, Always",
+              "Yes, No", "Número de litros", "Yes, No", "Número de veces a la semana",
+              "Número de horas", "I do not drink, Sometimes, Frequently, Always",
+              "Carro, Moto, Bici, Micro, Camina", "Peso Normal, Sobrepeso Nivel I, Sobrepeso Nivel II, Obesidad Tipo I, Peso Insuficiente, Obesidad Tipo II, Obesidad Tipo III")
+
+columna3 <- c("Cualitativa Nominal", "Cuantitativo Discreto", "Cuantitativo Continuo", "Cuantitativo Continuo",
+              "Cualitativa Nominal", "Cualitativa Nominal", "Cuantitativo Discreto", "Cuantitativo Discreto",
+              "Cualitativa Ordinal", "Cualitativa Nominal", "Cuantitativa Continuo", "Cualitativa Nominal",
+              "Cuantitativa Discreta", "Cuantitativa Continuo", "Cualitativa Ordinal", "Cualitativa Nominal",
+              "Cualitativa Ordinal")
+
+df <- data.frame(Variable = columna1, Opciones = columna2, `Tipo de Variable` = columna3)
+
+tabla_html <- datatable(df, options = list(dom = 't', paging = FALSE), rownames = FALSE) %>%
+  formatStyle(names(df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+tabla_html
+
+```
+
+### 4. ***Manejo de Datos***:
+
+```{r echo=FALSE}
+
+Obesidad <- read.csv("Obesidad.csv")
+Obesidad <- Obesidad[,2:ncol(Obesidad)]
+Obesidad
+```
+
+```{r echo=TRUE,include=FALSE}
+######### AVANCE 2 #########
+```
+
+### 5. ***Relevancia***:
+
+#### La relevancia de este proyecto consiste en realizar un análisis exhaustivo de la relación entre los hábitos de vida y la obesidad en las poblaciones de Perú, México y Colombia durante el año 2019. El propósito principal es identificar los patrones y factores asociados que puedan haber contribuido al desarrollo de la obesidad, considerando que esta condición representa un importante factor de riesgo para diversas enfermedades crónicas, como la diabetes, enfermedades cardíacas, accidentes cerebrovasculares y ciertos tipos de cáncer. En consecuencia, resulta fundamental la implementación de medidas preventivas con el fin de promover la salud y bienestar de la población.
+
+### 8. ***Recolección de Datos***:
+
+#### Los datos que tomamos fueron de la página web kaggle, la cual es una base de datos con 17 variables cerca de 2000 filas que representan respuestas de las personas a la encuesta sobre factores que puedan llevar a una obesidad.
+
+### 9. ***Población, muestra y muestreo***:
+
+#### Nuestra muestra son 2000 personas de los países México, Colombia y Perú del año 2019, los datos se recolectaron mediante esta encuesta:
+
+```{r echo=FALSE}
+
+preguntas <- c("¿Cuál es su género?",
+               "¿Cuál es tu edad?",
+               "¿Cuál es tu peso?",
+               "¿Cuál es su altura?",
+               "¿Algún familiar ha padecido o padece sobrepeso?",
+               "¿Sueles comer verduras en tus comidas?",
+               "¿Cuántas comidas principales come al día?",
+               "¿Consume alimentos altos en calorías con frecuencia?",
+               "¿Comes algún alimento entre comidas?",
+               "¿Usted fuma?",
+               "¿Cuánta agua bebe diariamente?",
+               "¿Controlas las calorías que ingieres diariamente?",
+               "¿Con qué frecuencia realiza actividad física?",
+               "¿Cuánto tiempo utiliza dispositivos electrónicos como celular, videojuegos, televisión, computadora y otros?",
+               "¿Con qué frecuencia bebe alcohol?",
+               "¿Qué transporte suele utilizar?")
+
+tabla_df <- data.frame(Preguntas = preguntas)
+
+
+tabla_html4 <- datatable(tabla_df, options = list(dom = 't', paging = FALSE), rownames = FALSE) %>%
+  formatStyle(names(tabla_df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+
+tabla_html4
+
+```
+
+#### Después se ha calculado el índice de masa corporal con la siguiente fórmula:
+$$Clasificacion IMC = Peso/Talla^2$$
+
+#### Donde los resultados se pueden clasificar como: 
+
+#### - Peso bajo: Menos de 18.5 
+
+#### - Peso normal: 18,5 a 24,9 
+
+#### - Sobrepeso: 25,0 a 29,9 
+
+#### - Obesidad I: 30,0 a 34,9 
+
+#### - Obesidad II: 35.0 a 39.9 
+
+#### - Obesidad III: Superior a 40 
+
+### 10. ***Limpieza de Datos***:
+
+```{r include = FALSE}
+
+result <- df_status(Obesidad)
+
+tabla_df <- data.frame(
+  Variables = rownames(result),
+  Valores = result$q_zeros,
+  Porcentaje_zeros = result$p_zeros,
+  Valores_NA = result$q_na,
+  Porcentaje_NA = result$p_na,
+  Valores_Inf = result$q_inf,
+  Porcentaje_Inf = result$p_inf,
+  Tipo = result$type,
+  Valores_Unicos = result$unique
+)
+
+tabla_df
+```
+
+#### Usamos una librería llamada funModeling, que nos muestra un resumen de las variables y podemos comprobar que no tenemos datos nulos, por lo que no es necesario aplicar fórmulas de limpiezas de datos.
+
+```{r echo=FALSE}
+
+# Generar la tabla interactiva en HTML
+tabla_html3 <- datatable(tabla_df, options = list(dom = 't', paging = FALSE), rownames = FALSE) %>%
+  formatStyle(names(tabla_df), `text-align` = "format") %>%
+  formatStyle(1, backgroundColor = "lightgray") %>%
+  formatStyle(2, backgroundColor = "#f2f2f2")
+
+# Mostrar la tabla en el visor de RStudio
+tabla_html3
+```
+
+```{r echo=TRUE,include=FALSE}
+######### AVANCE 3 #########
+```
+
+### 11. ***A continuación presentaremos descriptores tanto numéricos como gráficos de nuestras 17 variables, donde escogeremos las variables más importantes que nos ayudarán a entender a la población***:
+
+### **Análisis Univariado**
+
+```{r echo=FALSE}
+
+library(ggplot2)
+ggplot(Obesidad) +
+  aes(x = " ", y = Peso) +
+  labs(title = "Análisis Univariado del Peso", y = "Peso (Kg)") +
+  geom_boxplot(fill = "green3  ") +
+  theme_minimal() + theme(axis.title.x = element_blank())
+
+```
+
+#### Relacionándolo con el Género
+
+```{r echo=FALSE}
+
+ggplot(Obesidad, aes(x = Genero, y = Peso)) +
+  geom_boxplot(fill = c("skyblue", "orange")) +
+  labs(title = "Análisis Peso vs Género", y = "Peso (Kg)") +
+  scale_x_discrete(labels = c("male", "female")) +
+  theme_minimal()
+
+```
+
+#### De acuerdo al gráfico de cajas y bigotes en la variable Peso, en primer lugar resalta a la vista un dato atípico que representa a una mujer encuestada que respondió con un peso de 173 kilogramos. En segundo lugar podemos observar que la distribución de los pesos de los varones es más amplia que de las mujeres. Esto puede indicar que las mujeres que fueron encuestadas presentan mayor peso que los varones y que también en promedio las personas que fueron encuestadas pesaban 86.5 kilos. Por último, básandonos en la línea central del diagrama, concluimos que un 50% de las personas presentan un peso menor o igual a 83 kilos.  
+
+#### **Descriptores de la variable Peso**
+
+```{r echo=FALSE}
+
+# Media - Promedio del peso
+paste("Promedio")
+mean(Obesidad$Peso)
+
+# Mediana del peso
+paste("Mediana")
+median(Obesidad$Peso)
+
+# Cuantil del peso
+paste("Cuantil")
+quantile(Obesidad$Peso, c(.25, 0.75)) # Cuartiles
+
+# Mínimo del peso
+paste("Mínimo")
+min(Obesidad$Peso)
+
+# Máximo del peso
+paste("Máximo")
+max(Obesidad$Peso)
+
+# Moda del peso
+moda_peso <- Mode(Obesidad$Peso)
+paste("Moda")
+moda_peso
+
+# Dispersión
+
+# Rango del peso
+paste("Rango")
+range(Obesidad$Peso)
+max(Obesidad$Peso) - min(Obesidad$Peso)
+
+# Rango intercuartílico del peso
+paste("Rango intercuartílico")
+quantile(Obesidad$Peso, c(.75)) - quantile(Obesidad$Peso, c(.25)) # Cuartil
+
+# Varianza del peso
+paste("Varianza")
+var(Obesidad$Peso)
+
+# Desviación estándar del peso
+paste("Desviación estándar")
+sd(Obesidad$Peso)
+
+```
+
+```{r echo=FALSE}
+
+ggplot(Obesidad) +
+ aes(x = "", y = Edad) +
+  labs(title = "Análisis Univariado de la Edad", y = "Edad (años)") +
+ geom_boxplot(fill = "orange3") +
+ theme_minimal() + theme(axis.title.x = element_blank())
+
+```
+
+#### **Descriptores para la variable Edad**
+
+```{r echo=FALSE}
+
+# Media - Promedio de la edad
+paste("Promedio")
+mean(Obesidad$Edad)
+
+# Mediana de la edad
+paste("Mediana")
+median(Obesidad$Edad)
+
+# Cuantil de la edad
+paste("Cuantil")
+quantile(Obesidad$Edad, c(.25, 0.75)) # Cuartiles
+
+# Mínimo de la edad
+paste("Mínimo")
+min(Obesidad$Edad)
+
+# Máximo de la edad
+paste("Máximo")
+max(Obesidad$Edad)
+
+# Moda de la Edad
+moda_edad <- Mode(Obesidad$Edad)
+paste("Moda")
+moda_edad
+
+# Dispersión
+
+# Rango de la edad
+paste("Rango")
+range(Obesidad$Edad)
+max(Obesidad$Edad) - min(Obesidad$Edad)
+
+# Rango intercuartílico de la edad
+paste("Rango intercuartílico")
+quantile(Obesidad$Edad, c(.75)) - quantile(Obesidad$Edad, c(.25)) # Cuartil
+
+# Varianza de la edad
+paste("Varianza")
+var(Obesidad$Edad)
+
+# Desviación estándar de la edad
+paste("Desviación estándar")
+sd(Obesidad$Edad)
+
+```
+
+#### Las personas tienen alrededor de 23.97 años de edad en el conjunto de datos, la mediana es 22, los cuantiles de 25% y 75% son 19 y 26 años, respectivamente. Esto significa que el 25% de las personas tienen una edad igual o inferior a 19 años, y el 75% de las personas tienen una edad igual o inferior a 26 años. La persona más joven tiene 14 años y la mayor 61 años. La edad más frecuente es 21 años. La varianza de edad es de aproximadamente 39.80, lo que indica la distribución de edad en comparación con la media.
+
+```{r echo=FALSE}
+
+ggplot(Obesidad) +
+ aes(x = Talla) +
+ geom_histogram(bins = 30L, color = "black", fill = "skyblue") +
+ labs(y = "Frecuencia", title = "Análisis Univariado de la Talla", x = "Talla (m)") +
+ theme_minimal()
+
+```
+
+#### **Descriptores de la variable Talla**
+
+```{r echo=FALSE}
+
+# Descriptores de la variable "Talla"
+
+# Media - Promedio de la talla
+paste("Promedio")
+mean(Obesidad$Talla)
+
+# Mediana de la talla
+paste("Mediana")
+median(Obesidad$Talla)
+
+# Cuantil de la talla
+paste("Cuantil")
+quantile(Obesidad$Talla, c(.25, 0.75)) # Cuartiles
+
+# Mínimo de la talla
+paste("Mínimo")
+min(Obesidad$Talla)
+
+# Máximo de la talla
+paste("Máximo")
+max(Obesidad$Talla)
+
+# Moda de la Talla
+moda_talla <- Mode(Obesidad$Talla)
+paste("Moda")
+moda_talla
+
+# Dispersión
+
+# Rango de la talla
+paste("Rango")
+range(Obesidad$Talla)
+max(Obesidad$Talla) - min(Obesidad$Talla)
+
+# Rango intercuartílico de la talla
+paste("Rango intercuartílico")
+quantile(Obesidad$Talla, c(.75)) - quantile(Obesidad$Talla, c(.25)) # Cuartil
+
+# Varianza de la talla
+paste("Varianza")
+var(Obesidad$Talla)
+
+# Desviación estándar de la talla
+paste("Desviación estándar")
+sd(Obesidad$Talla)
+
+```
+
+#### Se encontró que el promedio de talla fue de aproximadamente 1.70 metros y con una mediana de 1.70 metros. Esto indica que la mitad de las personas tenían una talla igual o inferior a ese valor. Aunque si vemos el grafico de barras, la mayor parte de las personas encuestadas reflejó tener una talla entre 1.6 y 1.8 metros. Además, se observó que la moda de la talla fue de 1.7 metros, lo que indica que esta altura fue la más común en el conjunto de datos. Por último, en términos de dispersión, la varianza fue baja, alrededor de 0.0087, lo que indica que los valores de talla estuvieron cerca del promedio.
+
+```{r echo=FALSE}
+
+ggplot(Obesidad, aes(x = Tiempo.usando.dispositivos.electrónicos)) +
+  geom_density(fill = "gray", alpha = 1, group = 1) +
+  labs(x = "Tiempo utilizado en dispositivos electrónicos (horas)", y = "Densidad") +
+  ggtitle("Distribución de tiempo utilizado en dispositivos electrónicos") +
+  guides(fill = "none")
+
+```
+
+#### **Descriptores para la variable Tiempo.usando.dispositivos.electronicos**
+
+```{r echo=FALSE}
+# se hace esto antes: install.packages("multimode")
+
+# Media - Promedio del tiempo
+paste("Promedio")
+mean(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+
+# Mediana del tiempo
+paste("Mediana")
+median(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+
+# Cuantil del tiempo
+paste("Cuantil")
+quantile(Obesidad$Tiempo.usando.dispositivos.electrónicos,c(.25 , 0.75)) #cuartiles
+
+# Minimo del tiempo
+paste("Minimo")
+min(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+
+# Maximo del tiempo
+paste("Maximo")
+max(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+
+# Moda de la tiempo
+moda_tiempo <- Mode(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+paste("Moda")
+moda_tiempo
+
+#- Dispersión 
+
+# Rango del tiempo
+paste("rango")
+range(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+max(Obesidad$Tiempo.usando.dispositivos.electrónicos)-min(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+
+# Rango intercuantilico del tiempo
+paste("rango intercuantilico")
+quantile(Obesidad$Tiempo.usando.dispositivos.electrónicos,c(.75 ))- quantile(Obesidad$Tiempo.usando.dispositivos.electrónicos,c(.25 )) #cuartil
+
+# Varianza del tiempo
+paste("varianza")
+var(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+
+# Desviacion estandar del tiempo
+paste("Desviacion estandar")
+sd(Obesidad$Tiempo.usando.dispositivos.electrónicos)
+```
+
+#### En este gráfico de densidad vemos la distribución de los datos. Se muestra cómo está distribuido el tiempo utilizado en dispositivos electrónicos en el rango de valores (0-2). Podemos observar que alcanzan sus picos más altos en 0 y 1 aproximadamente, por lo que podemos interpretar que son los tiempos más utilizados. Además, tras su análisis se sabe que el promedio del Tiempo utilizado en dispositivos electrónicos es de 0.66 horas. Por último, se puede saber el valor de la mediana, la cual es de 0.63 horas, y se sabe que cuando la mediana es menor que el promedio, la distribución de los valores está sesgada hacia la derecha. Es decir, los valores más bajos están más concentrados en el lado izquierdo de la distribución, mientras que algunos valores más altos en el lado derecho pueden estar aumentando el valor del promedio. 
+
+### **Analisis Bivariado**
+
+#### ***Objetivo específico 2.1, reconoceremos si hay mayor número de personas fumadoras de México, Perú y Colombia que presentan un índice de masa corporal más alto en comparación con el número de personas no fumadoras en el año 2019.***
+
+```{r include=FALSE}
+Obesidad %>% filter(Fuma=="yes")-> Fumadores
+
+tabla_IMCF=table(Fumadores$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)*100
+
+Obesidad %>% filter(Fuma=="no")-> Nofumadores
+
+tabla_IMCNf=table(Nofumadores$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCNf)*100
+```
+
+#### Descriptor gráfico de barras el cual permite visualizar la frecuencia de las variables cualitativas ordinales del IMC
+
+```{r echo=FALSE}
+Obesidad %>%
+ filter(Fuma %in% "yes") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Si) Fuman",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Fuma %in% "no") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(No) Fuman",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+```
+
+#### Esta tabla nos muestra los porcentajes de diferentes categorías de índice de masa corporal (IMC) para personas fumadoras y no fumadoras. Según los datos, podemos hacer las siguientes conclusiones:
+
+#### - Se puede apreciar en el gráfico de barras de no fumadores que más de 250 personas presentan un alto IMC presentando "Obesidad I", "Obesidad II", "Obesidad III", "Sobrepeso I" y "Sobrepeso II".
+
+#### - Se puede apreciar en el gráfico de barras de fumadores que solo aproximadamente 15 personas presentan un alto IMC presentando "Obesidad II", 6 personas "Obesidad I", menos de 6 personas "Sobrepeso I" y menos de 2 personas "Obesidad III".
+
+#### - Se puede ver reflejado en las tablas que en ambos grupos hay personas que presentan un alto IMC, sin embargo, el número de personas no fumadoras que sufren un alto IMC comparado con el número de personas fumadoras, es considerablemente alto.
+
+#### Tras el análisis de los datos evaluados en los gráficos de barras, podemos responder el objetivo específico 2.1. llegando a la conclusión de que hay un menor número personas fumadoras de México, Perú y Colombia que presentan un IMC más alto a comparación del número de personas no fumadoras en el año 2019.
+
+#### ***Objetivo específico 2.2, exploraremos la asociación entre el uso de diferentes medios de transporte y el índice de masa corporal (IMC) en México, Perú y Colombia durante el año 2019.***
+
+```{r echo=FALSE}
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "Normal") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Normal") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "OI") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Obesidad I") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "OII") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Obesidad II") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "OIII") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Obesidad III") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "PInsuf") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Peso Insuficiente") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "SpI") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Sobrepeso I") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "SpII") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Sobrepeso II") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+```
+
+#### Tras el análisis de los datos evaluados en los gráficos de barras, podemos responder el objetivo específico 2.2. Aquí observamos que "Micro" es el más utilizado por la mayoría de las personas entrevistadas, por lo que podemos interpretar que es la moda. También podemos interpretar que los medios de transporte menos utilizados por personas en general son bici y moto, además que pocas personas entrevistadas preferían caminar y otros manejaban su propio carro. El caso OII es especial, porque la media es muy precisa, al estar en medio de todas. Por último, las cajas son bastante parecidas, la media no ha presentado una gran variación.
+
+#### ***Objetivo específico 2.2.1, describiremos qué medios de transporte utilizaron las personas con un índice de masa corporal bajo en los países de México, Perú y Colombia durante el año 2019.***
+
+#### Las personas con el índice de masa corporal bajo (consideramos PInsuf y Normal) también utilizan "micro" y "carro", con la única diferencia que los de IMC "normal" son los que mas caminan.
+
+#### ***Objetivo específico 2.2.2, describiremos qué medios de transporte utilizaron las personas con un índice de masa corporal alto en los países de México, Perú y Colombia durante el año 2019.***
+
+#### Con respecto a las personas que presentan el índice de masa de corporal más alto, el medio más usado es "micro" y "carro", siendo 1160 y 412 personas respectivamente la que los usan.
+
+#### ***Objetivo específico 2.3, evaluaremos la relación consumo de alcohol y el índice de masa corporal de las personas de México, Perú y Colombia en el año 2019.***
+
+```{r include=FALSE,echo=FALSE}
+
+Obesidad %>% filter(Consumo_alcohol=="no")-> NoConsumen
+
+tabla_IMCF=table(NoConsumen$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_no_consumidores <- nrow(NoConsumen)
+Numero_de_no_consumidores
+
+Obesidad %>% filter(Consumo_alcohol=="Sometimes")-> NoConsumenMucho
+
+tabla_IMCF=table(NoConsumenMucho$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_consumidores1 <- nrow(NoConsumenMucho)
+Numero_de_consumidores1
+
+Obesidad %>% filter(Consumo_alcohol=="Frequently")-> ConsumenSeguido 
+
+tabla_IMCF=table(ConsumenSeguido$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_consumidores2 <- nrow(ConsumenSeguido)
+Numero_de_consumidores2
+
+Obesidad %>% filter(Consumo_alcohol=="Always")-> SiempreConsumen
+
+tabla_IMCF=table(SiempreConsumen$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_consumidores3 <- nrow(SiempreConsumen)
+Numero_de_consumidores3
+
+```
+
+```{r echo=FALSE}
+Obesidad %>%
+ filter(Consumo_alcohol %in% "no") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(No) No consumen alcohol",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Consumo_alcohol %in% "Sometimes") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Sometimes) A veces consumen alcohol",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Consumo_alcohol %in% "Frequently") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Frequently) Frecuentemente consumen alcohol",caption = "OI = Obesidad I, OII = Obesidad II, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Consumo_alcohol %in% "Always") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Always) Siempre consumen alcohol") +
+ theme_minimal()
+```
+
+#### Tras el análisis de los datos evaluados en los gráficos de barras, podemos responder el objetivo específico 2.3. Llegando a evaluar que existe un mayor número de personas con un IMC clasificado como "Normal" dentro del grupo "Sometimes(A veces consumen alcohol)" en comparación con las otras 3 clasificaciones restantes. Además, con respecto a las personas que no consumen alcohol, más de 100 y menos de 150, presentan un bajo IMC estando dentro del grupo "PIsunf(Peso insuficiente)". Por otro lado, con respecto al primer gráfico de barras (No consumen alcohol) se puede apreciar una gran diferencia a comparación del segundo gráfico de barras (Sometimes, a veces consumen alcohol) ya que en el primero hay aproximadamente 0 personas con "OIII, obesidad tipo III" y en el segundo hay más de 300 personas con "OIII, obesidad tipo III". Por último, en el grupo de personas que siempre consumen alcohol muestra una prevalencia del 100% de IMC clasificado como "Normal". Sin embargo, es importante tener en cuenta que este grupo consta de solo una persona, por lo que esta conclusión no puede generalizarse.
+
+#### ***Objetivo específico 2.4., identificaremos si el tiempo dedicado al uso de dispositivos electrónicos afectó al índice de masa corporal de las personas en los países de México, Perú y Colombia en el año 2019.***
+
+```{r echo=FALSE}
+ggplot(Obesidad) +
+ aes(x = Clasificacion_IMC, y = Tiempo.usando.dispositivos.electrónicos) +
+ geom_boxplot(fill = c("orange3","yellow3","pink","blue","red","green","grey")) + 
+  labs(title = "Relación entre el tiempo usando dispositivos electrónicos y la Clasificación de IMC",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+```
+
+#### Tras el análisis de los datos evaluados en el gráfico presentado, podemos responder el objetivo específico 2.4. Donde con respecto a cada boxplot, el intercuartil es muy cercano entre cada uno de ellos, es decir está bastante distribuido, solo en el caso de OIII, tiene un intercuartil constante pequeño, es decir, hay menos variación. Respecto a la mediana, es bastante similar en todas las cajas, Salvo en el OII la media es baja(usa poco tiempo) mientras en en el Pinsuf usa más tiempo. Respecto a los máximos y mínimos, osea  los bigotes, no son tan diferentes entre ellos, por lo que podemos concluir que nuestros datos sí son representativos, hay una variación entre la media, entre el intercuartil de cada caja. Al final no se puede concluir de forma definitiva si el uso de dispositivos electrónicos afectó el índice de masa corporal (IMC). Si bien se observan algunas diferencias en el tiempo dedicado al uso de dispositivos electrónicos entre las diferentes categorías de IMC, se requiere realizar un análisis más detallado y considerar otros factores para establecer una relación causal entre el uso de dispositivos electrónicos y el IMC.
+
+#### ***Objetivo específico 2.5, identificaremos si las personas de México, Perú y Colombia que tuvieron antecedentes familiares de obesidad tuvieron una mayor probabilidad de presentar un IMC elevado en el año 2019.***
+
+```{r echo=FALSE, message=FALSE}
+
+tabla_contingencia <- table(Obesidad$Clasificacion_IMC, Obesidad$Historial_Obesidad_Familia)
+plot <- mosaicplot(tabla_contingencia, main = "Relación entre Historial_Obesidad_Familia y la Clasificación de IMC",
+                   xlab = "Clasificacion_IMC", ylab = "Historial_Obesidad_Familia", color = TRUE) +
+  theme_minimal()
+
+grid.draw(plot)
+
+```
+
+#### Tras el análisis de los datos evaluados en el gráfico presentado, podemos responder el objetivo específico 2.5. Donde llegamos a la conclusión de que en la mayoría de los casos de Obesidad y sobrepeso influye de manera muy notoria el historial de obesidad en la familia, mientras que en el IMC normal e insuficiente, no hay una influencia clara de dependencia. De manera más específica analizamos que en los casos que más influye casi en su totalidad es en OI, OII y OIII. Por último, en OIII es donde hay más inluencia y en PInsuf hay menos influencia.

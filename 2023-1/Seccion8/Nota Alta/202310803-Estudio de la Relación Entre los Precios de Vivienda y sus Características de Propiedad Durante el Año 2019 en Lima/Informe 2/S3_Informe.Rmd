@@ -1,0 +1,954 @@
+---
+title: "Estudio de la Relación Entre los Precios de Vivienda y sus Características de Propiedad Durante el Año 2019 en Lima"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 5
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+date: "07 de Julio del 2023"
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+
+```{r echo=FALSE, warning=FALSE,message=FALSE}
+# Verificar si las librerías están instaladas y, en caso contrario, instalarlas
+required_packages <- c("ggplot2", "dplyr", "readr","plotrix",'graphics','nortest')  # Lista de librerías requeridas
+missing_packages <- setdiff(required_packages, installed.packages()[,"Package"])
+if (length(missing_packages) > 0) {
+  install.packages(missing_packages, dependencies = TRUE)
+}
+# Cargar las librerías
+library(graphics)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(plotrix)
+library(nortest)
+```
+
+```{r setup, include=FALSE, warning=FALSE,message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Cargar el archivo CSV
+urbania_data <- read_csv("urbania_data.csv")
+# Visualizar los primeros registros de los datos
+head(urbania_data)
+```
+
+
+## 1. **INTRODUCCIÓN**
+
+#### 1.1. **RELEVANCIA:**
+
+El estudio de la relación entre los precios de las viviendas y sus características en Lima durante el año 2019 es de suma importancia para el mercado inmobiliario y la toma de decisiones. Comprender cómo diversos atributos afectan el valor de una vivienda proporciona información valiosa para evaluar su precio y desarrollar estrategias de inversión. Este estudio permite identificar tendencias y patrones, así como entender cómo factores como la ubicación, el tamaño, la antigüedad y los servicios influyen en los precios. Estos conocimientos resultan fundamentales para la implementación de políticas públicas, la planificación urbana y la toma de decisiones financieras relacionadas con bienes raíces.
+
+#### 1.2. **OBJETIVO:**
+
+Analizar la relación entre los precios de vivienda y sus características
+de propiedad durante el año 2019 en Lima, con el fin de comprender los
+factores que influyen en la valoración de las propiedades en el mercado
+inmobiliario de la ciudad.
+
+#### 1.2.1. **OBJETIVOS ESPECÍFICOS:**
+
+-   Identificar las principales características de propiedad que están
+    asociadas con precios más altos de vivienda en Lima durante el año 2019. 
+
+-   Determinar si el número de dormitorios y el sector tienen una influencia
+    conjunta en el precio y valoración de las viviendas en Lima. Se buscará
+    identificar si la combinación de un mayor número de dormitorios y estar 
+    ubicado en un sector exclusivo tiene un efecto multiplicador en los precios 
+    y valoraciones de las viviendas.
+
+-   Analizar la variación de los precios de vivienda entre diferentes
+    distritos de Lima durante el año 2019 y determinar si existen factores
+    geográficos, como la ubicación, que explique estas diferencias.
+
+## 2. **MODO DE ORGANIZACIÓN**
+
+````{r echo=FALSE, warning=FALSE,message=FALSE}
+datos <- data.frame(
+  Tarea = c("Selección de temas", "Definición de tema", "Recolección de data", "Análisis para PG1", "Presentación PG1", "Análisis del Feedback", "Feedback PG2", "Correcciones Probabilidades", "Presentación PG2 Avance 1", "Análisis para PG2", "Presentación PG2 Avance 2", "Reunión Final Grupal"),
+  Inicio = as.Date(c("2023-04-20", "2023-04-23", "2023-04-26", "2023-05-01", "2023-05-08", "2023-05-15", "2023-06-23", "2023-06-25", "2023-06-29", "2023-07-01", "2023-07-04", "2023-07-06")),
+  Fin = as.Date(c("2023-04-21", "2023-04-24", "2023-04-27", "2023-05-02", "2023-05-09", "2023-05-16", "2023-06-24", "2023-06-26", "2023-06-30", "2023-07-02", "2023-07-05", "2023-07-07"))
+)
+
+ggplot(datos, aes(y = Inicio, yend = Fin, x = Tarea, xend = Tarea)) +
+  geom_segment(size = 10, color = "#0072B2") +
+  labs(y = "Fecha", x = "") +
+  ggtitle("ORGANIZACIÓN DURANTE EL DESARROLLO DEL PROYECTO") +
+  scale_color_manual(values = c("#0072B2", "#004488", "#A6CEE3")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  coord_flip()
+
+```
+
+## 3. **DATOS**
+
+#### 3.1. **RECOLECCIÓN DE DATOS**
+
+Los datos utilizados en este estudio fueron extraídos de una base de
+datos obtenida de la página Urbania.com, correspondiente al año 2019 en
+Lima, Perú. Esta base de datos ofrece información detallada sobre los
+precios de vivienda y diversas características de propiedad. Para
+acceder a la fuente original de los datos, se puede seguir el enlace
+proporcionado en Kaggle
+(<https://www.kaggle.com/datasets/pbenavides/house-pricing-lima-peru?resource=download>).
+
+#### 3.2. **POBLACIÓN**
+
+El estudio se centra en todas las viviendas de Lima, especialmente en
+Lima Metropolitana, el principal centro urbano y económico del país.
+Esto proporciona una visión completa de los precios de vivienda y sus
+características en un entorno urbano y dinámico. Lima abarca una amplia
+y diversa área geográfica con diversos precios y atributos de propiedad,
+y cuenta con numerosas transacciones inmobiliarias y opciones de
+vivienda.
+
+#### 3.3. **MUESTRA**
+
+La base de datos utilizada en este estudio proviene de las viviendas
+publicadas en la página Urbania.com. La base de datos consta de 7663
+filas y 91 columnas, lo que proporciona una gran cantidad de información
+para analizar. Sin embargo, es importante tener en cuenta que la base de
+datos puede contener valores nulos, por lo que será necesario realizar
+una limpieza de datos antes de llevar a cabo el análisis. Esto asegurará
+que los resultados obtenidos sean confiables y precisos.
+
+#### 3.4. **MUESTREO**
+
+Para llevar a cabo el muestreo de nuestro estudio, se utilizó un
+instrumento de recolección basado en un código de Python. Este código
+fue diseñado de manera que pudiera aprovechar métodos avanzados como
+Machine Learning, Web-Scraping y Programación Orientada a Objetos (POO)
+para cumplir con su función de manera eficiente y precisa. Los detalles
+técnicos y una descripción exhaustiva del código utilizado se encuentran
+disponibles en el siguiente
+enlace:(<https://github.com/PBenavides/Automated-Valuation-Model-Lima>)
+
+#### 3.5. **VARIABLES**
+
+| Variable           | Tipo               | Descripción                                       |
+|-----------------|-----------------|--------------------------------------|
+| Precio             | Numérica/Continua  | Precio en soles                                   |
+| Dormitorios        | Categórica/Ordinal | Cantidad de dormitorios                           |
+| Antigüedad         | Numérica/Continua  | Años de antigüedad                                |
+| Luminosidad        | Categórica/Nominal | Que tan luminoso es                               |
+| Tipo               | Categórica/Nominal | Tipo de inmueble                                  |
+| Área_total_m2      | Numérica/Continua  | Área total                                        |
+| Área_constr_m2     | Numérica/Continua  | Área total construida                             |
+| NroBanios          | Numérica/Continua  | Cantidad de baños                                 |
+| Estado de Inmueble | Categórica/Nominal | Estado de cuidado en que se encuentra el inmueble |
+| Distrito           | Categórica/Nominal | Distrito de Lima en que se ubica                  |
+| Cocheras           | Numérica/Discreta  | Cantidad de cocheras                              |
+| Uso_profesional    | Categórica/Nominal | ¿Se le puede dar un uso tipo profesional?         |
+| Uso_comercial      | Categórica/Nominal | ¿Se le puede dar un uso tipo comercial?           |
+| Nro_pisos          | Numérica/Discreta  | Cantidad de pisos                                 |
+| Piscina            | Categórica/Nominal | Cantidad de piscinas                              |
+| Amoblado           | Categórica/Nominal | ¿Se encuentra amoblado?                           |
+
+```{r, echo=FALSE, results='hide'}
+# Eliminar filas que no tienen "Lima" en la columna "Provincia"
+urbania_data <- urbania_data %>% filter(Provincia == "Lima")
+#Seleccionamos solo las variables que vamos a usar
+columnas_usar = c("Precio", "Dormitorios", "Antiguedad", "Luminosidad", "Tipo", "Area_total_m2",'Area_constr_m2', "NroBanios", "Dormitorios", "Estado de Inmueble", "Distrito",'Cocheras','Uso_profesional','Uso_comercial','Nro_pisos','Piscina','Amoblado')
+urbania_data <- urbania_data %>% select(all_of(columnas_usar))
+# Eliminar filas con valores faltantes
+urbania_data <- na.omit(urbania_data)
+str(urbania_data)
+# Clasificación correcta de variables según su tipo
+# Lista de columnas numéricas
+urbania_data <- urbania_data %>% 
+  mutate(Luminosidad = factor(Luminosidad, levels = c("Muy luminoso", "Luminoso", "NoEspecifica")),
+`Estado de Inmueble` = factor(`Estado de Inmueble`, levels = c("Excelente", "Muy bueno", "Bueno", "Remodelado", "A Remodelar", "NoEspecifica")))
+# Eliminar valores atípicos en la columna "price"
+urbania_data <- urbania_data[urbania_data$Area_total_m2 <= 5000, ] 
+
+Q1 <- quantile(urbania_data$Precio, 0.25)
+Q3 <- quantile(urbania_data$Precio, 0.75)
+Q1_area <- quantile(urbania_data$Area_total_m2, 0.25)
+Q3_area <- quantile(urbania_data$Area_total_m2, 0.75)
+
+IQR_area <- Q3_area - Q1_area
+IQR <- Q3 - Q1
+
+lower_limit <- Q1 - 1.5 * IQR
+upper_limit <- Q3 + 1.5 * IQR
+lower_limit_area <- Q1_area - 1.5 * IQR_area
+upper_limit_area <- Q3_area + 1.5 * IQR_area
+
+urbania_data <- urbania_data[urbania_data$Precio >= lower_limit & urbania_data$Precio <= upper_limit, ]
+urbania_data <- urbania_data[urbania_data$Area_total_m2 >= lower_limit_area & urbania_data$Area_total_m2 <= upper_limit_area, ]
+# Convertimos al precio en miles
+urbania_data$Precio <- (urbania_data$Precio/10000)
+# Guardar los datos limpios en un nuevo archivo CSV
+write_csv(urbania_data, "urbania_data_clean.csv")
+```
+
+## 4. **ANÁLISIS DESCRIPTIVO**
+
+### 4.1. **ANÁLISIS GENERAL**
+
+```{r}
+#Histograma PRECIO
+ggplot(urbania_data, aes(x = Precio)) +
+  geom_histogram(aes(y = ..density..),binwidth = 10, fill = "#5399E6" , color = "white") +
+  geom_density(color = "red") +
+  labs(title = "Distribución de Precios", x = "Precio(miles)", y = "Frecuencia") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 10),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank())
+```
+
+```{r}
+# Cálculo de la media del precio
+mean(urbania_data$Precio)
+# Cálculo de la desviación estándar del precio
+sd(urbania_data$Precio)
+# Valor mínimo y máximo del precio
+min(urbania_data$Precio)
+max(urbania_data$Precio)
+```
+
+-   El histograma de precios representa la distribución de precios de
+    las viviendas en el conjunto de datos. Los precios tienen una media
+    de 66.53 miles de unidades monetarias y una desviación estándar de
+    44.84. La distribución es sesgada hacia la derecha, lo que indica
+    que la mayoría de las viviendas tienen precios más bajos, mientras
+    que hay algunas viviendas con precios más altos que se consideran
+    valores atípicos. La forma de la distribución sugiere que existe una
+    concentración de viviendas con precios más bajos y una dispersión
+    gradual hacia precios más altos. Esto puede ser útil para comprender
+    la estructura de precios en el mercado inmobiliario y tomar
+    decisiones informadas sobre la compra o venta de viviendas.
+
+```{r}
+#Gráfico de barras DORMITORIOS-PRECIO
+NDor <- urbania_data %>%
+  group_by(Dormitorios) %>% 
+  summarise(PRECIO= mean(Precio))
+# Crear la paleta de colores azules
+colors <- colorRampPalette(c("lightblue", "darkblue"))(length(levels(factor(NDor$Dormitorios))))
+# Crear el gráfico de barras en tonos azules
+ggplot(NDor, aes(x = factor(Dormitorios), y = PRECIO, fill = factor(Dormitorios))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Promedio Promedio Según el Número de Dormitorios", x = "Número de Dormitorios", y = "Precio(miles)") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_manual(values = colors)
+```
+
+```{r}
+# Cálculo de la variabilidad de precios dentro de cada grupo de dormitorios
+# Agrupar los datos por dormitorios y calcular las medidas de dispersión
+variability <- urbania_data %>%
+  group_by(Dormitorios) %>%
+  summarise(
+    Rango = max(Precio) - min(Precio),
+    Desviacion_estandar = sd(Precio),
+    Coeficiente_variacion = sd(Precio) / mean(Precio) * 100
+  )
+# Mostrar los resultados
+variability
+```
+
+-   El gráfico de barras y los resultados del análisis de variabilidad
+    nos muestran que los precios de las propiedades varían dentro de
+    cada grupo de dormitorios. Los grupos de mayor número de dormitorios
+    tienden a tener una mayor dispersión de precios, mientras que los
+    grupos de menor número de dormitorios muestran una mayor
+    variabilidad en relación con la media. Estos resultados resaltan la
+    importancia de considerar el número de dormitorios al analizar y
+    comparar los precios de las propiedades.
+
+
+```{r}
+#Box plot indexado PRECIO-DORMITORIOS
+ggplot(urbania_data) +
+  geom_boxplot(aes(x = Dormitorios, y = Precio, fill = Dormitorios)) +
+  labs(title = "Boxplot de Precio por Dormitorios", x = "Dormitorios", y = "Precio(miles)") +
+  scale_fill_manual(values = c("#5399E6", "#4378D0", "#3256BA", "#2144A4", "#10328E", "#002076", "#001064")) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+# Estadísticas descriptivas para cada grupo de dormitorios
+stats <- urbania_data %>%
+  group_by(Dormitorios) %>%
+  summarise(
+    Mediana = median(Precio),
+    Cuartil_1 = quantile(Precio, 0.25),
+    Cuartil_3 = quantile(Precio, 0.75),
+    Valor_Minimo = min(Precio),
+    Valor_Maximo = max(Precio))
+stats
+```
+
+-   El precio de las viviendas tiende a aumentar a medida que aumenta el
+    número de dormitorios.
+-   Esto indica una relación positiva entre el número de dormitorios y
+    el precio. Las viviendas con tres y cuatro dormitorios presentan una
+    mayor dispersión de precios, como se evidencia por los cuartiles más
+    alejados de la mediana y el mayor rango de precios.
+-   Las viviendas con uno o dos dormitorios muestran una menor
+    dispersión de precios, con cuartiles más cercanos a la mediana y un
+    rango de precios más estrecho. Existen valores atípicos en el grupo
+    de viviendas con cuatro dormitorios, ya que se extienden más allá
+    del tercer cuartil.
+-   En general, el número de dormitorios es un factor importante a
+    considerar al determinar el precio de una vivienda. Cuantos más
+    dormitorios tenga una propiedad, es más probable que su precio sea
+    más alto y que haya una mayor variabilidad en los precios dentro de
+    ese grupo.
+
+### 4.2. **ANÁLISIS EN LIMA METROPOLITANA**
+
+```{r, echo=FALSE, results='hide'}
+# Definir los distritos para cada sector y crear nueva variables SECTOR
+lima_norte <- c("LosOlivos", "PuentePiedra", "Comas", "Independencia", "SanMartinDePorres", "Ancon", "SantaRosa", "Carabayllo")
+lima_sur <- c("VillaElSalvador", "SanJuanDeMiraflores", "VillaMariaDelTriunfo", "Lurin", "Chorrillos", "Pachacamac", "PuntaNegra", "PuntaHermosa", "Pucusana", "SantaMariaDelMar", "SanBartolo")
+lima_este <- c("LaMolina", "Ate", "SantaAnita", "SanJuanDeLurigancho", "Lurigancho", "ElAgustino", "Chaclacayo", "Cieneguilla")
+lima_centro <- c("SantiagoDeSurco", "MagdalenaDelMar", "SanMiguel", "CercadoDeLima", "JesusMaria", "LaVictoria", "Rimac", "SanLuis", "SanBorja", "SanIsidro", "Lince", "PuebloLibre", "Miraflores", "Surquillo", "Barranco", "Brenia")
+# Agregar la columna "Sector" al data frame
+urbania_data$Sector <- ""
+# Asignar los sectores a los distritos correspondientes
+urbania_data$Sector[urbania_data$Distrito %in% lima_norte] <- "LIMA NORTE"
+urbania_data$Sector[urbania_data$Distrito %in% lima_sur] <- "LIMA SUR Y BALNEARIOS"
+urbania_data$Sector[urbania_data$Distrito %in% lima_este] <- "LIMA ESTE"
+urbania_data$Sector[urbania_data$Distrito %in% lima_centro] <- "LIMA CENTRO"
+# Asignar "OTROS" a los distritos no clasificados
+urbania_data$Sector[urbania_data$Sector == ""] <- "OTROS"
+```
+
+```{r}
+#box plot indexado PRECIO-SECTOR
+# Obtener los niveles únicos en la variable "Sector"
+sectores <- unique(na.omit(urbania_data$Sector))
+# Definir los colores para cada sector
+colores <- c("#5083fa", "#2062fa", "#2438d4", "#152582", "#b0b0b0")  # Asegúrate de tener un color para cada sector
+ggplot(na.omit(urbania_data), aes(x = Sector, y = Precio, fill = Sector)) +
+  geom_boxplot(color = "#3d3d3d") +
+  labs(title = "Distribución de Precios Por Sector en Lima Metropolitana", x = "Sector", y = "Precio (miles)") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+  scale_fill_manual(values = colores, breaks = sectores) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+# Calcular estadísticas descriptivas por sector
+stats_por_sector <- urbania_data %>%
+  group_by(Sector) %>%
+  summarise(
+    Media = mean(Precio),
+    Mediana = median(Precio),
+    Cuartil_1 = quantile(Precio, 0.25),
+    Cuartil_3 = quantile(Precio, 0.75),
+    Valor_Minimo = min(Precio),
+    Valor_Maximo = max(Precio)
+  )
+stats_por_sector
+```
+
+-   **LIMA CENTRO** presenta la mediana más alta, con un valor de 61
+    miles, seguido de LIMA ESTE con una mediana de 69.5 miles. Estos
+    sectores muestran una mayor concentración de precios elevados en
+    comparación con los demás.
+-   **LIMA NORTE** tiene la mediana más baja, con 16.5 miles, lo que
+    indica que los precios en esta zona tienden a ser más accesibles.
+    Sin embargo, también se observa una menor variabilidad en los
+    precios, con un rango intercuartílico más estrecho.
+-   **LIMA SUR Y BALNEARIOS y OTROS** sectores presentan medianas
+    intermedias, indicando una distribución de precios más equilibrada.
+    Sin embargo, LIMA SUR Y BALNEARIOS muestra una mayor dispersión, con
+    un rango intercuartílico más amplio y valores máximos más altos.
+-   Estos resultados sugieren que los precios de las propiedades varían
+    significativamente según el sector geográfico en Lima Metropolitana.
+    Es importante considerar estos patrones al tomar decisiones de
+    compra o inversión inmobiliaria, ya que cada sector ofrece
+    diferentes características y rangos de precios.
+
+    ```{r}
+    #Mosaico AMOBLADO - SECTOR
+    urbania_data$Amoblado[urbania_data$Amoblado == "0"] <- "No"
+    urbania_data$Amoblado[urbania_data$Amoblado == "1"] <- "Sí"
+    color_palette <- colorRampPalette(c("lightblue", "darkblue"))(length(unique(urbania_data$Sector)))
+    mosaicplot(table(urbania_data$Amoblado, urbania_data$Sector)[-2, 1:4], las = 2, color = color_palette, main = "Amoblado vs Sector", xlab = "Amoblado", ylab = "Sector", border = "NA")
+    ```
+
+    ```{r}
+    # Filtrar los datos para eliminar filas con valores NA
+    filtered_data <- na.omit(urbania_data)
+    # Calcular los porcentajes de propiedades con y sin piscina en cada sector
+    amoblado_sector <- prop.table(table(filtered_data$Amoblado, filtered_data$Sector), margin = 2)
+    # Mostrar los porcentajes en forma de tabla
+    amoblado_sector
+    ```
+
+-   **Lima Centro:** El 54.5% de las propiedades en Lima Centro no están
+    amobladas, mientras que solo el 4.7% están amobladas. Esto indica
+    que la mayoría de las propiedades en esta zona no se ofrecen con
+    mobiliario.
+
+-   **Lima Este:** En Lima Este, el 62.5% de las propiedades no están
+    amobladas, mientras que solo el 6.9% están amobladas. Al igual que
+    en Lima Centro, la mayoría de las propiedades en esta zona no se
+    ofrecen con mobiliario.
+
+-   **Lima Norte:** En Lima Norte, el 47.8% de las propiedades no están
+    amobladas, mientras que solo el 3.8% están amobladas. Nuevamente, la
+    mayoría de las propiedades en esta zona no se ofrecen con
+    mobiliario.
+
+-   **Lima Sur y Balnearios:** En esta zona, el 46.4% de las propiedades
+    no están amobladas, mientras que el 15.8% están amobladas. Existe
+    una proporción significativa de propiedades amobladas en comparación
+    con otras áreas.
+
+
+## 5. **SELECCIÓN DE VARIABLES**
+
+Nuestro estudio se centra en identificar las características más
+valiosas de un inmueble. Para lograrlo, hemos seleccionado variables que
+consideramos fundamentales en este análisis. Las variables elegidas son:
+
+-   **Número de dormitorios:** El número de dormitorios es un factor
+    relevante en la evaluación de un inmueble, ya que tiene un impacto
+    directo en su funcionalidad y capacidad de alojamiento. Este dato
+    proporciona información sobre el tamaño y la comodidad de la
+    vivienda, lo cual puede influir significativamente en su valor y
+    demanda.
+
+-   **Sector:** El sector o ubicación del inmueble también es una
+    variable crucial, ya que determina su proximidad a servicios,
+    transporte, áreas verdes, centros comerciales y otros elementos
+    clave. La ubicación puede influir en el precio de un inmueble,
+    siendo determinante en la toma de decisiones de los compradores y en
+    la apreciación futura del valor de la propiedad.
+
+Estas dos variables nos permitirán obtener información valiosa para
+realizar análisis y conclusiones relevantes en nuestro proyecto. Al
+considerar el número de dormitorios y el sector de un inmueble, podemos
+examinar cómo influyen en su precio y valoración, y entender qué
+características son más apreciadas por los potenciales compradores o
+inversores. Esto nos ayudará a proporcionar recomendaciones y
+asesoramiento sólido basado en los resultados obtenidos en nuestro
+estudio.
+
+
+## 6. **ANÁLISIS PROBABILÍSTICO**
+
+### **6.1 PROBABILIDAD EMPÍRICA**
+
+#### **6.1.1 EXPERIMENTO 1 - DORMITORIOS**
+
+Un agente inmobiliario revisa el catálogo de propiedades de Urbania para
+agendar una cita y selecciona un inmueble al azar.
+
+***Espacio Muestral:*** Para nuestra variable, el espacio muestral
+estará definido de la siguiente forma. $$ Ω = \{1;2;3;4;5+\}$$
+***Eventos:***
+
+-   **A1:** Seleccionar un inmueble con 1 dormitorio
+-   **A2:** Seleccionar un inmueble con 2 dormitorios
+-   **A3:** Seleccionar un inmueble con 3 dormitorios
+-   **A4:** Seleccionar un inmueble con 4 dormitorios
+-   **A5:** Seleccionar un inmueble con 5+ dormitorios
+
+Y la función de probabilidad definida de la siguiente manera:
+
+$$ P(A) =  \frac{||A||}{||Ω||}$$ Para el caso de dormitorios
+
+```{r}
+table(urbania_data$Dormitorios)/length(urbania_data$Dormitorios)*100
+```
+
+***Probabilidad de Eventos:*** 
+
+- **P(A1):** 0.31% 
+- **P(A2):** 1.77% 
+- **P(A3):** 24.14% 
+- **P(A4):** 39.87% 
+- **P(A5):** 33.91%
+
+
+
+#### **6.1.2 EXPERIMENTO 2 - SECTOR**
+
+Una persona que se dedica al negocio de bienes raíces y tiene
+propiedades en todo Lima, selecciona un sector para la compra de su
+próxima propiedad.
+
+***Espacio Muestral:*** Para nuestra variable, el espacio muestral
+estará definido de la siguiente forma.
+$$ Ω = \{Lima Centro; Lima Norte ;  Lima Este ; Lima Sur y Balnearios; Otros\}$$
+Y la función de probabilidad definida de la siguiente manera:
+
+$$ P(A) =  \frac{||A||}{||Ω||}$$ Para el caso de sectores
+
+***Eventos:***
+
+-   **S1:** Seleccionar una propiedad de Lima Centro
+-   **S2:** Seleccionar una propiedad de Lima Norte
+-   **S3:** Seleccionar una propiedad de Lima Este
+-   **S4:** Seleccionar una propiedad de Lima Sur y Balnearios
+-   **S5:** Seleccionar una propiedad de Otro Sector
+
+```{r}
+table(urbania_data$Sector)/length(urbania_data$Sector)*100
+```
+
+**COMENTARIO:** Hay mayor probabilidad de que el inmueble escogido por
+la persona sea del sector Lima Este.
+
+### **6.2 PROBABILIDAD CONDICIONAL**
+
+**DESCRIPCIÓN:**
+
+Para esta parte, escogeremos 2 pares de eventos, uno donde exista una
+relación entre ambas variables, y otro donde no exista. Para esto
+seguiremos el siguiente proceso: - Tomaremos a la variable **Sector** y
+la variable **Precio** para determinar si existe o no una relación.
+
+***Cuantiles y Etiquetas***
+
+-   El cuantil de 0-20% se etiqueta como "Muy Bajo".
+-   El cuantil de 20%-40% se etiqueta como "Bajo".
+-   El cuantil de 40%-60% se etiqueta como "Medio".
+-   El cuantil de 60%-80% se etiqueta como "Alto".
+-   El cuantil de 80% a 100% se etiqueta como "Muy Alto".
+
+```{r}
+percentiles <- quantile(urbania_data$Precio, probs = c(0.2,0.4,0.6,0.8))
+urbania_data$Clasificacion <- cut(urbania_data$Precio,
+                                     breaks = c(-Inf, percentiles[1], percentiles[2],percentiles[3],percentiles[4], Inf),
+                                     labels = c("Muy Bajo", "Bajo", "Medio", "Alto", "Muy Alto"),
+                                     include.lowest = TRUE)
+```
+
+-   Verificaremos la existencia de la dependencia planteando nuestra
+    hipótesis nula, es decir, asumimos que las variables sector y
+    clasificación no tienen relación.
+
+-   Usaremos la prueba de chi-cuadrado porque estamos trabajando con dos
+    variables categóricas, utiliza una medida de discrepancia entre las
+    frecuencias observadas y las frecuencias esperadas bajo la hipótesis
+    nula de independencia.
+
+```{r}
+# Crear una tabla de contingencia entre las dos variables
+Clas_Sec <- table(urbania_data$Clasificacion, urbania_data$Sector)
+Clas_Sec
+# Realizar la prueba de chi-cuadrado
+chi2_result <- chisq.test(Clas_Sec)
+# Obtener el p-value de la prueba de chi-cuadrado
+p_value <- chi2_result$p.value
+# Imprimir el p-value
+cat("El valor de p es:", p_value, "\n")
+```
+
+
+#### **6.2.1 EVENTO 1**
+
+-   **A:** Seleccionamos un inmueble con precio "Muy alto"
+-   **B:** Seleccionamos un inmueble en el sector "Lima_Centro"
+
+$$P(A\cap B) = P(A)* P(B)$$
+
+```{r}
+n <- nrow(urbania_data)
+pAyB <- filter(urbania_data, Clasificacion == "Muy Alto" & Sector == "LIMA CENTRO") %>% nrow()
+pA <- filter(urbania_data, Clasificacion == "Muy Alto")  %>% nrow()
+pB <- filter(urbania_data, Sector == "LIMA CENTRO") %>% nrow()
+pA_B <- pAyB/n
+pB_A <- (pA/n)*(pB/n)
+pA_B
+pB_A
+```
+
+$$P(A\cap B) \approx P(A)* P(B)$$
+
+Observamos que la probabilidad es casi igual, por lo que podemos
+concluir que no son dependientes entre si.
+
+Notamos que si fueran realmente independientes, entonces se cumple que:
+
+-   *Ejemplo 01:* ¿Cuál es la probabilidad que una vivienda sea de
+    Precio muy Alto dado que pertenece al sector LIMA CENTRO?
+
+```{r}
+round(pA / n,2)
+```
+
+Con esto podemos ver que la vivienda sea de Precio muy Alto no afecta en
+que sector se va comprar el inmobiliario. La probabilidad es del 20%.
+
+-   *Ejemplo 02:* ¿Cuál es la probabilidad que pertenezca al sector LIMA
+    CENTRO dado que el precio sea de Precio muy Alto?
+
+```{r}
+round(pB / n,2)
+```
+
+Con esto podemos ver que el inmobiliario perteneciente al sector LIMA
+CENTRO no afecta SI EL PRECIO ES ALTO, la probabilidad es 36%.
+
+#### **6.2.2 EVENTO 2**
+
+```{r}
+table(urbania_data$Dormitorios,urbania_data$Clasificacion)
+```
+
+-   **Evento A:** Seleccionar del catálogo inmobiliario un inmueble que
+    tiene 4 dormitorios
+
+-   **Evento B:** Seleccionar del catálogo inmobiliario un inmueble que
+    tiene el precio muy alto.
+
+Se verifica la independencia usando la prueba de chi-cuadrado:
+```{r}
+Clas_Sec <- table(urbania_data$Clasificacion, urbania_data$Sector)
+
+chi2_result <- chisq.test(Clas_Sec)
+
+p_value <- chi2_result$p.value
+
+print(p_value)
+
+```
+
+No cumple la condición, entonces son eventos dependientes, por lo tanto,
+se puede hallar su probabilidad condicional
+
+```{r}
+pA <- filter(urbania_data, Dormitorios == 4) %>% nrow() / n
+pB <- filter(urbania_data, Clasificacion == "Muy Alto") %>% nrow() / n
+pAyB <- filter(urbania_data, Clasificacion == "Muy Alto" & Dormitorios == 4) %>% nrow() / n
+pA*pB
+pAyB
+```
+
+
+-   *Ejemplo 03:* ¿Cuál es la probabilidad de que el inmueble tenga 4
+    dormitorios dado que su precio es muy alto?
+    $$P(A/B) = \frac{P(A \cap B)}{P(B)}$$
+
+```{r}
+pA_d_B <- round(pAyB / pB,2)
+pA_d_B
+```
+
+La probabilidad de que el inmobiliario tenga 4 dormitorios dato que es
+un precio alto es 45%
+
+-   *Ejemplo 04:* ¿Cuál es la probabilidad de que el precio del inmueble
+    sea muy alto dado que se tiene 4 dormitorios?
+
+$$P(B/A) = \frac{P(B \cap A)}{P(A)}$$ El problema se plantea con el
+teorema de Bayes. para la resolución de este problema se hará uso de la
+probabilidad total y regla de la multiplicación.
+
+regla de la multiplicación: $$P(B \cap A) = P(A/B)*P(B)$$ Usamos la
+propiedad de Probabilidad total para probar nuestras respuesta.
+
+$$ P(A) = P(A|B)\cdot P(B) +P(A|B')\cdot P(B') $$ 
+
+```{r}
+round(pA_d_B*pB / pA,2)
+```
+
+La probabilidad de que el inmobiliario tenga un precio muy alto dado que
+el dormitorio es de 4 es 22%
+
+### **6.3 DISTRIBUCIÓN DISCRETA**
+
+#### **6.3.1 DISTRIBUCIÓN BINOMIAL**
+
+$$ P(X = k) = \binom{n}{k} \cdot p^k \cdot (1 - p)^{n-k} $$
+
+¿Cuál es la probabilidad al visitar 20 casas aleatorias visites 12 casas
+de 2 cocheras?
+
+Variable Aleatoria (X): Número de casas de 2 cocheras que visitas al
+seleccionar aleatoriamente 20 casas.
+
+```{r}
+prob <- sum(urbania_data$Cocheras==2)/6391
+prob
+```
+
+**Datos:**
+
+-   **x:** 12
+-   **size:** 20
+-   **prob =** 0.3872633
+
+```{r}
+dbinom(12,20,prob)
+```
+
+```{r}
+plot(0:12, dbinom((0:12), 20,prob),  main = "Probabilidad", xlab = "n Intentos Hasta Seleccionar 200 Cocheras de 2 pisos", ylab = "Probabilidad")
+```
+
+La probabilidad de seleccionar hasta 200 casas con una cochera de 2
+pisos de una muestra de 500 es de 1.22%.
+
+
+#### **6.3.2 DISTRIBUCIÓN HIPER GEOMÉTRICA**
+
+$$
+P(X = k) = \frac{{\binom{K}{k} \binom{N-K}{n-k}}}{{\binom{N}{n}}}
+$$
+
+-   **P(X = k):** Probabilidad de obtener k éxitos en la muestra.
+-   **K:** Número de éxitos en la población.
+-   **N:** Tamaño de la población.
+-   **n:** Tamaño de la muestra.
+-   **Coeficiente binomial:** $\binom{a}{b}$
+
+¿Cual es la probabilidad de que de una población de 6391 casas se tome
+una muestra de 500 casas y existan 100 casas de al menos 3 pisos?
+
+**Variable Aleatoria (x):** Número de casas de al menos 3 pisos en una
+muestra de 500 de una población de 6391 casas.
+
+```{r}
+sum(urbania_data$Nro_pisos >= 3)
+```
+
+**Parámetros de la Distribución Hiper Geométrica:**
+
+-   **N:** 6391
+-   **K:** 2428
+-   **n:** 500
+
+```{r}
+# Parámetros de la distribución hipergeométrica
+N <- 6391   
+K <- 2428 
+n <- 500    
+# Cálculo de la probabilidad utilizando dhyper
+dhyper(100, K, N-K, n)
+```
+
+```{r}
+plot(0:n, dhyper(0:n, K, N-K, n), type = "h", lwd = 2, xlab = "Número de éxitos", ylab = "Probabilidad",
+     main = "Distribución Hipergeométrica", col = "darkblue")
+```
+
+#### **6.3.3 DISTRIBUCIÓN BINOMIAL NEGATIVA**
+
+$$ P(X = k) = \binom{k + r - 1}{k} \cdot p^r \cdot (1 - p)^k $$
+
+¿Cuál es la probabilidad que debas visitar 50 casas antes de encontrar 5
+casas de 3 Dormitorios?
+
+```{r}
+sum(urbania_data$Dormitorios == 3)/ 6391
+```
+
+**Datos:**
+
+-   **x:** 10
+-   **size:** 5
+-   **probabilidad:** 0.2414333
+
+Definimos la función:
+
+```{r}
+dnbinom(10,5,0.2414333)
+```
+
+Observamos en un gráfico la distribución:
+
+```{r}
+# Parámetros de la distribución negativa
+size <- 5
+prob <- 0.2414333
+# Valores x para el plot
+x <- 0:30
+# Probabilidades correspondientes a los valores x
+probabilities <- dnbinom(x, size, prob)
+# Plot de la distribución negativa
+plot(x, probabilities, type = "h", lwd = 2, xlab = "k", ylab = "P(X = k)",
+     main = "Distribución Negativa", col = "darkblue")
+```
+
+### **6.4 DISTRIBUCIÓN CONTINUA**
+
+#### **6.4.1 VARIABLE 1**
+
+-   **Variable aleatoria:** Casa dentro del Sector "Lima Centro"
+-   **Rango:** [0,120]
+
+Primero, para poder determinar observaremos su densidad en un gráfico
+dado por el Precio.
+
+```{r}
+# Variable de interes
+x <- subset(urbania_data$Precio,
+            urbania_data$Sector == "LIMA CENTRO" & 
+            urbania_data$Precio <= quantile(urbania_data$Precio, 0.75) &
+            urbania_data$Precio >= quantile(urbania_data$Precio, 0.25))
+# Estimación de la densidad
+density_est <- density(x, bw = 10)
+# Ploteo
+plot(density_est,
+     xlab = "Precio (S/10 000)",
+     ylab = "Densidad",
+     main = "Densidad de Precio (LIMA CENTRO)",
+     col = "darkblue", lwd = 2)
+
+abline(v = median(x), col = "red", lwd = 2)
+abline(v = mean(x), col = "green", lwd = 2)
+```
+
+Observamos la gráfica de densidad tiene una forma acampanada,
+procederemos a calcular la varianza y la esperanza de manera teórica
+para compararla al valor observado.
+
+**Esperanza:** $$E(X) = \int x \cdot f(x) \, dx$$
+
+```{r}
+x_interp <- seq(min(density_est$x), max(density_est$x), length.out = 1000)
+density_interp <- approx(density_est$x, density_est$y, xout = x_interp)$y
+esperanza_aproximada <- integrate(function(x) x * approx(x_interp, density_interp, xout = x)$y, lower = min(x_interp), upper = max(x_interp))$value
+esperanza_aproximada
+```
+
+Ahora calculamos el valor teórica de la varianza para compararlo con el
+observado
+
+$$\text{Var}(X) = E[(X - \mu)^2 $$
+
+```{r}
+mu <- mean(x)
+# Cálculo de la varianza teórica
+varianza_teorica <- integrate(function(x) (x - mu)^2 * approx(density_est$x, density_est$y, xout = x)$y, lower = min(x), upper = max(x))$value
+varianza_teorica
+```
+
+```{r}
+summary(x)
+var(x)
+lillie.test(x)
+```
+
+Sacando los parámetros para una distribución normal tenemos lo
+siguiente:
+
+$$ \mu = 57.26 \\ \sigma = 248.07$$
+
+De este modo podemos empezar a calcular nuestros experimetos
+considerando que la variable x es
+$$X \sim \mathcal{N}(57.26, 248.07)~[0,120] \\ E(X) = 57.26 \\ V(X) = 248.07$$
+**Experimento 1.1**
+
+Al tener definido la función podemos definir una aproximado de cuantas
+casas existen en el intervalo [40,60] en diez miles.
+
+```{r}
+pnorm(60,mean(x),sd(x))-pnorm(40,mean(x),sd(x))
+```
+
+#### **6.4.2 VARIABLE 2**
+
+-   **Variable aleatoria:** Casa dentro del Sector "Lima Centro"
+-   **Rango:** [0,720]
+
+Primero, para poder determinar observaremos su densidad en un gráfico
+dado por las áreas.
+
+```{r}
+# Variable de interés
+x <- subset(urbania_data$Area_total_m2,
+            urbania_data$Sector == "LIMA ESTE" &
+            urbania_data$Area_total_m2 <= quantile(urbania_data$Area_total_m2, 0.75) &
+            urbania_data$Area_total_m2 >= quantile(urbania_data$Area_total_m2, 0.25))
+# Estimación de la densidad
+density_est <- density(x, bw=65)
+#Plotear la densidad
+plot(density_est, xlab = "Area (m²)", ylab = "Densidad",
+      main = "Densidad de Area (LIMA CENTRO)",
+      col = "darkblue", lwd = 2)
+abline(v = median(x), col = "red", lwd=2)
+abline(v = mean(x), col = "green", lwd=2)
+```
+
+Observamos la gráfica de densidad tiene una forma acampanada,
+procederemos a calcular la varianza y la esperanza de manera teórica
+para compararla al valor observado.
+
+**Esperanza:** $$E(X) = \int x \cdot f(x) \, dx$$
+
+```{r}
+x_interp <- seq(min(density_est$x), max(density_est$x), length.out = 1000)
+density_interp <- approx(density_est$x, density_est$y, xout = x_interp)$y
+esperanza_aproximada <- integrate(function(x) x * approx(x_interp, density_interp, xout = x)$y, lower = min(x_interp), upper = max(x_interp))$value
+esperanza_aproximada
+```
+
+Ahora calculamos el valor teórica de la varianza para compararlo con el
+observado
+
+$$\text{Var}(X) = E[(X - \mu)^2 $$
+
+```{r}
+mu <- mean(x)
+# Cálculo de la varianza teórica
+varianza_teorica <- integrate(function(x) (x - mu)^2 * approx(density_est$x, density_est$y, xout = x)$y, lower = min(x), upper = max(x))$value
+varianza_teorica
+```
+
+```{r}
+summary(x)
+var(x)
+lillie.test(x)
+```
+
+Sacando los parámetros para una distribución normal tenemos lo
+siguiente:
+
+$$ \mu = 320.05 \\ \sigma = 8506.09$$ De este modo podemos empezar a
+calcular nuestros experimetos considerando que la variable x es
+$$X \sim \mathcal{N}(57.26, 248.07)~[0,720] \\ E(X) = 320.05 \\ V(X) = 8506.09$$
+
+**Experimento 2.1**
+
+Al tener definido la función podemos definir una aproximado de cuantas
+casas existen en un intervalo. [300,400]
+
+```{r}
+pnorm(400,mean(x),sd(x))-pnorm(300,mean(x),sd(x))
+```
+## 7. **CONCLUSIONES**
+
+Basado en el estudio realizado sobre la relación entre los precios de las viviendas y sus características principales, se han obtenido las siguientes conclusiones:
+
+-  En el mercado inmobiliario de Lima, se observó entre las características
+   de una vivienda y su precio. Factores como el área total, el número de 
+   dormitorios, el sector y la presencias de características especiales
+   influyeron significativamente en los precios de vivienda a medida que estas
+   variables aumentaba, los precios también tendían a aumentar por lo que se 
+   sugiere que los compradores de viviendas en Lima valoran el espacio 
+   habitable, la capacidad de alojar a familias más grandes y las comodidades 
+   adicionales lo que se traduce en una mayor demanda y precios más altos para
+   las propiedades que cumplen con estas características.
+
+-  La influencia conjunta del número de dormitorios y el sector en el precio y 
+   valoración de las viviendas en Lima es notable. Las viviendas con un mayor 
+   número de dormitorios ubicadas en sectores exclusivos experimentan un efecto 
+   multiplicador en términos de precios y valoración. Esto indica que la 
+   combinación de estas dos características altamente valoradas por los 
+   compradores genera una apreciación adicional en el mercado inmobiliario.
+
+-  La ubicación de un inmueble tiene una relación significativa con su precio,
+   ya que las áreas consideradas deseables o de alta demanda tienden a tener 
+   precios más altos.En sectores de alta demanda y desarrollo,las comodidades 
+   adicionales, la calidad de construcción y los elementos que ofrecen vistas o 
+   ubicaciones privilegiadas. 

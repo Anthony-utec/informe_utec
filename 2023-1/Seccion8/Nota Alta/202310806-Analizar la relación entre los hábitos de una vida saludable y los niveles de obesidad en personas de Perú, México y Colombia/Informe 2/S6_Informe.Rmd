@@ -1,0 +1,1096 @@
+---
+title: Analizar la relación entre los hábitos de una vida saludable y los niveles
+  de obesidad en personas de Perú, México y Colombia durante el año 2019
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: yes
+    theme: yeti
+  pdf_document:
+    toc: yes
+---
+
+```{r echo=FALSE ,include=FALSE, setup}
+packages <- c("dplyr", "DT", "ggplot2", "grid", "shiny", "tinytex", "plotrix", "knitr", "kableExtra")
+for (package in packages) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+  }
+  library(package, character.only = TRUE)
+}
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+library(dplyr)
+library(DT)
+library(ggplot2)
+library(grid)
+library(shiny)
+library(tinytex)
+library(plotrix)
+library(knitr)
+library(kableExtra)
+
+```
+
+
+# [**1. Relevancia**]{style="color:black"}
+
+#### La relevancia de este proyecto consiste en realizar un análisis exhaustivo de la relación entre los hábitos de vida y la obesidad en las poblaciones de Perú, México y Colombia durante el año 2019. El propósito principal es identificar los patrones y factores asociados que puedan haber contribuido al desarrollo de la obesidad, considerando que esta condición representa un importante factor de riesgo para diversas enfermedades crónicas, como la diabetes, enfermedades cardíacas, accidentes cerebrovasculares y ciertos tipos de cáncer. En consecuencia, resulta fundamental la implementación de medidas preventivas con el fin de promover la salud y bienestar de la población.
+
+# [**2. Objetivos**]{style="color:black"}
+
+## [2.1. ***Objetivo General***]{style="color:black"}
+
+#### El objetivo general del estudio estadístico es analizar la relación que existe entre los hábitos de vida y obesidad de las personas de Perú, México y Colombia en el año 2019, para dar a conocer los patrones que conllevan a una posible obesidad.
+
+## [2.2. ***Objetivos Específicos***]{style="color:black"}
+
+#### 2.2.1. Reconocer si hay un mayor número de personas fumadoras de México, Perú y Colombia que presentan un índice de masa corporal más alto en comparación con el número de personas no fumadoras en el año 2019.
+
+#### 2.2.2. Explorar la asociación entre el uso de diferentes medios de transporte y el índice de masa corporal (IMC) en México, Perú y Colombia durante el año 2019.
+
+#### 2.2.2.1. Describir qué medios de transporte utilizaron las personas con un índice de masa corporal bajo en los países de México, Perú y Colombia durante el año 2019.
+
+#### 2.2.2.2. Describir qué medios de transporte utilizaron las personas con un índice de masa corporal alto en los países de México, Perú y Colombia durante el año 2019.
+
+#### 2.2.3. Evaluar la relación del consumo de alcohol y el índice de masa corporal de las personas de México, Perú y Colombia en el año 2019.
+
+#### 2.2.4. Identificar si el tiempo dedicado al uso de dispositivos electrónicos afectó al índice de masa corporal de las personas en los países de México, Perú y Colombia en el año 2019.
+
+#### 2.2.5. Identificar si las personas de México, Perú y Colombia que tuvieron antecedentes familiares de obesidad tuvieron una mayor probabilidad de presentar un IMC elevado en el año 2019.
+
+# [**3. Variables**]{style="color:black"}
+
+```{r echo=FALSE}
+columna1 <- c("Género", "Edad", "Talla", "Peso", "Historial de obesidad en la familia",
+              "Consumo frecuente de alimentos con gran contenido calórico",
+              "Frecuencia de consumo de verduras", "Numero de comidas principales",
+              "Consumo de alimento entre comidas", "Fuma", "Consumo de agua diario (Litros_agua_consumidos)",
+              "Seguimiento de consumo de calorías", "Frecuencia de actividad física",
+              "Tiempo usando dispositivos electrónicos (TUE)", "Consumo de alcohol",
+              "Medio de transporte utilizado", "Índice de masa corporal (Clasificacion_IMC)")
+columna2 <- c("Female, Male", "Número", "Número con decimales", "Número con decimales",
+              "Yes, No", "Yes, No", "Número", "Número", "No, Sometimes, Frequently, Always",
+              "Yes, No", "Número de litros", "Yes, No", "Número de veces a la semana",
+              "Número de horas", "I do not drink, Sometimes, Frequently, Always",
+              "Carro, Moto, Bici, Micro, Camina", "Peso Normal, Sobrepeso Nivel I, Sobrepeso Nivel II, Obesidad Tipo I, Peso Insuficiente, Obesidad Tipo II, Obesidad Tipo III")
+columna3 <- c("Cualitativa Nominal", "Cuantitativo Discreto", "Cuantitativo Continuo", "Cuantitativo Continuo",
+              "Cualitativa Nominal", "Cualitativa Nominal", "Cuantitativo Discreto", "Cuantitativo Discreto",
+              "Cualitativa Ordinal", "Cualitativa Nominal", "Cuantitativa Continuo", "Cualitativa Nominal",
+              "Cuantitativa Discreta", "Cuantitativa Continuo", "Cualitativa Ordinal", "Cualitativa Nominal",
+              "Cualitativa Ordinal")
+df <- data.frame(Variable = columna1, Opciones = columna2, `Tipo de Variable` = columna3)
+
+tabla_html <- df %>%
+  kable(format = "html", row.names = FALSE, align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover"))
+tabla_html
+```
+
+# [**4. Manejo de datos**]{style="color:black"}
+
+```{r echo=FALSE}
+
+Obesidad <- read.csv("Obesidad.csv")
+Obesidad <- Obesidad[,2:ncol(Obesidad)]
+Obesidad
+```
+
+#### Nuestra muestra son 2111, donde podemos encontrar respuestas a estas preguntas:
+
+```{r echo=FALSE}
+preguntas <- c("¿Cuál es su género?",
+               "¿Cuál es tu edad?",
+               "¿Cuál es tu peso?",
+               "¿Cuál es su altura?",
+               "¿Algún familiar ha padecido o padece sobrepeso?",
+               "¿Sueles comer verduras en tus comidas?",
+               "¿Cuántas comidas principales come al día?",
+               "¿Consume alimentos altos en calorías con frecuencia?",
+               "¿Comes algún alimento entre comidas?",
+               "¿Usted fuma?",
+               "¿Cuánta agua bebe diariamente?",
+               "¿Controlas las calorías que ingieres diariamente?",
+               "¿Con qué frecuencia realiza actividad física?",
+               "¿Cuánto tiempo utiliza dispositivos electrónicos como celular, videojuegos, televisión, computadora y otros?",
+               "¿Con qué frecuencia bebe alcohol?",
+               "¿Qué transporte suele utilizar?")
+
+tabla_df <- data.frame(Preguntas = preguntas)
+tabla_html4 <- tabla_df %>%
+  kable(format = "html", row.names = TRUE, align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover"))
+tabla_html4 <- kable_styling(tabla_html4, "striped", "hover")
+tabla_html4
+```
+
+#### Después se ha calculado el índice de masa corporal con la siguiente fórmula:
+
+$$Clasificacion IMC = \frac{Peso}{Talla^2}$$
+
+#### Donde los resultados se pueden clasificar como:
+
+#### - Peso bajo: Menos de 18.5
+
+#### - Peso normal: 18,5 a 24,9
+
+#### - Sobrepeso: 25,0 a 29,9
+
+#### - Obesidad I: 30,0 a 34,9
+
+#### - Obesidad II: 35.0 a 39.9
+
+#### - Obesidad III: Superior a 40
+
+# [**5. Análisis univariado**]{style="color:black"}
+
+## [5.1. ***Talla***]{style="color:black"}
+
+```{r echo=FALSE}
+# grafico: 
+ggplot(Obesidad) +
+ aes(x = Talla) +
+ geom_histogram(bins = 30L, color = "black", fill = "skyblue") +
+ labs(y = "Frecuencia", title = "Análisis Univariado de la Talla", x = "Talla (m)") +
+ theme_minimal()
+```
+
+
+
+### [5.1.1. ***Descriptores de la variable Talla***]{style="color:black"}
+
+```{r include=FALSE}
+cat('Promedio: ',mean(Obesidad$Talla),'\n')
+
+cat('Mediana: ',median(Obesidad$Talla),'\n')
+
+cat('Cuantil (25% 75%): ',quantile(Obesidad$Talla, c(.25, 0.75)),'\n')
+
+cat('Mínimo: ',min(Obesidad$Talla),'\n')
+
+cat('Máximo: ',max(Obesidad$Talla),'\n')
+
+cat('Moda: ',Mode(Obesidad$Talla),'\n')
+
+cat('Dispersión: ','\n')
+
+cat('Rango: ',range(Obesidad$Talla),'\n')
+
+cat('Rango intercuartílico (75%): ',quantile(Obesidad$Talla, c(.75)) - quantile(Obesidad$Talla, c(.25)),'\n')
+
+cat('Varianza: ',var(Obesidad$Talla),'\n')
+
+cat('Desviación estándar: ',sd(Obesidad$Talla),'\n')
+```
+
+#### Promedio:  1.701677 
+#### Mediana:  1.700499 
+#### Cuantil (25% 75%):  1.63 1.768464 
+#### Mínimo:  1.45 
+#### Máximo:  1.98 
+#### Moda:  1.7 
+#### Dispersión:  
+#### Rango:  1.45 1.98 
+#### Rango intercuartílico (75%):  0.138464 
+#### Varianza:  0.008705789 
+#### Desviación estándar:  0.09330482   
+
+### [5.1.2. ***Análisis***]{style="color:black"}
+
+#### La altura promedio fue de 1.70 metros, con una mediana y moda también de 1.70 metros. La mayoría de las personas estaban entre 1.6 y 1.8 metros de altura. La varianza fue baja, indicando que las alturas estuvieron cerca del promedio.
+
+# [**6. Análisis bivariado**]{style="color:black"}
+
+## [6.1. ***Objetivo específico 2.2.1***]{style="color:black"}
+
+#### Reconoceremos si hay mayor número de personas fumadoras de México, Perú y Colombia que presentan un índice de masa corporal más alto en comparación con el número de personas no fumadoras en el año 2019.
+
+```{r include=FALSE}
+Obesidad %>% filter(Fuma=="yes")-> Fumadores
+
+tabla_IMCF=table(Fumadores$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)*100
+
+Obesidad %>% filter(Fuma=="no")-> Nofumadores
+
+tabla_IMCNf=table(Nofumadores$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCNf)*100
+```
+
+### [6.1.1. ***Descriptor gráfico de barras el cual permite visualizar la frecuencia de las variables cualitativas ordinales del IMC***]{style="color:black"}
+
+```{r echo=FALSE}
+Obesidad %>%
+ filter(Fuma %in% "yes") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Si) Fuman",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Fuma %in% "no") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(No) Fuman",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+```
+
+### [6.1.2. ***Análisis***]{style="color:black"}
+
+#### Esta tabla nos muestra los porcentajes de diferentes categorías de índice de masa corporal (IMC) para personas fumadoras y no fumadoras. Según los datos, podemos hacer las siguientes conclusiones:
+
+#### - Se puede apreciar en el gráfico de barras de no fumadores que más de 250 personas presentan un alto IMC presentando "Obesidad I", "Obesidad II", "Obesidad III", "Sobrepeso I" y "Sobrepeso II".
+
+#### - Se puede apreciar en el gráfico de barras de fumadores que solo aproximadamente 15 personas presentan un alto IMC presentando "Obesidad II", 6 personas "Obesidad I", menos de 6 personas "Sobrepeso I" y menos de 2 personas "Obesidad III".
+
+#### - Se puede ver reflejado en las tablas que en ambos grupos hay personas que presentan un alto IMC, sin embargo, el número de personas no fumadoras que sufren un alto IMC comparado con el número de personas fumadoras, es considerablemente alto.
+
+#### Tras el análisis de los datos evaluados en los gráficos de barras, podemos responder el objetivo específico 2.2.1. llegando a la conclusión de que hay un menor número personas fumadoras de México, Perú y Colombia que presentan un IMC más alto a comparación del número de personas no fumadoras en el año 2019.
+
+## [6.2. ***Objetivo específico 2.2.2***]{style="color:black"}
+
+#### Exploraremos la asociación entre el uso de diferentes medios de transporte y el índice de masa corporal (IMC) en México, Perú y Colombia durante el año 2019.
+
+### [6.2.1. ***Descriptor gráfico de barras el cual permite visualizar la frecuencia de las variables cualitativas ordinales del IMC***]{style="color:black"}
+
+```{r echo=FALSE}
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "Normal") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Normal") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "OI") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Obesidad I") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "OII") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Obesidad II") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "OIII") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Obesidad III") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "PInsuf") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Peso Insuficiente") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "SpI") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Sobrepeso I") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+Obesidad %>%
+ filter(Clasificacion_IMC %in% "SpII") %>%
+ ggplot() +
+ aes(x = Medio_Transporte) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "Sobrepeso II") +
+ theme_minimal() +
+ facet_wrap(vars(Clasificacion_IMC))
+
+```
+
+### [6.2.2. ***Análisis***]{style="color:black"}
+
+#### El análisis de los gráficos muestra que "Micro" es el medio de transporte más utilizado, mientras que bicicleta y moto son menos populares. Caminar y conducir su propio carro también son menos preferidos. El caso OII es especial, ya que está en el medio de todos. Las medidas de tendencia central son similares y no hay una gran variación en los datos.
+
+### [6.2.2.1. ***Análisis de objetivo específico 2.2.2.1.***]{style="color:black"}
+
+#### **Describiremos qué medios de transporte utilizaron las personas con un índice de masa corporal bajo en los países de México, Perú y Colombia durante el año 2019.**
+
+#### Las personas con el índice de masa corporal bajo (consideramos PInsuf y Normal) también utilizan "micro" y "carro", con la única diferencia que los de IMC "normal" son los que mas caminan.
+
+### [6.2.2.2. ***Análisis de objetivo específico 2.2.2.2.***]{style="color:black"}
+
+#### **Describiremos qué medios de transporte utilizaron las personas con un índice de masa corporal alto en los países de México, Perú y Colombia durante el año 2019.**
+
+#### Con respecto a las personas que presentan el índice de masa de corporal más alto, el medio más usado es "micro" y "carro", siendo 1160 y 412 personas respectivamente la que los usan.
+
+## [6.3. ***Objetivo específico 2.2.3.***]{style="color:black"}
+
+#### Evaluaremos la relación consumo de alcohol y el índice de masa corporal de las personas de México, Perú y Colombia en el año 2019.
+
+### [6.3.1. ***Descriptor gráfico de barras el cual permite visualizar la frecuencia de las variables cualitativas ordinales del IMC***]{style="color:black"}
+
+```{r include=FALSE, echo=FALSE}
+
+Obesidad %>% filter(Consumo_alcohol=="no")-> NoConsumen
+
+tabla_IMCF=table(NoConsumen$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_no_consumidores <- nrow(NoConsumen)
+Numero_de_no_consumidores
+
+Obesidad %>% filter(Consumo_alcohol=="Sometimes")-> NoConsumenMucho
+
+tabla_IMCF=table(NoConsumenMucho$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_consumidores1 <- nrow(NoConsumenMucho)
+Numero_de_consumidores1
+
+Obesidad %>% filter(Consumo_alcohol=="Frequently")-> ConsumenSeguido 
+
+tabla_IMCF=table(ConsumenSeguido$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_consumidores2 <- nrow(ConsumenSeguido)
+Numero_de_consumidores2
+
+Obesidad %>% filter(Consumo_alcohol=="Always")-> SiempreConsumen
+
+tabla_IMCF=table(SiempreConsumen$Clasificacion_IMC)
+
+prop.table(x=tabla_IMCF)
+Numero_de_consumidores3 <- nrow(SiempreConsumen)
+Numero_de_consumidores3
+
+```
+
+```{r echo=FALSE}
+Obesidad %>%
+ filter(Consumo_alcohol %in% "no") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(No) No consumen alcohol",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Consumo_alcohol %in% "Sometimes") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Sometimes) A veces consumen alcohol",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Consumo_alcohol %in% "Frequently") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Frequently) Frecuentemente consumen alcohol",caption = "OI = Obesidad I, OII = Obesidad II, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+Obesidad %>%
+ filter(Consumo_alcohol %in% "Always") %>%
+ ggplot() +
+ aes(x = Clasificacion_IMC) +
+ geom_bar(colour = "black",fill = "gray") +
+ labs(y = "Frecuencia",title = "(Always) Siempre consumen alcohol") +
+ theme_minimal()
+```
+
+### [6.3.2. ***Análisis***]{style="color:black"}
+
+#### Tras analizar los gráficos de barras, se observa que en el grupo "Sometimes (A veces consumen alcohol)" hay más personas con un IMC clasificado como "Normal" en comparación con las otras categorías. Entre las personas que no consumen alcohol, se encontró que más de 100 y menos de 150 tienen un bajo IMC, clasificado como "Peso insuficiente". Existe una gran diferencia entre el primer gráfico (No consumen alcohol) y el segundo gráfico (Sometimes, a veces consumen alcohol), ya que el segundo muestra más de 300 personas con "Obesidad tipo III (OIII)". En el grupo de personas que siempre consumen alcohol, hay una prevalencia del 100% de IMC clasificado como "Normal", pero este grupo es representado por una sola persona, por lo que esta conclusión no puede generalizarse.
+
+## [6.4. ***Objetivo específico 2.2.4.***]{style="color:black"}
+
+#### Identificaremos si el tiempo dedicado al uso de dispositivos electrónicos afectó al índice de masa corporal de las personas en los países de México, Perú y Colombia en el año 2019.
+
+### [6.4.1. ***Descriptor gráfico***]{style="color:black"}
+
+```{r echo=FALSE}
+ggplot(Obesidad) +
+ aes(x = Clasificacion_IMC, y = Tiempo.usando.dispositivos.electrónicos) +
+ geom_boxplot(fill = c("orange3","yellow3","pink","blue","red","green","grey")) + 
+  labs(title = "Relación entre el tiempo usando dispositivos electrónicos y la Clasificación de IMC",caption = "OI = Obesidad I, OII = Obesidad II, OIII = Obesidad III, PInsuf = Peso Insuficiente, SPI = Sobrepreso I, SPII = Sobrepeso II") +
+ theme_minimal()
+
+```
+
+### [6.4.2. ***Análisis***]{style="color:black"}
+
+#### Tras analizar el gráfico, se observa que el intercuartil está distribuido de manera similar en todas las categorías, excepto en el caso de "OIII" donde la variación es menor. Las medianas son similares en general, pero en "OII" se usa menos tiempo y en "Pinsuf" se usa más tiempo. Los máximos y mínimos (bigotes) no difieren significativamente. No se puede concluir definitivamente si el uso de dispositivos electrónicos afecta el IMC. Se requiere un análisis más detallado considerando otros factores para establecer una relación causal.
+
+## [6.5. ***Objetivo específico 2.2.5.***]{style="color:black"}
+
+#### Identificaremos si las personas de México, Perú y Colombia que tuvieron antecedentes familiares de obesidad tuvieron una mayor probabilidad de presentar un IMC elevado en el año 2019.
+
+### [6.5.1. ***Descriptor gráfico***]{style="color:black"}
+
+```{r echo=FALSE, message=FALSE}
+
+tabla_contingencia <- table(Obesidad$Clasificacion_IMC, Obesidad$Historial_Obesidad_Familia)
+plot <- mosaicplot(tabla_contingencia, main = "Relación entre Historial_Obesidad_Familia y la Clasificación de IMC",
+                   xlab = "Clasificacion_IMC", ylab = "Historial_Obesidad_Familia", color = TRUE) +
+  theme_minimal()
+
+grid.draw(plot)
+
+```
+
+### [6.5.2. ***Análisis***]{style="color:black"}
+
+#### Tras el análisis de los datos evaluados en el gráfico presentado, podemos responder el objetivo específico 2.5. Donde llegamos a la conclusión de que en la mayoría de los casos de Obesidad y sobrepeso influye de manera muy notoria el historial de obesidad en la familia, mientras que en el IMC normal e insuficiente, no hay una influencia clara de dependencia. De manera más específica analizamos que en los casos que más influye casi en su totalidad es en OI, OII y OIII. Por último, en OIII es donde hay más inluencia y en PInsuf hay menos influencia.
+
+# [**7. Análisis probabilístico**]{style="color:black"}
+
+## [7.1. **Probabilidad Empírica**]{style="color:black"}
+### [7.1.1. **Experimento 1:**]{style="color:black"} 
+#### Seleccionar una persona al azar y observar si consume alimentos con alto contenido caloríco.  
+
+$$Ω=\{SI, NO\}$$
+
+#### Eventos asociados al experimento 1:
+#### A1: Seleccionar a una persona al azar que **SI** consuma alimentos con alto contenido caloríco.  
+#### A2: Seleccionar a una persona al azar que **NO** consuma alimentos con alto contenido caloríco.
+
+#### **Ahora analizaremos las probabilidades de ambos eventos:  **
+
+```{r echo=FALSE}
+probabilidad_si <- sum(Obesidad$Consumo.frecuente.de.alimentos.con.gran.contenido.calórico == "yes") / nrow(Obesidad)
+
+personas_A <- nrow(Obesidad)*probabilidad_si
+
+probabilidad_no <- sum(Obesidad$Consumo.frecuente.de.alimentos.con.gran.contenido.calórico == "no") / nrow(Obesidad)
+
+personas_B <-nrow(Obesidad)*probabilidad_no
+```
+
+#### La probabilidad de encontrar a una persona al azar que consuma alimentos con alto contenido calórico: 
+
+$$P(A1): 0.883$$
+
+#### La probabilidad de encontrar a una persona al azar que no consuma alimentos con alto contenido calórico:
+
+$$P(A2): 0.117$$
+
+#### [***Conclusión***]{style="color:black"}
+
+#### Podemos concluir que aproximadamente el 88.3% de las personas entrevistadas en estos 3 paises: México, Perú y Colombia, sí consumian frecuentemente alimentos con alto contenido calorífico, eso se traduce en 1866 personas quienes respondieron de esa manera, y lo restante, el 11.7%, son quienes no cosumen alimentos con alto contenido calorífico, o sea, 245 individuos.
+
+### [7.1.2. **Experimento 2:**]{style="color:black"} 
+#### Seleccionar una persona al azar y observar si tiene un historial familiar con obesidad.  
+
+$$Ω=\{SI, NO\}$$
+
+#### Eventos asociados al experimento 1:
+#### A1: Seleccionar a una persona al azar que **SI** tenga un historial familiar con obesidad.
+#### A2: Seleccionar a una persona al azar que **NO** tenga un historial familiar con obesidad.
+
+#### **Ahora analizaremos las probabilidades de ambos eventos:  **
+```{r echo=FALSE}
+probabilidad_si <- sum(Obesidad$Historial_Obesidad_Familia == "yes") / nrow(Obesidad)
+
+personas_A1 <- nrow(Obesidad)*probabilidad_si
+
+probabilidad_no <- sum(Obesidad$Historial_Obesidad_Familia == "no") / nrow(Obesidad)
+
+personas_A2 <- nrow(Obesidad)*probabilidad_no
+```
+
+#### La probabilidad de encontrar a una persona al azar con historial familiar de obesidad:
+
+$$P(A1): 0.817$$
+
+#### La probabilidad de encontrar a una persona al azar que no tenga historial familiar de obesidad:
+
+$$P(A2): 0.182$$
+
+#### [***Conclusión***]{style="color:black"}
+
+#### Podemos concluir que la probabilidad de seleccionar una persona al azar y que tenga un historial familiar con obesidad es bastante alta pues es de 81.76% y dentro del estudio son 1726 personas quienes respondieron que "SI", por otro lado seleccionar a una persona y que esta no lo tenga es de 18.24%, además de ser solo 285 personas.
+
+## [7.2. **Probabilidad Condicional**]{style="color:black"}
+
+### [7.2.1. **Experimento 3:**]{style="color:black"}  
+
+#### Seleccionar una persona al azar y encontrar a una persona que tiene antecedentes familiares de obesidad dado que tenga obesidad tipo 3.  
+
+#### Eventos asociados al experimento 3:  
+#### A: Seleccionar a una persona que **SI** haya presentado antecedentes familiares de obesidad.
+
+$$Ω(Antecedentes familiares)=\{SI, NO\}$$
+
+#### B: Seleccionar a una persona que **SI** tenga una clasificación de IMC como obesidad tipo 3.
+
+$$Ω(Clasificación IMC)=\{Peso Normal, Sobrepeso Nivel I, Sobrepeso Nivel II, Obesidad Tipo I, Peso Insuficiente, Obesidad Tipo II, Obesidad Tipo III\}$$
+
+#### **Analizando la independencia o dependencia de los eventos:**  
+
+#### Matemáticamente:  
+$$P(A|B) = P(A)P(B) $$  
+
+#### Pero nosotros aplicaremos el test de Pearson (chi-cuadrado):  
+
+```{r include=FALSE}
+hay_OIII <- ifelse(Obesidad$Clasificacion_IMC == "OIII", "OIII", "Otro")
+tabla_e1 <- table(Obesidad$Historial_Obesidad_Familia, hay_OIII)
+chisq.test(tabla_e1)
+```
+
+$$X-squared = 83.936, df = 1, p-value < 2.2e-16$$
+
+
+#### A partir del p-value podemos concluir que se trata de eventos dependientes
+
+```{r echo=FALSE}
+tabla_df <- as.data.frame.matrix(tabla_e1)
+colnames(tabla_df) <- c("Hay OIII","Otro IMC")
+rownames(tabla_df) <- c("No hay historial", "Hay historial")
+tabla_exp1 <- kable(tabla_df, format = "html", row.names = TRUE, align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover"))
+tabla_exp1
+```
+
+#### **Ahora vamos a calcular la probabilidad condicional**
+
+```{r include=FALSE}
+PA <- sum(Obesidad$Historial_Obesidad_Familia == "yes") / nrow(Obesidad)
+PB <- sum(Obesidad$Clasificacion_IMC == "OIII") / nrow(Obesidad)
+PAB <- sum(Obesidad$Historial_Obesidad_Familia == "yes" & Obesidad$Clasificacion_IMC == "OIII") / nrow(Obesidad)
+PAdadoB <- PAB / PB
+PAdadoB
+```
+
+
+$$P(A|B) = 1$$
+
+#### **Aplicando el teorema de bayes**  
+
+$$P(A|B) = \frac{P(B|A) * P(A)}{P(B)}$$
+```{r include=FALSE}
+
+cat('P(A)=',PA,'\n')
+cat('P(B)=',PB,'\n')
+cat('P(A|B)=',PAdadoB,'\n')
+cat('P(AB)=',PAB,'\n')
+```
+```{r include=FALSE}
+
+PBdadoA <- PAB/PA
+
+PAdadoB_bayes <- (PBdadoA * PA)/PB
+
+cat("Probabilidad de tener antecedentes familiares de obesidad dado que se tiene obesidad tipo 3:", PAdadoB_bayes)
+```
+
+#### Probabilidad de tener antecedentes familiares de obesidad dado que se tiene obesidad tipo 3: 1
+
+#### Teniendo en cuenta que conseguir la probabilidad del 100% es algo extraño, verificaremos los resultados.
+
+#### **Comprobando resultados:**
+```{r include=FALSE}
+
+personas_OIII <- Obesidad[Obesidad$Clasificacion_IMC == "OIII", ]
+
+
+total_personas_OIII_historial <- sum(personas_OIII$Historial_Obesidad_Familia == "yes")
+
+
+cat("El número de personas con obesidad tipo III que tienen historial de obesidad familiar es:", total_personas_OIII_historial)
+personas_OIII
+```
+
+#### El número de personas con obesidad tipo III que tienen historial de obesidad familiar es: 324   
+
+#### [***Conclusión***]{style="color:black"}
+
+#### Se puede concluir que existe una fuerte asociación o dependencia entre estos dos eventos. Esto implica que las personas con antecedentes familiares de obesidad tienen una mayor probabilidad de desarrollar obesidad tipo III. Dado a que de 324 personas con Obesidad III en nuestro estudio, todas presentan historial de obesidad en la familia.
+
+
+### [7.2.4. **Experimento 4:**]{style="color:black"}  
+#### Seleccionar una persona al azar y encontrar a una persona tenga peso insuficiente dado que consuma las 3 comidas principales.
+
+#### Eventos asociados al experimento 4:
+
+#### A: Seleccionar a una persona que tenga una clasificación de IMC como peso insuficiente.
+$$Ω(Clasificación IMC)=\{Peso Normal, Sobrepeso Nivel I, Sobrepeso Nivel II, Obesidad Tipo I, Peso Insuficiente, Obesidad Tipo II, Obesidad Tipo III\}$$
+
+#### B: Seleccionar a una persona que consuma las 3 comidas principales. 
+
+$$Ω(Numero.de.comidas.principales)=\{1, 2, 3\}$$
+
+#### **Analizando la independencia o dependencia de los eventos:**  
+
+#### Matematicamente:
+
+$$P(A|B) = P(A)P(B)$$
+
+#### Pero nosotros aplicaremos el test de Pearson (chi-cuadrado):
+
+$$X-squared = 9.7679e-30, df = 1, p-value = 1$$
+
+#### A partir del p-value podemos concluir que se trata de eventos independientes
+
+```{r include=FALSE}
+hay_PInsuf <- ifelse(Obesidad$Clasificacion_IMC == "PInsuf", "PInsuf", "Otro")
+tres_comidas <- ifelse(Obesidad$Numero.de.comidas.principales == 3, "Tres", "Otro")
+tabla_e4 <- table(tres_comidas,hay_PInsuf)
+chisq.test(tabla_e4)
+```
+
+
+```{r echo=FALSE}
+tabla_df <- as.data.frame.matrix(tabla_e4)
+colnames(tabla_df) <- c("Otro IMC","Hay PInsuf")
+rownames(tabla_df) <- c("Menos", "Tres Comidas")
+tabla_exp4 <- kable(tabla_df, format = "html", row.names = TRUE, align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover"))
+tabla_exp4
+```
+
+
+#### Calcular la probabilidad condicional
+
+```{r include=FALSE}
+PA <- sum(Obesidad$Clasificacion_IMC == "PInsuf") / nrow(Obesidad)
+PB <- sum(Obesidad$Numero.de.comidas.principales == 3) / nrow(Obesidad)
+PAB <- sum(Obesidad$Clasificacion_IMC == "PInsuf" & Obesidad$Numero.de.comidas.principales == 3) / nrow(Obesidad)
+PAdadoB <- PAB / PB
+cat('La probabilidad condicional es: ',PAdadoB)
+```
+
+$$P(A|B) = 0.1284875$$
+
+#### **Aplicando el teorema de bayes**  
+
+$$P(A|B) = \frac{P(B|A) * P(A)}{P(B)}$$
+
+```{r include=FALSE}
+cat('P(A)=',PA,'\n')
+cat('P(B)=',PB,'\n')
+cat('P(A|B)=',PAdadoB,'\n')
+cat('P(AB)=',PAB,'\n')
+```
+```{r include=FALSE}
+
+PBdadoA <- PAB/PA
+PAdadoB_bayes <- (PBdadoA * PA)/PB
+
+cat("Probabilidad de usar tener Peso Insuficiente dado a consumir las 3 comidas principales:", PAdadoB_bayes)
+```
+
+#### Probabilidad de usar tener Peso Insuficiente dado a consumir las 3 comidas principales: 0.1284875
+
+#### [***Conclusión***]{style="color:black"}
+
+#### Podemos concluir que no existe una fuerte relación entre ambos eventos ya que, de acuerdo a nuestra base de datos, es poco probable encontrar a una persona que tenga peso insuficiente dado que sí consuma las 3 comidas principales mayormente, esto es lógico de pensar porque si consume las 3 comidas, debería tener un peso al menos normal, por lo tanto su probabilidad es baja.
+
+
+# [**8. Variables Discretas**]{style="color:black"}
+## [8.1. **Número de comidas principales**]{style="color:black"}
+
+$Ω= \{1,2,3,4\}$
+
+#### Se utilizará la distribución binomial para nuestra variable *Número de comidas principales* que es *cuantitativo discreta*.
+
+- Hay un número fijo de repeticiones o ensayos: En este caso, el número de personas entrevistadas que se consideran para la variable "número de comidas principales".
+
+- La probabilidad de éxito (tener 4 comidas principales) es constante en cada repetición o ensayo.
+
+- La elección de una persona entrevistada y su número de comidas principales no afecta la elección o el número de comidas principales de otra persona entrevistada, por lo que los ensayos son independientes.
+
+#### Nuestro éxito definido serán las personas con *4* comidas principales.
+
+#### **Definimos la probabilidad:**
+```{r echo= FALSE}
+PE <- sum(Obesidad$Numero.de.comidas.principales == "4") / nrow(Obesidad)
+cat('La probabilidad de éxito es de: ',PE)
+```
+#### **Variables Aleatrorias:**
+#### X1: #Número de personas que tienen 4 comidas principales dentro del estudio realizado.
+#### Tabla de frecuencia de *Número de comidas principales*
+```{r echo=FALSE}
+table(Obesidad$Numero.de.comidas.principales)
+X1<-sum(Obesidad$Numero.de.comidas.principales == "4")
+print(paste("El número de personas que tienen 4 comidas principales dentro del estudio realizado es:", X1, 'y observamos que es el número menos dado en el estudio.'))
+```
+#### **Parámetros:**
+
+$X1-Bin(p,n)$ , donde p = P(E)=seleccionar una persona con 4 comidas principales y n = 69 que es el número de éxitos.
+
+$$X ∼ Bin(69, 0.0327)$$
+
+### [8.1.1. **Gráfico de densidad**]{style="color:black"}
+
+```{r echo=FALSE}
+x <- 0:X1
+p <- PE
+n <- X1
+
+Probabilidad <- dbinom(x = x, size = n, prob = p)
+
+plot(x = x, y = Probabilidad, xlab = "Número de personas", ylab = "Probabilidad",
+     type = 'h', las = 1, lwd = 2)
+desviacion_estandar<-sqrt(2.181612)
+abline(v = n * p, col = "yellow", lwd = 3)
+abline(v = desviacion_estandar, col = "blue", lwd = 3)
+
+legend("topright", legend = c("Esperanza", "Desviación Estándar"), col = c("yellow", "blue"),
+       lwd = 3)
+
+```
+
+### [8.1.2. **Validar propiedades**]{style="color:black"}
+
+#### **Esperanza: **
+
+$$\sum_{i = 0}^{n} x_i \cdot p(x_i)$$
+
+```{r echo=FALSE}
+esp <- 0
+for (i in 0:n) {
+   esp <- esp + (i) * dbinom(i, n, p)
+}
+cat('La esperanza es:',esp)
+```
+
+#### **Varianza: **
+
+$$n \cdot p \cdot (1-p)$$ 
+
+```{r echo=FALSE}
+var <- n*p*(1-p)
+cat('La varianza es:',var)
+```
+#### **Desviación estándar: **
+
+$$\sqrt{n \cdot p \cdot (1-p)}$$
+```{r echo=FALSE}
+des <- sqrt(2.181612)
+cat('La desviación estadar es:',des)
+```
+### [8.1.3. **Ejemplo para validar **]{style="color:black"}
+
+#### Si elegimos a 100 personas al azar del estudio. ¿Cuál es la probabilidad de que 10 de ellas tengan 4 comidas principales?
+```{r echo=FALSE}
+n <- 100 
+p <- 0.03268593  
+
+probabilidad <- dbinom(10, size = n, prob = p)
+cat('La probabilidad de encontrar 10 personas con 4 comidas principales es:',probabilidad)
+
+```
+
+#### **Gráfica de Densidad**
+
+```{r echo=FALSE}
+x <- 0:n  
+Probabilidad <- dbinom(x = x, size = n, prob = p)
+
+plot(x = x, y = Probabilidad, xlab = "Número de personas", ylab = "Probabilidad",
+     type = 'h', las = 1, lwd = 2)
+
+abline(v = n * p, col = "yellow", lwd = 2)
+desviacion_estandar <- sqrt(n * p * (1 - p))
+abline(v = desviacion_estandar, col = "blue", lwd = 2)
+
+legend("topright", legend = c("Esperanza", "Desviación Estándar"), col = c("yellow", "blue"),
+       lwd = 2)
+
+```
+
+
+- La probabilidad de éxito es de 3.27% lo que es relativamente bajo, lo que indica que la mayoría de personas no tiene 4 comidas principales en nuestro estudio.
+
+- La esperanza, es de 2.255329. Esto indica que se esperaría que una persona tenga alrededor de 2 comidas principales.
+
+- La varianza, es 2.181612. Esto indica que existe cierta variabilidad en la cantidad de comidas principales entre las personas entrevistadas.
+
+## [8.2. **Frecuencia de actividad física**]{style="color:black"}
+
+$$Ω=\{0,1,2,3\}$$
+
+#### Se utilizará la distribución geometrica para nuestra variable *Frecuencia de actividad física* que es *cuantitativo discreta*.
+
+- La distribución geométrica es apropiada cuando estamos interesados en el número de intentos necesarios hasta que ocurra el primer éxito. En el caso de la frecuencia de actividad física, nos interesa cuántas semanas se requieren hasta que una persona alcance una frecuencia de 0.
+
+#### Nuestro **éxito** definido serán las personas con *0* veces de actividad física.
+#### Tabla de frecuencia de *Frecuencia de actividad física*
+
+```{r echo=FALSE}
+table(Obesidad$Frecuencia.de.actividad.física)
+X1<-sum(Obesidad$Frecuencia.de.actividad.física == "0")
+cat("El número de personas que tienen 0 de frecuencia de actividad física dentro del estudio realizado es:", X1)
+```
+
+#### Definimos la probabilidad:
+
+```{r echo= FALSE}
+PE <- sum(Obesidad$Frecuencia.de.actividad.física == "0") / nrow(Obesidad)
+cat("La probabilidad de encontrar personas con *0* veces de actividad física es:", PE)
+probabilidad <- pgeom(2, prob = PE, lower.tail = FALSE)
+cat('\n')
+cat('La probabilidad de encontrar una persona con frecuencia física "0" al primer intento:', probabilidad)
+```
+
+#### Variables Aleatrorias:
+#### X1: #Número de repeticiones hasta dar con la primera persona que tenga "0" de frecuencia física.
+
+#### **Parámetros:**
+
+$$X ∼ Geom(p)$$ , p: es la probabilidad de éxito que se encuentre a la primera una persona con 0 de frecuencia de actividad física.
+
+### [8.2.1. **Gráfico de densidad**]{style="color:black"}
+
+```{r echo=FALSE}
+x <- 0:40
+p <- probabilidad
+
+Probabilidad <- dgeom(x = x, prob = p)
+
+plot(x = x, y = Probabilidad, xlab = "Número de repeticiones", ylab = "Probabilidad",
+     type = 'h', las = 1, lwd = 3)
+
+abline(v = 1/p, col = "yellow", lwd = 3, lty = 2)
+desviacion_estandar <- sqrt((1 - p) / p^2)
+abline(v = desviacion_estandar, col = "blue", lwd = 3, lty = 2)
+
+legend("topright", legend = c("Esperanza", "Desviación Estándar"), col = c("yellow", "blue"),
+       lwd = 2, lty = 2)
+```
+
+### [8.2.2. **Validar propiedades**]{style="color:black"}
+
+#### **Esperanza: **
+
+$$\sum_{i = 0}^{n} x_i \cdot p(x_i)$$
+
+```{r echo=FALSE}
+esperanza <- 1 / p
+cat('La esperanza es:',esperanza)
+```
+
+#### **Varianza: **
+
+$$n \cdot p \cdot (1-p)$$ 
+
+```{r echo=FALSE}
+varianza <- (1 - p) / (p^2)
+cat('La varianza es:',varianza)
+```
+#### **Desviación estándar: **
+
+$$\sqrt{n \cdot p \cdot (1-p)}$$
+```{r echo=FALSE}
+cat('La desviación estadar es:',desviacion_estandar)
+
+```
+### [8.2.3. **Ejemplo para validar **]{style="color:black"}
+
+#### Queremos calcular la probabilidad de que la primera persona que seleccionemos en el estudio requiera al menos 1 intento para alcanzar la frecuencia de actividad física "3".
+
+#### **ÉXITO: Encontrar una persona con frecuencia de actividad física "3"**
+```{r echo=FALSE}
+prob_exito <- sum(Obesidad$Frecuencia.de.actividad.física == "3") / nrow(Obesidad) 
+
+probabilidad <- pgeom(2, prob = prob_exito, lower.tail = FALSE)
+
+cat('La probabilidad de encontrar una persona con frecuencia física "3" es: ',prob_exito)
+cat('\n')
+cat('La probabilidad de encontrar una persona con frecuencia física "3" al primer intento: ',probabilidad)
+```
+
+```{r echo=FALSE}
+x <- 0:150  
+probabilidad <- dgeom(x, prob = prob_exito) 
+
+plot(x, probabilidad, type = "h", lwd = 1, xlab = "Número de intentos", ylab = "Densidad",
+     main = "Distribución Geométrica")
+
+esperanza <- 1 / prob_exito 
+varianza <- (1 - prob_exito) / prob_exito^2  
+
+abline(v = esperanza, col = "red", lwd = 0.5, lty = 2)
+abline(v = sqrt(varianza), col = "blue", lwd = 0.5, lty = 2)
+
+text(esperanza, 0.05, "Esperanza", col = "red")
+text(sqrt(varianza), 0.07, "Desviación Estándar", col = "blue")
+
+```
+```{r echo=FALSE}
+cat('La varianza es: ', sqrt(varianza), 'y la esperanza es: ', esperanza)
+```
+
+- La probabilidad de encontrar a alguien con frecuencia 0 de actividad física nos dice que aproximadamente el 47.89% de las personas en el estudio no realizan actividad física.
+
+- La esperanza, que es el número esperado de intentos necesarios hasta alcanzar la frecuencia física "0", es de 7.067839. Esto sugiere que en promedio se requieren alrededor de 7 intentos para encontrar a una persona que no realiza actividad física.
+
+- Los resultados sugieren que hay una proporción considerable de personas que no realizan actividad física en el estudio. Además, se espera que en promedio se requieran alrededor de 7 intentos para encontrar a una persona sin actividad física, aunque hay una variabilidad significativa en esta medida.
+
+
+# [**9. Variables Continuas**]{style="color:black"}
+## [9.1. **Talla**]{style="color:black"}
+
+
+```{r echo=FALSE}
+density(Obesidad$Talla)
+```
+
+### [9.1.1. **Gráfico de la variable**]{style="color:black"}
+
+```{r echo=FALSE}
+Xs <- seq(1.396,2.034, by = 0.05)
+Ys <- dnorm(Xs,mean = mean(Obesidad$Talla), sd = sd(Obesidad$Talla))
+
+hist(Obesidad$Talla, xlab = "Talla", ylab = "Densidad", main = "Histograma de la estatura de las personas", prob = T, ylim = c(0,5))
+abline(v=c(median(Obesidad$Talla)), col=c("blue"), lwd=c(2))
+abline(v=c(mean(Obesidad$Talla)), col=c("red"), lwd=c(1.5),lty = 2)
+# Curva teorica
+lines(Xs,Ys, col = "green", lwd = 2)
+# Curva real
+lines(density(Obesidad$Talla), col = "black", lwd = 2)
+legend("topright", legend = c("Mediana","Media"), col = c("blue","red"), lwd=2, lty = c(1,2))
+```
+
+### [9.1.2. **Validación**]{style="color:black"}
+
+```{r echo=FALSE}
+summary(Obesidad$Talla)
+cat('La media y mediana son aproximadamente iguales ya que su diferencia es de 0.002')
+```
+
+```{r echo=FALSE}
+Mu <- mean(Obesidad$Talla)
+Mu
+Sigma <- sd(Obesidad$Talla)
+Sigma
+Varianza<-Sigma^2
+Varianza
+```
+$$X\sim\mathsf{Nor}(\mu, \sigma)$$
+$$\mu= Media=1.701677$$
+$$\sigma= Desviación\hspace{0.1cm} estándar=0.09330482$$
+
+### [9.1.3. **Confirmación de la distribución**]{style="color:black"}
+
+
+```{r echo=FALSE}
+Fx <- function(x) 1/(sqrt(2*pi*(Sigma^2)))*exp(-(x-Mu)^2/(2*Sigma^2))
+
+integrate(Fx,Sigma,Mu)
+
+
+```
+
+Podemos confirmar que es una distribución Normal ya que cumple la mayoría de los requerimientos.
+
+### [9.1.4. **Ejemplo**]{style="color:black"}
+
+Se pide calcular la probabilidad de que la talla de las personas sea mayor a 1,9 m.
+X = La estatura de las personas
+
+Usamos el modelo normal: $X∼N(1.701677,0.09330482)$ y determinamos $P(X>1.9)$.
+```{r echo=FALSE}
+1 - pnorm(1.9,Mu,Sigma,lower.tail = TRUE, log.p = FALSE)
+```
+
+La variable "Talla" en el conjunto de datos de la variable "Obesidad" muestra una distribución aproximadamente normal. Esto se puede observar tanto en el gráfico de densidad como en la validación de la media y la mediana, las cuales son cercanas en valor.
+
+Con respecto al ejemplo planteado, se desea calcular la probabilidad de que la talla de una persona sea mayor a 1.9 metros, utilizando el modelo de distribución normal. Basándonos en los parámetros de la distribución (media y desviación estándar), se obtiene que la probabilidad de que esto ocurra es de aproximadamente 0.016771.
+
+## [9.2. **IMC**]{style="color:black"}
+
+
+### [9.2.1. **Grafico de la variable**]{style="color:black"}
+
+
+```{r echo=FALSE}
+IMC = Obesidad$Peso/Obesidad$Talla^2
+density(IMC)
+```
+
+```{r echo=FALSE}
+Xs <- seq(8.319,55.491, by = 0.05)
+Ys <- dnorm(Xs,mean = mean(Obesidad$Talla), sd = sd(Obesidad$Talla))
+
+hist(IMC, xlab = "IMC", ylab = "Densidad", main = "Histograma del IMC de las personas", prob = T)
+abline(v=c(median(IMC)), col=c("blue"), lwd=c(2))
+abline(v=c(mean(IMC)), col=c("red"), lwd=c(1.5), lty = 2)
+
+legend("topright", legend = c("Mediana","Media"), col = c("blue","red"), lwd=2, lty = c(1,2))
+```
+
+
+### [9.2.2. **Validación**]{style="color:black"}
+
+```{r echo=FALSE}
+summary(IMC)
+cat('La media y mediana son aproximadamente iguales ya que su diferencia es de 0.98')
+```
+
+```{r echo=FALSE}
+Mu1 <- mean(IMC)
+Mu1
+Sigma1 <- sd(IMC)
+Sigma1
+Varianza1<-Sigma^2
+Varianza1
+```
+
+$$X\sim\mathsf{Nor}(\mu, \sigma)$$
+$$\mu= Media=29.70016$$
+$$\sigma= Desviación\hspace{0.1cm} estándar=8.011337$$
+
+### [9.2.3. **Confirmación de la distribución**]{style="color:black"}
+
+
+```{r echo=FALSE}
+Fx <- function(x) 1/(sqrt(2*pi*(Sigma1^2)))*exp(-(x-Mu1)^2/(2*Sigma1^2))
+
+integrate(Fx,Sigma1,Mu1)
+
+
+```
+
+Podemos confirmar que es una distribución Normal ya que cumple la mayoría de los requerimientos, aunque en la grafica no parezca que sea distribución normal.
+
+### [9.2.4. **Ejemplo**]{style="color:black"}
+
+Se pide calcular la probabilidad de que el IMC de las personas sea menor a 30.
+X = IMC de las personas.
+
+Usamos el modelo normal: $X∼N(29.70016,8.011337)$ y determinamos $P(X<30)$.
+```{r echo=FALSE}
+pnorm(30,Mu1,Sigma1,lower.tail = TRUE, log.p = FALSE)
+```
+
+La variable "IMC" en el conjunto de datos muestra una distribución que se asemeja a una distribución normal, aunque el gráfico de densidad no presenta una forma perfectamente simétrica. Sin embargo, al realizar la validación de la media y la mediana, se observa que ambos valores son cercanos, lo que indica una posible aproximación a una distribución normal.
+
+Con respecto al ejemplo planteado, se desea calcular la probabilidad de que el IMC de una persona sea menor a 30, utilizando el modelo de distribución normal. Utilizando los parámetros de la distribución (media y desviación estándar), se obtiene que la probabilidad de que esto ocurra es de aproximadamente 0.5149278.
