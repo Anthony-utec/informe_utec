@@ -1,0 +1,242 @@
+---
+title: "Estadisticas sobre los aeropuertos"
+output:
+  rmarkdown::ioslides_presentation:
+    self_contained: true 
+---
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+library(plyr)
+library(dplyr)
+library(readr)
+library(tidyr)
+library(ggplot2)
+DF <- read_csv("BaseLimpiav2.csv")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+n_total <- nrow(DF)
+
+# Ingresos nulos
+I0_freq <- nrow(DF[DF$IT == 0, ])
+
+# Ingresos bajos
+I1_freq <- nrow(DF[DF$IT > 0 & DF$IT <= 11000000, ])
+
+# Ingresos medios
+I2_freq <- nrow(DF[DF$IT > 11000000 & DF$IT <= 22000000, ])
+
+# Ingresos altos
+I3_freq <- nrow(DF[DF$IT > 22000000, ])
+
+# Probabilidad de ingresos nulos
+p_I0 <- I0_freq / n_total
+
+# Probabilidad de ingresos bajos
+p_I1 <- I1_freq / n_total
+
+# Probabilidad de ingresos medios
+p_I2 <- I2_freq / n_total
+
+# Probabilidad de ingresos altos
+p_I3 <- I3_freq / n_total
+
+
+# Crear un data frame con las categorías y probabilidades
+data <- data.frame(
+  Categoria = c("Ingresos Nulos", "Ingresos Bajos", "Ingresos Medios", "Ingresos Altos"),
+  Probabilidad = c(p_I0, p_I1, p_I2, p_I3)
+)
+
+# Crear el gráfico de barras
+plot <- ggplot(data, aes(x = Categoria, y = Probabilidad)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Probabilidad de ingresos en diferentes categorías", x = "Categoría", y = "Probabilidad")
+
+# Guardar el gráfico como una imagen PNG
+ggsave("grafico.png", plot, width = 6, height = 4, dpi = 300)
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# Listas de aeropuertos por región
+aeropuertos_costa <- c("Lima", "Chiclayo", "Pisco", "Piura", "Tacna", "Talara", "Trujillo", "Tumbes", "Ayacucho")
+aeropuertos_sierra <- c("Andahuaylas", "Arequipa", "Cajamarca", "Chachapoyas", "Huaraz-Anta", "Juliaca", "Cusco")
+aeropuertos_selva <- c("Iquitos", "Pucallpa", "Puerto Maldonado", "Tarapoto")
+
+# Asumimos que el dataframe se llama 'datos', si tiene un nombre diferente, cambia 'datos' por el nombre correcto.
+DF <- DF %>%
+  mutate(Region = case_when(
+    Aeropuerto %in% aeropuertos_costa ~ "Costa",
+    Aeropuerto %in% aeropuertos_sierra ~ "Sierra",
+    Aeropuerto %in% aeropuertos_selva ~ "Selva",
+    TRUE ~ "Otro"  # Para cualquier aeropuerto no especificado en las listas
+  ))
+
+# Calcular la probabilidad de éxito
+n_vuelos <- nrow(DF)
+n_vuelos_costa <- nrow(DF[DF$Region == "Costa",])
+p <- n_vuelos_costa / n_vuelos
+q <- 1 - p
+
+# Calcular la probabilidad de que el primer vuelo que parte de la costa sea el octavo aeropuerto
+n <- 8
+y <- n - 1
+probabilidad <- (q^y) * p
+
+# Crear un gráfico de barras para visualizar las probabilidades de región
+data <- data.frame(
+  Region = c("Costa", "Otro"),
+  Probabilidad = c(p, 0, 0, q)
+)
+
+plot <- ggplot(data, aes(x = Region, y = Probabilidad)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Probabilidad de vuelos en diferentes regiones", x = "Región", y = "Probabilidad")
+
+# Guardar el gráfico como una imagen PNG
+ggsave("grafico1.png", plot, width = 6, height = 4, dpi = 300)
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+
+# Creamos una nueva variable que indica si un aeropuerto tuvo ingresos
+DF$tuvo_ingresos <- ifelse(DF$IT > 0, 1, 0)
+
+# Calculamos el número total de aeropuertos
+num_total_aeropuertos <- nrow(DF)
+
+# Calculamos el número de aeropuertos que tuvieron ingresos
+num_aeropuertos_con_ingresos <- sum(DF$tuvo_ingresos)
+
+# Calculamos la probabilidad de éxito (p)
+p <- num_aeropuertos_con_ingresos / num_total_aeropuertos
+
+# Calculamos la probabilidad de fracaso (q)
+q <- 1 - p
+
+# Crear un gráfico de barras para visualizar las probabilidades de éxito y fracaso
+data <- data.frame(
+  Estado = c("Éxito", "Fracaso"),
+  Probabilidad = c(p, q)
+)
+
+plot <- ggplot(data, aes(x = Estado, y = Probabilidad)) +
+  geom_bar(stat = "identity", fill = c("blue", "red")) +
+  labs(title = "Probabilidad de éxito y fracaso", x = "Estado", y = "Probabilidad")
+
+# Guardar el gráfico como una imagen PNG
+ggsave("grafico2.png", plot, width = 6, height = 4, dpi = 300)
+
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE, results='hide',fig.show='hide'}
+# Crear el histograma
+hist(DF$ALC, breaks = 70, prob = TRUE, main = "Histograma de los Ingresos Por Alquiler de Oficinas", ylab = "Densidad", ylim = c(0, 0.00035), xlab = "Ingresos por Alquiler de Oficinas de Operaciones (en dólares)")
+
+# Calcular los valores de densidad
+x <- seq(min(as.numeric(DF$ALC), na.rm = TRUE), max(as.numeric(DF$ALC), na.rm = TRUE), length = 40)
+f <- dnorm(x, mean = mean(as.numeric(DF$ALC), na.rm = TRUE), sd = sd(as.numeric(DF$ALC), na.rm = TRUE))
+
+# Agregar la línea de densidad al histograma
+lines(x, f, col = "blue", lwd = 4)
+
+# Guardar el gráfico como una imagen PNG
+ggsave("histograma.png", width = 6, height = 4, dpi = 300)
+
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE, results='hide',fig.show='hide'}
+# Crear el histograma
+hist(DF$ALC, breaks = 70, prob = TRUE, main = "Histograma de los Ingresos Por Alquiler de Oficinas", ylab = "Densidad", ylim = c(0, 0.00035), xlim = c(-2000, 20000), xlab = "Ingresos por Alquiler de Oficinas de Operaciones (en dólares)")
+
+# Calcular los valores de densidad
+x <- seq(min(as.numeric(DF$ALC), na.rm = TRUE), max(as.numeric(DF$ALC), na.rm = TRUE), length = 40)
+f <- dnorm(x, mean = mean(as.numeric(DF$ALC), na.rm = TRUE), sd = sd(as.numeric(DF$ALC), na.rm = TRUE))
+
+# Agregar la línea de densidad al histograma
+lines(x, f, col = "blue", lwd = 4)
+
+# Guardar el gráfico como una imagen PNG
+ggsave("histograma1.png", width = 6, height = 4, dpi = 300)
+
+```
+
+## Introducción
+
+### Tema
+
+Análisis mensual de la relación entre número de pasajeros e ingresos totales por aeropuerto del Perú (2020-2022).
+
+### Relevancia
+
+Nuestro proyecto analiza el impacto de la pandemia en el transporte aéreo y sus ingresos en diferentes aeropuertos. Buscamos información valiosa para la toma de decisiones en el sector turístico y la recuperación económica en el Perú.
+
+## Objetivo
+
+### Objetivo Principal
+
+Evaluar los factores que influyen en los ingresos totales (US\$) por mes y año en cada aeropuerto en el Perú.
+
+### Objetivos Secundarios
+
+-   [Comparar los ingresos totales con los rubros en los aeropuertos del Perú.]{style="line-height: 1.2; font-size: 18px;"}
+
+-   [Comparar los ingresos totales con el número de pasajeros en los aeropuertos del Perú evaluando su influencia.]{style="line-height: 1.2; font-size: 18px;"}
+
+-   [Determinar el aeropuerto con mayor afluencia de pasajeros y el de mayor ingresos del Perú.]{style="line-height: 1.2; font-size: 18px;"}
+
+-   [Comparar los ingresos totales (US\$) durante la pandemia y pos-pandemia en el Perú.]{style="line-height: 1.2; font-size: 18px;"}
+
+## Probabilidad Empirica
+
+![](grafico.png){width="449"}
+
+## Probablidad Condicional
+
+::: image-grid
+<div>
+
+![](d1.png){width="422"}
+
+</div>
+
+<div>
+
+![](D2.png){width="417"}
+
+</div>
+:::
+
+# Modelos Probabilisticos Discretos
+
+## Distribución Binomial
+
+![](grafico2.png)
+
+## Distribución Geométrica
+
+![](grafico1.png)
+
+# Modelos Probabilisticos Continuos
+
+## Distribución Exponencial
+
+::: image-grid
+<div>
+
+![](histograma.png){width="422"}
+
+</div>
+
+<div>
+
+![](histograma1.png){width="417"}
+
+</div>
+:::
+
+# Gracias

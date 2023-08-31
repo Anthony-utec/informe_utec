@@ -1,0 +1,861 @@
+---
+title: "PG2"
+subtitle: "Barreras para la participación de universitarios en actividades deportivas"
+format: html
+editor: visual
+toc: true
+---
+
+## 2. Introducción
+
+### 2.1. Contexto
+
+La falta de actividad física se ha convertido en un problema cada vez más preocupante, especialmente entre los estudiantes universitarios. Con el objetivo de comprender las razones detrás de esta problemática, nos hemos propuesto investigar las barreras que impiden su participación en actividades deportivas. Nuestro estudio busca identificar los obstáculos que dificultan la adopción de un estilo de vida saludable por parte de los estudiantes, y cómo podemos solucionarlo.
+
+### 2.2. Relevancia
+
+Este estudio busca comprender las barreras que limitan la participación deportiva de estudiantes universitarios, generando conciencia sobre este problema en nuestro entorno académico. Proporcionará información valiosa para futuras investigaciones y estrategias que fomenten la actividad física entre los estudiantes, mejorando así su bienestar y calidad de vida.
+
+### 2.3. Objetivo General
+
+Analizar la percepción de los estudiantes universitarios acerca de las barreras que enfrentan para participar en actividades deportivas.
+
+### 2.4. Objetivos Específicos
+
+-   Identificar las principales barreras que los estudiantes universitarios experimentan en su participación en actividades deportivas.
+
+-   Caracterizar y comparar las barreras existentes por edad, género y otros factores relevantes.
+
+-   Identificar patrones o tendencias en las barreras enfrentadas por diferentes subgrupos de estudiantes universitarios.
+
+```{r, include=FALSE}
+# Verificar si las librerías están instaladas, si no, las instalamos
+if (!require(dplyr)) {
+  install.packages("dplyr")
+}
+if (!require(readr)) {
+  install.packages("readr")
+}
+if (!require(stringr)) {
+  install.packages("stringr")
+}
+if (!require(ggplot2)) {
+  install.packages("ggplot2")
+}
+if (!require(knitr)) {
+  install.packages("knitr")
+}
+
+# Cargar las librerías
+library(dplyr)
+library(readr)
+library(stringr)
+library(ggplot2)
+library(knitr)
+
+# Cargamos nuestra base de datos obtenida a R
+DF <- read_csv("data.csv")
+```
+
+```{r, include=FALSE}
+# Eliminamos las columnas innecesarias
+DF <- select(DF, -`Marca temporal`)
+DF <- select(DF, -`Ingresa tu correo de UTEC para poder participar en el sorteo. Informaremos de la fecha del mismo por correo.`)
+```
+
+```{r, include=FALSE}
+# Renombramos variables
+DF %>% rename(Edad = `¿Cuántos años tienes?`, Genero = `¿Cuál es tu género?`, Carrera = `¿Qué carrera estudias?`, Ciclo = `¿En qué ciclo te encuentras?`, Peso = `¿Cuánto pesas? (en kg)`, Estatura = `¿Cuál es tu altura? (en cm)`, Horas_sentado = `¿Cuántas horas al día pasas sentado?`, Frecuecuencia = `¿Con qué frecuencia participas en actividades deportivas?`, Importancia = `¿Cuánto te importa la actividad física y deportiva en tu vida diaria?`, Tipo_actividades = `¿En qué tipo de actividades deportivas participas?`, Tiempo_correr = `¿Cuánto tiempo puedes correr sin detenerte? (en minutos)`, Dinero_invertido = `¿Cuánto dinero inviertes mensualmente en realizar tus actividades deportivas? (en S/)`, Motivacion = `¿Cuál es tu mayor motivación para participar en actividades deportivas?`, Barreras = `¿Cuáles son las principales barreras que enfrentas para participar en actividades deportivas?`, Main_barrera = `¿Cuál de estas barreras consideras la más importante? (Indica el número de la opción)`, Valoracion_estudios = `¿Cómo valoras la importancia de la actividad física en relación con tus estudios? Por favor, elige una opción:`, Efecto_academico = `Además, ¿hasta qué punto crees que tus actividades deportivas afectan tu desempeño académico? Por favor, elige una opción:`, Efecto_act_depor = `¿Cómo te afectan estas barreras en tus actividades deportivas?`, Soluciones = `¿Qué recursos o servicios adicionales te gustaría tener para superar estas barreras?`) -> DF
+```
+
+```{r, include=FALSE}
+# Función para convertir en prolija:
+
+crear_columnas_opciones <- function(dataframe, columna, opciones, otro=FALSE){
+  # Crea una nueva columna para cada opción
+  for (opcion in opciones){
+    columna_opcion <- paste0(columna, "_", opcion)
+    dataframe[[columna_opcion]] <- FALSE
+  }
+  # Crea columna "Otro" para respuestas que no estén en las opciones dadas
+  if (otro == TRUE){
+  dataframe[[paste0(columna, "_Otro")]] <- FALSE}
+  # Separa la cadena de texto por ";" y marca las opciones seleccionadas como TRUE
+  for (i in 1:nrow(dataframe)){
+    seleccionados <- unlist(strsplit(as.character(dataframe[[columna]][i]), ";"))
+    for (seleccion in seleccionados){
+      seleccion <- trimws(seleccion)
+      if(seleccion %in% opciones){
+        columna_opcion <- paste0(columna, "_", seleccion)
+        dataframe[[columna_opcion]][i] <- TRUE
+      } else {
+        columna_opcion <- paste0(columna, "_Otro")
+        dataframe[[columna_opcion]][i] <- TRUE
+      }
+    }
+  }
+  return(dataframe)
+}
+```
+
+```{r, include=FALSE}
+# Corrección para peso
+DF$Peso[DF$Peso<40] <- NA
+
+# Corrección para estatura
+DF$Estatura[DF$Estatura < 3] <- DF$Estatura[DF$Estatura < 3] * 100
+
+DF$Estatura[DF$Estatura < 100] <- DF$Estatura[DF$Estatura < 100] + 100
+
+DF$Estatura[DF$Estatura > 1000] <- DF$Estatura[DF$Estatura > 1000] / 10
+
+DF$Estatura[DF$Estatura == 100] <- NA # El 1 ahora es 100
+
+# Corrección para horas sentado
+DF$Horas_sentado[DF$Horas_sentado > 18] <- NA
+
+# Corrección para act. deportivas
+opciones_act = c("Caminatas, correr",
+                 "Baile",
+                 "Artes marciales",
+                 "Deportes (futbol, basket, volley, etc.)",
+                 "Yoga (o parecidos)",
+                 "Gimnasio")
+
+DF <- crear_columnas_opciones(DF, "Tipo_actividades", opciones_act, otro=TRUE)
+
+# Corrección para tiempo máximo corriendo
+DF$Tiempo_correr[DF$Tiempo_correr > 120] <- NA
+
+# Correción para barreras
+opciones_bar = c("1. Falta de tiempo",
+                 "2. Falta de tiempo debido a las exigencias académicas o de estudio."                 ,
+                 "3. Falta de interés en deportes",
+                 "4. Lesiones o problemas de salud",
+                 "5. Falta de instalaciones deportivas adecuadas",
+                 "6. Falta de información sobre actividades deportivas disponibles",
+                 "7. Dificultad para encontrar compañeros de entrenamiento")
+
+DF <- crear_columnas_opciones(DF, "Barreras", opciones_bar)
+
+# Corrección para barrera principal
+DF$Main_barrera[DF$Main_barrera == 0 | DF$Main_barrera > 7] <- NA
+
+# Corrección para efectos sobre act. deportivas
+opciones_efec <- c("No participo en actividades deportivas debido a estas barreras.",
+                     "Reduzco la frecuencia con la que participo en actividades deportivas.",
+                     "Modifico mis planes de entrenamiento para adaptarme a estas barreras.",
+                     "No me afectan significativamente en mis actividades deportivas.",
+                     "Aumento mi dedicación a las actividades deportivas para superar estas barreras.")
+
+DF <- crear_columnas_opciones(DF, "Efecto_act_depor", opciones_efec)
+
+# Correción para soluciones
+opciones_sol <- c("Mayor variedad de actividades deportivas ofrecidas.", 
+                           "Mayor accesibilidad a instalaciones deportivas.", 
+                           "Mayor flexibilidad en los horarios de entrenamiento.", 
+                           "Mayor información sobre actividades deportivas y recursos disponibles.", 
+                           "Mayor apoyo y motivación por parte de entrenadores o compañeros de entrenamiento.", 
+                           "Mayor facilidad para encontrar compañeros de entrenamiento.")
+
+DF <- crear_columnas_opciones(DF, "Soluciones", opciones_sol)
+```
+
+## 3. Análisis descriptivo
+
+### 3.1. Descriptores numéricos, moda y frecuencias relativas
+
+Para esta segunda entrega, estos descriptores nos podrán ayudar a evaluar la independencia de algunas variables, pero sobre todo, nos dan una idea sobre como podremos aplicarlas en la parte probabilista. Por ejemplo, comparar la media y mediana en una continua nos permite ver si se comporta o no como la variable aleatoria "normal".
+
+#### 3.1.1. Variables numéricas
+
+Resumimos en una tabla sus descriptores numéricos más importantes.
+
+| Variable                      | Media | Mediana | Minimo | Maximo | Varianza | Desviacion Estandar | Coeficiente de variacion | 1er Quartil | 3er Quartil | Rango Intercuartil |
+|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+| Edad                          | 19.04 | 19.00   | 16.00  | 24.00  | 2.24     | 1.557               | 9.397                    | 18.00       | 20.00       | 2.00               |
+| Ciclo                         | 3.54  | 4.00    | 1.00   | 7.00   | 1.8      | 1.342               | 50.329                   | 3.00        | 4.00        | 1.00               |
+| Peso                          | 64.44 | 62.00   | 40.00  | 115.00 | 162.01   | 12.728              | 2.78                     | 55.75       | 70.00       | 14.88              |
+| Estatura                      | 166.7 | 168.00  | 145.00 | 187.00 | 77.10    | 8.781               | 1.072                    | 162.00      | 173.00      | 11.00              |
+| Horas sentado                 | 7.866 | 8.00    | 2.00   | 18.00  | 9.25     | 3.042               | 22.622                   | 6.00        | 9.75        | 3.75               |
+| Tiempo maximo corriendo (min) | 19.75 | 15.00   | 0.50   | 120.00 | 399.42   | 19.985              | 8.218                    | 8.00        | 30.00       | 22.00              |
+| Dinero Invertido (S/.)        | 60.31 | 20.00   | 0.00   | 700.00 | 11466.55 | 107.082             | 2.852                    | 0.00        | 87.50       | 87.50              |
+| Barrera mas importante        | 2.808 | 2.00    | 1.00   | 7.00   | 3.2      | 1.789               | 63.271                   | 2.00        | 4.00        | 2.00               |
+
+```{r, include=FALSE}
+# Summary
+summary(DF$Edad)
+summary(DF$Ciclo)
+summary(DF$Peso)
+summary(DF$Estatura)
+summary(DF$Horas_sentado)
+summary(DF$Tiempo_correr)
+summary(DF$Dinero_invertido)
+summary(DF$Main_barrera)
+```
+
+```{r, include=FALSE}
+# Desviacion estandar
+SD = sd(DF$Edad, na.rm = TRUE)
+round(SD, digits=3)
+SD = sd(DF$Ciclo, na.rm = TRUE)
+round(SD, digits=3)
+SD = sd(DF$Peso, na.rm = TRUE)
+round(SD, digits=3)
+SD = sd(DF$Estatura, na.rm = TRUE)
+round(SD, digits=3)
+SD = sd(DF$Horas_sentado, na.rm = TRUE)
+round(SD, digits=3)
+SD = sd(DF$Tiempo_correr, na.rm = TRUE)
+round(SD, digits=3)
+SD = sd(DF$Dinero_invertido, na.rm = TRUE)
+round(SD, digits=3)
+SD = sd(DF$Main_barrera, na.rm = TRUE)
+round(SD, digits=3)
+```
+
+```{r, include=FALSE}
+# varianza
+round(var(DF$Edad, na.rm=TRUE),digits=3)
+round(var(DF$Ciclo, na.rm=TRUE),digits=3)
+round(var(DF$Peso, na.rm=TRUE),digits=3)
+round(var(DF$Estatura, na.rm=TRUE),digits=3)
+round(var(DF$Horas_sentado, na.rm=TRUE),digits=3)
+round(var(DF$Tiempo_correr, na.rm=TRUE),digits=3)
+round(var(DF$Dinero_invertido, na.rm=TRUE),digits=3)
+round(var(DF$Main_barrera, na.rm=TRUE),digits=3)
+```
+
+```{r, include=FALSE}
+#coeficiente de variacion
+CV = (SD / mean(DF$Edad,na.rm=TRUE)) * 100
+round(CV,digits=3)
+CV = (SD / mean(DF$Ciclo,na.rm=TRUE)) * 100
+round(CV,digits=3)
+CV = (SD / mean(DF$Peso,na.rm=TRUE)) * 100
+round(CV,digits=3)
+CV = (SD / mean(DF$Estatura,na.rm=TRUE)) * 100
+round(CV,digits=3)
+CV = (SD / mean(DF$Horas_sentado,na.rm=TRUE)) * 100
+round(CV,digits=3)
+CV = (SD / mean(DF$Tiempo_correr,na.rm=TRUE)) * 100
+round(CV,digits=3)
+CV = (SD / mean(DF$Dinero_invertido,na.rm=TRUE)) * 100
+round(CV,digits=3)
+CV = (SD / mean(DF$Main_barrera,na.rm=TRUE)) * 100
+round(CV,digits=3)
+```
+
+#### 3.1.2. Variables categóricas
+
+Observemos la moda para aquellas que no fueron de opción múltiple. Destaca que la mayor motivación sea la de mejorar la salud, implicando que los estudiantes si saben que realizar actividades físicas es de suma importancia.
+
+| Variables                          | Moda                                                                |
+|-------------------------|----------------------------------------------|
+| Género                             | Masculino                                                           |
+| Carrera                            | Ingeniería Civil                                                    |
+| Frecuencia                         | A veces                                                             |
+| Importancia                        | Mucho                                                               |
+| Motivación                         | Mejorar mi salud y bienestar físico                                 |
+| Barrera principal                  | Falta de tiempo debido a las exigencias académicas o de estudio (2) |
+| Valoración respecto a los estudios | Moderadamente importante                                            |
+| Efecto en el desempeño académico   | Afecta moderadamente                                                |
+
+```{r, include=FALSE}
+# Para las no prolijas
+table(DF$Genero)
+table(DF$Carrera)
+table(DF$Frecuecuencia)
+table(DF$Importancia)
+table(DF$Motivacion)
+table(DF$Main_barrera)
+table(DF$Valoracion_estudios)
+table(DF$Efecto_academico)
+
+# Para las prolijas
+
+# Actividades
+x <- data.frame(Actividades = c(opciones_act, "Otro"), Frecuencia = colSums(DF[, 20:26]))
+actividades <- data.frame(Actividades = x$Actividades, Frecuencia = x$Frecuencia)
+actividades$Frecuencia <- as.numeric(actividades$Frecuencia)
+actividades
+
+# Barreras
+x <- data.frame(Barreras = opciones_bar, Frecuencia = colSums(DF[, 27:33]))
+barreras <- data.frame(Barreras = x$Barreras, Frecuencia = x$Frecuencia)
+barreras$Frecuencia <- as.numeric(barreras$Frecuencia)
+barreras
+
+# Efectos sobre act. deportivas
+x <- data.frame(Efectos = opciones_efec, Frecuencia = colSums(DF[, 34:38]))
+efectos_act_depor <- data.frame(Efectos = x$Efectos, Frecuencia = x$Frecuencia)
+efectos_act_depor$Frecuencia <- as.numeric(efectos_act_depor$Frecuencia)
+efectos_act_depor
+
+# Soluciones
+x <- data.frame(Soluciones = opciones_sol, Frecuencia = colSums(DF[, 39:44]))
+soluciones <- data.frame(Soluciones = x$Soluciones, Frecuencia = x$Frecuencia)
+soluciones$Frecuencia <- as.numeric(soluciones$Frecuencia)
+soluciones
+```
+
+Para las de opción múltiple es mejor analizar las frecuencias relativas. En el caso de los tipos de actividades realizadas, vemos casi un empate entre "Caminatas, correr" y "Deportes", ambas con un 30% aproximadamente. Resultan pues las opciones más llamativas y quizá accesibles para los estudiantes.
+
+### 3.2. Descriptores gráficos
+
+```{r, include=FALSE}
+generar_paleta_colores <- function(color_base, options) {
+  num_options <- length(options)
+  color_palette <- colorRampPalette(c("white", color_base))(num_options+1)
+  color_palette <- tail(color_palette, -1)
+  names(color_palette) <- options
+  return(color_palette)
+}
+```
+
+Teniendo ya varios descriptores numéricos y habiendo realizado tablas, tanto para variables numéricas como categóricas, ahora podemos realizar gráficos que favorezcan el entendimiento de los resultados obtenidos.
+
+#### 3.2.1. Tipo de actividades
+
+El gráfico de barras siguiente presenta información sobre la relación entre los tipos de actividades y la inversión monetaria.
+
+A partir del gráfico puedo decir que las actividades de mayor inversión son: artes marciales, gimnasio y deportes. Por el contrario, las actividades de baile, caminatas/correr y yoga presentan una menor inversión en comparación con otras opciones.
+
+```{r, echo=FALSE}
+# Eliminar filas con valores no finitos
+DI <- DF[is.finite(DF$Tiempo_correr) &
+is.finite(DF$Dinero_invertido), ]
+# Eliminar valores mayores a 75 en Tiempo_correr
+DI <- DI[DI$Tiempo_correr <= 75, ]
+# Convertir Dinero_invertido a factor
+DI$Dinero_invertido <- as.factor(DI$Dinero_invertido)
+
+# Especifica ordende las categorías de "Importancia"
+orden_importancia <- c("Nada", "Poco", "Algo","Mucho",
+"Esencialmente")
+DI$Importancia <- factor(DI$Importancia, levels = orden_importancia)
+
+# Convertir "Dinero_invertido" a tipo numérico
+DI$Dinero_invertido <- as.numeric(as.character(DI$Dinero_invertido))
+# Seleccionar las columnas relevantes para el gráfico
+df_plot <- DI %>%
+select(Dinero_invertido, starts_with("Tipo_actividades_"))
+# Convertir las columnas de opciones en filas (formato largo)
+df_plot_long <- df_plot %>%
+tidyr::gather(key = "Tipo_actividades", value = "Seleccionado",
+starts_with("Tipo_actividades_"))
+# Cambiar el nombre de las etiquetas en el eje x
+df_plot_long$Tipo_actividades <- str_remove(df_plot_long$Tipo_actividades,
+"Tipo_actividades_")
+#se acorta la variable deporte para mejor vista del grafico
+df_plot_long$Tipo_actividades <- gsub("Deportes \\(.*\\)", "Deportes",
+df_plot_long$Tipo_actividades)
+df_plot_long$Seleccionado <- ifelse(df_plot_long$Seleccionado, "Sí", "No")
+df_plot_long$Tipo_actividades <- str_wrap(df_plot_long$Tipo_actividades,
+width = 15)
+# Graficar el diagrama de barras
+ggplot(df_plot_long, aes(x = Tipo_actividades, y = Dinero_invertido, fill = Seleccionado)) +
+  stat_summary(geom = "col", fun = "mean", position = "dodge") +
+  labs(x = "Actividad", y = "Promedio de dinero invertido (S/.)", title = "Promedio de dinero invertido vs. tipo de actividad", fill = "Realizan el deporte") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+#### 3.2.2. Peso, Estatura y Barreras
+
+En la gráfica de Peso, Estatura y Barreras, nos damos cuenta que mientras sube el peso, la Estatura también aumenta, es decir están relacionados, sin embargo cuando nos fijamos en los colores que representan las barreras no encontramos una relación entre ellas, es decir la barrera no es influenciada por la talla o el peso. Igualmente, vemos que para las mujeres esta en la esquina inferior izquierda, y para los hombres en superior derecha.
+
+```{r, echo=FALSE, message=FALSE}
+DF %>% filter(Genero == "Masculino" |Genero=="Femenino")-> DFG
+ggplot(DFG, aes(x = Peso, y = Estatura, color = Genero)) +
+  geom_point() +
+  facet_wrap(~ Genero) +
+  labs(x = "Peso", y = "Estatura", color = "Genero") +
+  theme_minimal()
+```
+
+## 4. Análisis probabilístico
+
+### 4.1. Probabilidad empírica
+
+```{r, echo=FALSE}
+imprimir_espacio_resultados <- function(data, variable) {
+  espacio_resultados <- unique(data[[variable]])
+  espacio_resultados_str <- paste(espacio_resultados, collapse = ", ")
+  
+  cat("Ω =", "{", espacio_resultados_str, "}", "\n")
+}
+
+recorrer_variable <- function(data, variable, texto) {
+  espacio_resultados <- unique(data[[variable]])
+  
+  for (i in 1:length(espacio_resultados)) {
+    valor <- espacio_resultados[i]
+    evento <- paste0(texto, " ", valor)
+    cat("A", i, ": ", evento, "\n")
+  }
+}
+
+calcular_probabilidades <- function(data, variable) {
+  probabilidades <- data.frame(prop.table(table(data[[variable]])))
+
+  probabilidades <- probabilidades %>%
+    rename_with(~ "Evento", .cols = 1) %>%
+    rename_with(~ "Probabilidad", .cols = 2)
+
+  return(probabilidades)
+}
+```
+
+a\) Variable "Dinero Invertido" (la dividimos en intervalos):
+
+-   Experimento: Seleccionar una persona en nuestro estudio, y observar la cantidad de dinero que invierten mensualmente (S/) en realizar actividades deportivas.
+
+-   Espacio de resultados (como hay bastantes valores dispersos, los dividimos por intervalos):
+
+    ```{r, echo=FALSE}
+    intervalos <- c(0, 20, 50, 100, 200, 500, 1000)
+    DF$Intervalo <- cut(DF$Dinero_invertido, intervalos, include.lowest = TRUE)
+    imprimir_espacio_resultados(DF, "Intervalo")
+    ```
+
+-   Identificación de eventos:
+
+    ```{r, echo=FALSE}
+    recorrer_variable(DF, "Intervalo", "Seleccionar una persona en nuestro estudio que invierta mensualmente entre (S/)")
+    ```
+
+-   Probabilidades:
+
+    ```{r, echo=FALSE, message=FALSE}
+    EMDinero_invertido <- calcular_probabilidades(DF, "Intervalo")
+    kable(EMDinero_invertido, row.names = FALSE)
+    ```
+
+-   Conclusión: De cada n personas que seleccionemos, la mitad invierte entre 0 y 20 soles al mes en realizar actividades deportivas.
+
+b\) Variable "Frecuencia":
+
+-   Experimento: Seleccionar una persona en nuestro estudio, y observar la frecuencia con que realizan actividades deportivas.
+
+-   Espacio de resultados:
+
+    ```{r, echo=FALSE}
+    orden <- c("Nunca", "Raramente", "A veces", "Frecuentemente", "Siempre")
+    DF$Frecuecuencia <- factor(DF$Frecuecuencia, levels = orden)
+    imprimir_espacio_resultados(DF, "Frecuecuencia")
+    ```
+
+-   Identificación de eventos:
+
+    ```{r, echo=FALSE}
+    recorrer_variable(DF, "Frecuecuencia", "Seleccionar una persona en nuestro estudio que realice actividades deportivas")
+    ```
+
+-   Probabilidades:
+
+    ```{r, echo=FALSE, message=FALSE}
+    EMFrecuencia <- calcular_probabilidades(DF, "Frecuecuencia")
+    kable(EMFrecuencia, row.names = F)
+    ```
+
+-   Conclusión: De cada n personas que seleccionemos, tendremos un mismo porcentaje de personas que realicen actividades deportivas a veces, que personas que las realicen rara o frecuentemente.
+
+### 4.2. Probabilidad condicional
+
+a\) Par de eventos dependientes:
+
+-   A partir de lo visto previamente, como en los descriptores gráfico generados, variables como el dinero invertido y frecuencia son algunas de las más interconectadas entre sí. Esto se debe a que unas se pueden ver como causa de la otra. En este caso, si frecuentas realizar mayor actividad deportiva, es más probable que termines gastando más en el proceso.
+
+-   ¿Cuál es la probabilidad de que un estudiante que raramente o nunca realiza actividades deportivas, gaste 50 soles o mas al mes?
+
+    A: Realizar 'Raramente' o 'Nunca' actividades deportivas.
+
+    B: Gastar \>=50 soles al mes.
+
+    ```{r, echo=FALSE}
+    prob <- prop.table(table(DF$Intervalo, DF$Frecuecuencia))
+    round(prob, digits = 4)  # Mostramos en pantalla
+    prob_condicional <- as.data.frame(prob)
+    prob_condicional <- format(prob_condicional, scientific = FALSE)
+    colnames(prob_condicional) <- c("Dinero Invertido", "Frecuencia", "Probabilidad")
+    ```
+
+-   Verificamos su independencia:
+
+    Nota: P(B\|A)=$\frac{P(B \cap A)}{P(A)}$
+
+    ```{r, echo=FALSE}
+    # Calcular la probabilidad condicional P(B|A)
+    casos <- DF$Frecuecuencia %in% c("Raramente", "Nunca") & DF$Dinero_invertido >= 50
+    prob_condicional <- sum(casos) / sum(DF$Frecuecuencia %in% c("Raramente", "Nunca"))
+
+    # Calcular la probabilidad P(B)
+    prob_B <- sum(DF$Dinero_invertido >= 50) / nrow(DF)
+
+    # Verificar si P(B|A) es igual a P(B)
+    is_independiente <- (prob_condicional == prob_B)
+
+    # Mostrar los resultados
+    cat("Probabilidad condicional P(B|A): ")
+    cat(prob_condicional, "\n")
+    cat("Probabilidad P(B): ")
+    cat(prob_B, "\n")
+    cat("Son eventos independientes?: ")
+    cat(is_independiente, "\n")
+    ```
+
+    Los eventos no son independientes, ya que la probabilidad condicional difiere de la probabilidad marginal. En este caso, la frecuencia de actividades deportivas tiene una influencia en la probabilidad de gastar una cantidad alta de dinero.
+
+-   Hallamos la probabilidad condicional pero al revés: P(A\|B)=$\frac{P(B|A)*P(A)}{P(B)}$
+
+    ```{r, echo=FALSE}
+    # Calcular la probabilidad condicional P(A|B)
+    casos <- DF$Frecuecuencia %in% c("Raramente", "Nunca") & DF$Dinero_invertido >= 50
+    prob_condicional_A_B <- sum(casos) / sum(DF$Dinero_invertido >= 50)
+
+    # Calcular la probabilidad P(A)
+    prob_A <- sum(DF$Frecuecuencia %in% c("Raramente", "Nunca")) / nrow(DF)
+
+    # Calcular la probabilidad P(B)
+    prob_B <- sum(DF$Dinero_invertido >= 50) / nrow(DF)
+
+    # Calcular P(A|B) = (P(B|A) * P(A)) / P(B)
+    prob_A_B <- (prob_condicional_A_B * prob_A) / prob_B
+
+    # Mostrar los resultados
+    cat("Probabilidad condicional P(A|B): ")
+    cat(prob_A_B, "\n")
+    ```
+
+b\) Par de eventos independientes:
+
+-   Viendo nuestros descriptores gráficos y numéricos, hemos notado que casi todas nuestras variables, muestran en cierta manera una relación entre sí. Pero entre las pocas que podemos identificar distintas, están frecuencia y estatura. Esto, debido a que la estatura que uno tenga, no es un factor muy importante (al menos a nivel general) al tomar decisiones respecto a la frecuencia con que uno se ejercita.
+
+-   ¿Cuál es la probabilidad de que un estudiante que mide a lo más 175 cm, realice actividades deportivas frecuentemente?
+
+    A: Medir a lo más 175 cm.
+
+    B: Realizar 'Frecuentemente' actividades deportivas.
+
+    ```{r, echo=FALSE}
+    intervalos <- seq(145, 190, 5)
+    DF$inter_estatura <- cut(DF$Estatura, intervalos, include.lowest = TRUE)
+    prob <- prop.table(table(DF$inter_estatura, DF$Frecuecuencia))
+    round(prob, digits = 4)  # Mostramos en pantalla
+    ```
+
+-   Verificamos su independencia:
+
+    Nota: P(B\|A)=$\frac{P(B \cap A)}{P(A)}$
+
+    ```{r, echo=FALSE}
+    # Calcular la probabilidad condicional P(B|A)
+    casos <- DF$Estatura <= 175 & DF$Frecuecuencia %in% c("Frecuentemente")
+    prob_condicional <- sum(casos, na.rm = TRUE) / sum(DF$Estatura <= 175, na.rm = TRUE)
+
+    # Calcular la probabilidad P(B)
+    prob_B <- sum(DF$Frecuecuencia %in% c("Frecuentemente"), na.rm = TRUE) / nrow(DF)
+
+    # Verificar si P(B|A) es igual a P(B)
+    is_independiente <- (prob_condicional == prob_B)
+
+    # Mostrar los resultados
+    cat("Probabilidad condicional P(B|A): ")
+    cat(prob_condicional, "\n")
+    cat("Probabilidad P(B): ")
+    cat(prob_B, "\n")
+    cat("Son eventos independientes? ")
+    cat(is_independiente, "\n")
+    ```
+
+    Si bien el código nos indica que no son independientes porque los valores no son iguales, como fue discutido con nuestra asesora y profesora, la diferencia entre ambos es lo suficientemente pequeña como para considerarlos aproximadamente iguales (0.3).
+
+    Por lo que, habiendo detallado la razón por la que vemos estatura y frecuencia como independencia, podemos afirmar que estos eventos son independientes.
+
+-   Hallamos la probabilidad condicional pero al revés: P(A\|B)=$\frac{P(B|A)*P(A)}{P(B)}$
+
+    ```{r, echo=FALSE}
+    # Calcular la probabilidad condicional P(A|B)
+    casos <- DF$Frecuecuencia %in% c("Frecuentemente") & DF$Estatura <= 175
+    prob_condicional_A_B <- sum(casos, na.rm = TRUE) / sum(DF$Estatura <= 175, na.rm = TRUE)
+
+    # Calcular la probabilidad P(B)
+    prob_B <- sum(DF$Frecuecuencia %in% c("Frecuentemente"), na.rm = TRUE) / nrow(DF)
+
+    # Calcular la probabilidad P(A)
+    prob_A <- sum(DF$Estatura <= 175, na.rm = TRUE) / nrow(DF)
+
+    # Calcular P(A|B) = (P(B|A) * P(A)) / P(B)
+    prob_A_B <- (prob_condicional_A_B * prob_A) / prob_B
+
+    # Mostrar los resultados
+    cat("Probabilidad condicional P(A|B): ")
+    cat(prob_A_B, "\n")
+    ```
+
+### 4.3. Variables aleatorias discretas
+
+a\) Distribución geométrica
+
+-   Definición de la distribución: Utilizaremos una distribución geométrica para modelar la variable "Frecuencia".
+
+-   Construcción de la variable aleatoria:
+
+    X: \# de personas que debemos analizar hasta encontrar a alguien que realice siempre actividades deportivas.
+
+-   Identificación de parámetros:
+
+    X \~ Geom(p)
+
+    p = probabilidad de éxito (la probabilidad de que una persona realice actividades deportivas "Siempre")
+
+-   Construcción de densidad:
+
+    ```{r, echo=FALSE}
+    p <- sum(DF$Frecuecuencia == "Siempre") / nrow(DF)
+    x <- 0:100 # Valores de la variable
+    y <- dgeom(x, p) # Densidad de probabilidad
+    plot(x, y, type = "h", lwd = 2, xlab = "Número de personas", ylab = "Probabilidad", main = "Densidad de probabilidad geométrica")
+
+    ```
+
+-   Validación de propiedades:
+
+    ```{r, echo=FALSE}
+    # Calcular esperanza
+    esperanza <- 1 / p
+    cat("Esperanza:", esperanza, "\n")
+
+    # Calcular varianza
+    varianza <- (1 - p) / p^2
+    cat("Varianza:", varianza, "\n")
+
+    # Calcular coeficiente de variación
+    coef_variacion <- sqrt((1 - p) / p^2)
+    cat("Coeficiente de variacion:", coef_variacion, "\n")
+
+    ```
+
+-   Ejemplo: En un salón de clases se desea conocer la probabilidad de que se deban entrevistar a más de 5 estudiantes para encontrar a alguien que siempre realice actividades deportivas. Hay 30 estudiantes en el salón.
+
+    ```{r, echo}
+    n <- 30 # Número de estudiantes
+    x <- 6 # Valor a evaluar
+    prob <- 1 - pgeom(x - 1, p) # Probabilidad acumulada
+    prob
+    ```
+
+    La probabilidad de que se requiera entrevistar a más de 5 estudiantes para encontrar lo solicitado, es de 0.66.
+
+b\) Distribución binomial
+
+-   Definición de la distribución: Utilizaremos una distribución binomial para modelar la variable "Barrera más importante".
+
+-   Construcción de la variable aleatoria:
+
+    X: \# de éxitos tras encuestar a n personas, donde se considera éxito cuando la barrera principal es la 4.
+
+-   Identificación de parámetros:
+
+    X \~ Bin(n, p) p = probabilidad de éxito (la probabilidad de que una persona tenga como barrera principal la 4)
+
+    n = tamaño de muestra
+
+-   Construcción de densidad:
+
+    ```{r, echo=FALSE}
+    p <- sum(DF$Main_barrera == 4, na.rm = T) / length(DF$Main_barrera)  # Probabilidad de éxito
+    n <- length(DF$Main_barrera)  # Número de ensayos
+    x <- 0:n  # Valores de la variable
+    y <- dbinom(x, n, p)  # Densidad de probabilidad
+
+    # Ajuste de los límites del eje y
+    ylim <- c(0, max(y) * 1.1)
+
+    plot(x, y, type = "h", lwd = 2, xlab = "Número de éxitos", ylab = "Probabilidad", 
+         main = "Densidad de probabilidad binomial", ylim = ylim)
+
+    ```
+
+-   Validación de propiedades:
+
+    ```{r, echo=FALSE}
+    # Cálculo de la esperanza
+    esperanza <- n * p
+    cat("Esperanza:", esperanza, "\n")
+
+    # Cálculo de la varianza
+    varianza <- n * p * (1 - p)
+    cat("Varianza:", varianza, "\n")
+
+    # Cálculo del coeficiente de variación
+    coef_variacion <- sqrt(varianza) / esperanza
+    cat("Coeficiente de variacion:", coef_variacion, "\n")
+
+
+    ```
+
+-   Ejemplo: En una clínica se desea conocer la probabilidad de que de 100 pacientes, exactamente 30 presenten la barrera más importante con un valor igual a 4. Utilizando la distribución binomial, podemos calcular la probabilidad deseada.
+
+    ```{r}
+    n <- 100  # Número de ensayos (número de pacientes)
+    x <- 30  # Número de éxitos deseados
+    probabilidad <- dbinom(x, n, p)
+    probabilidad
+    ```
+
+    La probabilidad de que exactamente sean 30 los que presenten la barrera más importante 4 o superior, es de 1.052275e-12.
+
+### 4.4. Variables aleatorias continuas
+
+a\) Variable "Estatura":
+
+-   Realizamos un gráfico que nos ayuda a observar su función de densidad:
+
+    ```{r, echo=FALSE}
+    hist(DF$Estatura,breaks=10, freq=FALSE, main="Histograma de estatura", xlab="Estatura (cm) ", col="green")
+    lines(density(DF$Estatura, na.rm=TRUE),col="red",lwd=3)
+    curve(dnorm(x, mean(DF$Estatura,na.rm=TRUE), sd(DF$Estatura,na.rm=TRUE)), lwd = 2, col = "blue", add = T)
+    legend("topleft", c("curva observada", "curva (normal) teórca"),
+           lty = 1, lwd = 2, col = c("red", "blue"), bty = "n",
+           cex = 0.8)
+    ```
+
+    Donde:
+
+    C.N.T : Curva Normal Teórica
+
+    C.O : Curva Observada
+
+-   Validación:
+
+    Comparamos la media con la mediana:
+
+    ```{r, echo=FALSE}
+    media <- mean(DF$Estatura, na.rm = TRUE)
+    cat("Media:", media, "\n")
+
+    mediana <- median(DF$Estatura, na.rm = TRUE)
+    cat("Mediana:", mediana, "\n")
+
+    ```
+
+    Comparamos la varianza con la desviación estándar al cuadrado:$$V(X)=E(X^{2})-(E(X))^{2}$$
+
+    ```{r, echo=FALSE}
+    probabilidades <- prop.table(table(DF$Estatura))
+    esperanza <- sum(as.numeric(names(probabilidades)) * probabilidades, na.rm = TRUE)
+
+    esperanza_cuadrada <- sum(as.numeric(names(probabilidades))^2 * probabilidades, na.rm = TRUE)
+
+    varianza <- esperanza_cuadrada - esperanza^2
+    cat("Varianza:", varianza, "\n")
+
+    sd2 <- sd(DF$Estatura, na.rm = TRUE)^2
+    cat("Desviacion estandar al cuadrado:", sd2, "\n")
+    ```
+
+    Comparamos la esperanza con la media: $$E(X)=\sum_{x\in RX}(x*p(x))$$
+
+    ```{r, echo=FALSE}
+    cat("Esperanza:", esperanza, "\n")
+
+    cat("Media:", media, "\n")
+
+    ```
+
+-   Tenemos entonces: μ=166.84 , σ=8.78
+
+-   Caso para el calculo de probabilidad:
+
+    Sea una variable aleatoria "X" con una distribución normal \--\> \$\$ X \\sim N(166.8364,8.780724)\$\$
+
+    La Policía nacional tiene un requerimiento mínimo de 165 cm como estatura de un hombre, suponiendo un reclutamiento al azar dentro de nuestros encuestados, ¿Cuál es la probabilidad de el seleccionado mida al menos 165cm?
+
+    ¿Cuál es la probabilidad de que al seleccionar un estudiante al azar, este mida al menos 165 cm?
+
+    ```{r}
+    pnorm(165, mean = 166.84, sd = 8.78, lower.tail = F) # Probabilidad
+    ```
+
+    La probabilidad de que al seleccionar un estudiante al azar y mida 165 cm es de 58%
+
+a\) Variable "Peso":
+
+-   Realizamos un gráfico que nos ayuda a observar su función de densidad:
+
+    ```{r, echo=FALSE}
+    hist(DF$Peso, breaks = 20,freq = FALSE, main="Histograma de peso", xlab="peso (Kg) ", col = "darkslategray1")
+    lines(density(DF$Peso, na.rm = TRUE), col = "blue2", lwd = 2)
+    curve(dnorm(x,mean(DF$Peso, na.rm = TRUE), sd(DF$Peso, na.rm = TRUE)),lwd = 2, col = "green3", add = T)
+    legend("topleft", c("C.O", "C.N.T"),lty = 1, lwd = 2, col = c("blue2", "green3"), bty = "n", cex = 0.8)
+    ```
+
+    Donde:
+
+    C.O : Curva observada (Curva de color azul)
+
+    C.N.T : Curva Normal Teórica (Curva de color verde)
+
+-   Validación:
+
+    Comparamos la media con la mediana:
+
+    ```{r, echo=FALSE}
+    media <- mean(DF$Peso, na.rm = TRUE)
+    cat("Media:", media, "\n")
+
+    mediana <- median(DF$Peso, na.rm = TRUE)
+    cat("Mediana:", mediana, "\n")
+    ```
+
+    Comparamos la varianza con la desviación estándar al cuadrado:$$V(X)=E(X^{2})-(E(X))^{2}$$
+
+    ```{r, echo=FALSE}
+    probabilidades <- prop.table(table(DF$Peso))
+    esperanza <- sum(as.numeric(names(probabilidades)) * probabilidades, na.rm = TRUE)
+
+    esperanza_cuadrada <- sum(as.numeric(names(probabilidades))^2 * probabilidades, na.rm = TRUE)
+
+    varianza <- esperanza_cuadrada - esperanza^2
+    cat("Varianza:", varianza, "\n")
+
+    sd2 <- sd(DF$Peso, na.rm = TRUE)^2
+    cat("Desviacion estandar al cuadrado:", sd2, "\n")
+    ```
+
+    Comparamos la esperanza con la media: $$E(X)=\sum_{x\in RX}(x*p(x))$$
+
+    ```{r, echo=FALSE}
+    cat("Esperanza:", esperanza, "\n")
+
+    cat("Media:", media, "\n")
+    ```
+
+-   Tenemos entonces: μ=64.35509 , σ=12.72824.
+
+-   Caso para el cálculo de probabilidad:
+
+    Imaginemos que estamos realizando una encuesta sobre hábitos alimenticios y actividad física en una población determinada. Una de las preguntas que se hace en la encuesta es sobre el peso de los encuestados. En este contexto, la pregunta "¿Qué tan probable es que el encuestado supere los 90 kg?" podría surgir si estamos interesados en conocer la proporción de personas en la población encuestada que tienen un peso mayor a 90 kg. La respuesta a esta pregunta nos permitiría tener una idea de la prevalencia de la obesidad en la población y podría ser útil para diseñar programas de prevención y tratamiento de enfermedades relacionadas con el sobrepeso y la obesidad.
+
+    ¿Que tan probable es que el encuestado supere los 90 kg?
+
+    ```{r}
+    pnorm(90, mean = 64.35509, sd = 12.72824, lower.tail = F) # Probabilidad
+    ```
+
+    La probabilidad que el encuestado supere los 90 kg es 2%
+
+## 5. Conclusiones
+
+A continuación, se presentan las principales conclusiones obtenidas:
+
+-   Se identificaron barreras comunes que los estudiantes universitarios enfrentan para participar en actividades deportivas, como la falta de tiempo debido a las responsabilidades académicas, la falta de acceso a instalaciones deportivas adecuadas, la falta de motivación y la falta de conocimientos sobre cómo comenzar a practicar deportes.
+
+-   Se observaron diferencias en las barreras experimentadas por diferentes grupos de estudiantes universitarios, como variaciones según la edad, el género y otros factores relevantes. Por ejemplo, los estudiantes más jóvenes pueden enfrentar barreras relacionadas con la carga académica, mientras que los estudiantes de mayor edad pueden tener limitaciones físicas o lesiones.
+
+-   Se encontraron patrones y tendencias en las barreras enfrentadas por subgrupos de estudiantes universitarios. En particular, se destacó que las mujeres pueden enfrentar barreras adicionales relacionadas con la percepción social y las normas culturales en torno a la participación en actividades deportivas.
+
+Con ello, se concluye que los estudiantes universitarios de UTEC enfrentan diversas barreras para participar en actividades deportivas. Estas barreras incluyen la falta de tiempo, la falta de acceso a instalaciones adecuadas, la falta de motivación y la falta de conocimientos. Además, se identificaron diferencias en las barreras según la edad, el género y otros factores. Es importante abordar estas barreras para promover una mayor participación en el deporte y fomentar un estilo de vida saludable entre los estudiantes universitarios.

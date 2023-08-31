@@ -1,0 +1,719 @@
+---
+title: "Análisis de los factores propios de una universidad con relación al perfil de los egresados de 131 universidades con sede en Lima en el año 2014"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: yeti
+---
+
+# Introducción
+
+## Relevancia
+
+Una de las funciones más importantes de una universidad es brindarle a sus estudiantes servicios y capacitaciones que ayuden a formar un perfil sólido en el momento que estos egresen, ya que de esta manera tienen mayor oportunidad de encontrar empleo en un menor tiempo y con mejores beneficios. Por ello, es de suma importancia identificar los aspectos que influyen en el desenvolvimiento de un egresado en el ambiente laboral, ya que ello permite determinar qué características requieren mejora por parte de las universidades.
+
+## Objetivos
+
+1.  Identificar qué factores de las universidades influyen en el margen de empleabilidad de los egresados.
+2.  Describir el perfil de un egresado de una universidad de Lima en el año 2014.
+3.  Identificar los perfiles de egresados con mayor empleabilidad.
+
+## Contexto
+
+Es de conocimiento popular que según diversas estadísticas, se puede afirmar que un alto porcentaje de jóvenes egresados peruanos se encuentran desempleados o subempleados. Las principales causas de la situación laboral de los jóvenes egresados en Perú son la falta de experiencia laboral, la competencia en el mercado laboral y la falta de oportunidades laborales en su campo de estudio. Por ello, es importante que se tomen medidas para mejorar la situación y brindarles oportunidades laborales justas y adecuadas en su campo de estudio.
+
+# Datos
+
+## Recolección de datos
+
+Se emplea la base de datos obtenida a partir de la Encuesta Nacional a Egresados Universitarios y Universidades, 2014. Dichos datos han sido adquiridos por medio del catálogo de Base de Datos 2023 del Instituto Nacional de Estadística e Informática (INEI). Donde se consideró 15 variables dirigidas exclusivamente a los Egresados universitarios de la ciudad de Lima a partir del año 2014, con el fin de abordar aspectos fundamentales del perfil de los egresados y los factores propios de las universidades que influyeron en su formación.
+
+[Acceso al catálogo](https://www.inei.gob.pe/media/difusion/apps/#p=1)
+
+## Población, muestra, muestreo
+
+-   Población de estudio: Egresados universitarios de la ciudad de Lima a partir del año 2014.
+
+-   Unidad muestral: Egresado universitario de la ciudad de Lima a partir del año 2014.
+
+-   Muestreo: Muestreo por conveniencia, ya que del total de egresados universitarios de la base de datos, solo se tomaron aquellos que egresaron de alguna universidad de Lima.
+
+## Variables
+
+### Categóricas (11)
+
+#### Nominales (4)
+
+| Variable     | Definición                                     |
+|--------------|------------------------------------------------|
+| Ocupación    | Primera ocupación después del egreso           |
+| Carrera      | Carrera profesional                            |
+| BolsaTrabajo | Acceso a la bolsa de trabajo de la universidad |
+| Titulación   | Titulación                                     |
+
+#### Ordinales (7)
+
+| Variable    | Definición                                                   |
+|----------------------|--------------------------------------------------|
+| ConsultaPsi | Valoración de servicio de consulta psicológica               |
+| Internet    | Valoración de servicio de internet                           |
+| Libros      | Valoración de servicio repositorio de libros                 |
+| SBiblioteca | Servicio de biblioteca                                       |
+| Biblioteca  | Valoración de la infraestructura de la biblioteca            |
+| LComputo    | Valoración de la infraestructura de laboratorios de cómputo  |
+| LCiencias   | Valoración de la infraestructura de laboratorios de ciencias |
+
+### Numéricas (4)
+
+| Variable    | Definición                                                         | Restricciones      |
+|-------------------|------------------------------------|-------------------|
+| HorasSemana | Total de horas de trabajo en el primer empleo                      | Entero no negativo |
+| Ingreso     | Ingreso bruto mensual en el primer empleo como egresado            | No negativo        |
+| Tiempo      | Tiempo de búsqueda del primer empleo después del egreso            | No negativo        |
+| Prácticas   | Meses en total que el egresado realizó prácticas pre profesionales | Entero no negativo |
+
+# Análisis descriptivo
+
+```{r}
+librerias <- c("plyr", "tidyverse", "knitr", "agricolae", "ggplot2", "haven")
+
+for (libreria in librerias) {
+  if (!require(libreria, character.only = TRUE)) {
+    install.packages(libreria)
+    library(libreria, character.only = TRUE)
+  } else {
+    library(libreria, character.only = TRUE)
+  }
+}
+
+r <- function(x){
+  return (round(x, 2))
+}
+cv <- function(x){
+      return(sd(x, na.rm=TRUE)/mean(x, na.rm=TRUE))
+    }
+```
+
+```{r}
+library(dplyr)
+# Primero, cargamos la base de datos limpia
+DataFinal <- read_sav("DataLimpia.sav")
+
+# Los datos "" son reemplazados por NA
+DataFinal[] <- lapply(DataFinal, function(x) ifelse(x == "", NA, x)) 
+```
+
+El análisis de las siguientes variables y gráficas serán de ayuda para entender la dependencia o independencia de los eventos a describir en el análisis probabilístico.
+
+## Descriptores numéricos
+
+### Titulación
+
+```{r}
+# Trabajamos sin contar los NA
+tb_titulacion = data.frame(stringsAsFactors=FALSE,
+                  "Estado de Titulación" = c("No","Sí","Total"),
+                  "fi" = c(1687,1618,3305),
+                  "Porcentaje" = c(0.51*100,0.49*100,(0.51*100+0.49*100)))
+tb_titulacion
+```
+
+Se puede concluir que los egresados son mayormente no titulados (1687 personas) ya que representan aproximadamente el 51% del total (3305 personas). Esto puede haberles generado dificultades para encontrar su primer empleo, puesto que pudieron haber preferido contratar a egresados titulados frente a estos.
+
+### Tiempo de búsqueda del primer empleo y total de horas ocupadas por dicho empleo
+
+```{r}
+tb_descrip = data.frame(stringsAsFactors=FALSE,
+            "Descriptores numéricos" = c("Media","Mediana","Coeficiente de variación","Desviación estándar"), 
+            "Tiempo de búsqueda" = c(mean(DataFinal$Tiempo, na.rm=T),median(DataFinal$Tiempo, na.rm=T),cv(DataFinal$Tiempo),sd(DataFinal$Tiempo, na.rm=T)),
+                  "Horas semanales en el primer empleo" = c(mean(DataFinal$HorasSemana, na.rm=T),median(DataFinal$HorasSemana, na.rm=T),cv(DataFinal$HorasSemana),sd(DataFinal$HorasSemana, na.rm=T)))
+tb_descrip
+
+```
+
+Respecto al tiempo de búsqueda, se puede decir que es más representativo que la mitad de los egresados encontraron su primer empleo en casi 1 mes que en casi 2 meses según el valor de la media. Además, tanto el coeficiente de variación y la desviación estándar indican que los datos están lejos de la media y puede deberse a los valores atípicos y NAs presentes en la base de datos.
+
+Respecto a las horas semanales, se puede decir que la mitad de los egresados trabajaron 40 horas a la semana en su primer empleo, y este valor no se aleja mucho de la media. Además, según el coeficiente de variación los datos están cerca de la media de casi 41 horas a la semanas, sin embargo, se puede afirmar que hay una gran cantidad de datos atípicos y/o NAs debido al valor elevado de la desviación estándar.
+
+### Bolsa de trabajo
+
+```{r}
+tb_bolsa = data.frame(stringsAsFactors=FALSE,
+                  "Acceso a la bolsa de trabajo" = c("Sí","No","No existe","Total"),
+                  "fi"= c(1157,2592,123,3872),
+                  "Porcentaje" = c(0.2988*100,0.6694*100,0.0318*100,(0.2988+0.6694+0.0318)*100))
+tb_bolsa
+```
+
+La mayoría de egresados (2592 personas) no accedieron a la bolsa de trabajo de su universidad, esto refleja que casi un 67% del total tuvo también dificultades para encontrar su primer empleo en los primeros meses de haber egresado. Sin embargo, una minoría de 123 egresados (3.18% del total) no tuvieron acceso a la bolsa de trabajo porque no existe en su universidad, esto refleja una falta de oportunidades por parte de las casas de estudios.
+
+Además, 1157 egresados (casi 30% del total) tuvieron acceso a la bolsa de trabajo de su universidad, esto puede verse reflejado en el tiempo de búsqueda de su primer empleo ya que presentamos la hipótesis de que deberían haber encontrado empleo con mayor facilidad o en menor tiempo que los egresados anteriores.
+
+## Descriptores gráficos
+
+### Tabla de contingencia y Gráfico de barras
+
+Mediante el siguiente gráfico se podrá visualizar el tiempo medido en meses que fue empleado por los egresado para la búsqueda de su primer empleo, clasificado entre los titulados y no titulados.
+
+```{r}
+tabtitulacionypracticas<-table(DataFinal$Titulación, DataFinal$Práticas)
+tabtitulacionypracticas
+```
+
+```{r}
+barplot(tabtitulacionypracticas,
+        main="Titulación y la cantidad de meses en los que se realizó prácticas",
+        xlab="Duración de prácticas (en meses)",
+        ylab="Número de egresados",
+        legend = c("No titulado", "Titulado"))
+```
+
+Los valores de ambas variables se reparten de manera diferente y no se observa una tendencia específica, por lo que se puede pensar que la cantidad de meses de prácticas preprofesionales no influye en el que un egresado esté titulado. Esta hipótesis se corrobora en el análisis probabilístico.
+
+### Mosaico
+
+```{r}
+intervalos <- c(0.00, 750.0, 1000.00, 1500.00, 2500.00, 3500.00, 4500.00, 5500.00, 6500.00, 10000)
+labels_intervalos <- c("(0, 750]", "(750, 1000]", "(1000, 1500]", "(1500, 2500]", "(2500, 3500]", "(3500, 4500]", "(4500, 5500]", "(5500, 6500]", "(6500 a más)")
+
+Ingreso_intervalos <- cut(DataFinal$Ingreso, intervalos, labels = labels_intervalos, include.lowest = T, right = T)
+tabIngresoYtitulo <- table(Ingreso_intervalos, DataFinal$Titulación)
+tabIngresoYtitulo
+```
+
+```{r}
+Equivalencias <- c("1", "2", "3", "4", "5", "6", "7", "8", "9")
+
+Ingreso_visual <- cut(DataFinal$Ingreso, intervalos, labels = Equivalencias, include.lowest = T, right = T)
+tabIngresoYtitulo2 <- table(Ingreso_visual, DataFinal$Titulación)
+
+mosaicplot(tabIngresoYtitulo2, main="Titulación vs Ingreso bruto mensual \n en el primer empleo como egresado",col=c("coral2","cadetblue4"), xlab='Ingreso bruto mensual (en soles)', ylab='Titulación')
+```
+
+Nota. Por conveniencia visual, los valores del Ingreso bruto mensual en el primer empleo como egresado (en soles) se han reducido a un sistema de equivalencias:
+
+-   1: [0 - 750] ----- 2: (750 - 1000] ----- 3: (1000 - 1500] ----- 4: (1500 - 2500] ----- 5: (2500 - 3500] ----- 6: (3500 - 4500] ----- 7: (4500 - 5500] ----- 8: (5500 - 6500] ----- 9: (6500 a más)
+
+Se puede visualizar que los datos se centran principalmente en los indicadores 1, 2 y 3. Por este motivo, se concluye que el ingreso bruto mensual promedio en el primer empleo de un egresado se comprende entre 0 y 1500. De la misma manera, a medida que el ingreso bruto mensual incrementa, se evidencia con mayor facilidad la distinción en la proporción entre los egresados titulados y no titulados, siendo esta a favor de los primeros.
+
+### Diagrama de cajas
+
+```{r}
+ggplot(DataFinal, aes(x = BolsaTrabajo, y = Tiempo, fill = BolsaTrabajo)) +
+  geom_violin(color = "black", alpha = 0.8) +
+  geom_boxplot(width = 0.2, color = "black", fill = "white", alpha = 0.3, outlier.colour = "red") +
+  labs(title = "Acceso a la bolsa de trabajo proporcionada por la universidad \n y el tiempo de búsqueda del primer empleo después del egreso",
+       x = "Acceso a bolsa de trabajo",
+       y = "Tiempo de búsqueda (en meses)") +
+  scale_fill_manual(values = c("Sí" = "lightblue", "No" = "lightgreen", "No existe" ="lightpink"))
+```
+
+Nota. Por conveniencia visual, los valores del Tiempo de búsqueda del primer empleo después del egreso (en meses) se han reducido a un sistema de equivalencias:
+
+-   1: Menos de un mes ----- 2: Entre 1 a 3 meses ----- 3: Entre 3 a 6 meses ----- 4: Entre 6 meses y menos de un año ----- 5: Entre 1 a 2 años ----- 6: No buscó empleo (0)
+
+Esto sugiere que la existencia de una "Bolsa de trabajo" proporcionada por la universidad puede tener un impacto en la duración de la búsqueda del primer empleo. Aquellos que tienen acceso a una "Bolsa de trabajo" pueden tener una tendencia a encontrar empleo más rápidamente en comparación con aquellos que no tienen acceso o no tienen una "Bolsa de trabajo" disponible. Podemos observar que aquellos que tienen acceso a una "Bolsa de trabajo" (categoría "Sí") tienden a tener tiempos de búsqueda más cortos en comparación con aquellos que no tienen acceso o para quienes no existe una bolsa de trabajo, sin embargo no es tan significativa esta diferencia. Así mismo, el valor de la mediana se puede observar que no se diferencian significativamente del resto e indica un tiempo menor de un mes de búsqueda para cada categoría de "Bolsa de trabajo". Por último, los egresados que no tuvieron acceso a una bolsa de trabajo porque no existía mayormente encontraron su primer trabajo en menos meses que las otras opciones, además, no presentan tantos datos atípicos. Esto puede deberse a que los egresados buscaron otras opciones con precaución ya que no tenían la oportunidad de consultar ofertas de trabajo a sus universidades.
+
+### Gráfico de dispersión
+
+```{r}
+plot(DataFinal$Tiempo~DataFinal$Práticas, col = "royalblue4", xlab='Tiempo de prácticas (en meses)', ylab='Tiempo de búsqueda (en meses)', main='Tiempo de búsqueda del primer empleo después del empleo \n según el n° total de meses de prácticas pre profesionales realizadas', cex.main = 1)
+abline(lm(DataFinal$Tiempo~DataFinal$Práticas,data=DataFinal), col = 'indianred1')
+```
+
+```{r}
+cat("Coeficiente de correlación: ", cor(complete.cases(DataFinal$Tiempo), complete.cases(DataFinal$Práticas)))
+```
+
+Nota. Por conveniencia visual, los valores del Tiempo de búsqueda del primer empleo después del egreso (en meses) se han reducido a un sistema de equivalencias:
+
+-   1: Menos de un mes ----- 2: Entre 1 a 3 meses ----- 3: Entre 3 a 6 meses ----- 4: Entre 6 meses y menos de un año ----- 5: Entre 1 a 2 años ----- 6: No buscó empleo (0)
+
+Se puede concluir que no existe relación entre la cantidad de meses dedicados a las prácticas pre profesionales y el tiempo estimado para conseguir el primer empleo después del egreso. Asimismo, ello también se puede confirmar con el coeficiente de correlación, el cual se encuentra muy cercano al 0, denotando una relación lineal inexistente. Por lo tanto, de acuerdo a la presente data, las prácticas pre profesionales no significan un factor definitivo en la prontitud de la obtención de un empleo al egresar.
+
+# Análisis probabilístico
+
+## Probabilidad empírica
+
+De la base de datos, se consideraron importantes las siguientes variables para realizar el análisis de probabilidades: [Horas de trabajo a la semana en el primer empleo]{.underline} y [Acceso a bolsa de trabajo]{.underline}.
+
+### Horas de trabajo a la semana en el primer empleo
+
+*Espacio muestral o de resultados*
+
+```{r}
+T <- sum(complete.cases(DataFinal$HorasSemana))
+cat('Cantidad de observaciones sin NA: ', T)
+```
+
+En la base de datos hay [1838]{.underline} registros y los valores en la columna [HorasSemana]{.underline} son los siguientes:
+
+```{r}
+# ESPACIO MUESTRAL
+EMHoras <- data.frame(table(DataFinal$HorasSemana))
+EMHoras <- rename(EMHoras, 'Horas a la semana'=Var1, Frecuencia=Freq)
+EMHoras
+```
+
+*Eventos atómicos*
+
+1.  Seleccionar a una persona que trabajó N horas a la semana en su primer empleo después del egreso en una muestra de tamaño 1838.
+
+    ```{r}
+    EMHoras2 <- mutate(EMHoras, Probabilidad = Frecuencia/T)
+    EMHoras2
+    ```
+
+2.  Se definen dos eventos atómicos respecto a las 48 horas semanales como máximo de la jornada ordinaria de trabajo para varones y mujeres mayores de edad.
+
+    -   Seleccionar a un egresado que trabaje como máximo 48 horas a la semana en su primer empleo de una muestra de tamaño 1838.
+
+    -   Seleccionar a un egresado que trabaje más de 48 horas a la semana en su primer empleo de una muestra de tamaño 1838.
+
+    ```{r}
+    frec = 0
+    prob = 0
+    EMHoras2$`Horas a la semana` <- as.numeric(EMHoras2$`Horas a la semana`)
+    for(x in EMHoras2$`Horas a la semana`){
+      if (EMHoras2$`Horas a la semana`[x] <= 48){
+        frec = frec+EMHoras2$Frecuencia[x]
+        prob = prob+EMHoras2$Probabilidad[x]
+      }} 
+
+    EAHoras <- data.frame('Horas de trabajo a la semana'=c('Más de 48', 'Menos de 48'), Frecuencia = c(frec, T-frec), Probabilidad= c(prob, 1-prob)) # Por complemento
+    EAHoras
+    ```
+
+Aproximadamente el 95% de los egresados trabajaron más de las 48 horas semanales máximas permitidas en su primer empleo. A partir de esto podemos generar algunas hipótesis que expliquen esto. Primero, el 5% de los egresados que trabajaron menos de las 48 horas semanales en su primer empleo tuvieron un mejor contrato debido a que sus perfiles tenían mayores méritos frente a los demás. Segundo, algunos de los 95% de egresados que trabajaron más de las 48 horas semanales en su primer empleo puede deberse al tipo de trabajo que consiguieron, por ejemplo, una egresada en enfermería se desempeñó como cuidadora de un adulto mayor en su primer empleo.
+
+### Acceso a la bolsa de trabajo
+
+*Espacio muestral o de resultados*
+
+```{r}
+T2 <- sum(complete.cases(DataFinal$BolsaTrabajo))
+cat('Cantidad de observaciones sin NA: ', T2)
+```
+
+En la base de datos hay [3872]{.underline} registros y los valores en la columna [BolsaTrabajo]{.underline} son los siguientes:
+
+```{r}
+# ESPACIO MUESTRAL
+EMBolsa <- data.frame(table(DataFinal$BolsaTrabajo))
+EMBolsa <- rename(EMBolsa, 'Acceso a bolsa de trabajo'=Var1, Frecuencia=Freq)
+EMBolsa
+```
+
+*Eventos atómicos*
+
+1.  Seleccionar a una persona que no accedió a la bolsa de trabajo de su universidad de una muestra de tamaño 3872.
+
+2.  Seleccionar a una persona que contó con una bolsa de trabajo en su universidad de una muestra de tamaño 3872.
+
+3.  Seleccionar a una persona que accedió a la bolsa de trabajo de su universidad de una muestra de tamaño 3872.
+
+```{r}
+EMBolsa2 <- mutate(EMBolsa, Probabilidad = Frecuencia/T2)
+EMBolsa2
+```
+
+Aproximadamente el 67% de los egresados no tuvieron acceso a la bolsa de trabajo de su universidad, esto puede deberse a que no estaban informados de cómo postular o tuvieron mejores oportunidades para conseguir trabajo. En cambio, casi el 30% de los egresados sí tuvieron acceso a la bolsa de trabajo, por lo que estos pueden haber conseguido trabajos más adecuados para sus carreras o con mayores beneficios. Sin embargo, el caso más preocupante es el del 3% de egresados que no tuvieron acceso a una bolsa de trabajo porque sus universidades no contaban con una, por lo que pueden haber tenido mayores dificultades para conseguir empleos o en todo caso consiguieron empleos con pocos o ningún beneficio (pueden haberse enfrentado a largas jornadas de trabajo o sueldos insuficientes).
+
+## Probabilidad condicional
+
+### Eventos Independientes: Prácticas y Titulación
+
+Se hace un supuesto de que estas variables son independientes, puesto que los meses de prácticas pre profesionales que haya hecho un egresado no determinan el estado de su titulación, ya que las prácticas son un requisito para egresar pero no para titularse, por lo que hay egresados sin titulación.
+
+En el cuadro distribución y el gráfico de egresados titulados y no titulados según los meses de prácticas pre profesionales (véase en Análisis descriptivo) se puede observar que no hay una tendencia clara entre las variables, puesto que, por ejemplo, en el valor 12 de "Prácticas" hay una cantidad igual de grande de egresados titulados como no titulados, por lo que no tienen relación directa.
+
+```{r}
+# VARIABLE PRÁCTICAS
+EMPrácticas <- data.frame(table(DataFinal$Práticas))
+EMPrácticas <- rename(EMPrácticas, 'Meses de prácticas pre profesionales'=Var1, Frecuencia=Freq)
+EMPrácticas <- mutate(EMPrácticas, Probabilidad = Frecuencia/sum(complete.cases(DataFinal$Práticas)))
+EMPrácticas
+```
+
+```{r}
+# VARIABLE TITULACIÓN
+EMTitulación <- data.frame(table(DataFinal$Titulación))
+EMTitulación <- rename(EMTitulación, 'Estado de titulación'=Var1, Frecuencia=Freq)
+EMTitulación<- mutate(EMTitulación, Probabilidad = Frecuencia/sum(complete.cases(DataFinal$Titulación)))
+EMTitulación
+```
+
+[Nota:]{.underline} En el caso de las prácticas pre profesionales, el requisito para ser considerado como experiencia laboral es que se realicen por un período no menor a tres meses o hasta que el estudiante adquiera la condición de egresado.
+
+"Prácticas" tiene dos valores: "\>=3" y "\<3", y "Titulación" tiene dos valores: "Sí" y "No".
+
+De la muestra total de egresados, ¿cuál es la probabilidad de que un egresado haya realizado como mínimo 3 meses de prácticas pre profesionales dado que está titulado?
+
+-   A: "Seleccionar un egresado que realizó como mínimo 3 meses de prácticas pre-profesionales".
+
+-   B: "Seleccionar un egresado que esté titulado".
+
+```{r}
+frec = 0
+prob = 0
+EMPrácticas$`Meses de prácticas pre profesionales` <- as.numeric(EMPrácticas$`Meses de prácticas pre profesionales`)
+for(x in EMPrácticas$`Meses de prácticas pre profesionales`){
+  if (EMPrácticas$`Meses de prácticas pre profesionales`[x] >= 3){
+    frec = frec+EMPrácticas$Frecuencia[x]
+    prob = prob+EMPrácticas$Probabilidad[x]
+  }} 
+
+EAPrácticas <- data.frame(`Meses de prácticas pre profesionales`=c('Como mínimo 3'), Frecuencia = frec, Probabilidad= prob)
+EAPrácticas
+```
+
+Entonces:
+
+```{r}
+P_A = EAPrácticas$Probabilidad[1]
+P_B = EMTitulación$Probabilidad[2]
+
+cat(
+  paste(
+    "a) La probabilidad de seleccionar a un egresado titulado en la muestra es P(B) =", r(P_B), "\n\n",
+    "b) La probabilidad de seleccionar a un egresado no titulado en la muestra es 1-P(B) =", r(1 - P_B), "\n\n",
+    "c) La probabilidad de que un egresado titulado haya realizado como mínimo 3 meses de prácticas pre-profesionales es P(A)P(B) =", r(P_A*P_B), "\n\n",
+    "d) La probabilidad de que un egresado no titulado haya realizado como mínimo 3 meses de prácticas pre-profesionales es P(A)*(1-P(B)) =", r(P_A*(1-P_B))
+  )
+)
+```
+
+Se cumple que P(A n B) = P(A)P(B) = 0.4831, por lo que se valida como evento independiente ya que B no depende de A.
+
+```{r}
+(P_B*(P_A*P_B))+((1 - P_B*(P_A*(1-P_B))))
+```
+
+### Eventos Dependientes: Bolsa de Trabajo y Tiempo de búsqueda del primer empleo
+
+Al principio, se supuso que estas dos variables eran dependientes, ya que al explorar nuestra base de datos pudimos darnos cuenta que si un egresado accede a la bolsa de trabajo de su universidad podrá conseguir su primer empleo en menos tiempo que un egresado que no acceda a la bolsa de trabajo.
+
+En la gráfica de cajas Acceso a la bolsa de trabajo vs. Tiempo de búsqueda (véase en Análisis descriptivo), se observa que los tres valores de BolsaTrabajo tienen valores atípicos muy dispersos entre sí. Esto puede indicar que los egresados que no tuvieron acceso a la bolsa de trabajo de sus universidades les llevó más meses en buscar su primer empleo. Por lo tanto, se puede afirmar que ambas variables se relacionan de manera que el tener acceso o no a la bolsa de trabajo de una universidad influye en el tiempo que demora un egresado en encontrar trabajo.
+
+```{r}
+EMBolsa2
+```
+
+```{r}
+EMTiempo<- data.frame(table(DataFinal$Tiempo))
+EMTiempo <- rename(EMTiempo, 'Tiempo de búsqueda del primer empleo en meses'=Var1, Frecuencia=Freq)
+EMTiempo<- mutate(EMTiempo, Probabilidad = Frecuencia/sum(complete.cases(DataFinal$Tiempo)))
+EMTiempo
+```
+
+En este caso, "BolsaTrabajo" tiene como valores: "Sí", "No" y "No existe", y "Tiempo" tiene dos valores: "\<=6" y "\>6".
+
+¿Cuál es la probabilidad de que un egresado haya encontrado su primer empleo en máximo 6 meses dado que que no tuvo acceso a la bolsa de trabajo o que esta no existía en su universidad?
+
+-   A: "Seleccionar a un egresado que sí accedió a la bolsa de trabajo de la universidad".
+
+-   B: "Seleccionar a un egresado que encontró su primer empleo en máximo 6 meses".
+
+```{r}
+frec = 0
+prob = 0
+EMTiempo$`Tiempo de búsqueda del primer empleo en meses` <- as.numeric(EMTiempo$`Tiempo de búsqueda del primer empleo en meses`)
+for(x in EMTiempo$`Tiempo de búsqueda del primer empleo en meses`){
+  if (EMTiempo$`Tiempo de búsqueda del primer empleo en meses`[x] <= 6){
+    frec = frec+EMTiempo$Frecuencia[x]
+    prob = prob+EMTiempo$Probabilidad[x]
+  }}
+
+EATiempo <- data.frame(`Tiempo de búsqueda del primer empleo en meses`=c('Como máximo 6'), Frecuencia = frec, Probabilidad= prob)
+EATiempo
+
+```
+
+Entonces:
+
+```{r}
+P_A = EMBolsa2$Probabilidad[3]
+P_B = EATiempo$Probabilidad[1]
+
+cat(
+  paste(
+    "a) La probabilidad de seleccionar a un egresado que sí accedió a la bolsa de trabajo de la universidad en la muestra es P(A) =", r(P_A), "\n\n",
+    "b) La probabilidad de seleccionar a un egresado que no accedió a la bolsa de trabajo o no existió en la universidad en la muestra es 1-P(A) =", r(1 - P_A), "\n\n",
+    "c) La probabilidad de que un egresado que sí accedió a la bolsa de trabajo haya encontrado su primer empleo en máximo 6 meses es  P(A)P(B) =", r(P_A*P_B), "\n\n",
+    "d) La probabilidad de que un egresado que no tuvo acceso a la bolsa de trabajo o no existe en su universidad haya encontrado su primer empleo en máximo 6 meses es P(B)*(1-P(A)) =", r(P_B*(1-P_A))
+  )
+)
+```
+
+No se cumple que P(A n B) = P(A)P(B), por lo que se valida como evento dependiente, puesto que B depende de A. Se puede concluir que el acceso a la bolsa de trabajo de la universidad puede aumentar las probabilidades de encontrar empleo en un plazo de 6 meses, aunque la influencia de este acceso es relativamente baja (10.16%).
+
+### Variables discretas
+
+#### VD 1
+
+La variable "Titulación" la podemos modelar como una variable discreta con distribución geométrica, donde X representa el número de egresados seleccionados no titulados antes de que salga un titulado, se debe tener en cuenta que la selección de un egresado titulado se considera como el éxito.
+
+[Parámetros]{.underline}
+
+Entonces se definen los parámetros "n" como el tamaño de la muestra, "x" como el número de egresados no titulados que se seleccionan antes del primer éxito y "p" como la probabilidad de tener éxito (probabilidad de seleccionar a un egresado titulado).
+
+$$
+X \sim Geom(x,p)
+$$
+
+```{r}
+n = sum(complete.cases(DataFinal$Titulación))
+p = EMTitulación$Frecuencia[2]/n
+x = 1/p-1   
+
+cat('X ~ N(', x, ',', p, ')')
+
+```
+
+[Función de probabilidad y densidad]{.underline}
+
+```{r}
+# Calcular el valor de la función de probabilidad
+x <- 0:n
+y <- dgeom(x, p)
+
+# Graficar la función de densidad
+plot(x, y, xlim=c(0,40), ylim=c(0,0.6), type="h", lwd=2, xlab="Número de ensayos hasta el primer éxito", ylab="Probabilidad", main="Función de densidad de una distribución geométrica")
+
+```
+
+[Validación de propiedades]{.underline}
+
+```{r}
+#Esperado
+g<-function(x){x*p*((1-p)^(x-1))}
+integrate(g,0,n)
+
+ES = (1-p)/p
+ES
+```
+
+En el esperado existe un margen de error por lo que los resultados pueden diferir en una pequeña magnitud.
+
+```{r}
+V = (1-p)/(p^2)
+CV = sqrt(V)/(1/p)
+V
+CV
+```
+
+[Ejemplo]{.underline}
+
+Se seleccionan a distintos egresados de la base de datos. La probabilidad de que sea un egresado titulado es p. ¿Cuál es la probabilidad de que el décimo egresado que se selecciona sea titulado?
+
+```{r}
+# En la distribución geométrica, la variable X representa el número de fracasos antes de encontrar el único éxito (seleccionar a un egresado titulado), por lo tanto, en este caso el interés es calcular  P(X=9). La instrucción para obtener esta probabilidad es la siguiente.
+
+dgeom(x=9, prob=p)
+```
+
+#### VD 2
+
+La variable "BolsaTrabajo" la podemos modelar como una variable discreta con distribución binomial, donde X representa el valor "sí", es decir, el número de egresados que accedieron a la bolsa de trabajo de su universidad y este a su vez se considera el éxito, se debe tener en cuenta que los demás valores de la variable ("no" y "no existe") se consideran como el fracaso.
+
+[Parámetros]{.underline}
+
+Entonces se definen los parámetros "n" como el número de pruebas (para definir la función de probabilidad se toma como el tamaño de la muestra), "x" como el tamaño de muestra seleccionada y "p" como la probabilidad de tener éxito (probabilidad de seleccionar a un egresado que accedió a la bolsa de trabajo).
+
+$$
+X \sim Bin(n, p)
+$$
+
+```{r}
+n = sum(complete.cases(DataFinal$BolsaTrabajo))
+p = EMBolsa$Frecuencia[2]/n
+
+cat('X ~ N(', n, ',', p, ')')
+```
+
+[Función de probabilidad y densidad]{.underline}
+
+```{r}
+# Calcular la función de probabilidad
+x <- 0:n
+y <- dbinom(x,n,p)
+
+# Graficar la densidad
+plot(x, y, xlim=c(0,300), type = "h", col = "blue", lwd = 2,
+     xlab = "Número de éxitos", ylab = "P(X=x)", main = "Función de Densidad Binomial")
+```
+
+[Validación de propiedades]{.underline}
+
+```{r}
+ES = n*p
+V = (n*p)*(1-p)
+CV = V/ES
+ES
+V  
+CV
+```
+
+[Ejemplo]{.underline}
+
+La probabilidad de seleccionar a un egresado que accedió a la bolsa de trabajo en la base de datos es p=0.29881198. Si se seleccionan aleatoriamente a 50 egresados de la base de datos, ¿qué probabilidad hay de que se encuentren a 10 egresados que han accedido a la bolsa de trabajo?
+
+```{r}
+# Aquí se tiene una distribución binomial y se desea calcular P(X=10). Para obtener esta probabilidad se usa la siguiente instrucción.
+dbinom(x=10, size=50, prob=p)
+```
+
+```{r}
+# Para dibujar la función de masa de probabilidad para una binomial se usa el siguiente código.
+x <- 0:10
+Probabilidad <- dbinom(x=x, size=50, prob=p)
+plot(x=x, y=Probabilidad, 
+     type='h', las=1, lwd=6, ylim=c(0, 0.5))
+
+```
+
+## Variables continuas
+
+#### VC 1: Ingreso bruto mensual en el primer empleo como egresado
+
+La variable "Ingreso" es una variable continua, donde X se puede modelar como el número de personas con sueldo mayor a 1025 soles en su primer empleo después del egreso dentro de una muestra de 1834 egresados, se debe tener en cuenta que se está considerando que el sueldo mínimo mensual es 1025 soles.
+
+[Distribución]{.underline}
+
+La variable presenta una distribución normal asimétrica debido a que la gráfica es un histograma donde los valores están agrupados hacia la izquierda, es decir, hacia los rangos de valores cerca del sueldo mínimo.
+
+```{r}
+Ing <- DataFinal$Ingreso[!is.na(DataFinal$Ingreso)]
+hist(Ing)
+```
+
+[Función de densidad]{.underline}
+
+```{r}
+µ <- mean(Ing)
+σ <- sd(Ing)
+curve(dnorm(x,µ,σ),xlim=c(0,6000),col="blue",lwd=2, xlab="x",ylab="f(x)",main="Función de Densidad N(µ,σ)")
+```
+
+[Función de distribución]{.underline}
+
+```{r}
+curve(pnorm(x,µ,σ),xlim=c(0,6000),col="blue",lwd=2, xlab="x",ylab="f(x)",main="Función de Distribución N(µ,σ)")
+```
+
+[Propiedades]{.underline}
+
+Cuando se trata de una distribución normal es simétrica, la media, moda y mediana coinciden; sin embargo al validar se obtiene que es una distribución asimétrica, por lo que coincide con el análisis del histograma.
+
+Para una asimetría positiva, la media será mayor que la mediana.
+
+```{r}
+mean(Ing)>median(Ing)
+```
+
+El coeficiente de asimetría de Fisher es una medida numérica que indica el grado de asimetría en una distribución. Un valor positivo indica que es positiva.
+
+```{r}
+skewness(Ing)
+```
+
+[Parámetros]{.underline}
+
+Se definen los parámetros "mu" como la media de los valores de la variable y "sigma" como la desviación estándar de la variable.
+
+```{r}
+µ <- mean(Ing)
+median(Ing)
+σ2 <- var(Ing)
+σ <- sd(Ing)
+
+cat('X ~ N(', µ, ',', σ, ')')
+```
+
+[Ejemplo]{.underline}
+
+¿Cuál es la probabilidad de que un egresado gane, en su primer sueldo, más de 1025 soles mensuales?
+
+```{r}
+probIng <- pnorm(1025,µ, σ, lower.tail=FALSE )
+probIng
+
+cat('Hay un', r(probIng)*100, '% de probabilidad de que un egresado, en su primer sueldo, gane más de 1025 soles mensuales')
+```
+
+#### VC 2: Tiempo de búsqueda del primer empleo después del egreso
+
+La variable "Tiempo" es una variable continua, donde X se puede modelar como el número de egresados que obtuvieron su primer empleo en un tiempo no mayor 6 meses de una muestra de 1839 egresados.
+
+[Distribución]{.underline}
+
+La gráfica del histograma de la variable puede modelarse como una distribución exponencial.
+
+```{r}
+Tm<-(DataFinal$Tiempo[!is.na(DataFinal$Tiempo)])
+hist(Tm)
+```
+
+```{r}
+lambdaTiem <- (mean(DataFinal$Tiempo, na.rm=TRUE))
+x <- seq(0, lambdaTiem, 0.01)
+plot(x, dexp(x, lambdaTiem), type = "l",
+     ylab = "F(x)", lwd = 1, col = "blue",main="Variable exponencial")
+
+```
+
+[Propiedades]{.underline}
+
+```{r}
+β = mean(DataFinal$Tiempo<=3, na.rm=TRUE)
+median(DataFinal$Tiempo[DataFinal$Tiempo<=3], na.rm=TRUE)
+ES = β
+Var = β^2
+ES
+Var
+```
+
+```{r}
+e1=mean((DataFinal$Tiempo)^2)
+e2=mean((DataFinal$Tiempo))^2
+v1<-e1-e2
+v2<-var(DataFinal$Tiempo)
+all.equal(v1, v2,tolerance=0.01)
+```
+
+[Ejeemplo]{.underline}
+
+¿Cuál es la probabilidad de que un egresado encuentre su primer empleo en un periodo no menor a 6 meses?
+
+```{r}
+probTm<-pexp(6,β,lower.tail = F)
+probTm
+cat('Hay un',probTm*100,"% de probabilidad de que un egresado, encuentre su primer empleo en un tiempo mayor a los 6 meses")
+
+```
+
+# Conclusiones
+
+1.  Los factores principales de las universidades que influyen en el margen de empleabilidad de los egresados son la bolsa de trabajo y el estado de titulación, puesto que en el análisis descriptivo y probabilístico, estas fueron las dos variables que tienen relación con la experiencia de los egresados con su primer empleo como el tiempo de búsqueda del primer empleo, las horas semanales de trabajo, los meses de prácticas preprofesionales y el ingreso mensual. Otro factor que influye en la empleabilidad del egresado es la carrera profesional, sin embargo, no es un factor determinante ni propio de la universidad, sino que se refiere más a la valoración en el campo laboral.
+
+2.  Según las cifras obtenidas de la base de datos, en el año 2014, el perfil de un egresado de una universidad de Lima tiene las siguientes características: no titulado (51%), no accedió a la bolsa de trabajo (67%), trabajó máximo 48 horas semanales en su primer empleo (95%) y se demoró más de 3 meses en encontrar empleo (89%).
+
+3.  Según el análisis entre las variables de estudio, los perfiles de egresados con mayor empleabilidad tienen las siguientes características: titulados, que sí hayan accedido a la bolsa de trabajo y que encontraron su primer empleo en menor tiempo.
+
+# Integrantes
+
+-   Aiquipa Meza, Sharon Alejandra (Líder)
+
+-   Arone Barrientos, Frank Damian
+
+-   Chu Lama, Sebastián
+
+-   Falla Carlos, Williams Snaider
+
+-   Yamunaque Cordova, Fabricio
