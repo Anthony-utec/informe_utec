@@ -1,0 +1,259 @@
+---
+format: revealjs
+editor: visual
+---
+
+```{r,echo=FALSE}
+if (!require("readr", character.only = TRUE)) {
+  install.packages("readr")
+}
+if (!require("readxl", character.only = TRUE)) {
+  install.packages("readxl")
+}
+if (!require("dplyr", character.only = TRUE)) {
+  install.packages("dplyr")
+}
+if (!require("stringr", character.only = TRUE)) {
+  install.packages("stringr")
+}
+if (!require("plotrix", character.only = TRUE)) {
+  install.packages("plotrix")
+}
+if (!require("scales", character.only = TRUE)) {
+  install.packages("scales")
+}
+if (!require("ggplot2", character.only = TRUE)) {
+  install.packages("ggplot2")
+}
+if (!require("ggthemes", character.only = TRUE)) {
+  install.packages("ggthemes")
+}
+if (!require("mvtnorm", character.only = TRUE)) {
+  install.packages("mvtnorm")
+}
+if (!require("rriskDistributions", character.only = TRUE)) {
+  install.packages("rriskDistributions")
+}
+if (!require("fastGraph", character.only = TRUE)) {
+  install.packages("fastGraph")
+}
+```
+
+```{r,echo=FALSE}
+
+library(dplyr);
+library(readr);
+library(readxl);
+library(stringr);
+library(plotrix);
+library(scales);
+library(ggplot2);
+library(ggthemes);
+library(mvtnorm)
+library(rriskDistributions)
+library(fastGraph)
+```
+
+```{r,echo=FALSE}
+export <- read_excel("export.xlsx")
+items <- read_excel("items.xlsx")
+minerales <- read_excel("minerales.xlsx")
+sector <- read_excel("sector.xlsx")
+paises<- read.csv2("destino31.csv",header =T,sep =';')
+```
+
+```{r,echo=FALSE}
+sector = sector[-c(1), ] #Borro el NA que estobarba de sector
+```
+
+```{r,echo=FALSE}
+paises = paises[-c(260:993), ] #Borro las filas que quedaron en NA
+
+paises = select(paises,País.Destino,Año,Meses,Total.registros,Total.KG,US.KG,US)
+```
+
+```{r,echo=FALSE}
+paises = rename(paises,Pais_Destino = "País.Destino",Anio = "Año",Total_Registros = "Total.registros",Total_KG = "Total.KG",US_Dolar = "US",US_KG = "US.KG")
+
+paises = select(paises,Pais_Destino,Anio,Meses,Total_Registros,Total_KG,US_KG,US_Dolar)
+```
+
+```{r,echo=FALSE}
+paises$Total_Registros = as.integer(paises$Total_Registros)
+paises$Total_KG = as.numeric(paises$Total_KG)
+paises$US_KG = as.numeric(paises$US_KG)
+paises$US_Dolar = as.numeric(paises$US_Dolar)
+```
+
+```{r,echo=FALSE}
+paises <- mutate(paises, `Total_Registros`= as.integer(`Total_Registros`))
+```
+
+```{r,echo=FALSE}
+export = rename(export,Anio = "AÑO",Total_Registros = "Total registros",Total_KG = "Total KG",US_KG = "US$ / KG",US_Dolar = "US$")
+```
+
+```{r,echo=FALSE}
+export <- mutate(export,`Total_Registros` = as.integer(`Total_Registros`),`Anio` = as.integer(`Anio`))
+```
+
+```{r,echo=FALSE}
+minerales = rename(minerales,US_Dolar = "US $", Anio = "Año");
+```
+
+```{r,echo=FALSE}
+sector=na.omit(sector)#Eliminamos la fila
+sector=data.frame(sector, row.names = NULL)# Reordenamos el orden numerico de los datos
+```
+
+```{r,echo=FALSE}
+items = rename(items,Descrip_Part_Aduanera = "Descripción Partida Aduanera",
+               Anio = "Año",
+               Total_Registros = "Total registros",
+               Total_KG = "Total KG",
+               US_KG = "US$ / KG",
+               US_Dolar = "US$")
+```
+
+```{r,echo=FALSE}
+items$Anio = as.integer(items$Anio)
+items$Total_Registros = as.integer(items$Total_Registros)
+```
+
+```{r,echo=FALSE}
+#2021
+export %>% filter(Anio == 2021 )%>%group_by(Exportador) %>% summarise(TotalDolaresFull = sum(US_Dolar)) -> comparacionexport2021
+#2022
+export %>% filter(Anio == 2022 )%>%group_by(Exportador) %>% summarise(TotalDolaresFull = sum(US_Dolar)) -> comparacionexport2022
+```
+
+```{r,echo=FALSE}
+comparacionexport2021$newDollarsMillion = round(comparacionexport2021$TotalDolaresFull/1000000 , 4)
+comparacionexport2022$newDollarsMillion = round(comparacionexport2022$TotalDolaresFull/1000000 , 4)
+```
+
+```{r,echo=FALSE}
+comparacionexport2021= comparacionexport2021[order(comparacionexport2021$TotalDolaresFull,decreasing = TRUE),]
+```
+
+```{r,echo=FALSE}
+export %>% filter(Anio == 2021) %>% group_by(Exportador) %>% summarise(TotalRegistrosFull = sum(Total_Registros)) ->exportRegistrosFull2021
+```
+
+```{r,echo=FALSE}
+export %>% filter(Anio == 2021) %>% group_by(Exportador) %>% summarise(registerFull = sum(Total_Registros),DolaresFull =  sum(US_Dolar),DolaresMillion = round(sum(US_Dolar)/100000,3)) %>% arrange(desc(DolaresMillion)) -> exportDolarRegisFull2021
+```
+
+## S1 Exportaciones de cobre en el Perú en el 2021 y 2022
+
+Objetivos:
+
+-   Analizar las variables discretas y continuas.
+-   Identificar y clasificar los eventos dependientes o independientes.
+-   Plantear, analizar y resolver las probabilidades de tipo empíricas y condicionales.
+-   Identificar y analizar el tipo de distribución de las variables discretas y continuas.
+
+## Probabilidades Empiricas
+
+$\tiny ¿Cuál\ es\ la\ probabilidad\ de\ que\ las\ empresas\ que\ exportaron\ cobre\ en\ 2021\ esten\ presentes\ en\ 2022?$ $\tiny A = \{Empresas\ que\ exportaron\ cobre\ en\ 2021\ y\ no\ en\ 2022\}\\ \tiny N(A) = 21\\\tiny B = \{Empresas\ que\ exportaron\ cobre\ en\ 2022\ y\ no\ en\ 2021\}\\\tiny N(B) = 24\\\tiny C = \{Empresas\ expotadoras\ que\ exportaron\ cobre\ en\ 2021\ y\ 2022\} = A\cap B\\\tiny N(A\cap B)=26\\\tiny \Omega = \{Empresas\ exportadora\ de\ 2021\ y\ 2022\}\\\tiny P(A\cap B) = \frac{N(A\cap B)}{N(\Omega)} = \frac{26}{71} = 0.3661972\\$
+
+```{r,echo =FALSE}
+interseccion1<-length(intersect(comparacionexport2021$Exportador,comparacionexport2022$Exportador))
+EspacioMuestral1<-length(union(comparacionexport2021$Exportador,comparacionexport2022$Exportador))
+```
+
+```{r,echo=TRUE}
+interseccion1/EspacioMuestral1
+```
+
+## Probabilidades Empiricas
+
+$\tiny ¿Cuál\ es\ la\ probabilidad\ de\ que\ las\ empresas\ exportadoras\ tengan\ mayor\ a\ 1\ registro\ durante\ el\ año\ 2021?$ $\tiny \Omega = \{Empresas\ del\ 2021\}\\\tiny N(\Omega) = 47\\\tiny A = \{Empresas\ que\ su\ numero\ de\ registros\ es\ mayor\ a\ 1\}\\ \tiny N(A) =32 \\\tiny A^{c} = \{Empresas\ que\ su\ numero\ de\ registros\ es\ menor\ o\ igual\ a\ 1\}\\ \tiny N(A^{c}) = 15\\\tiny P(A) = \frac{N(A)}{N(\Omega)} = \frac{32}{47} = 0.6808511$
+
+```{r,echo =FALSE}
+A_may1 = nrow(exportRegistrosFull2021 %>% filter(TotalRegistrosFull > 1))
+Espaciomuestra_Regis = nrow(exportRegistrosFull2021)
+```
+
+```{r,echo=TRUE}
+A_may1/Espaciomuestra_Regis
+```
+
+## Probabilidades Condicionales
+
+$Problema\ 1:$ $\tiny Si\ se\ sabe\ que\ las\ empresas\ tienen\ una\ cantidad\ de\ dolares\ por\ encima\ de\ la\ media\ \\\tiny ¿Cuál\ es\ la\ probabilidad\ de\ que\ las\ empresas\ hayan\ tenido\ un\ numero\ mayor\ o\ igual\ a\ 90$ $\\\tiny A = \{Empresas\ que\ tienen\ un\ numero\ de\ registro\ mayor\ o\ igual\ a\ 90\} \\\tiny B = \{Empresas\ que\ tienen\ una\ cantidad\ de\ millones\ de\ dolares\ mayor\ a\ la\ media\}\\\tiny \Omega = \{Empresas\ que\ exportaron\ en\ 2021 \}\\\tiny Comprobando\ si\ son\ independientes:$ $\tiny P(A) = 0.1489362 = \frac{N(A)}{N(\Omega)}$ $\tiny P(B) =0.212766 = \frac{N(B)}{N(\Omega)}$ $\tiny P(A/B) = P(A)\vartriangleright \tiny \frac{P(A\cap B)}{P(B)}=P(A)\vartriangleright \frac{0.06382979}{0.212766}\neq 0.1489362 \vartriangleright 0.3 \neq 0.1489362$ $\tiny P(B/A) = P(B)\vartriangleright \tiny \frac{P(B\cap A)}{P(A)}=P(B)\vartriangleright \frac{0.06382979}{0.1489362}\neq 0.212766 \vartriangleright 0.4285714 \neq 0.212766$ $\tiny P(A\cap B) = P(B)\cdot P(A) \vartriangleright 0.06382979 \neq 0.212766\times0.1489362 \vartriangleright 0.06382979 \neq 0.03168856$ $\small Son\ eventos\ dependientes$
+
+## Probabilidades Condicionales
+
+$\small Problema\ 1:\\\tiny Teorema\ de\ la\ probabilidad\ total\:$ $\tiny P(B) = P(B/A)*P(A) + P(B/A^{c}) *P(A^{c}) = 0.4285714*0.1489362 + 0.175 *0.8510638 = 0.212766$ $\tiny Aplicamos\ teorema\ de\ Bayes\\$ $\\\tiny P(A/B) = \frac{P(B/A)\times P(A)}{P(B)} = \frac{0.4285714\times0.1489362}{0.212766} = 0.3\\$
+
+```{r,echo =  TRUE}
+(0.4285714*0.1489362)/0.212766
+```
+
+La probabilidad de que las empresas tengan un número de registros mayor o igual a 90 dado que se sabia que superaban la media de millones de dolares es 0.3
+
+## Probabilidades Condicionales
+
+$Problema\ 2:$ $\tiny ¿Cual\ es\ la\ probabilidad\ de\ que\ las\ empresas\ de\ diciembre\ de\ 2022\ tengan\ un\ numero\  mayor\ a\ 2\ registros,\\\tiny si\ sabemos\ que\ esta\ tienen\ una\ cantidad\ de\  kilogramos\ por\ encima\ de\ los\ 10433357.50Kg?$ $\tiny \Omega = \{Empresas\ en\ el\ mes\ de\ Diciembre\ de\ 2022\}$ $\tiny A = \{Empresas\ con\ más\ de\ 2\ registros\ en\ el\ mes\ de\ Diciembre\}\ P(A) = \frac{11}{25}=\frac{N(A)}{N(\Omega)} = 0.44$ $\tiny B = \{Empresas\ que\ exportaron\ más\ de\ 10433357.50 kg \ de\ cobre\}\ P(B) = \frac{10}{25}=\frac{N(B)}{N(\Omega)} = 0.4$ $\tiny Comprobando\ si\ son\ independientes:$ $\tiny P(A/B) = P(A)\vartriangleright \tiny \frac{P(A\cap B)}{P(B)}=P(A)\vartriangleright \frac{0.28}{0.4}\neq 0.44 \vartriangleright 0.7 \neq 0.44$ $\tiny P(B/A) = P(B)\vartriangleright \tiny \frac{P(B\cap A)}{P(A)}=P(B)\vartriangleright \frac{0.28}{0.44}\neq 0.4 \vartriangleright 0.6363636 \neq 0.4$ $\tiny P(A\cap B) = P(B)\cdot P(A) \vartriangleright 0.28 \neq 0.4\times0.44 \vartriangleright 0.28 \neq 0.176$ $\\\small Son\ eventos\ dependientes$
+
+## Probabilidades Condicionales
+
+$\small Problema\ 2:\\\tiny Teorema\ de\ la\ probabilidad\ total\:$ $\tiny P(B) = P(B/A)*P(A) + P(B/A^{c}) *P(A^{c}) =(0.6363636 * 0.44) + (0.2142857*0.56) =0.4$ $\tiny Aplicamos\ teorema\ de\ Bayes\\$ $\\\tiny P(A/B) = \frac{P(B/A)\times P(A)}{P(B)}= \frac{P(A\cap B)}{P(B)} = \frac{0.6363636 * 0.44}{0.4} = 0.7\\$
+
+```{r,echo = TRUE}
+(0.6363636 * 0.44)/0.4
+```
+
+La probabilidad de que las empresas sean de un número de registro mayor a 2 dado que la cantidad que exporto en el mes de diciembre de 2022 fue mayor a 10433357.50 es 0.7
+
+## Distribuciones Discretas
+
+$Distribución\ de\ Bernoulli\\$
+$\\\tiny X:Número\ de\ países\ destino\ que\ no\ son\ China$
+$\\\tiny Solucion:\\\tiny X = \left\lbrace\begin{array}{c} 1\ si\ el\ importador\ no\ es\ China\\ 0\ si\ el\ importador\ si\ es\ China\end{array}\right.\\$
+$\tiny A = \{El\ país\ importador\ es\ China \}$
+$\tiny N(A) = \{Número\ de\ veces\ que\ el\ país\ importador\ es\ China \}$
+$\tiny Omega= \{Frecuencia\ totales\ de\ los\ paises\ destinos\}$
+$\tiny N(\Omega)= \{Número\ de\ frecuencia\ totales\ de\ los\ paises\ destinos\}$
+$\tiny P(A) = \frac{12}{132} = \frac{N(A)}{N(\Omega)} = 0.09090909$
+$\tiny X \sim B(n, p)\\$
+$\tiny A^\complement= 1- 0.09090909= 0.9090909$
+$\tiny P(X =x=1) = \left\lbrace\begin{array}{c} 0.9090909^{1}~(1-0.9090909)^{0}, x= 0.9090909 \\ 0, otro\ caso \end{array}\right.\\$
+
+## Distribuciones Discretas
+
+$Distribución\ de\ Bernoulli\\$
+$$\tiny Donde:\ E(X) =0.9090909\ y\ V(X) = 0.9090909(0.09090909) = 0.08264463$$
+```{r,echo = FALSE}
+0.9090909*(0.09090909)
+```
+
+```{r,echo = FALSE} 
+barplot(c(0.9090909, 1 - 0.9090909), names.arg = nombres <- c("1", "0"), xlab = "Exito                                                       Fracaso",ylab = "Probabilidad", main = "GR24: Gráfico Bernoulli de los países destinos excepto China en 2021",ylim = c(0:1))
+```
+
+## Distribuciones Continuas
+
+Las cantidades de  millones dólares que generan anualmente las empresas exportadoras en el año 2021 siguen una distribución Weibull con parámetros α=  0.2334531 y β=25.9837624. ¿Cuál es la probabilidad que la cantidad de millones de dolares sea mayor a 400, pero menor a 800?
+
+$\tiny X: Número\ de\ millones\ de\ dolares\ generados\ por\ las\ empresas\ exportadoras\ en\ el\ año\ 2021$
+X~ Weibull 
+$\tiny P(400 \leqslant X \leqslant 800)$
+```{r,echo=TRUE}
+pweibull(800,0.2334531,25.9837624) - pweibull(400,0.2334531,25.9837624)
+```
+
+## Distribuciones Continuas
+
+```{r}
+shadeDist (c(400,800),"dweibull",0.2334531,25.9837624)
+```
+
+El gráfico generado muestra la distribución Weibull con los parámetros proporcionados y resalta el área sombreada correspondiente a la probabilidad calculada de que la cantidad de millones de dólares generados esté entre 400 y 800 en el año 2021.
+
+## Conclusiones
+
+- En el  presente estudio probabilístico se hizo el uso de las probabilidades discretas nos permitió analizar las variables discretas mediante probabilidades condicionales, empíricas, esto nos proporcionó saber sobre la dependencia de nuestras variables y sobre como se comportaron en el año 2021 y 2022.
+-Como pudimos ver en el análisis y búsqueda de distribución de variables discretas, vimos que con los datos que tenemos para nuestro estudio, no pudimos encontrar una distribución que se adecue a los modelos estudiados en clase, es necesario utilizar técnicas de modelado más avanzadas.
+

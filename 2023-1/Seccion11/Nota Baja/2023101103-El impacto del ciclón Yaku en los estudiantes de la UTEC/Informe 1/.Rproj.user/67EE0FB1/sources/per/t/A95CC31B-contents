@@ -1,0 +1,1301 @@
+---
+title: "Estilo de vida de los alumnos de UTEC y su relación con en el rendimiento de las pruebas psicotécnicas numérica-espacial (ciclo 2022-2)"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  word_document:
+    toc: yes
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    theme: journal
+    number_sections: yes
+---
+
+
+# **Introducción**
+
+<br>
+
+## **Relevancia**
+
+Este proyecto consiste en ver si el estilo de vida del alumnado de UTEC (alimentación, horas de sueño y actividad deportiva)se encuentra relacionado con el rendimiento de las pruebas psicotécnicas numérica y espacial-rotacional. 
+
+Antes de todo hay que entender la importancia y objetivo de cada prueba:
+
+La prueba **psicometrica numérica** mide el razonamiento inductivo y abstracto, y la capacidad numérica en un tiempo corto de las personas, mientras que la prueba **espacial- rotacional** mide la visualización tridimensional y la creatividad.
+
+Con base a ello, se puede decir que UTEC  al tener estudiantes que cursan carreras de ingeniería y tecnología se esperaría que el alumnado sea capaz de rendir las pruebas satisfactoriamente, por esa razón es importante realizar este proyecto, pues si se identifica algunos patrones esto puede tener un impacto en todo su camino universitario del estudiante, ya que están expuestos constantemente a cursos en donde requieren de estas habilidades.
+
+## **Objetivos**
+
+### **Objetivo general**
+
+Identificar y analizar la relación existente entre el estilo de vida del estudiante y sus habilidades cognitivas.
+
+### **Objetivos específicos**
+
+-   **Reconocer** que variables presentadas se relacionan con el rendimiento de las pruebas psicotecnicas y el estilo de vida.
+-   **Identificar** las variables que muestren una tendencia de sesgo.
+-   **Corroborar** los patrones encontrados en el análisis descriptivo mediante el análisis probabilistico.
+
+# **Datos**
+
+```{r echo=FALSE, include=FALSE}
+library(readr)
+library(dplyr)
+library(modeest)
+library(funModeling)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+library(stringr)
+library(lubridate)
+library(descr)
+library(vcd)
+library(tidyverse)
+```
+
+```{r message=FALSE, warning=FALSE}
+Datos <- read_csv("UTEC cuestionario.csv", col_names = TRUE,  locale = readr::locale(encoding = "UTF-8"))
+```
+
+```{r echo=FALSE}
+Datos
+```
+
+```{r include=FALSE, echo=FALSE}
+cols <- ncol(Datos)
+rows <- nrow(Datos)
+```
+
+-   La base de datos es almacenada en la variable Datos.
+-   Contiene `r rows` observaciones y `r cols` variables. 
+
+<br>
+
+## **Proceso de recolección de datos**
+
+Para este  proyecto se optó por recolectar los datos mediante un cuestionario a los alumnos de UTEC por medio de  Google Forms. Lo primero que se hizo fue compartir el cuestionario a un grupo de telegram en el cual se encontraban todos los estudiantes matriculados al curso de Estadística y Probabilidades I en el ciclo 2022-2. El mensaje fue enviado junto a un sorteo de un combo de bembos, el cual fue usado como incentivo para que las personas se animen a rellenar la encuesta. Finalmente, para poder llegar a los 200 alumnos se decidió brindar chupetines aleatoriamente.
+
+
+## **Población, muestra y muestreo**
+
+1.- Población de estudio: Alumnos de la Universidad de Ingeniería y Tecnología (UTEC) que se encuentran en el ciclo 2022-2.
+
+2.- Unidad muestral: Alumnos de diferentes ciclos de UTEC.
+
+3.- Tamaño muestra: 200 estudiantes cursando estudios en UTEC.
+
+4.- Representatividad de la muestra: Muestra representativa debido a que muestran las características de la población y existe una variación respecto al estilo de vida que tiene cada uno.
+
+5.- Tipo de muestreo: Muestreo aleatorio por conveniencia.
+
+## **Variables**
+
+| Variable                     | Tipo de Variable   | Restricciones                                                                                                          |
+|------------------------------------------------------------|------------------------------------------------------------|--|
+| Género                       | Categórica nominal | Solo existen dos opciones hombre o mujer, debido que es la que se indica en el DNI.                                     |
+| Edad                         | Numérica Discreta  | Es un número entero positivo entre 17 y 30.                                                                            |
+| Carrera                      | Categórica Nominal | Solo se puede marcar una de las 12 opciones presentadas, ya que son las únicas carreras que brinda la universidad UTEC. |
+| Ciclo                        | Categórica nominal  | Solo puede ser un número entero positivo del 1 al 10.                                                                   |
+| Peso                         | Numérica discreta  | No hay exactitud en esta variable, por lo que se opta en trabajar con números enteros.                                                                                   |
+| Estatura                     | Numérica discreta  | Un número positivo, y al estar en cm no se presenta como decimal.                                                                                   |
+| Indice de Masa Corporal      | Numérica Continua  | Un número positivo, puede ser decimal.                                                                                   |
+| P.P. Esp-Rot                 | Numérica Continua  | Un número positivo del 0 al 10.                                                                                         |
+| P.P. Numérica                | Numérica Continua  | Un número positivo del 0 al 10.                                                                                         |
+| Nivel Concentración          | Categórica Ordinal | Marcar un número del 1 al 5, en donde, el 1 significa no concentrado y el 5 muy concentrado.                                                                                            |
+| Actividad Distractora        | Categórica Nominal | Un texto de 5 palabras como máximo.                                                                                     |
+| Sentimiento Realizando P.P.  | Categórica Nominal | Marcar una o más de las palabras que se encuentran en las opciones y/o redactar una.                                    |
+| Sentimiento Finalizando P.P. | Categórica Nominal | Marcar una o más de las palabras que se encuentran en las opciones y/o redactar una.                                    |
+| Comida Diaria                | Categórica Ordinal  | Marcar un número del 1 al 5 o indicar un número mayor a los indicados                                                  |
+| Comida rápida                | Categórica Ordinal | Marcar una de las opciones mostradas o redactar otra opción que no se encuentre                                        |
+| Cantidad a.física            | Categórica Ordinal | Marcar una de las opciones mostradas.                                                                                   |
+| Actividad física             | Categórica Nominal | Marcar una de las opciones mostradas.                                                                                   |
+| Horas a.física               | Numérica Discreta  | La unidad es en horas y solo se aceptan números enteros o con 0.5 .                                                   |
+| Bebidas                      | Categórica Nominal | Marcar una de las opciones mostradas.                                                                                   |
+| Azúcar                       | Categórica Nominal | Marcar una de los niveles mostrados.                                                                                  |
+| Régimen alimenticio          | Categórica Nominal | Marcar una de las opciones mostradas.                                                                                   |
+| Especialista                 | Categórica Nominal | Marcar una de las opciones mostradas.                                                                                  |
+| Horas_sueño                  | Numérica Discreta  | Solo puede ser un número menor a 13h y que sea entero o con 0.5.                                                                                    |
+| Enfermedad                   | Categórica Nominal | Marcar una de las opciones mostradas.                                                                                   |
+| Nombre_enfermedad            | Categórica Nominal | Un texto de 5 palabras como máximo.                                                                                     |
+
+## **Limpieza de datos**
+**Solo se limpiare las variables que vamos a utilizar en este proyecto.**
+
+1.- Analizar si la función `read_csv` reporta algunos problemas.
+
+```{r}
+problems()
+```
+
+No hay presencia de un problema por parte de la función `read_csv`.
+
+Cargamos los datos con la función kable
+
+```{r}
+knitr::kable(df_status(Datos,print_results = FALSE),"pipe",caption="Resumen de las variables" )
+```
+
+Se identifica 200 observaciones y 25 variables en la tabla.
+
+```{r}
+ncol(Datos)
+nrow(Datos)
+```
+
+Ademas, se observa que la variable P.P numérica figura como carácter,por ello realizaremos el cambio a numero.
+
+-  **Cambio de carácter a número de la variable P.P. numérica**
+
+```{r}
+Datos$`P.P. Numerica`<-as.numeric(Datos$`P.P. Numerica`)
+
+is.numeric(Datos$`P.P. Numerica`)#verifica si la columna es numérica.
+```
+
+También se identifica que las variables Actividad distractora, Actividad física, Horas a.física, Nombre_enfermedad presentan la mayor cantidad de NA's (las demás variables tienen 0 NA's);sin embargo, esto no perjudica en el análisis y limpieza de los datos.
+
+
+- **Cantidad total de datos faltantes**
+
+```{r}
+sum(is.na(Datos))
+```
+
+Hay 344 datos faltantes.
+
+```{r}
+(sum(is.na(Datos))/(nrow(Datos)*ncol(Datos))*100)
+
+```
+
+En porcentaje hay **6,88 %** de datos faltantes en total.
+
+------------------------------------------------------------------------
+
+### **Variable Género**
+
+------------------------------------------------------------------------
+
+Esta variable considerada como carácter la codificaremos como factor para un mejor análisis descriptivo.
+
+```{r}
+unique(Datos$Género)
+Datos$Género<- factor(Datos$Género)
+unique(Datos$Género)
+```
+
+------------------------------------------------------------------------
+
+### **Variable P.P. Esp-Rot**
+
+------------------------------------------------------------------------
+
+Primero, verificamos que todos los valores se encuentren dentro del rango [0,10].
+
+```{r}
+table(Datos$`P.P. Esp-Rot`)
+```
+
+Observamos que hay un dato que se pasa del rango, por lo que decidimos corregirlo dandole un valor de 0,34.
+```{r}
+which(Datos$`P.P. Esp-Rot`==34)
+```
+
+Sabemos que la columna que estamos corrigiendo es la 8va y la fila en la que se encuentra el dato es la 183, 
+```{r}
+Datos[183,8] = 0.34
+table(Datos$`P.P. Esp-Rot`)
+```
+
+------------------------------------------------------------------------
+
+### **Variable P.P.Numérica**
+
+------------------------------------------------------------------------
+
+Primero, verificamos que todos los valores se encuentren dentro del rango [0,10].
+
+```{r}
+table(Datos$`P.P. Numerica`)
+```
+
+Los datos se encuentran dentro del rango por lo que no hay nada que corregir.
+
+------------------------------------------------------------------------
+
+### **Variable Nivel Concentración**
+
+------------------------------------------------------------------------
+
+Esta variable es categórica ordinal, sin embargo Rstudio lo toma como una variable numérica, por lo que debemos de cambiarlo. 
+
+```{r}
+unique(Datos$`Nivel Concentración`)
+Datos$`Nivel Concentración`<-factor(Datos$`Nivel Concentración`,ordered=TRUE,levels=c(1,2,3,4,5),labels=c(1,2,3,4,5))
+unique(Datos$`Nivel Concentración`)
+
+```
+
+------------------------------------------------------------------------
+
+### **Variable Comida diaria**
+
+------------------------------------------------------------------------
+
+El programa nos muestra esta variable como numérica, pero nosotros necesitamos convertirla a factor con un orden especifico, siendo 5 el mayor y 1 el menor. Esto se debe a que esta variable es categórica ordinal.
+
+```{r}
+unique(Datos$`Comida diaria`)
+Datos$`Comida diaria`<-factor(Datos$`Comida diaria`,ordered=TRUE,levels=c(1,2,3,4,5),labels=c("CC1","CC2","CC3","CC4","CC5"))
+unique(Datos$`Comida diaria`)
+```
+
+------------------------------------------------------------------------
+
+### **Variable Comida rápida**
+
+------------------------------------------------------------------------
+
+AL usar unique nos damos cuenta que hay 2 valores que no deberíamos tener, por ello los modificamos.
+
+```{r}
+unique(Datos$`Comida rapida`)
+Datos$`Comida rapida`<-ifelse(Datos$`Comida rapida`== "Una vez a las quinientas","No consumo",Datos$`Comida rapida`)
+```
+
+
+```{r}
+Datos$`Comida rapida`<-ifelse(Datos$`Comida rapida`== "2 veces al mes","1 vez a la semana",Datos$`Comida rapida`)
+unique(Datos$`Comida rapida`)
+
+```
+
+Una vez limpios los datos, procedemos a asignarle un valor a cada uno, siendo no consumo el más bajo y 5 veces a la semana el más alto.
+
+```{r}
+unique(Datos$`Comida rapida`)
+Datos$`Comida rapida`<-factor(Datos$`Comida rapida`,ordered = TRUE,levels=c("No consumo","1 vez a la semana","2 veces a la semana","3 veces a la semana","4 veces a la semana","5 veces a la semana"),labels=c("NCR","CR1","CR2","CR3","CR4","CR5"))
+unique(Datos$`Comida rapida`)
+```
+
+------------------------------------------------------------------------
+
+### **Variable Cantidad a.física**
+
+------------------------------------------------------------------------
+
+Variable limpia solo requiero que se lo convierta  a factor. Se asigna un valor a cada resultado, siendo "No realizo" el más bajo y "Toda la semana" el más alto.
+
+```{r}
+unique(Datos$`Cantidad a.fisica`)
+Datos$`Cantidad a.fisica`<-factor(Datos$`Cantidad a.fisica`,ordered=TRUE,levels=c("No realizo","1 vez a la semana","2 veces a la semana","3 veces a la semana","4 veces a la semana","5 veces a la semana","6 veces a la semana","Toda la semana"),labels=c("NAF","AF1","AF2","AF3","AF4","AF5","AF6","AF7"))
+unique(Datos$`Cantidad a.fisica`)
+```
+
+------------------------------------------------------------------------
+
+### **Variable Azúcar**
+
+------------------------------------------------------------------------
+
+Variable limpia, solamente se tiene que convertir en factor, ya que es una variable categórica ordinal.
+
+```{r}
+unique(Datos$Azucar)
+Datos$Azucar <-factor(Datos$Azucar,levels=c("Sin azúcar","Bajo en azúcar","Alto en azúcar"),labels=c("SAZ","BAZ","AAZ"))
+unique(Datos$Azucar)
+```
+
+------------------------------------------------------------------------
+
+### **Variable Horas_sueño**
+
+------------------------------------------------------------------------
+
+Nos ayudamos de un boxplot para ver los valores atipicos
+
+```{r}
+BPHS <- boxplot(Datos$Horas_sueño, col = rgb(0, 1, 1, alpha = 0.4))
+BPHS$out
+BPHS$stats
+```
+Gracias al boxplot, nos damos cuenta de que nuestro rango debe de estar entre [2,9] y los demás valores que se encuentren fuera de ese rango los debemos modificar. En este caso lo modificaremos con la mediana de los datos.
+
+```{r}
+MHS<-median(Datos$Horas_sueño)
+Datos$Horas_sueño <- ifelse(Datos$Horas_sueño > 9 | Datos$Horas_sueño < 2 ,MHS,Datos$Horas_sueño)
+boxplot(Datos$Horas_sueño, col = rgb(0, 1, 1, alpha = 0.4))
+```
+<br>
+
+# **Análisis Descriptivo**
+
+## **Descriptores Gráficos**
+
+```{r}
+hist(Datos$`P.P. Numerica`
+     , xlab = "Rango de notas"
+     , ylab = "Cantidad de estudiantes"
+     , main = "¿Que notas fueron las mas reincidentes en la P.P Numerica en UTEC?"
+     , cex.axis = 0.95
+     , col = rgb(0.7, 0.9, 0.3, alpha = 0.4)
+     )
+```
+ 
+ - **se puede determinar que la mayor cantidad de personas han estado en notas de rango 6-7, no obstante no es considerado como representativo ya que solo 50 de 200 obtuvo ese puntaje**.
+
+```{r}
+hist(Datos$`P.P. Esp-Rot`
+     , xlab = "Rango de notas"
+     , ylab = "Cantidad de estudiantes"
+     , main = "¿Que notas fueron las mas reincidentes en la P.P Esp-Rot?"
+     , cex.axis = 0.95
+     , col = rgb(0.6, 0.5, 0, alpha = 0.4)
+     )
+```
+
+-  **La mayor cantidad de personas han estado en notas de rango 7-8, no obstante no es considerado como representativo ya que solo 35 de 200 obtuvo ese puntaje.**
+**Sin embargo a comparación de la otra prueba, aquí la mayoría de estudiantes reincide en notas aprobatorias.**
+
+
+```{r}
+plot(Datos$`Nivel Concentración`,Datos$`P.P. Esp-Rot`
+     , xlab = " Nivel de concentracion de los estudiantes"
+     , ylab = "Notas de estudiantes"
+     , main = "¿Como influye la concentracion en la nota de P.P Esp-Rot?"
+     , cex.axis = 0.95
+     , col = rgb(0.6, 0.5, 0, alpha = 0.4)
+     )
+```
+
+- La mediana varia en las diferentes concentraciones, en donde los estudiantes que tuvieron una buena concentración tienen una mediana mayor y  su extremo inferior es favorable. 
+
+- Algunos estudiantes a pesar de no estar concentrados obtuvieron el puntaje máximo, y otros que a pesar de estar concentrados obtuvieron notas bajas.
+
+
+```{r}
+plot(Datos$`Nivel Concentración`,Datos$`P.P. Numerica`
+     , xlab = "Concentracion de los estudiantes"
+     , ylab = "Notas de estudiantes"
+     , main = "¿Como influye la concentracion en la nota de P.P Numerica?"
+     , cex.axis = 0.95
+     , col = rgb(0.7, 0.9, 0.3, alpha = 0.4)
+     )
+```
+
+- La mediana de la concentración 1 es similar hasta mayor que las demás; sin embargo, no llega a alcanza la nota máxima que es 10.
+
+**CONCLUSIÓN: No se puede validar con certeza que existe una relación entre la nota y la concentración, no obstante, se puede diferenciar que en promedio los estudiantes tienden a estar concentrados para obtener una nota aprobatoria. Sin embargo, hay estudiantes que a pesar de eso no logran alcanzar esa nota, demostrando un rendimiento inferior al promedio, en otras palabras, se puede decir que cada estudiante tiene su ritmo de aprendizaje.**
+
+
+**Análisis de ambos gráficos**
+
+En base a los valores atípicos, los cuartales y los extremos del boxplot podemos afirmar que hay una tendencia de los estudiante a que se les resulte un poco mas sencillo la P.P Esp-Rot.
+
+**Y si analizamos por genero comprobamos lo mismo.**
+
+```{r}
+DM <- Datos[Datos$Género == "Masculino",]
+hist(DM$`P.P. Esp-Rot`
+     , xlab = "notas"
+     , ylab = "cantidad de estudiantes"
+     , main = "Nota de P.P Esp-Rotacional en hombres"
+     , col = c("lightblue", "lightblue", "lightblue","lightblue","lightblue","green","green","green","green","green")
+     , cex.axis = 0.95)
+hist(DM$`P.P. Numerica`
+     , xlab = "notas"
+     , ylab = "cantidad de estudiantes"
+     , main = "Nota de P.P Numerica en hombres"
+     , col = c("lightblue", "lightblue", "lightblue","lightblue","lightblue","green","green","green","green","green")
+     , cex.axis = 0.95)
+```
+
+
+```{r}
+DF <- Datos[Datos$Género == "Femenino",]
+hist(DF$`P.P. Esp-Rot`
+     , xlab = "notas"
+     , ylab = "cantidad de estudiantes"
+     , main = "Nota de P.P Esp-Rotacional en mujeres"
+     , col = c("lightblue", "lightblue", "lightblue","lightblue","lightblue","green","green","green","green","green")
+     , cex.axis = 0.95)
+
+hist(DF$`P.P. Numerica`
+     , xlab = "notas"
+     , ylab = "cantidad de estudiantes"
+     , main = "Nota de P.P Numerica en mujeres"
+     , col = c("lightblue", "lightblue", "lightblue","lightblue","lightblue","green","green","green","green","green")
+     , cex.axis = 0.95)
+     
+```
+
+**Ahora debemos ver si las notas obtenidas dependen del estilo de vida que tengan los estudiantes en UTEC, aparte del nivel de  concentración.**
+
+
+```{r}
+mosaicplot(table(Datos$`Nivel Concentración`,Datos$Género)
+          , xlab = "Nivel de concentracion"
+          , ylab = "Genero"
+          , main = "Relacion entre genero y concentracion"
+          , cex.axis = 0.95
+          ,col = c( "#cc9999", "#99cc99")
+          )
+```
+
+- Hay una gran cantidad de mujeres que han estado menos concentradas a comparación de los hombres. Esto puede darse por diferentes factores de la cual analizaremos si esto depende de su estilo de vida (alimentación saludable, deporte, horas de sueño)o simplemente a la distracción debido al entorno en que se encontraban.
+
+```{r}
+mosaicplot(table(Datos$Horas_sueño,Datos$Género)
+           
+          , xlab = "Horas de sueño"
+          , ylab = "Genero"
+          , main = "¿Como influye las Horas de sueño en la concentracion de los 
+          estudiantes?"
+          , cex.axis = 0.95
+          ,col = c( "#cc9999", "#99cc99")
+          )
+          
+```
+
+- Las horas de sueño que son recomendadas por especialistas, es decir de 7 a +, solo se aprecia que lo cumplen con mayor cantidad los hombres que las mujeres, cabe recalcar que para que esto sucede depende de la cantidad de cursos, tareas y actividades que tenga el estudiante.
+
+- Hay una mínima cantidad de estudiantes que duermen 2,3 y 4 h de la cual no es posible que en promedio duerman esa cantidad, por ende, se reconoce un sesgo en esta variable. Es entendible, porque este cuestionario fue realizada cerca a la semana de parciales.
+
+**- Con base a esto se puede inferir  que hay estudiantes que duermen como mínimo 2h cerca a semanas de parciales.**
+
+```{r}
+barplot(table(Datos$Horas_sueño),
+        main = "Horas de Sueño",             # Título
+        xlab = "Horas",           # Etiqueta del eje X
+        ylab = "Cantidad de Personas",                    # Etiqueta del eje Y
+        border = "black",                       # Color del borde de las barras
+        col = c("red", "red", "red", "grey","grey","grey","grey","grey","grey"), # Color para cada barra
+        legend = c(
+        "Sesgo de la hora de sueño")
+        )
+```
+
+- Las horas no favorables de sueño , es decir 2-3-4-5 no son  tan reincidentes.
+
+```{r}
+mosaicplot(table(Datos$`Comida diaria`,Datos$Género)
+          , xlab = "Cantidad de comidas diarias"
+          , ylab = "Genero"
+          , main = "Relacion entre la cantidad de comidas y el genero"
+          , cex.axis = 0.95
+          ,col = c( "#cc9999", "#99cc99")
+          )
+
+
+```
+
+- Hay una tendencia en comer menos de 3 comidas diarias en el caso de las mujeres, de la cual no es favorable para el rendimiento que exige la misma universidad, del mismo modo pasa con los hombres, en otras palabras no hay una relación en si.
+
+- Esta variación de alimentos en hombres y mujeres puede depender por la falta de tiempo, economía, por ansiedad, dietas,etc.
+
+**No  hay una relación exacta, pero podemos rescatar que la mayoría de estudiantes si cumple con sus comidas recomendadas.**
+
+
+```{r}
+mosaicplot(table(Datos$`Comida rapida`,Datos$Género)
+          , xlab = "cantidad de comida rapida por semana"
+          , ylab = "Genero"
+          , main = "Relacion entre la cantidad de comida rapida y genero"
+          , cex.axis = 0.95
+          ,col = c( "#cc9999", "#99cc99")
+          )
+```
+
+- Hay una variación de  comida rápida de manera semanal en hombres y mujeres puede depender por  ansiedad, una mala alimentación,etc. 
+
+**No hay una relación exacta, pero podemos rescatar que la mayoría de estudiantes se limitan a consumir comida rápida una ves por semana.**
+
+```{r}
+mosaicplot(table(Datos$Azucar,Datos$Género)
+          , xlab = "Nivel de azucar en bebidas"
+          , ylab = "Genero"
+          , main = "Relacion entre nivel de azucar en bebidas y genero"
+          , cex.axis = 0.95
+          , col = c( "#cc9999", "#99cc99")
+          )
+```
+
+- Esta ligera variación de niveles de azúcar en hombres y mujeres puede depender por  ansiedad, una mala alimentación,etc. 
+
+**No hay relación exacta, pero podemos rescatar que la mayoría de estudiantes se limitan a   consumir poco azúcar.**
+
+
+```{r}
+DM <- Datos[Datos$Género == "Masculino",]
+barplot(table(DM$`Cantidad a.fisica`),
+        main = "Cantidad de Activiad Fisica que realizan los hombres",             # Título
+        xlab = "Veces a la semana",           # Etiqueta del eje X
+        ylab = "Cantidad de hombres",                    # Etiqueta del eje Y
+        border = "black",                       # Color del borde de las barras
+        col = c("red", "green", "green", "green","green","green","green","green","green"), # Color para cada barra
+        legend = c(
+        "No realiza actividad fisica", "Si realiza actividad fisica")
+        )
+```
+
+
+```{r}
+DF <- Datos[Datos$Género == "Femenino",]
+barplot(table(DF$`Cantidad a.fisica`),
+        main = "Cantidad de Activiad Fisica que realizan las mujeres",             # Título
+        xlab = "Veces a la semana",           # Etiqueta del eje X
+        ylab = "Cantidad de mujeres",                    # Etiqueta del eje Y
+        border = "black",                       # Color del borde de las barras
+        col = c("red", "green", "green", "green","green","green","green","green","green"), # Color para cada barra
+        legend = c(
+        "No realiza actividad fisica", "Si realiza actividad fisica")
+        )
+```
+
+- Las mujeres presentan mayor reincidencias en NAF.
+
+<br>
+
+## **Descriptores Numéricos**
+
+**General**
+
+```{r}
+summary(Datos)
+```
+
+Con los descriptores gráficos se identifico las variables que aparentemente siguen un posible patrón  son: Horas de sueño, P.P. numérica, P.P. Esp-Rot, nivel de concentración y cantidad de actividad física.
+
+**Horas de sueño**
+
+1.Promedio o Media Aritmetica
+
+```{r}
+PromSueño<-mean(Datos$Horas_sueño)
+PromSueño
+```
+
+Se valida que los estudiantes tienden a dormir en promedio 6h al día.
+
+
+2. Cuantil q%
+
+```{r}
+quantile(Datos$Horas_sueño, c(0.25), type = 6); #Q1
+quantile(Datos$Horas_sueño, c(0.50), type = 6); #Q2
+quantile(Datos$Horas_sueño, c(0.75), type = 6); #Q3
+
+```
+
+El cuartil superior nos permite conocer que solo el 25% total duermen las horas recomendadas es decir + de 7. Ademas que de 200, 100 duermen como máximo 6 horas.
+
+3. Mínimo y Maximo
+
+```{r}
+min(Datos$Horas_sueño)
+max(Datos$Horas_sueño)
+```
+
+Aquí se evidencia el sesgo mencionado anteriormente, en el caso de las 2 horas. Con respecto al 9h va a depender de las circunstancias en que se encuentre el estudiante,no obstante, es una cantidad de hora creíble.
+
+
+4. Varianza
+
+```{r}
+round(var(Datos$Horas_sueño, na.rm = FALSE),2)
+```
+
+5. Desviación Estandar
+
+```{r}
+round(sd(Datos$Horas_sueño, na.rm = FALSE),2)
+
+```
+
+
+**P.P espacio-rotacional**
+
+1.Promedio o Media Aritmética
+
+```{r}
+mean(Datos$`P.P. Esp-Rot`)
+```
+
+En promedio los alumnos obtuvieron una nota de 6.02 en la P.P Esp-Rot.
+
+
+2. Cuantil q%
+
+```{r}
+quantile(Datos$`P.P. Esp-Rot`, c(0.25), type = 6); #Q1
+quantile(Datos$`P.P. Esp-Rot`, c(0.50), type = 6); #Q2
+quantile(Datos$`P.P. Esp-Rot`, c(0.75), type = 6); #Q3
+```
+
+El 50% de estudiantes han obtenido notas altas mayor a 6,125.
+
+3. Mínimo y Máximo
+
+```{r}
+min(Datos$`P.P. Esp-Rot`)
+max(Datos$`P.P. Esp-Rot`)
+```
+
+**P.P Numérica**
+
+1.Promedio o Media Aritmética
+
+```{r}
+mean(Datos$`P.P. Numerica`)
+```
+
+Se valida que en promedio los estudiante obtuvieron 5,65, y es una cantidad inferior a la otra prueba. Es decir, que a los estudiantes se le resulto mas sencillo la prueba P.P. ESp-Rot.
+
+
+3. Cuantil q%
+
+```{r}
+quantile(Datos$`P.P. Numerica`, c(0.25), type = 6); #Q1
+quantile(Datos$`P.P. Numerica`, c(0.50), type = 6); #Q2
+quantile(Datos$`P.P. Numerica`, c(0.75), type = 6); #Q3
+```
+
+El 50% de estudiantes han obtenido notas altas mayor a 6,01.
+
+4. Minimo y Maximo
+
+```{r}
+min(Datos$`P.P. Numerica`)
+max(Datos$`P.P. Numerica`)
+```
+
+La nota mínima es 0, mientras que en la otra prueba fue 0,33. Se reafirma que la P.P Esp-Rot fue un poco mas sencilla para los estudiantes.
+
+
+6. Varianza
+
+```{r}
+round(var(Datos$`P.P. Numerica`, na.rm = FALSE),2)
+```
+
+7. Desviación Estandar
+
+```{r}
+round(sd(Datos$`P.P. Numerica`, na.rm = FALSE),2)
+
+```
+
+8. Rango Intercuartil
+
+```{r}
+IQR(Datos$`P.P. Numerica`)
+```
+
+**Nivel de Concentración**
+
+1. Mínimo y Máximo
+
+```{r}
+min(Datos$`Nivel Concentración`)
+max(Datos$`Nivel Concentración`)
+```
+
+2. Moda
+
+```{r}
+frecuencias <- data.frame(table(Datos$`Nivel Concentración`))
+moda <- frecuencias[which.max(frecuencias$Freq),1]
+
+moda
+```
+
+Una mayor cantidad de estudiantes estuvo concentrado al rendir las pruebas.
+
+3. Rango
+
+```{r}
+range(Datos$`Nivel Concentración`, na.rm = FALSE)
+```
+### **Patrones**
+
+Hasta el momento se puede identificar los patrones siguientes:
+
+
+ - El nivel de concentración del estudiante influye en las notas aprobatorias de las pruebas, pero no lo es todo. Lo que mas se rescata es que en si cada estudiante tiene su propio ritmo de aprendizaje y su propia habilidad en que destaca y otra que tenga que mejorar.
+ 
+ 
+ -  Si nos basamos en la ciencia, se identifica que los estudiantes no duermen la hora recomendada en día de exámenes y que en promedio duermen 6 horas. 
+ 
+ 
+ - Existe un alto nivel de sedentarismo en el alumnado de UTEC, en donde, reinciden mas las mujeres.
+ 
+ 
+Se evidencia un sesgo en la variable horas de sueño, y esto hace direccionar el estudio. Se podría decir que hay 3 factores concretos que pueden afectar al rendimiento de estas pruebas  la concentración, la cantidad de horas de sueño y el sedentarismo.
+
+**DATO CURIOSO**
+
+Se obtuvo una mayor cantidad de estudiantes con notas aprobatorias en las 2 pruebas, no obstante, se identifica que la P.P Esp-Rot resulta un poco mas sencilla para el alumnado UTEC.
+
+# **Análisis probabilistico**
+
+Empezamos hallando la probabilidad de datos generales que nos ayudaran en cálculos posteriores los cuales son, la probabilidad de que el seleccionado sea varón y la  que el seleccionado sea mujer respectivamente.
+
+```{r}
+PH <- nrow(DM)/200
+PM <- nrow(DF)/200
+round(c(PH,PM),2) 
+```
+
+De igual manera calculamos la probabilidad de que el seleccionado saque una nota que sea 6 o mayor en la prueba Espacial - Rotacional o  en la prueba numérica.
+
+```{r}
+PAE <- nrow(Datos[Datos$`P.P. Esp-Rot`>=6,])/200
+PAN <- nrow(Datos[Datos$`P.P. Numerica`>=6,])/200
+c(PAE,PAN) 
+```
+
+Tras ver las probabilidades podemos decir que en el estudio hubieron más hombres encuestados que mujeres  y que, al menos la mitad de todos los encuestados aprobaron uno de los dos exámenes.Ambos exámenes tienen la misma cantidad de personas aprobadas.
+
+Ahora, empezaremos viendo las relaciones entre el género de los encuestados y sus notas para observar cual de los dos grupos sobresale en cada examen, teniendo en cuenta que también influye la concentración. Después analizaremos la relación de cada grupo con ciertos hábitos. 
+
+------------------------------------------------------------------------
+
+## **Probabilidad de que sea hombre dado que aprobó un examen**
+
+------------------------------------------------------------------------
+
+Con la probabilidad condicional se vera la probabilidad de que el seleccionado sea hombre dado que escogemos a un encuestado que aprobó un examen.
+
+Para ello lo primero que hallaremos sera la probabilidad de la intersección entre los encuestados que son hombres y los que aprobaron el examen que queramos analizar, esto se logra hallando la cantidad de hombres que aprobaron el examen que queremos analizar y el totalde encuestados. Después dividiremos el resultado con la probabilidad de que el encuestado apruebe el examen que estamos analizando y lo redondeamos a dos decimales.
+
+
+- Prueba Psicotecnica Espacial Rotacional
+
+
+```{r}
+PI <- nrow(DM[DM$`P.P. Esp-Rot`>=6,])/200
+PCHAE <- PI/PAE
+round(PCHAE,2)
+```
+
+- Prueba Psicotecnica Numérica
+
+
+```{r}
+PI <- nrow(DM[DM$`P.P. Numerica`>=6,])/200
+PCHAN <- PI/PAN
+round(PCHAN,2)
+```
+
+En ambas pruebas, los hombres tienen mayor cantidad de personas aprobadas. Algo curioso es que la probabilidad para ambos exámenes es la misma.
+
+------------------------------------------------------------------------
+
+## **Probabilidad de que sea mujer dado que aprobo un examen** 
+
+------------------------------------------------------------------------
+
+Ahora calcularemos la probabilidad condicional de que la seleccionada sea mujer dado que escogemos a un encuestado que aprobó uno de los dos exámenes.
+
+- Prueba Psicotecnica Espacial Rotacional
+
+
+```{r}
+PI <- nrow(DF[DF$`P.P. Esp-Rot`>=6,])/200
+PCMAE <- PI/PAE
+round(PCMAE,2)
+```
+
+- Prueba Psicotecnica Numérica
+
+
+```{r}
+PI <- nrow(DF[DF$`P.P. Numerica`>=6,])/200
+PCMAN <- PI/PAN
+round(PCMAN,2)
+```
+
+Se puede concluir que en ambas pruebas la cantidad de mujeres que aprobaron es menor en comparación a la cantidad de hombres que aprobaron, esto se puede dar por diferentes razones las cuales estaremos analizando más adelante.  
+
+------------------------------------------------------------------------
+
+## **Usamos la probabilidad de Bayes**
+
+------------------------------------------------------------------------
+
+En la prueba numérica como en la prueba Espacial Rotacional fue más probable que los encuestados que aprobaron cualquiera de ambas pruebas fueran hombres. 
+
+Sin embargo, esta afirmación no seria del todo cierta ya que las anteriores probabilidades condicionales se evaluaron en base a la cantidad total de personas que aprobaron el examen. Por ello, es lógico que los hombres hayan obtenido una probabilidad mayor de aprobar un examen, ya que **la cantidad de hombres encuestados es mayor a la cantidad de mujeres encuestadas. **
+
+Sabiendo esto, lo que se decidió hacer fue hallar una nueva probabilidad condicional que este evaluado en base a la cantidad de hombres encuestados y mujeres encuestadas respectivamente, para evitar que se obtengan datos que no reflejen el 100% de a realidad. Lo mismo se realizara con los cálculos de probabilidad condicional posteriores.
+
+Lo que se hará a continuación es hallar la probabilidad condicional de que el encuestado haya aprobado un examen dado que es hombre y la probabilidad de que el encuestado haya aprobado un examen dado que es mujer.
+
+
+- Prueba Psicotecnica Espacial Rotacional (Hombres)
+
+
+```{r}
+PCAEH <- PCHAE*PAE/PH
+round(PCAEH,2)
+
+```
+
+- Prueba Psicotecnica Numérica (Hombres)
+
+
+```{r}
+PCANH <- PCHAN*PAN/PH
+round(PCANH,2)
+```
+
+- Prueba Psicotecnica Espacial Rotacional (Mujeres)
+
+
+```{r}
+PCAEM <- PCMAE*PAE/PM
+round(PCAEM,2)
+```
+
+
+- Prueba Psicotecnica Numérica (Mujeres)
+
+
+```{r}
+PCANM <- PCMAN*PAN/PM
+round(PCANM,2)
+```
+
+La probabilidad de los hombres se ha mantenido igual, sin embargo, la probabilidad de las mujeres ha aumentado considerablemente, pasando de un 0.39 a un 0.52. Con esto podemos concluir de que, efectivamente, hubo una mayor cantidad de hombres que aprobaron los exámenes, por eso ahora analizaremos el porque de esta diferencia. 
+
+------------------------------------------------------------------------
+
+## **Probabilidad de cada nivel de concentracion dado que es hombre**
+
+------------------------------------------------------------------------
+
+Primero evaluaremos la probabilidad condicional de tener una concentración 1 dado que el encuestado es hombre, luego pasaremos con la concentración 2 y se seguirá hasta llegar a la concentración 5. Los resultados que se muestran a continuación están en el orden ya mencionado, empezando con concentración uno (nada concentrado) en la izquierda y terminando con la concentración 5 (totalmente concentrado) en la derecha.
+
+```{r}
+PC1H <- (nrow(DM[DM$`Nivel Concentración` == 1,])/200)/PH
+PC2H <- (nrow(DM[DM$`Nivel Concentración` == 2,])/200)/PH
+PC3H <- (nrow(DM[DM$`Nivel Concentración` == 3,])/200)/PH
+PC4H <- (nrow(DM[DM$`Nivel Concentración` == 4,])/200)/PH
+PC5H <- (nrow(DM[DM$`Nivel Concentración` == 5,])/200)/PH
+
+barplot(round(c(PC1H,PC2H,PC3H,PC4H,PC5H),2),names.arg=c("PC1H","PC2H","PC3H","PC4H","PC5H"),main="Probabilidad de cada nivel de concentracion dado que es hombre", ylab="Probabilidad",space = T)
+```
+
+La mayoría de los hombres se encuentran entre el nivel de concentración 4 y 5. Con esto podemos concluir que la mayoría de hombres estuvo concentrado al momento de realizar las pruebas.
+
+------------------------------------------------------------------------
+
+## **Probabilidad de cada nivel de concentracion dado que es mujer**
+
+------------------------------------------------------------------------
+
+Ahora evaluaremos la probabilidad condicional de tener una concentración x dado que la encuestada es una mujer, siendo x nuestro nivel de concentración. Vamos a proceder de la misma manera como lo hicimos con la anterior probabilidad.
+
+```{r}
+PC1M <- (nrow(DF[DF$`Nivel Concentración` == 1,])/200)/PM
+PC2M <- (nrow(DF[DF$`Nivel Concentración` == 2,])/200)/PM
+PC3M <- (nrow(DF[DF$`Nivel Concentración` == 3,])/200)/PM
+PC4M <- (nrow(DF[DF$`Nivel Concentración` == 4,])/200)/PM
+PC5M <- (nrow(DF[DF$`Nivel Concentración` == 5,])/200)/PM
+
+barplot(round(c(PC1M,PC2M,PC3M,PC4M,PC5M),2),names.arg=c("PC1M","PC2M","PC3M","PC4M","PC5M"),main="Probabilidad de cada nivel de concentracion dado que es mujer", ylab="Probabilidad", space = T)
+
+```
+
+Como podemos observar de los resultados, la mayor parte de las mujeres están distribuidas en los niveles de concentración 3, 4 y 5, siendo la probabilidad condicional del nivel 3 mayor al de los hombres y la probabilidad condicional del nivel 4 y 5 menor al de los hombres. De esto podemos concluir que las mujeres se encontraban menos concentradas que los hombres al momento de realizar las pruebas.
+
+------------------------------------------------------------------------
+
+## **Probabilidad de dormir cierta cantidad de horas dado que es hombre**
+
+------------------------------------------------------------------------
+
+Lo que se hará a continuación es analizar la cantidad de horas que duermen en promedio los encuestados, para ello primero hallaremos la probabilidad condicional de dormir cierta cantidad de horas dado que es hombre.
+
+En total hallaremos tres probabilidades condicionales, la probabilidad condicional de dormir menos de 6 horas dado que es hombre, la probabilidad de dormir entre 6 y 8 horas dado que es hombre y la probabilidad de dormir más de 8 horas dado que es hombre. Los resultados serán mostrados en ese orden.
+
+```{r}
+PCD6H <- (nrow(DM[DM$Horas_sueño < 6,])/200)/PH
+PCD7H <- (nrow(DM[DM$Horas_sueño >=6 &  DM$Horas_sueño <= 8,])/200)/PH
+PCD8H <- (nrow(DM[DM$Horas_sueño  > 8 ,])/200)/PH
+
+barplot(round(c(PCD6H,PCD7H,PCD8H),2), names.arg=c("PCD6H","PCD7H","PCD8H"),main="Probabilidad de dormir cierta cantidad de horas dado que es hombre", ylab="Probabilidad",space = T)
+
+```
+
+La probabilidad condicional de dormir menos de 6 horas en hombres es poca, mientras que la mayoría de hombres se encuentra en un rango de 6 a 8 horas. De estos resultados podemos concluir que la mayor parte de los hombres se encuentra dentro de un rango optimo de horas de sueño. 
+
+------------------------------------------------------------------------
+
+## **Probabilidad de dormir cierta cantidad de horas dado que es mujer**
+
+------------------------------------------------------------------------
+
+Ahora pasaremos a analizar la probabilidad condicional de dormir cierta cantidad de horas dado que el encuestado es mujer, al igual que en la anterior sección lo dividiremos en los mismos 3 intervalos para las horas de sueño y los resultados se mostraran en el mismo orden.
+
+```{r}
+PCD6M <- (nrow(DF[DF$Horas_sueño < 6,])/200)/PM
+PCD7M <- (nrow(DF[DF$Horas_sueño >= 6 &  DF$Horas_sueño <= 8,])/200)/PM
+PCD8M <- (nrow(DF[DF$Horas_sueño  > 8 ,])/200)/PM
+
+barplot(round(c(PCD6M,PCD7M,PCD8M),2), names.arg=c("PCD6M","PCD7M","PCD8M"),main="Probabilidad de dormir cierta cantidad de horas dado que es mujer", ylab="Probabilidad", space = T)
+
+```
+
+La probabilidad de dormir menos de 6 horas en mujeres es alta con respecto a la probabilidad de los hombres, la probabilidad de dormir de 6 a 8 horas es menor en comparación a las de los hombres y la probabilidad de dormir más de 8 horas es ligeramente alta con respecto a los hombres.La mayoría de ellas se encuentra dentro de un rango de sueño que las perjudica al momento de realizar las pruebas.
+
+------------------------------------------------------------------------
+
+## **Probabilidad de que realice actividad física dado que es hombre**
+
+------------------------------------------------------------------------
+
+Por ultimo analizaremos la probabilidad condicional de que realice actividad física dado que el encuestado es hombre, para ello lo dividiremos en 8 grupos los cuales irán desde no realiza actividad física hasta realiza actividad física todos los días de la semana. Los resultados se mostraran en ese orden:
+
+```{r}
+PCNAH <- (nrow(DM[DM$`Cantidad a.fisica` == "NAF",])/200)/PH
+PCA1H <- (nrow(DM[DM$`Cantidad a.fisica` == "AF1",])/200)/PH
+PCA2H <- (nrow(DM[DM$`Cantidad a.fisica` == "AF2",])/200)/PH
+PCA3H <- (nrow(DM[DM$`Cantidad a.fisica` == "AF3",])/200)/PH
+PCA4H <- (nrow(DM[DM$`Cantidad a.fisica` == "AF4",])/200)/PH
+PCA5H <- (nrow(DM[DM$`Cantidad a.fisica` == "AF5",])/200)/PH
+PCA6H <- (nrow(DM[DM$`Cantidad a.fisica` == "AF6",])/200)/PH
+PCA7H <- (nrow(DM[DM$`Cantidad a.fisica` == "AF7",])/200)/PH
+
+barplot(round(c(PCNAH,PCA1H,PCA2H,PCA3H,PCA4H,PCA5H,PCA6H,PCA7H),2), names.arg=c("PCNAH","PCA1H","PCA2H","PCA3H","PCA4H","PCA5H","PCA6H","PCA7H"),main="Probabilidad de que realice actividad física dado que es hombre", ylab="Probabilidad", cex.main=0.8, 
+     cex.axis=0.8,cex.names=0.8,cex.lab=0.8, space = T)
+
+```
+
+Existe una mayor probabilidad de que un hombre realice actividad física 3 veces a la semana.
+
+------------------------------------------------------------------------
+
+## **Probabilidad de que realice actividad física dado que es mujer**
+
+------------------------------------------------------------------------
+
+Para la probabilidad condicional de las mujeres seguiremos el mismo procedimiento y se mostraran los resultados en el mismo orden:
+
+```{r}
+PCNAM <- (nrow(DF[DF$`Cantidad a.fisica` == "NAF",])/200)/PM
+PCA1M <- (nrow(DF[DF$`Cantidad a.fisica` == "AF1",])/200)/PM
+PCA2M <- (nrow(DF[DF$`Cantidad a.fisica` == "AF2",])/200)/PM
+PCA3M <- (nrow(DF[DF$`Cantidad a.fisica` == "AF3",])/200)/PM
+PCA4M <- (nrow(DF[DF$`Cantidad a.fisica` == "AF4",])/200)/PM
+PCA5M <- (nrow(DF[DF$`Cantidad a.fisica` == "AF5",])/200)/PM
+PCA6M <- (nrow(DF[DF$`Cantidad a.fisica` == "AF6",])/200)/PM
+PCA7M <- (nrow(DF[DF$`Cantidad a.fisica` == "AF7",])/200)/PM
+
+barplot(round(c(PCNAM,PCA1M,PCA2M,PCA3M,PCA4M,PCA5M,PCA6M,PCA7M),2), names.arg=c("PCNAM","PCA1M","PCA2M","PCA3M","PCA4M","PCA5M","PCA6M","PCA7M"),main="Probabilidad de que realice actividad física dado que es mujer", ylab="Probabilidad", cex.main=0.8, 
+     cex.axis=0.8,cex.names=0.8,cex.lab=0.8,space = T)
+```
+
+Existe una mayor probabilidad de que las mujeres no realicen actividad física, mucho mayor que al de los hombres.
+
+
+# **Variables aleatorias**
+
+
+------------------------------------------------------------------------
+
+## Distribución Binomial
+
+------------------------------------------------------------------------
+
+Problema:
+
+- Se ha entrevistado a 200 estudiantes de UTEC acerca de la cantidad de días que realizaban actividad física en una semana. Se sabe que la probabilidad de que los alumnos no realicen actividad física en una semana es de 0.19. Si el equipo seleccionó a alumnos al azar con reemplazo. Se desea saber la probabilidad de entrevistar a 20 personas que no realizan actividad física en un grupo de 40 entrevistados.
+
+Desarrollo:
+
+Para poder resolver el problema primero tenemos que ver a que tipo de modelo pertenece, en este caso el modelo que más se ajusta es el Binomial, ya que nos da la probabilidad de que el encuestado no realice actividad física y nos pide hallar la probabilidad de 20 éxitos en una cantidad fija de intentos, el cual es 40.
+Por ello planteamos los siguientes datos:
+
+X: Cantidad de alumnos que no realizan actividad física en un grupo de 40 encuestados
+
+X ~ Binom(n=40, p=0,19)
+
+Para ello usaremos la función de masa de probabilidad del modelo Binomial el cual es el siguiente:
+
+$p_{\mathbb{X}}(x)=\binom{n}{x}p^x(1-p)^{n-x}$
+
+Reemplazamos los valores y obtenemos el siguiente resultado:
+
+```{r}
+choose(40,20)*((0.19)^20)*((1-0.19)^(40-20))
+dbinom(20,size = 40,prob = 0.19)
+```
+
+La probabilidad de encontrar 20 alumnos que no realizan actividad física en un grupo de 40 encuestados es casi imposible, ya que la probabilidad es muy cercana a 0. Esto se puede comprobar fácilmente al realizar una gráfica de la función masa para este problema, el cual nos queda de la siguiente manera:
+
+```{r}
+coloresbarra<-colores <- c(rep("blue",20), 'red')
+barplot(dbinom(0:40,size = 40,prob = 0.19),names.arg=c(0:40),main="Función de masa de probabilidad de la variable X", ylab="Probabilidad", xlab="Cantidad de alumnos que no realizan actividad física",col=coloresbarra)
+```
+
+De esta gráfica podemos concluir que es más probable ver de 6 a 8 personas que no realizan actividad física en un grupo de 40 entrevistados.
+
+------------------------------------------------------------------------
+
+## Distribución Hipergeometrica
+
+------------------------------------------------------------------------
+
+Problema:
+
+- Se sabe que se han encuestado a 200 estudiantes de UTEC tras realizar 2 pruebas psicotécnicas. Se les preguntó acerca de su nivel de concentración al realizar las pruebas y ellos seleccionaron un número en la escala del 1 al 5 en donde 1 significa "no está concentrado para nada" y el 5 significa "está muy concentrado". Del total de encuestados 7 estudiantes marcaron 1, 20 estudiantes marcaron 2, 48 estudiantes marcaron 3, 75 estudiantes marcaron 4 y 50 estudiantes marcaron 5. Si se va a escoger a 20 estudiantes al azar ¿Cuántos estudiantes del nivel de concentración 5 se espera seleccionar?
+
+Desarrollo:
+
+El modelo que más se ajusta al problema es el modelo Hipergeométrico, ya que nos da la cantidad de personas que pertenece a cada grupo de concentración y nos pide hallar la cantidad esperada de estudiantes del nivel de concentración 5 de un grupo de 37 personas que son escogidos al azar del total.
+Por ello planteamos los siguientes datos:
+
+X: número de estudiantes que marcaron 5 en el nivel de concentración 
+
+X ~ Hiper(N=200, n=50, k=37)
+
+Reemplazamos los valores en la fórmula de la esperanza para el modelo hipergeométrico y obtenemos el siguiente resultado:
+
+$E(\mathbb{X})=\frac{kn}{N}$
+
+```{r}
+37*50/200
+```
+
+La esperanza nos dio un valor decimal, sin embargo, en la realidad no podemos contar un cuarto de persona, por ello redondeamos la esperanza al número más cercano el cual es 9. Esto nos dice que al escoger un grupo de 37 encuestados al azar de 200 encuestados, se espera escoger a 9 personas que hayan marcado 5 en su nivel de concentración.
+
+------------------------------------------------------------------------
+
+## Distribución Binomial Negativa
+
+------------------------------------------------------------------------
+
+Problema:
+
+- Se ha entrevistado a 200 alumnos sobre la cantidad de horas aproximadas que dormían cada día aproximadamente. Se sabe que la probabilidad de que los alumnos duerman 7 horas al día es de 0,2. Si el equipo desea encontrar al 10mo alumno que duerma 7 horas al día ¿Cuál es la probabilidad de encontrarlo al entrevistar a 70 personas? 
+
+Desarrollo:
+
+El modelo que más se ajusta al problema es el modelo Binomial Negativo, ya que nos da la probabilidad de que el encuestado duerma 7 horas y nos pide hallar la probabilidad de una cantidad fija de éxitos, el cual es 10, en el intento 70.
+Por ello planteamos los siguientes datos:
+
+X: Cantidad de encuestados hasta encontrar al 10mo alumno que duerme 7 horas
+
+X ~ BinNeg(n=10,p=0,2)
+
+
+Reemplazamos los valores y obtenemos el siguiente resultado:
+
+```{r}
+choose(70-1,10-1)*((1-0.2)^(70-10))*(0.2^10)
+dnbinom(x=60, size=10, prob=0.2)
+```
+
+La probabilidad de obtener al 10mo alumno que duerme 7 horas al día después de entrevistar a 70 personas es muy pequeña. Para obtener un mejor vistazo de esta probabilidad graficamos la función masa de la distribución.
+
+```{r}
+coloresbarra<-colores <- c(rep("blue",60), 'red')
+barplot(dnbinom(0:60, size=10, prob=0.2),names.arg=c(10:70),main="Función de masa de probabilidad de la variable X", ylab="Probabilidad", xlab="Cantidad de encuestados hasta encontrar al 10mo alumno que duerme 7 horas",col=coloresbarra, space = T)
+```
+
+Viendo la gráfica podemos concluir que es muy probable que al llegar entre el entrevistado 42 y el entrevistado 50 encontremos a la 10ma persona que duerme 7 horas al día.
+
+------------------------------------------------------------------------
+
+## Distribución Uniforme
+
+------------------------------------------------------------------------
+
+El primer modelo que se identificó al ver las gráficas de las variables continuas fue el modelo uniforme, ya que al ver la gráfica de la variable P.P Esp-Rot, que va de la nota 4 a la 9, se aproximaba mucho a este tipo de distribución. Lo que haremos a continuación es verificar nuestra hipótesis:
+  
+Primero plantearemos como seria nuestra distribución uniforme. Para ello no tomaremos en cuenta los valores que se encuentran antes de la nota 4 y después de la nota 9.
+
+$\mathbb{X}\sim \mathsf{Unif}(a,b)\\\mathbb{X} \to notas\ de\ la\ Prueba\ Psicotécnica\ Espacial\ Rotacional\ mayores\ o\ iguales\ a\ 4\ pero\ menores\ o\ iguales\ a\ 9$
+
+```{r}
+XUNIF <- Datos$`P.P. Esp-Rot`[Datos$`P.P. Esp-Rot`>=4 & Datos$`P.P. Esp-Rot`<=9]
+```
+
+Los parámetros a y b vendrían a ser el valor mínimo y el valor máximo de la distribución, los cuales son 4 y 9 respectivamente. Teniendo estos valores podemos hallar la función densidad la cual esta dada por:
+ 
+$c=\frac{1}{b-a}$
+
+```{r}
+(1/(9-4))
+```
+
+Una vez teniendo el valor de la función densidad podemos comparar gráficamente y ver cuanto se aproxima nuestra distribución con la distribución del modelo uniforme:
+
+```{r}
+hist(XUNIF
+     , breaks = 5
+     , probability =TRUE
+     , ylim=c(0, 0.25)
+     , xlab = "X"
+     , ylab = "Densidad"
+     , main = "Aproximación con el modelo uniforme"
+     , cex.axis = 0.95
+     )
+curve(dunif(x, min = 4, max = 9),add = TRUE,col=c("red"),lwd=3)
+legend("topright",legend = c("Dis. Uniforme"),fill = c("red"))
+```
+
+Podemos observar que la gráfica que tenemos se aproxima al modelo uniforme que se plantea. Para tener más certeza de que el nuestra gráfica se aproxima al modelo uniforme planteado entonces comparamos la esperanza, la varianza y la desviación estándar del modelo planteado con el promedio, la varianza y la desviación estándar de nuestros datos acotados.
+
+- Esperanza
+
+Para hallar la esperanza del modelo uniforme necesitamos usar la siguiente fórmula:
+
+$\frac{b+a}{2}$
+
+```{r}
+(9+4)/2
+mean(XUNIF)
+```
+
+- Varianza   
+
+Para hallar la varianza del modelo uniforme necesitamos usar la siguiente fórmula:
+
+$\frac{(b-a)^2}{12}$
+
+```{r}
+((9-4)^2)/12
+var(XUNIF)
+```
+
+- Desviación estándar
+
+Para hallar la desviación estándar del modelo uniforme necesitamos usar la siguiente fórmula:
+
+$\frac{\sqrt{12}}{12}(b-a)$
+
+
+```{r}
+(((12)^(1/2))*(9-4))/12
+(var(XUNIF))^(1/2)
+```
+
+Se puede observar de los resultados que la esperanza, la varianza y la desviación estándar del modelo uniforme propuesto es muy similar a el promedio, la varianza y la desviación estandar de los datos acotados, por ello, podemos concluir que las notas de la Prueba Psicotécnica Espacial Rotacional mayores a 4 pero menores a 9 pueden ser representadas por un modelo uniforme el cual presenta los siguientes parámetros:
+
+$\mathbb{X}\sim \mathsf{Unif}(4,9)\\\mathbb{X} \to notas\ de\ la\ Prueba\ Psicotécnica\ Espacial\ Rotacional\ mayores\ o\ iguales\ a\ 4\ pero\ menores\ o\ iguales\ a\ 9 $
+
+------------------------------------------------------------------------
+
+## Distribución Normal
+
+------------------------------------------------------------------------
+
+El segundo modelo que se identificó al ver las gráficas de las variables continuas fue el modelo uniforme, ya que al ver la gráfica de la variable P.P numérica, que va desde las notas 1 a la 10, se aproximaba mucho a este tipo de distribución. Lo que haremos a continuación es verificar nuestra hipótesis:
+
+Primero plantearemos como seria nuestra distribución normal. Para ello no tomaremos en cuenta los valores que se encuentran antes de la nota 1.
+
+```{r}
+XNOR <- Datos$`P.P. Numerica`[ Datos$`P.P. Numerica`>=1]
+```
+
+Una característica esencial de cualquier distribución normal es que tanto la media como la mediana tienen que ser iguales o lo mas parecidas entre si. Por ello comparamos la media y la mediana de los datos para ver si se cumple la siguiente propiedad.
+
+```{r}
+mean(XNOR)
+median(XNOR)
+```
+
+Como se puede observar, la media y la mediana de los datos es muy similar entre si, solo presentan una diferencia de 0.15, por ello es correcto afirmar que la distribución de nuestros datos se aproxima a una distribución normal.
+
+Sabiendo esto planteamos el siguiente modelo:
+
+$\mathbb{G}\sim \mathsf{N}(\mu,\sigma)\\\mathbb{X} \to notas\ de\ la\ Prueba\ Psicotécnica\ Numerica\ mayores\ o\ iguales\ a\ 1$
+
+Tanto las variables mu y sigma pueden hallarse, ya que son la media y la desviacion estandar de nuestros datos, así que calculamos sus valores y lo reemplazamos en la distribución:
+
+- Media y desviación estándar
+
+```{r}
+mu <- mean(XNOR)
+sigma <- (var(XNOR)^(1/2))
+c(mu, sigma)
+```
+
+Ahora graficaremos la distribución de nuestros datos y la distribución del modelo normal que se esta planteando para poder observar el nivel de aproximación :
+
+```{r}
+hist(XNOR
+     , breaks = 9
+     , probability =TRUE
+     , ylim=c(0, 0.30)
+     , xlab = "G"
+     , ylab = "Densidad"
+     , main = "Aproximación con el modelo Normal"
+     , cex.axis = 0.95
+     )
+
+curve(dnorm(x, mu, sigma), add = TRUE,col=c("red"),lwd=3)
+legend("topright",legend = c("Dis. Normal"),fill = c("red"))
+```
+
+Como se puede observar, la distribución de nuestros datos se aproxima mucho a una distribución normal, así que podemos decir que las notas de la Prueba Psicotecnica Numérica que son mayores que 1 presentan una distribución normal que se da de la siguiente forma:
+
+$\mathbb{G}\sim \mathsf{N}(6.266089,2.001519)\\\mathbb{X} \to notas\ de\ la\ Prueba\ Psicotécnica\ Numerica\ mayores\ o\ iguales\ a\ 1  $
+
+A continuación estandarizamos nuestro modelo. Para ello aplicaremos la siguiente formula y lo guardaremos en una variable Z:
+
+$Z = \frac{G-\mu}{\sigma}$
+
+Esto nos queda de la siguiente forma:
+
+```{r}
+Z <- (XNOR-mu)/sigma
+```
+
+Una vez teniendo nuestros datos estandarizados lo comparamos con un modelo normal con media 0 y desviación estándar 1 para ver las similitudes:
+
+$\mathbb{Z}\sim \mathsf{N}(0,1)$
+
+```{r}
+hist(Z
+     , probability =TRUE
+     , xlab = "Z"
+     , ylab = "Densidad"
+     , main = "Aproximación con el modelo Normal"
+     , cex.axis = 0.95
+     )
+
+curve(dnorm(x, 0, 1), add = TRUE,col=c("red"),lwd=3)
+legend("topright",legend = c("Dis. Normal"),fill = c("red"))
+```
+
+Como se puede observar, este seria el modelo estandarizado de el conjunto de nuestros datos.
+
+
+# **Conclusiones**
+
+- Las variables relacionadas con el rendimiento de las pruebas psicotecnicas y el estilo de vida son: la concentración, las horas de sueño y la cantidad de actividad física semanal.
+
+- Se identifica que la variable horas de sueño presenta sesgo, esto se debe a que el cuestionario fue realizado cerca a los parciales. No obstante, en promedio duermen 6h al día.
+
+- Se corrobora los patrones encontrados en el análisis descriptivo mediante el análisis probabilistico. No obstante, gracias al análisis probabilistico se pudo precisar que en si ambas pruebas fueron aprobadas por la misma cantidad de estudiantes.
+
+**Datos curiosos**
+
+La concentración y actividad distractora influyen directamente en el rendimiento de las pruebas, sin embargo, también depende del estudiante. Se pudo validar que cada estudiante tiene su ritmo de aprendizaje y su habilidad característica. Lo mismo sucede con el estilo de vida, es un factor que guarda relación con las pruebas, y eso se valido correctamente en esta investigación.
+
+Aunque hallan reincidido en mayor proporción las mujeres, eso no significa que solo suceda a esa unidad muestral. 
+
+
+# **Bibliografía**
+
+- Mendoza Vega, J. B. (s. f.). R para principiantes [Bookdown]. https://bookdown.org/jboscomendoza/r-principiantes4/
+- Varios. (s. f.). RDocumentation [DataCamp]. https://www.rdocumentation.org/
