@@ -1,0 +1,802 @@
+---
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+    number_sections: yes
+---
+
+
+
+```{r, echo=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(DescTools)
+library(car)
+library(remotes)
+library(kableExtra)
+library(tidyverse)
+library(boot)
+library(rriskDistributions)
+library(knitr)
+```
+
+
+
+# <b style = 'color : black;'><FONT FACE="roman">Introdución</FONT></b>
+
+
+## Relevancia
+
+El perfil crediticio de una persona postulante a un monto de préstamo hipotecario es un elemento fundamental  para las entidades financieras prestamistas  ya que esta les permite evaluar si la solicitud de su préstamo debe o no ser aprobada. Realizar el análisis de la información contenida en el perfil crediticio nos permite tener un mejor entendimiento de las relaciones entre sus correspondientes variables y en consecuencia, de la manera en como las entidades bancarias procesan dicha información antes de elegir a sus clientes.
+
+## Objetivos
+
+❖ Evaluar los rangos de préstamos hipotecarios de acuerdo a la
+ubicación de la vivienda del cliente.
+
+❖ Determinar cómo influye el estado civil y la carga familiar en la
+aprobación del préstamo hipotecario solicitado.
+
+❖ Conocer el alcance del financiamiento hipotecario conforme al grado
+educativo e ingreso económico del cliente.
+
+❖ Identificar lel grado de aprobación de un crédito hipotecario en
+base al historial crediticio del cliente.
+
+## Contexto
+
+Una compañía financiera otorga préstamos hipotecarios a los solicitantes luego de realizar una minuciosa evaluación de su perfil crediticio y  determinar si califican o no para ser acreedores del monto solicitado. Los solicitantes son personas naturales como también entidades dedicadas al rubro inmobiliario con el fin de comprar, edificar, ampliar o remodelar  sus viviendas e invertir en el desarrollo y crecimiento de sus negocios respectivamente. Una característica del préstamo hipotecario es que la garantía es la misma vivienda financiada o una propiedad con semejante valor económico. En cuanto a la devolución del préstamo desembolsado, la entidad establece que este será devuelto en una cantidad de cuotas mensuales  que dependerá del volumen del préstamo recibido por el cliente. Generalmente el préstamo corresponde al 85% del valor de la vivienda a financiar. En caso de que no se cumpla con la devolución total del monto estipulado (más intereses), la compañía financiera realiza el cobro de la garantía.
+
+A partir de la situación expuesta, se plantea la idea de realizar el análisis del perfil crediticio de los ciudadanos de la India que logran acceder a un préstamo hipotecario, en otras palabras se estudia la información de los clientes de la compañía mediante el análisis de las relaciones entre determinadas variables que describen las características principales de los solicitantes a un préstamo hipotecario tales como ingreso económico, carga familiar e historial crediticio.
+
+
+# <b style = 'color : black;'><FONT FACE="roman">Datos</FONT></b>
+
+## Proceso de recolección de datos
+
+En nuestro caso se optó por trabajar con una base de datos de una fuente externa, puesto que consideramos en equipo que esto sería lo más eficiente, sobretodo por el factor tiempo. Es así que iniciamos la búsqueda de diferentes opciones en la página "Kaggle", de la cual optamos por archivos que tuviesen relación con los préstamos hipotecarios, por ser un tema novedoso e interesante para desarrollar en el proyecto.  Luego de descartar varios archivos porque no cumplían con ciertos requerimientos tales como una cantidad insuficiente de variables cuantitativas o del número de observaciones, decidimos por el dataframe "Analytics Vidhya: predicción de préstamos". En este vimos que la cantidad de las variabes cuantitativas y cualitativas, así como el número de observaciones era el adecuado para realizar los análisis solicitados, además de la información proporcionada en su descripción nos dió la confianza para elegirlo.
+
+
+## Población, muestra y muestreo
+
+La población de estudio son ciudadanos de la India con mayoría de edad, por consiguiente la unidad muestral o muestra, son aquellas personas que han realizado una solicitud de préstamo hipotecario de la compañía "Dream Housing Finance".Por otro lado, luego de verificar la base de datos, el tamaño de la muestra es de 614 personas (solicitantes) de tal manera que el tamaño muestral es lo suficientemente óptimo y así reducir el error muestral y garantizar que los resultados obtenidos sean generalizables a la población objetivo. Asi mismo, el tipo muestral que se utilizó es un Muestreo Aleatorio, ya que la muestra se dividió en estratos como por ejemplo: la ubicación geográfica, el nivel de ingreso, la carga familiar y entre otros; además porque la unidad muestral fueron escogidos al azar.
+
+
+## Planificación
+
+1. Instalamos y abrimos los paquetes necesarios que utilizaremos a lo largo del proyecto.
+
+*Instalación de paquetes necesarios:*
+```{r}
+#install.packages("readr")
+#install.packages("dplyr")
+#install.packages("ggplot")
+#install.packages("Rtools")
+#install.packages("kableExtra")
+#install.packages("car")
+#install.packages("remotes")
+#remotes::install_github("giocomai/ganttrify")
+#install.packages("DescTools")
+#install.packages("rriskDistributions")
+#install.packages("knitr")
+#install.packages("xfun")
+```
+
+*Abrir librerías:*
+```{r}
+#library(readr)
+#library(dplyr)
+#library(ggplot2)
+#library(knitr)
+#library(DescTools)
+#library(car)
+#library(remotes)
+#library(ganttrify)
+#library(kableExtra)
+#library(tidyverse)
+#library(boot)
+#library(rriskDistributions)
+#library(knitr)
+```
+
+2. Importaremos la base de datos y creamos el dataframe DF para un mejor manejo de la data.
+
+*Importar data:*
+```{r}
+DF <- read_csv("DATA.csv")
+```
+
+3. Haremos una copia de la base de datos, para no dañar la base de datos original.
+
+```{r}
+DF2 <- DF
+```
+
+4. Cambiaremos los nombres de las variables de la base de datos y estandarizaremos los datos de las variables  para un mejor entendimiento al momento de utilizar en las gráficas y el análisis numérico. 
+
+*Cambiando los nombres de las variables:*
+```{r}
+#Instalamos el paquete y cargamos la libreria (tidyverse)
+
+colnames(DF2) <- c("ID", "Género", "Estado_civil","Carga_familiar", "Grado_Académico","Trabajador_independiente", "Ingreso_del_solicitante", "Ingresos_del_cosolicitante","Monto_de_préstamo", "Periodo_crediticio", "Historial_crediticio", "Ubicaión_de_propiedad", "Estado_de_préstamo")
+```
+
+*Muestra los datos de las variables:*
+```{r}
+# Muestra las diferentes datos de las variables 
+unique(DF2$Género) 
+unique(DF2$Estado_civil) 
+unique(DF2$Carga_familiar)
+unique(DF2$Grado_Académico)
+unique(DF2$Trabajador_independiente)
+unique(DF2$Historial_crediticio)
+unique(DF2$Ubicaión_de_propiedad)
+unique(DF2$Estado_de_préstamo)
+```
+
+*Veremos cómo Rstudio clasifica a nuestras variables*
+```{r}
+class(DF2$ID)
+class(DF2$Género)
+class(DF2$Estado_civil)
+class(DF2$Carga_familiar)
+class(DF2$Grado_Académico)
+class(DF2$Trabajador_independiente)
+class(DF2$Ingreso_del_solicitante)
+class(DF2$Ingresos_del_cosolicitante)
+class(DF2$Monto_de_préstamo)
+class(DF2$Periodo_crediticio)
+class(DF2$Historial_crediticio)
+class(DF2$Ubicaión_de_propiedad)
+class(DF2$Estado_de_préstamo)
+```
+
+*Estandarizando variables*
+
+* Estandarizando la variable *género*
+```{r}
+DF2 %>% mutate(Género = 
+        ifelse( Género == "Male", "Masculino",
+        ifelse( Género == "Female", "Femenino", Género
+        ))) -> DF2
+```
+
+* Estandarizando la variable *Estado civil*
+```{r}
+DF2 %>% mutate(Estado_civil = 
+        ifelse( Estado_civil == "Yes", "Casado",
+        ifelse( Estado_civil == "No", "Soltero", Estado_civil
+        ))) -> DF2
+```
+
+* Estandarizando la variable *grado academico*
+```{r}
+DF2 %>% mutate(Grado_Académico = 
+        ifelse(Grado_Académico == "Graduate", "Graduado",
+        ifelse(Grado_Académico == "Not Graduate", "No Graduado",Grado_Académico
+        ))) -> DF2
+```
+
+* Estandarizando la variable *trabajador independiente*
+```{r}
+DF2 %>% mutate(Trabajador_independiente = 
+        ifelse(Trabajador_independiente == "Yes", "Si",
+        ifelse(Trabajador_independiente== "No", "No", Trabajador_independiente
+        ))) -> DF2
+```
+
+* Estandarizando la variable *Historial crediticio*
+```{r}
+# Convirtiendo de una variable cuantitativa a una variable cualitativa
+DF2 %>% mutate(Historial_crediticio = 
+        ifelse(Historial_crediticio == "0", "Malo",
+        ifelse(Historial_crediticio == "1", "Bueno",Historial_crediticio
+        ))) -> DF2
+#Mostrando la variable cambiada
+class(DF2$Historial_crediticio)
+```
+
+* Estandarizando la variable *Ubicación de propiedad*
+```{r}
+DF2 %>% mutate(Ubicaión_de_propiedad = 
+        ifelse(Ubicaión_de_propiedad == "Rural", "Rural",
+        ifelse(Ubicaión_de_propiedad == "Semiurban", "Semiurbano",
+        ifelse(Ubicaión_de_propiedad == "Urban", "Urbano", Ubicaión_de_propiedad
+        )))) -> DF2
+```
+
+* Estandarizando la variable *Estado de préstamo*
+```{r}
+DF2 %>% mutate(Estado_de_préstamo = 
+        ifelse(Estado_de_préstamo == "Y", "Aprobado",
+        ifelse(Estado_de_préstamo == "N", "Rechazado", Estado_de_préstamo
+        ))) -> DF2
+```
+
+5. Creamos la función de moda, coeficiente de variación y del redondeo
+
+*Función de redondeo*
+```{r}
+r <- function(x,na.rm=T){
+  return(round(x,digits =2))
+}
+```
+
+
+*Función de Coeficiente de variación*
+```{r}
+cv = function(data) {
+  sd(data)/mean(data)
+}
+```
+
+*Función de moda*
+```{r}
+mode <- function(x) {
+  freq_table <- table(x)
+  mode <- as.numeric(names(freq_table)[freq_table == max(freq_table)])
+  return(mode)
+}
+
+```
+
+
+## Variables
+* Definiendo cada Variable y edintificamos el tipo.
+
+```{r, echo=FALSE}
+
+Variables <- read_delim("Variables.csv", 
+    delim = ",", escape_double = FALSE, trim_ws = TRUE)
+```
+
+
+```{r, echo=FALSE}
+
+require(knitr)
+kable_styling(kable(head(Variables,13),
+                    booktabs = TRUE,
+                    digits = 3, 
+                    label = TRUE,
+                    row.names = FALSE, align = "l"),
+              latex_options = c("striped", "condensed"),
+              position = "center",
+              full_width = FALSE) %>%
+  row_spec(0, bold = T, color = "white", background = "red") %>%
+  column_spec(1, bold = T, color = "blue")
+```
+
+
+## Limpieza de la base de datos
+
+*Verificando las dimensiones de DF2*
+
+Conteo de observaciones totales: Se obtuvo mediante el comando dim(DF2). El primer valor corresponde a la cantidad de observaciones contenida en la base de datos inicialmente y el segundo la cantidad de columnas(Variables).  
+```{r}
+
+dim(DF2)
+```
+
+*Contando la cantidad de datos completos e incompletos*
+```{r}
+#Sumar la cantidad de datos incompletos.
+sum(is.na(DF2)) # is.na() -> este comando detecta los datos incompletos
+#Sumar la cantidad de datos completos.
+sum(!is.na(DF2)) # !is.na() -> es la negación de is.na, es decir, indica los datos completos.
+
+```
+
+*Mostrando la cantidad total de NA de cada variable*
+```{r}
+#Conocer la cantidad de NA que encontramos en cada variable
+colSums(is.na(DF2))
+```
++ Se observa que hay 7 variables cuyas observaciones tienen datos incompletos (NA), de las cuales la variable con mayor cantidad de datos faltantes es Historial crediticio (50), seguido ppor trabajador independiente (32), monto de préstamo (22), carga familiar (15) y por último periodo crediticio (14). 
+
+
+**Calculando el tamaño efectivo de la muestra de cada variable y el porcentaje de la cantidad de dato válidos respectivo**
+
+*Tamaño efectivo de la variable ID*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$ID)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$ID)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Género*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Género)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Género)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Estado_civil*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Estado_civil)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Estado_civil)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Carga_familiar *
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Carga_familiar)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Carga_familiar)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Grado_Académico*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Grado_Académico)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Grado_Académico)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Trabajador_independiente*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Trabajador_independiente)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Trabajador_independiente)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Ingreso_del_solicitante*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Ingreso_del_solicitante)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Ingreso_del_solicitante)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Ingresos_del_cosolicitante*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Ingresos_del_cosolicitante)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Ingresos_del_cosolicitante)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Monto_de_préstamo*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Monto_de_préstamo)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Monto_de_préstamo)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Periodo_crediticio*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Periodo_crediticio)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Periodo_crediticio)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Historial_crediticio*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Historial_crediticio)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Historial_crediticio)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Ubicaión_de_propiedad*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Ubicaión_de_propiedad)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Ubicaión_de_propiedad)))/(nrow(DF2)) *100)
+```
+*Tamaño efectivo de la variable Estado_de_préstamo*
+```{r}
+
+nrow(DF2)-sum(is.na(DF2$Estado_de_préstamo)) #la cantidad total- la cantidad efectiva
+#Porcentaje de la cantidad de datos válidos
+r((nrow(DF2)-sum(is.na(DF2$Estado_de_préstamo)))/(nrow(DF2)) *100)
+```
++ A partir de los códigos ejecutados de cada una de las variables que tienen datos incompletos (Item anterior), podemos afirmar que los tamaños efectivos de la muestra de dichas variables son diferentes. Además la variable que tiene el menor tamaño efectivo es el historial creditico, a partir de ello, se puede concluir que el 91.86 % de sus observaciones son válidas. Por otro lado las variables que tiene el 100 % de datos completos son: ID, estado de préstamo, ingreso del solicitante, grado académico, ingreso del cósolicitante y ubicación de la propieda; siendo así estas variables de mayor tamaño efectivo.
+
+
+**Eliminamos los datos incompletos**
+```{r}
+DF2 <- na.omit(DF2)
+```
+
+
+*Verificando las dimensiones de DF2 y la existencia de datos incompletos*
+```{r}
+# Dimensiones 
+dim(DF2)
+# Datos incompletos
+sum(is.na(DF2))
+```
++ Se puede concluir que después de la limpieza de la base de datos, el tamaño de la muestra ha sido afectada, de tal manera que se redujo a 480 y en esta nueva base de datos ya no se encuentra ningún dato incompleto (NA). A partir de ello podemos decir que esta base de datos se encuentra limpia y listo para poder trabajar con ello.
+
+
+# <b style = 'color : black;'><FONT FACE="roman">Análisis descriptivo</FONT></b>
+
+
+## Descriptores numéricos
+
+Se analiza los descriptores numéricos para cada variable.
+
+**1.- Análisis de los clientes en general**
+
+*Ingreso del solicitante*
+```{r}
+
+min(DF2$Ingreso_del_solicitante, na.rm=T)
+max(DF2$Ingreso_del_solicitante, na.rm = T)
+r(mean(DF2$Ingreso_del_solicitante, na.rm = T))
+r(median(DF2$Ingreso_del_solicitante,na.rm = T))
+r(mode(DF2$Ingreso_del_solicitante))
+r(cv(DF2$Ingreso_del_solicitante))
+r(sd(DF2$Ingreso_del_solicitante))
+r(IQR(DF2$Ingreso_del_solicitante,na.rm=T))
+```
+
+*Ingreso del Cosolicitante*
+```{r}
+
+min(DF2$Ingresos_del_cosolicitante, na.rm=T)
+max(DF2$Ingresos_del_cosolicitante, na.rm = T)
+r(mean(DF2$Ingresos_del_cosolicitante, na.rm = T))
+r(median(DF2$Ingresos_del_cosolicitante,na.rm = T))
+r(mode(DF2$Ingresos_del_cosolicitante))
+r(cv(DF2$Ingresos_del_cosolicitante))
+r(sd(DF2$Ingresos_del_cosolicitante,na.rm = T ))
+r(IQR(DF2$Ingresos_del_cosolicitante,na.rm=T))
+```
+
+*Ingreso total*
+```{r}
+
+DF2_2 <- DF2 %>% mutate(Ingreso_Total = Ingreso_del_solicitante + Ingresos_del_cosolicitante)
+min(DF2_2$Ingreso_Total, na.rm=T)
+max(DF2_2$Ingreso_Total, na.rm = T)
+r(mean(DF2_2$Ingreso_Total, na.rm = T))
+r(median(DF2_2$Ingreso_Total,na.rm = T))
+r(mode(DF2_2$Ingreso_Total))
+r(cv(DF2_2$Ingreso_Total))
+r(sd(DF2_2$Ingreso_Total,na.rm = T ))
+r(IQR(DF2_2$Ingreso_Total,na.rm=T))
+```
+
+*Periodo de préstamo*
+```{r}
+
+min(DF2$Periodo_crediticio, na.rm=T)
+max(DF2$Periodo_crediticio, na.rm = T)
+r(mean(DF2$Periodo_crediticio, na.rm = T))
+r(median(DF2$Periodo_crediticio,na.rm = T))
+r(mode(DF2$Periodo_crediticio))
+r(cv(DF2$Periodo_crediticio))
+r(sd(DF2$Periodo_crediticio,na.rm = T ))
+r(IQR(DF2$Periodo_crediticio,na.rm=T))
+```
+
+*Monto de préstamo*
+```{r}
+
+min(DF2$Monto_de_préstamo, na.rm=T)
+max(DF2$Monto_de_préstamo, na.rm = T)
+r(mean(DF2$Monto_de_préstamo, na.rm = T))
+r(median(DF2$Monto_de_préstamo,na.rm = T))
+r(cv(DF2$Monto_de_préstamo))
+r(mode(DF2$Monto_de_préstamo))
+r(sd(DF2$Monto_de_préstamo,na.rm = T ))
+r(IQR(DF2$Monto_de_préstamo,na.rm=T))
+```
+
+```{r, echo=FALSE}
+
+#De manera general (Aprobados y no aprobados)
+Descriptores <- read_delim("Descriptores numericos.csv", 
+    delim = ",", escape_double = FALSE, trim_ws = TRUE)
+
+```
+
+
+```{r, echo=FALSE}
+
+require(knitr)
+kable_styling(kable(head(Descriptores,8),
+                    booktabs = TRUE,
+                    digits = 3, 
+                    label = TRUE,
+                    row.names = FALSE, align = "l"),
+              latex_options = c("striped", "condensed"),
+              position = "center",
+              full_width = FALSE) %>%
+  row_spec(0, bold = T, color = "black", background = "lightblue") %>%
+  column_spec(1, bold = T, color = "blue")
+```
+
+**2.-Análisis específico de los clientes aprobados**
+
+
+*Filtramos sólo los aprobados*
+```{r}
+
+monto_prestamo <- DF2_2%>% filter(DF2$Estado_de_préstamo== "Aprobado")
+
+```
+
+*Ingreso del solicitante*
+```{r}
+
+min(monto_prestamo$Ingreso_del_solicitante)
+max(monto_prestamo$Ingreso_del_solicitante)
+r(mean(monto_prestamo$Ingreso_del_solicitante, na.rm = T))
+r(median(monto_prestamo$Ingreso_del_solicitante,na.rm = T))
+r(mode(monto_prestamo$Ingreso_del_solicitante))
+r(cv(monto_prestamo$Ingreso_del_solicitante))
+r(sd(monto_prestamo$Ingreso_del_solicitante,na.rm = T ))
+r(IQR(monto_prestamo$Ingreso_del_solicitante,na.rm=T))
+```
+
+*Ingreso del cosolicitante*
+```{r}
+
+min(monto_prestamo$Ingresos_del_cosolicitante)
+max(monto_prestamo$Ingresos_del_cosolicitante)
+r(mean(monto_prestamo$Ingresos_del_cosolicitante, na.rm = T))
+r(median(monto_prestamo$Ingresos_del_cosolicitante,na.rm = T))
+r(mode(monto_prestamo$Ingresos_del_cosolicitante))
+r(cv(monto_prestamo$Ingresos_del_cosolicitante))
+r(sd(monto_prestamo$Ingresos_del_cosolicitante,na.rm = T ))
+r(IQR(monto_prestamo$Ingresos_del_cosolicitante,na.rm=T))
+```
+
+*Ingreso económico total*
+```{r}
+
+min(monto_prestamo$Ingreso_Total)
+max(monto_prestamo$Ingreso_Total)
+r(mean(monto_prestamo$Ingreso_Total, na.rm = T))
+r(median(monto_prestamo$Ingreso_Total,na.rm = T))
+r(mode(monto_prestamo$Ingreso_Total))
+r(cv(monto_prestamo$Ingreso_Total))
+r(sd(monto_prestamo$Ingreso_Total,na.rm = T ))
+r(IQR(monto_prestamo$Ingreso_Total,na.rm=T))
+```
+
+*periodo de prestamo*
+```{r}
+
+min(monto_prestamo$Periodo_crediticio)
+max(monto_prestamo$Periodo_crediticio)
+r(mean(monto_prestamo$Periodo_crediticio, na.rm = T))
+r(median(monto_prestamo$Periodo_crediticio,na.rm = T))
+r(mode(monto_prestamo$Periodo_crediticio))
+r(cv(monto_prestamo$Periodo_crediticio))
+r(sd(monto_prestamo$Periodo_crediticio,na.rm = T ))
+r(IQR(monto_prestamo$Periodo_crediticio,na.rm=T))
+```
+
+*monto de préstamo*
+```{r}
+
+min(monto_prestamo$Monto_de_préstamo)
+max(monto_prestamo$Monto_de_préstamo)
+r(mean(monto_prestamo$Monto_de_préstamo, na.rm = T))
+r(median(monto_prestamo$Monto_de_préstamo,na.rm = T))
+r(mode(monto_prestamo$Monto_de_préstamo))
+r(cv(monto_prestamo$Monto_de_préstamo))
+r(sd(monto_prestamo$Monto_de_préstamo,na.rm = T ))
+r(IQR(monto_prestamo$Monto_de_préstamo,na.rm=T))
+
+```
+
+```{r, echo=FALSE}
+
+#Sólo aprobados
+Descriptores1 <- read_delim("Descriptores numericos1.csv", 
+    delim = ",", escape_double = FALSE, trim_ws = TRUE)
+```
+
+
+```{r, echo=FALSE}
+require(knitr)
+kable_styling(kable(head(Descriptores1,8),
+                    booktabs = TRUE,
+                    digits = 3, 
+                    label = TRUE,
+                    row.names = FALSE, align = "l"),
+              latex_options = c("striped", "condensed"),
+              position = "center",
+              full_width = FALSE) %>%
+  row_spec(0, bold = T, color = "black", background = "lightgreen") %>%
+  column_spec(1, bold = T, color = "blue")
+```
+
+
+**Análisis de los descriptores numéricos de las variables más importantes**
+
+**INGRESO DEL SOLICITANTE**
+
+Refiere al monto de ingreso mensual que dispone el solicitante, de tal manera que es una variable numérica contínua donde el mínimo ingreso es de 645 mil dólares y el máximo ingreso es de 39999.00 mil dólares. Asi mismo se puede conluir que el promedio es de 	5201.09 mil dólares.
+
+
+**INGRESO DEL COSOLICITANTE**
+
+Puesto que la desviación estándar es mayor al ingreso medio además de que el coeficiente de variación es mayor a uno, se entiende que los montos de los ingresos de los cosolicitantes se encuentran significativamente alejados del valor del ingreso medio, existe entonces una alta dispersión de los datos.
+
+**INGRESO ECONÓMICO TOTAL**
+
+Es una cifra numérica positiva (cuantitativa), sus unidades son los dólares. Los valores corresponden a la suma de los ingresos mensuales del solicitante y cosolicitante del préstamo. El ingreso mínimo mensual  es 1 963 dólares y el máximo es 43 897 dólares. El ingreso económico total promedio es 6696.6 dólares, mientras que la primera mitad del grupo de datos se encuentran por debajo de los 
+5 439 dólares, la segunda mitad de los datos se sitúan por encima de la misma.  Se observa que hay 2 datos que aparecen con mayor frecuencia (variable bimodal) entre el conjunto de datos, estos son: 3 750 y 6000 dólares. 
+
+
+**PERIODO**
+
+Es un número entero positivo, sus unidades son los meses. Los valores corresponden a la cantidad de meses en los que se dividirá el monto del préstamo aprobado, por ejemplo, un periodo de 120 meses indica que el solicitante deberá saldar su deuda  en cuotas divididas en ese lapso de tiempo. El periodo mínimo observado corresponde a 60 meses (3 años) y el máximo a 480 meses (40 años). En promedio el periodo en el que se programa el pago total de un determinado monto de préstamo es 341.71 meses, es decir un poco más de 28 años. Además se ha encontrado que las dos mitades del conjunto de observaciones de esta variable se sitúan una por debajo de los 360 meses y la otra por encima de la misma. El periodo programado que aparece con mayor frecuencia corresponde a los 360 meses. Ya que encontramos un valor de desviación estándar (61.65 meses) considerablemente menor al periodo medio, podemos afirmar que las observaciones no son muy distintas entre sí, son en su mayoría datos homogéneos. 
+
+
+**MONTO DE PRÉSTAMO**
+
+Variable que en las observaciones de la presente muestra toma valores enteros positivos, expresado en miles de dólares. Indica la cantidad de dinero que el solicitante o cliente  recibe luego de haber sido aprobada su solicitud de préstamo hipotecario. El monto de préstamo mínimo solicitado y aprobado corresponde a los 17 mil dólares, mientras que el máximo es 600 mil dólares. El monto del préstamo promedio es de 140 880 dólares. La mitad de los datos son inferiores a 128 mil dólares y la otra mitad son superiores a este monto. El monto de préstamo aprobado que se repite un mayor número de veces es 120 mil dólares. Los datos de la muestra son medianamente heterogéneos, esto quiere decir que hay una variabilidad media (coeficiente de variación 0.54 y desviación estándar 75 740 dólares).
+
+
+## Descriptores gráficos
+
+**Análisis de rangos de ingresos económicos totales**
+```{r, echo=FALSE}
+
+monto_prestamo <- DF2%>% filter(DF2$Estado_de_préstamo== "Aprobado")
+datos2 <- monto_prestamo %>% mutate(Ingreso_Total = Ingreso_del_solicitante + Ingresos_del_cosolicitante)
+
+hist(datos2$Ingreso_Total,breaks=30,col=  "#DCD0FF" ,main="Ingreso Total",ylab="densidad",xlab="Monto de ingreso ($)",prob=TRUE)
+abline(v=median(datos2$Ingreso_Total),col="red",lwd=2) 
+abline(v=mean(datos2$Ingreso_Total),col="blue",lwd=2) 
+legend(30000,0.00020,legend=c("Mediana","Media"),lwd=2,col=c("red","blue"))
+
+```
+* En la gráfica podemos apreciar el monto total de ingreso que es la suma de los ingresos del solicitante y cosolicitante. Por otro lado, el promedio de los ingresos totales del solicitantes osila entre 6000 y 7000 dólares, esto nos indica que la mayoría de personas solicitantes tiene el ingreso de los montos mencionados. Por otro lado, al analizar la gráfica la mediana es menor a la media, esto quiere decir que está segada a la derecha, por lo cual hay mayor cantidad de datos atípicos a partir de los 20000 dólares. Además, la densidad representa la cantidad de datos que se encuentran en cada intervalo con respecto al tamaño del rango.
+
+
+**Análisis de rangos de préstamos hipotecarios**
+```{r, echo=FALSE}
+
+#Rangos de prestamos hipotecarios
+monto_prestamo <- DF2%>% filter(DF2$Estado_de_préstamo== "Aprobado")
+hist(monto_prestamo$Monto_de_préstamo,breaks=30,col=amarillo_suave <- "#DCD0FF"
+ ,main="Monto de préstamo hipotecario",ylab="densidad",xlab="Monto de préstamo (miles de  $)",prob=TRUE)
+abline(v=median(monto_prestamo$Monto_de_préstamo),col="red",lwd=2) 
+abline(v=mean(monto_prestamo$Monto_de_préstamo),col="blue",lwd=2) 
+legend(400,0.009,legend=c("Mediana","Media"),lwd=2,col=c("red","blue"))
+
+```
+*Al analizar la gráfica, podemos observar que la compañía Dream Housing Finance otorga un promedio de préstamos hipotecarios que oscila entre los 130 mil y 150 mil dólares. Además, se puede apreciar que la distribución de los datos está sesgada hacia la derecha, ya que la mediana es menor que la media. A partir de esta observación, se puede concluir que los préstamos superiores a los 300 mil dólares son poco frecuentes, ya que los datos muestran una dispersión mayor en esa área.
+
+
+**Análisis de los rangos de préstamos hipotecarios según ubicaión de la vivienda**
+```{r, echo=FALSE}
+
+datos1 <- DF2%>% filter (DF2$Estado_de_préstamo == "Aprobado") %>% select("Ubicaión_de_propiedad","Monto_de_préstamo")
+
+
+boxplot(Monto_de_préstamo ~ Ubicaión_de_propiedad, data = datos1, 
+        xlab = "Ubicación de la vivienda", ylab = "Monto del préstamo (miles de $)", 
+        main = "Rangos de préstamos hipotecarios según su ubicación", col = c("#B2D8E5","#FFFACD", "#FA8072"))
+
+```
+**Rangos de prestamos hipotecarios - eliminando datos atípicos**
+```{r, echo=FALSE}
+
+#Se borró algunos datos atípicos para realizar un mejor análisis
+datos1$Monto_de_préstamo[datos1$Monto_de_préstamo>300] <- NA
+
+boxplot(Monto_de_préstamo ~ Ubicaión_de_propiedad, data = datos1, 
+        xlab = "Ubicación de la vivienda", ylab = "Monto del préstamo (miles de $)", 
+        main = "Rangos de préstamos hipotecarios según su ubicación", col = c("#B2D8E5","#FFFACD", "#FA8072"))
+```
+*En el siguiente gráfico de los rangos de préstamos hipotecarios según la ubicación de la vivienda; podemos estimar que las personas que viven en zonas rurales el monto de préstamo es mucho menor con un rango aproximado de [100, 170] que el semiurbano, sin embargo las personas que viven en sectores semiurbano y Urbano tienen la posibilidad de adquirir montos de préstamos mayores.
+Además cabe mencionar que el segundo gráfico de cajas, es el mismo que el primero pero haciendo algunos cambios, es decir, borramos algunos datos atípicos para una mejor visualización de las gráficas y así poder realizar un mejor análisis.
+
+
+**Análisis de la aprobación de crédito hipotecario según su ubicación**
+```{r, echo=FALSE}
+
+mosaicplot(table(DF2$Ubicaión_de_propiedad, DF2$Estado_de_préstamo), shade = FALSE, main = " Aprobación de crédito hipotecario según la ubicación de la propiedad",
+           xlab = "Ubicación de propiedad", ylab = "Aprobación de crédito", col = c("#C8E6C9","#FA8072"))
+```
+* Al interpretar la gráfica, se evidencia que las personas que viven en una zona semiurbana tienen una mayor oportunidad para la  aprobación del crédito hipotecario; sin embargo, las personas que pertenecen a las zonas rurales y urbanas tienen casi la misma oportunidad de aprobación del crédito  hipotecario. Con respecto al rechazo, las personas solicitantes que pertenecen a la zona rural y urbana la proporción es mayor a comparación a las personas que pertenecen a la zona semiurbana. También podemos notar que la mayor cantidad de personas solicitantes pertenecen a la zona semiurbana.
+
+
+**Tabla de proporcionalidad de estado civil y estado de préstamo**
+```{r, echo=FALSE}
+
+prop.table(table(DF2%>%filter (DF2$Carga_familiar == "0") %>% select("Estado_civil","Estado_de_préstamo")), margin=1)
+
+prop.table(table(DF2%>%filter (DF2$Carga_familiar == "1") %>% select("Estado_civil","Estado_de_préstamo")), margin=1)
+
+prop.table(table(DF2%>%filter (DF2$Carga_familiar == "2") %>% select("Estado_civil","Estado_de_préstamo")), margin=1)
+
+prop.table(table(DF2%>%filter (DF2$Carga_familiar == "3+") %>% select("Estado_civil","Estado_de_préstamo")), margin=1)
+
+
+```
+
+**Análisis de la proporción entre estado civil, carga familiar y aprobación de crédito**
+```{r, echo=FALSE}
+# Crear los datos
+Estado_civil <- c("Soltero", "Casado")
+Carga_familiar <- c("0", "1", "2","3+")
+
+# Proporciones de aprobación de préstamos hipotecarios
+prop_aprobacion <- matrix(c(0.6363636, 0.5714286,0.7328244,0.7820513,
+                           0.4666667,0.7500000,0.6923077,0.6756757), nrow = 2, ncol = 4, byrow = T)
+
+# Crear un dataframe con los datos
+datos <- data.frame(Estado_civil = rep(Estado_civil, each = 4),
+                    Carga_familiar = rep(Carga_familiar, times = 2),
+                    prop_aprobacion = c(prop_aprobacion))
+
+
+# Crear el gráfico de heatmap
+ggplot(datos, aes(x = Estado_civil, y = Carga_familiar, fill = prop_aprobacion)) +
+  geom_tile() +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(title = "Influencia del estado civil y carga familiar en la aprobación de préstamos hipotecarios",
+       x = "Estado civil", y = "Carga familiar", fill = "Proporción de aprobación") +
+  theme_minimal()
+
+```
+
+* La gráfica heatmap nos permite mostrar la relación de 3 variables: carga familiar (categórica); estado civil (categórica) y estado de préstamo Crediticio solicitado (categórica). Asi mismo, representa mejor la proporcionalidad entre la carga familiar con las otras dos variables, y esto se ve reflejado en los colores desde azul claro hasta azul oscuro. 
+Analizando la relación de las variables en la gráfica, podemos decir que las personas casadas tienen mayor aceptación de un préstamo hipotecario en comparación con las personas solteras, además la carga familiar influye, puesto que las personas solteras con mayor carga familiar, tienen más aceptación que las casadas, específicamente con 1 o 3 en carga familiar. Podemos concluir entonces que las personas casadas tienen mayor aceptación que las personas solteras, y que, a más carga familiar, hay más aceptación. Pero también hay una minoría que discrepan de ésta lógica.
+
+
+**Análisis de rangos de préstamos hipotecarios según el grado académico**
+```{r, echo=FALSE}
+datos10 <- DF2%>% filter (DF2$Estado_de_préstamo == "Aprobado") %>% select("Grado_Académico","Monto_de_préstamo")
+
+
+boxplot(Monto_de_préstamo ~ Grado_Académico, data = datos10, 
+        xlab = "Grado académico", ylab = "Monto de préstamo (miles de $)", 
+        main = "Rangos de préstamos hipotecarios según grado académico", col = c("#C8E6C9","#FA8072" ) )
+```
+* Se observa que para la mayoría de las observaciones,  el monto de préstamo al cual pueden acceder los solicitantes graduados es mayor respecto a los solicitantes no graduados. No existe una diferencia significativa en los montos de préstamo mínimos según grado académico. Adicionalmente, es visible que hay más solicitantes graduados con montos de préstamo bastante altos, los cuales serían los valores atípicos (outliers), en comparación a los no graduados.
+
+
+**Análisis del financiamiento hipotecario según el grado educativo e ingreso económico**
+```{r, echo=FALSE}
+# Crear el data frame
+datos<- DF2%>% filter (DF2$Estado_de_préstamo == "Aprobado") %>% select("Grado_Académico", "Ingreso_del_solicitante","Ingresos_del_cosolicitante","Monto_de_préstamo")
+datos <- datos %>% mutate(Ingreso_Total = Ingreso_del_solicitante + Ingresos_del_cosolicitante)
+
+
+# Crear el gráfico de dispersión
+ggplot(datos, aes(x =datos$Ingreso_Total , y = datos$Monto_de_préstamo, color = datos$Grado_Académico)) +
+  geom_point() +
+  xlab("Ingreso económico total ($)") +
+  ylab("Monto del préstamo hipotecario (miles de $)") +
+  ggtitle("Alcance del financiamiento hipotecario según grado educativo e ingreso económico") +
+  theme_minimal()
+```
+
+* Para los no graduados: Hasta un ingreso aproximado de 7000 dólares, se observa que el ingreso económico total y el monto del préstamo tiene un ajuste lineal, es decir, ambas magnitudes son directamente proporcionales. Los datos que corresponden para ingresos mayores a 7000 dólares no guardan una relación de proporcionalidad con el monto del préstamo, sin embargo estos datos son la minoría.
+
+Para los graduados: Hasta un ingreso aproximado de 10000 dólares, se observa que el ingreso económico total y el monto de préstamo tiene un ajuste lineal; es decir, cuando uno aumenta, el otro valor lo hace también. Por otro lado, para ingresos superiores a los 10000 dólares, no existe una razón de proporcionalidad con el monto de préstamo, siendo estos datos la minoría.
+
+En conclusión, puesto que la gráfica contiene únicamente a los solicitantes cuyos préstamos han sido aprobados, es notable que la cantidad de personas graduadas supera significativamente a la cantidad de personas no graduadas. Por otro lado, se observa la tendencia de que a mayores ingresos económicos, mayor es el monto de préstamo al que los solicitantes pueden acceder.
+
+
+**Análisis del la influencia del historial crediticio en la aprobación del crédito hipotecario**
+```{r, echo=FALSE}
+
+# Crear el dataframe
+datos3 <- data.frame(DF2$Historial_crediticio, DF2$Estado_de_préstamo)
+# Crear el gráfico de mosaico
+mosaicplot(table(DF2$Historial_crediticio, DF2$Estado_de_préstamo), shade = FALSE, main = " Aprobación de crédito hipotecario según historial crediticio",
+           xlab = "Historial crediticio", ylab = "Aprobación de crédito", col = c("#B7E4C7","#FA8072" ))
+```
+* A partir de la gráfica, se puede concluir de manera significativa que el historial crediticio ejerce una influencia determinante en la aprobación de un crédito hipotecario. Si el solicitante posee un buen historial crediticio, tiene una alta tasa de aprobación  en comparación con aquellos solicitantes cuyo historial crediticio no cumple con los estándares deseados y, en consecuencia, ven sus solicitudes rechazadas.
+
+
+
+
+
+
