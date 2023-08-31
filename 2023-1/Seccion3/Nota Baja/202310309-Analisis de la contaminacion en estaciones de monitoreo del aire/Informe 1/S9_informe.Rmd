@@ -1,0 +1,369 @@
+---
+title: "Análisis de la contaminación en estaciones de monitoreo del aire seleccionadas de Lima Metropolitana, un estudio de 2015 a 2018" 
+output:
+  html_document: 
+      highlight: monochrome
+      theme: flatly
+      css: ["styles.css"]
+      toc: true
+date: "2023-04-28"
+---
+
+## Importancia
+
+La contaminación del aire es una problemática mundial y está de más decir que Lima Metropolitana se encuentra dentro de ella, ya que según estudios realizados por Air Quality Life Day Index (AQLI), Lima es considerada como una de las ciudades más contaminadas del continente. Es por esta razón que su estudio continuo es importante, ya que tiene un impacto directo en la salud de las personas. 
+El presente informe  analiza los tipos de contaminantes presentes en las estaciones de Lima Metropolitana basándose en la base de datos obtenida de SENAMHI , cabe resaltar que para este estudio se escogió cuatro distritos, Ate, Huachipa, San Borja y San Martín de Porres con respecto a los contaminantes (PM10, PM2.5, SO2, NO2, O3, CO). Este análisis se realizará mediante métodos estadísticos y de probabilidad.
+Esta problemática debe ser uno de los compromisos más importantes para Lima Metropolitana, ya que mejorar la calidad de aire es fundamental para una mejor calidad de vida y desarrollo urbano sostenible.
+
+## Contexto
+Daremos contexto a las siguientes partículas de exposición prolongada:
+
+-   **Material Particulado (PM)**:
+Particulas de pequeño tamaño, se dividen en PM2.5, que tienen un diámetro menor a 2.5 micrómetros, debido a su pequeña dimensión es dañino para la salud ya que afectan a los pulmones con mayor facilidad que como consecuencia puede causar inflamación, muerte temprana, mayormente estas partículas son tóxicas  ya que están en relación con los metales como el Níquel, Plomo, entre otros. Y PM10, una partículas con un diámetro menor a 10 micrómetros y mayor a 2.5 micrómetros, los cuales al ser inhalados en altas proporciones se acumulan en los pulmones produciendo una disminución del funcionamiento pulmonar entre otros problemas de salud.
+
+-   **Monóxido de carbono (CO)**:
+Este contaminante proviene mayormente de los vehículos debido que todo se emite por una incompleta combustión de los vehículos a motor, este es uno de los principales contaminantes debido que si se inhalan en altas proporciones puede sustituir al oxígeno en la sangre como consecuencia produciendo problemas en la salud de las personas.
+
+-   **Dióxido de Azufre (SO2)**:
+Es el principal contaminante presente en los combustibles, centrales térmicas o refinerías de petróleo. Este gas denso puede perjudicar el sistema respiratorio si te encuentras expuesto durante 10 minutos a ello.
+
+-   **Dióxido de Nitrógeno (NO2)**:
+Este contaminante proviene de las industrias como el cemento, acero, vidrio, etc. Además produce que las ciudades con alto índice de contaminantes tengan una coloración gris amarillenta.
+
+-   **Ozono (O3)**:
+Es uno de los contaminantes más comunes, este contaminante se forma por los hidrocarburos orgánicos y  los óxido de nitrógeno, esto se da mayormente en los escapes de los vehículos, estos contaminantes se combinan con la atmósfera, oxígeno y la luz solar, cabe resaltar que los niveles altos de ozono puede producir un aumento de los efectos del sistema inmunológico siendo dañino para la salud.
+
+
+## Objetivos
+
+### Objetivo general
+
+-   Evaluar la variabilidad temporal y espacial de la calidad del aire en Lima Metropolitana a través del análisis de datos relacionados a los contaminantes atmosféricos.
+
+### Objetivos especificos
+-   Identificar los intervalos con mayor presencia de cantidad para cada contaminante analizado y posibles datos atípicos
+-   Identificar las estaciones de monitoreo con los niveles más altos de contaminación atmosférica en Lima Metropolitana.
+-   Analizar la variabilidad temporal de la calidad del aire en Lima Metropolitana a lo largo de los años.
+-   Identificar el rango horario con mayor presencia de contaminantes en Lima Metropolitana
+
+## Datos
+
+### Proceso de recolección
+
+Utilizamos una base de datos obtenida de la "Plataforma Nacional de Datos Abiertos", una página web que recopila datos y los mantiene públicamente, los datos recopilados fueron dados por el SENAMHI, y nos muestra el registro horario de diferentes contaminantes en el aire, en un formato de 24 horas, registrados por distintas estaciones de monitoreo de calidad de aire en Lima Metropolitana entre los años 2010 y 2020.
+
+### Población, muestra y muestreo
+
+La población en este caso, sería todos los contaminantes del aire en la zona de Lima Metropolitana, y la muestra, séran los contaminantes registrados por las estacionaes de monitoreo de Ate, Huachipa, San Borja y San Martin de Porres, entre los años 2015 a 2018. Las estaciones y el rango de horario fue seleccionado estrategicamente para poder facilitar el análisis de datos. Constando con 45371 observaciones en total y 12 variables.
+
+## Carga de librerias
+
+A partir de esta sección, se usara algunas librerias, por lo que el siguiente código se encargará de instalar y cargar todas las librerias necesarias
+
+```{r results='hide', warning=FALSE, message=FALSE}
+if (!require(readr)){install.packages("readr");library(readr)}
+if (!require(dplyr)){install.packages("dplyr");library(dplyr)}
+if (!require(kableExtra)){install.packages("kableExtra");library(kableExtra)}
+if (!require(DT)){install.packages("DT");library(DT)}
+if (!require(knitr)){install.packages("knitr");library(knitr)}
+if (!require(ggplot2)){install.packages("ggplot2");library(ggplot2)}
+if (!require(corrplot)){install.packages("corrplot");library(corrplot)}
+if (!require(hrbrthemes)){install.packages("hrbrthemes");library(hrbrthemes)}
+if (!require(ggpubr)){install.packages("ggpubr");library(ggpubr)}
+if (!require(lubridate)){install.packages("lubridate");library(lubridate)}
+if (!require(descr)){install.packages("descr");library(descr)}
+if (!require(stats)){install.packages("stats");library(stats)}
+```
+
+## Descripción de variables de estudio:
+
+```{r echo=FALSE, warning=FALSE}
+vars_name_bd <- c("Codigo Estación", "Estacion", "Año", "Mes", "Dia", "Hora", "PM.10", "PM.2.5", "SO2", "NO2", "O3", "CO")
+
+vars_tipes= c("Categorica Nominal", "Categorica Ordinal", "Categorica Ordinal", "Categorica Ordinal", "Categorica Ordinal", "Categorica Nominal", "Numerica Continua", "Numerica Continua", "Numerica Continua", "Numerica Continua", "Numerica Continua", "Numerica COntinua")
+
+vars_restrictions <- c("Código de autenficación, asignado por SENAMHI", "Estaciones de monitoreos de calidad de aire en Lima Metropolitana", 
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 2010 \\leq x \\leq 2020$", 
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 1 \\leq x \\leq 12$", 
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 1 \\leq x \\leq 31$",
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 1 \\leq x \\leq 24$",
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 10000$", 
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$",
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$", 
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$", 
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 10000$",
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$")
+
+vars_descript <- data.frame(
+  Variable = vars_name_bd,
+  Tipo = vars_tipes,
+  Restricciones = vars_restrictions
+)
+vars_descript %>% kable(caption = "Descripción variables") %>% kable_paper("hover")
+
+```
+
+## Limpieza de datos
+
+-   Cargamos los datos
+
+```{r}
+bd_original <- read_csv("bd_contaminacion.csv")
+```
+
+-   Nos deshacemos de las observaciones incompletas
+
+```{r}
+bd_complete_cases <- bd_original[complete.cases(bd_original),]
+```
+
+-   Examinamos los datos y nos damos cuenta que solo 4 estaciones mantienen un mismo rango de años, de 2015 a 2018
+
+```{r message=FALSE}
+bd_complete_cases %>% 
+                group_by(ESTACION) %>% 
+                reframe(AÑO = unique(ANO)) %>% 
+                datatable(options = list(pageLength = 9, dom = 'tip'))
+```
+
+-   Solo nos quedamos con las estaciones de Ate, San Borja, San Martin de Porres y Huachipa
+
+```{r message=FALSE}
+BDC <- bd_complete_cases %>% 
+  filter(ESTACION == "SAN BORJA" | ESTACION == "SAN MARTIN DE PORRES" | 
+           ESTACION == "HUACHIPA" |ESTACION == "ATE")
+```
+
+-   Por último eliminaremos los espacios en los nombres de las variables "PM 10" y "PM 2.5"
+
+```{r}
+BDC <- BDC %>% 
+  rename(PM10 =`PM 10`, PM2.5=`PM 2.5`)
+```
+
+```{r echo=FALSE,warning=FALSE }
+datatable(BDC, options = list(pageLength = 10, dom = 'tip'), rownames = FALSE, caption = "Data Limpiada")
+```
+
+## Análisis descriptivo
+
+### Descriptores Númericos
+
+```{r echo=FALSE}
+BDC %>% select(PM10,PM2.5,SO2,NO2,O3,CO) %>% 
+  summary() %>%
+   kable(caption="Descriptores estadísticos de cada variable") %>%
+   kable_paper("hover")
+```
+
+-   **PM 10 (Particulas de 2.5 a 10 µm)**
+    +   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 62.75 $\mu g/m^3$ o menores o iguales.
+
+-   **PM 2.5 (Particulas menores a 2.5 µm)**
+    +   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 19.3 $\mu g/m^3$ o menores o iguales.
+
+-   **SO2 (Dióxido de azufre)**
+    +   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 62.75 $\mu g/m^3$ o menores o iguales.
+
+-   **NO2 (Dióxido de nitrógeno)**
+    +   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 25.3$\mu g/m^3$ o menores o iguales.
+
+-   **O3 (Ozono)**
+    +   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 62.75 $\mu g/m^3$ o menores o iguales.
+
+-   **CO (Monóxido de carbono)**
+    +   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 676.8 $\mu g/m^3$ o menores o iguales.
+
+### Descriptores Gráficos
+
+#### Univariado
+
+```{r echo=FALSE}
+Conf2mas1 <- matrix(c(1:6), nrow=2, ncol = 3, byrow=F)
+layout(Conf2mas1)
+hist(BDC$PM10,main = "PM10" , col = "blue", xlab = "Cantidad (µg/m^3)" )
+hist(BDC$PM2.5,main = "PM2.5", col = "violet" , xlab = "Cantidad (µg/m^3)" )
+hist(BDC$SO2,main = "SO2", col = "red" , xlab = "Cantidad (µg/m^3)" )
+hist(BDC$NO2,main = "NO2", col = "green" , xlab = "Cantidad (µg/m^3)" )
+hist(BDC$O3,main = "03", col = "orange" , xlab = "Cantidad (µg/m^3)" )
+hist(BDC$CO,main = "CO", col = "purple" , xlab = "Cantidad (µg/m^3)" )
+```
+
+-   **PM 10 (Partículas de 2.5 a 10 µm)**
+    +   Encontramos que la cantidad de contaminantes esta comunmente entre 50 y 100 $\mu g/m^3$
+
+-   **PM 2.5 (Partículas menores a 2.5 µm)**
+    +   Encontramos que la cantidad de contaminantes esta comunmente entre 10 y 20 $\mu g/m^3$
+
+-   **SO2 (Dióxido de azufre)**
+    +   Encontramos que la cantidad de contaminantes esta comunmente entre 0 y 10 $\mu g/m^3$
+
+-   **NO2 (Dióxido de nitrógeno)**
+    +   Encontramos que la cantidad de contaminantes esta comunmente entre 10 y 20 $\mu g/m^3$
+
+-   **O3 (Ozono)**
+    +   Encontramos que la cantidad de contaminantes esta comunmente entre 0 y 10 $\mu g/m^3$
+
+-   **CO (Monóxido de carbono)**
+    +   Encontramos que la cantidad de contaminantes esta comunmente entre 0 y 500 $\mu g/m^3$
+
+-   Además, se observa que los contaminantes PM10 y CO presentan escalas mucho mas altas de concentración en comparación de los otros contaminantes atmosféricos.
+
+```{r echo=FALSE}
+layout(Conf2mas1)
+boxplot(BDC$PM10, horizontal = TRUE, col="blue", main = "PM10", xlab ="Cantidad (µg/m^3)")
+boxplot(BDC$PM2.5, horizontal = TRUE, col="violet", main = "PM2.5", xlab ="Cantidad (µg/m^3)")
+boxplot(BDC$SO2, horizontal = TRUE, col="red", main = "SO2", xlab ="Cantidad (µg/m^3)")
+boxplot(BDC$NO2, horizontal = TRUE, col="green", main = "NO2", xlab ="Cantidad (µg/m^3)")
+boxplot(BDC$O3, horizontal = TRUE, col="orange", main = "O3", xlab ="Cantidad (µg/m^3)")
+boxplot(BDC$CO, horizontal = TRUE, col="purple", main = "CO", xlab ="Cantidad (µg/m^3)")
+```
+
+-   Se puede observar que hay mayor cantidad de datos atípicos del contaminante Monóxido de carbono a comparación de los demás contaminantes, recordar que este contaminantes proviene principalmente de vehículos a motor.
+-   Cabe resaltar que se trabajó con los datos atípicos pero se debe considerar que estas cantidades de partículas son captados por sensores que están calibrados.
+
+#### Bivariado
+
+1.   **Promedio de contaminantes por estación:**
+
+-   Analizamos el promedio de los contaminantes recogidos en cada estación:
+
+```{r echo=FALSE}
+subdata1 <- BDC %>% group_by(ESTACION) %>% reframe(sumPM10 = mean(PM10), sumPM2.5 = mean(PM2.5), sumCO = mean(CO))
+
+subdata2 <- BDC %>% group_by(ESTACION) %>% reframe(sumSO2 = mean(SO2),  sumO3 = mean(O3),  sumNO2 = mean(NO2))
+subDataBig <- data.frame(
+  Zona = subdata1$ESTACION,
+  Category = c("PM10", "PM2.5", "CO"), 
+  Sum = c(subdata1$sumPM10, subdata1$sumPM2.5, subdata1$sumCO))
+
+subDataSmall <- data.frame(
+  Zona = subdata2$ESTACION,
+  Category = c("SO2", "NO2","O3"), 
+  Sum = c(subdata2$sumSO2, subdata2$sumNO2, subdata2$sumO3))
+
+p1 <- ggplot(subDataBig, aes(x=Category, y=Sum, fill=Zona)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs( y="", x="")
+p2 <- ggplot(subDataSmall, aes(x=Category, y=Sum, fill=Zona)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(y="", x="")
+
+ggarrange(p1,p2, ncol = 1, nrow = 2, common.legend = TRUE, legend = "top") %>% annotate_figure(left = "Promedio contaminantes (μg/m^3)", bottom = "Contaminantes")
+
+```
+
+-   Podemos observar que la estación de Ate es la que enfrenta los mayores niveles de contaminación en CO, NO2 y SO2. Sin embargo, para el caso del PM10 y PM2.5 se puede observar que el promedio no es tan elevado a comparación de los niveles que presentan las estaciones de Huachipa y San Borja respectivamente.
+
+-   Para poder confirmar, analizamos la suma de los contaminantes por zona:
+
+```{r echo=FALSE}
+ggplot(data=BDC,aes(x=ESTACION,y=CO+PM10+PM2.5+SO2+NO2+O3,fill=ESTACION)) + geom_bar(stat = "identity") + labs(y="Total de contaminantes (μg/m^3)", x="Estación") + theme(legend.position = "none")
+```
+
+-    Se puede visualizar que de manera general, la estación mas contaminada es Ate
+
+2.    **Cantidad de contaminantes a traves de los años (promedio por mes):**
+
+-   Analizamos el promedio por mes obtenido de cada contaminantes durante los años de estudio
+    
+```{r echo=FALSE}
+subdata <- BDC
+subdata$fecha <- as.Date(paste(subdata$ANO, subdata$MES, subdata$DIA, subdata$DIA, sep="-"))
+subdata <- subdata %>% 
+  group_by(fecha = floor_date(fecha, 'month')) %>% 
+  reframe(meanPM10 = mean(PM10), 
+          meanPM2.5 = mean(PM2.5), 
+          meanSO2 = mean(SO2),
+          meanNO2 = mean(NO2), 
+          meanO3 = mean(O3),
+          meanCO = mean(CO))
+    p1 <- ggplot(subdata, aes(x=fecha, y=meanPM10), xlab = "Fecha") +  
+  geom_line( color="blue") +
+    geom_point(shape=21, color="blue", fill="#69b3a2", size=0.7) +
+    ggtitle("PM10") + labs(x="", y="")
+p2 <- ggplot(subdata, aes(x=fecha, y=meanPM2.5)) +  
+  geom_line( color="violet") +
+    geom_point(shape=21, color="violet", fill="#69b3a2", size=0.7) +
+    ggtitle("PM2.5") + labs(x="", y="")
+p3 <- ggplot(subdata, aes(x=fecha, y=meanSO2)) +  
+  geom_line( color="red") +
+    geom_point(shape=21, color="red", fill="#69b3a2", size=0.7) +
+    ggtitle("SO2") + labs(x="", y="")
+p4 <- ggplot(subdata, aes(x=fecha, y=meanNO2)) +  
+  geom_line( color="green") +
+    geom_point(shape=21, color="green", fill="#69b3a2", size=0.7) +
+    ggtitle("NO2") + labs(x="", y="")
+p5 <- ggplot(subdata, aes(x=fecha, y=meanO3)) +  
+  geom_line( color="orange") +
+    geom_point(shape=21, color="orange", fill="#69b3a2", size=0.7) +
+    ggtitle("O3") + labs(x="", y="")
+p6 <- ggplot(subdata, aes(x=fecha, y=meanCO)) +  
+  geom_line( color="purple") +
+    geom_point(shape=21, color="purple", fill="#69b3a2", size=0.7) +
+    ggtitle("CO") + labs(x="", y="")
+
+ggarrange(p1,p2, ncol = 1, nrow = 2)  %>% annotate_figure(left = "Promedio contaminantes (μg/m^3)", bottom = "Fecha")
+```
+
+-   **PM10**:
+    +   Se puede observar que en el primer semestre del año 2015 y 2016 se alcanzó un valor aproximado de 115 $μg/m^3$. 
+    +   Alrededor del segundo semestre de 2016, llego a superar ligeramente los 115 $μg/m^3$
+    +   Y a inicios del segundo semestre del 2018 este contaminante alcanzó un valor 120 $μg/m^3$, siendo el valor de promedio más alto de la variabilidad temporal analizada.
+
+-   **PM2.5**: 
+    +   Se puede observar que en el primer semestre se obtuvo una cantidad de contaminantes en promedio mayor a 30 $μg/m^3$ y al término del año 2015 disminuye. 
+    +   El año 2016 tuvo la mayor cantidad promedio de contaminantes, alcanzando un valor promedio mayor a 50 $μg/m^3$.
+    +   Se visualiza que el año 2017 es el año con menor promedio de contaminantes
+    +   En el año 2018, al término del primer semestre vemos un incremento de contaminantes hastalos inicios del segundo semestre, donde comienza a disminuir constantemente 
+
+```{r echo=FALSE}
+ggarrange(p3,p4, ncol = 1, nrow = 2) %>% annotate_figure(left = "Promedio contaminantes (μg/m^3)", bottom = "Fecha")
+```
+
+-   **SO2**: 
+    +   Dentro de los años 2015 al 2018 este contaminante no sobrepasa el valor promedio de 30 $μg/m^3$
+    +   A inicios del primer semestre del año 2018, el contaminante llega a un valor promedio de 48 $μg/m^3$, siendo este el valor más alto de la variabilidad temporal analizada.
+
+-   **NO2**: 
+    +   En el año 2015 el valor promedio máximo alcanzado es superior a 40 $μg/m^3$
+    +   En el 2016 el valor promedio máximo  es de 80μg/m3, pero este valor se disminuye al terminar el segundo semestre, con un valor alrededor de 20 $μg/m^3$
+    +   Al inicio del 2017 hay un incremento del promedio de contaminantes en la cual esta cantidad disminuye al finalizar el año 2017 alcanzado un valor aproximado de 12 $μg/m^3$
+    +   En el 2018 el valor sobrepasa la cantidad promedia de 40 μg/m3  pero al termino del primer semestre y inicio del segundo semestre no sobrepasa el valor de 40 $μg/m^3$
+
+```{r echo=FALSE}
+ggarrange(p5,p6, ncol = 1, nrow = 2) %>% annotate_figure(left = "Promedio contaminantes (μg/m^3)", bottom = "Fecha")
+```
+
+-   **O3**: 
+    +   Dentro de los años 2015 hasta el segundo semestre del año 2016 el promedio de este contaminante no sobrepasa los 20 $μg/m^3$
+    +   En el segundo semestre del 2016 y 2017 se alcanza el valor promedio de 33 $μg/m^3$ aproximadamente, alcanzando su valor más alto. 
+    +   Además, en el año 2017 y finales del primer semestre del 2018 alcanzan sus valores promedios más bajos de la variabilidad temporal analizada.
+
+-   **CO**: 
+    +   En el año 2015 durante el primer semestre se alcanza un valor máximo de 500 $μg/m^3$, pero al término del año se alcanza un valor máximo de 1500 $μg/m^3$
+    +   En el 2016 el valor máximo se da durante el primer semestre de 2000 $μg/m^3$ siendo este valor el máximo durante los años analizados
+    +   En el 2017 a comparación de los demás años se puede apreciar que se obtuvo menor cantidad de contaminantes durante los dos semestres ya que el valor máximo fue de 550 $μg/m^3$ al término del año 
+    +   El año 2018 se ve un incremento durante los semestres y se alcanza un valor máximo de 1500 $μg/m^3$ al finalizar el año.
+    
+3.    **Cantidad de contaminantes - hora del día:**
+
+-   Analizamos el promedio de los contaminantes por hora con respecto a la hora en que es recogido los datos
+
+```{r echo=FALSE}
+Conf2mas1 <- matrix(c(1:6), nrow=2, ncol = 3, byrow=F)
+layout(Conf2mas1)
+PROMEDIOSHORA <- BDC %>% group_by(HORA) %>% summarise(PROMPM10 = mean(PM10), PROMPM2.5 = mean(PM2.5), PROMSO2 = mean(SO2), PROMCO = mean(CO), PROMO3 = mean(O3), PROMNO2 = mean(NO2))
+plot(PROMEDIOSHORA$HORA, PROMEDIOSHORA$PROMPM10, col="blue", main = "PM10", xlab = "Hora del dia (24 horas)", ylab = "Cantidad (µg/m^3)")
+plot(PROMEDIOSHORA$HORA, PROMEDIOSHORA$PROMPM2.5, col="violet", main = "PM2.5",  xlab = "Hora del dia (24 horas)", ylab = "Cantidad (µg/m^3)")
+plot(PROMEDIOSHORA$HORA, PROMEDIOSHORA$PROMSO2, col="red", main = "SO2", xlab = "Hora del dia (24 horas)", ylab = "Cantidad (µg/m^3)")
+plot(PROMEDIOSHORA$HORA, PROMEDIOSHORA$PROMNO2, col="green", main = "NO2",  xlab = "Hora del dia (24 horas)", ylab = "Cantidad (µg/m^3)")
+plot(PROMEDIOSHORA$HORA, PROMEDIOSHORA$PROMO3, col="orange", main = "O3", xlab = "Hora del dia (24 horas)", ylab = "Cantidad (µg/m^3)")
+plot(PROMEDIOSHORA$HORA, PROMEDIOSHORA$PROMCO, col="purple", main = "CO",  xlab = "Hora del dia (24 horas)", ylab = "Cantidad (µg/m^3)")
+```
+
+-   Se puede observar que las emisiones de los contaminantes atmosféricos tienden a concentrarse en las horas de 5am a 10am, esto puede ser debido a las actividades humanas así como la hora pico del tráfico vehicular.
+
+-   Detalladamente, hay mayor variación de los contaminantes durante el horario de 8:00 am - 10:00 am, excepto por el contaminante O3, que tiene una mayor variación en el horario 12:00 - 15:00 pm
+
+

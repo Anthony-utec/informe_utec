@@ -1,0 +1,834 @@
+---
+title: Análisis de la contaminación en estaciones de monitoreo del aire seleccionadas
+  de Lima Metropolitana, un estudio de 2015 a 2018
+output:
+  html_document:
+    highlight: monochrome
+    theme: flatly
+    css: styles.css
+    toc: yes
+  pdf_document:
+    toc: yes
+date: "2023-04-28"
+---
+
+## Importancia
+
+La contaminación del aire es una problemática mundial y está de más decir que Lima Metropolitana se encuentra dentro de ella, ya que según estudios realizados por Air Quality Life Day Index (AQLI), Lima es considerada como una de las ciudades más contaminadas del continente. Es por esta razón que su estudio continuo es importante, ya que tiene un impacto directo en la salud de las personas. El presente informe analiza los tipos de contaminantes presentes en las estaciones de Lima Metropolitana basándose en la base de datos obtenida de SENAMHI , cabe resaltar que para este estudio se escogió cuatro distritos, Ate, Huachipa, San Borja y San Martín de Porres con respecto a los contaminantes (PM10, PM2.5, SO2, NO2, O3, CO). Este análisis se realizará mediante métodos estadísticos y de probabilidad. Esta problemática debe ser uno de los compromisos más importantes para Lima Metropolitana, ya que mejorar la calidad de aire es fundamental para una mejor calidad de vida y desarrollo urbano sostenible.
+
+## Contexto
+
+Para entender el informe se debe dar a concoer las siguientes partículas de exposición prolongada:
+
+-   **Material Particulado (PM)**: Particulas de pequeño tamaño, se dividen en PM2.5, que tienen un diámetro menor a 2.5 micrómetros, debido a su pequeña dimensión es dañino para la salud ya que afectan a los pulmones con mayor facilidad que como consecuencia puede causar inflamación, muerte temprana, mayormente estas partículas son tóxicas ya que están en relación con los metales como el Níquel, Plomo, entre otros. Y PM10, una partículas con un diámetro menor a 10 micrómetros y mayor a 2.5 micrómetros, los cuales al ser inhalados en altas proporciones se acumulan en los pulmones produciendo una disminución del funcionamiento pulmonar entre otros problemas de salud.
+
+-   **Monóxido de carbono (CO)**: Este contaminante proviene mayormente de los vehículos debido que todo se emite por una incompleta combustión de los vehículos a motor, este es uno de los principales contaminantes debido que si se inhalan en altas proporciones puede sustituir al oxígeno en la sangre como consecuencia produciendo problemas en la salud de las personas.
+
+-   **Dióxido de Azufre (SO2)**: Es el principal contaminante presente en los combustibles, centrales térmicas o refinerías de petróleo. Este gas denso puede perjudicar el sistema respiratorio si te encuentras expuesto durante 10 minutos a ello.
+
+-   **Dióxido de Nitrógeno (NO2)**: Este contaminante proviene de las industrias como el cemento, acero, vidrio, etc. Además produce que las ciudades con alto índice de contaminantes tengan una coloración gris amarillenta.
+
+-   **Ozono (O3)**: Es uno de los contaminantes más comunes, este contaminante se forma por los hidrocarburos orgánicos y los óxido de nitrógeno, esto se da mayormente en los escapes de los vehículos, estos contaminantes se combinan con la atmósfera, oxígeno y la luz solar, cabe resaltar que los niveles altos de ozono puede producir un aumento de los efectos del sistema inmunológico siendo dañino para la salud.
+
+## Objetivos
+
+### Objetivo general
+
+-   Evaluar la variabilidad temporal y espacial de la calidad del aire en Lima Metropolitana a través del análisis de datos relacionados a los contaminantes atmosféricos.
+
+### Objetivos especificos
+
+-   Calcular la función de probabilidad de dos espacios muestrales derivados de las variables contaminantes mas peligrosas
+-   Encontrar dos pares de eventos relacionados a los contaminantes que sean independientes entre si o no
+-   Encontrar distribuciones de probabilidad discreta y continua que ayuden en posibles futuras situaciones
+
+## Datos
+
+### Proceso de recolección
+
+Utilizamos una base de datos obtenida de la "Plataforma Nacional de Datos Abiertos", una página web que recopila datos y los mantiene públicamente, los datos recopilados fueron dados por el SENAMHI, y nos muestra el registro horario de diferentes contaminantes en el aire, en un formato de 24 horas, registrados por distintas estaciones de monitoreo de calidad de aire en Lima Metropolitana entre los años 2010 y 2020.
+
+### Población, muestra y muestreo
+
+La población en este caso, sería todos los contaminantes del aire en la zona de Lima Metropolitana, y la muestra, séran los contaminantes registrados por las estacionaes de monitoreo de Ate, Huachipa, San Borja y San Martin de Porres, entre los años 2015 a 2018. Las estaciones y el rango de horario fue seleccionado estrategicamente para poder facilitar el análisis de datos. Constando con 45371 observaciones en total y 12 variables.
+
+## Carga de librerias
+
+A partir de esta sección, se usara algunas librerias, por lo que el siguiente código se encargará de instalar y cargar todas las librerias necesarias
+
+```{r results='hide', warning=FALSE, message=FALSE}
+if (!require(readr)){install.packages("readr");library(readr)}
+if (!require(dplyr)){install.packages("dplyr");library(dplyr)}
+if (!require(kableExtra)){install.packages("kableExtra");library(kableExtra)}
+if (!require(DT)){install.packages("DT");library(DT)}
+if (!require(knitr)){install.packages("knitr");library(knitr)}
+if (!require(ggplot2)){install.packages("ggplot2");library(ggplot2)}
+if (!require(corrplot)){install.packages("corrplot");library(corrplot)}
+if (!require(hrbrthemes)){install.packages("hrbrthemes");library(hrbrthemes)}
+if (!require(ggpubr)){install.packages("ggpubr");library(ggpubr)}
+if (!require(lubridate)){install.packages("lubridate");library(lubridate)}
+if (!require(descr)){install.packages("descr");library(descr)}
+if (!require(stats)){install.packages("stats");library(stats)}
+if (!require(mosaic)){install.packages("mosaic", repos = "http://cran.us.r-project.org");library(mosaic)}
+```
+
+## Descripción de variables de estudio:
+
+```{r echo=FALSE, warning=FALSE}
+vars_name_bd <- c("Codigo Estación", "Estacion", "Año", "Mes", "Dia", "Hora", "PM.10", "PM.2.5", "SO2", "NO2", "O3", "CO")
+
+vars_tipes= c("Categorica Nominal", "Categorica Ordinal", "Categorica Ordinal", "Categorica Ordinal", "Categorica Ordinal", "Categorica Nominal", "Numerica Continua", "Numerica Continua", "Numerica Continua", "Numerica Continua", "Numerica Continua", "Numerica COntinua")
+
+vars_restrictions <- c("Código de autenficación, asignado por SENAMHI", "Estaciones de monitoreos de calidad de aire en Lima Metropolitana", 
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 2010 \\leq x \\leq 2020$", 
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 1 \\leq x \\leq 12$", 
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 1 \\leq x \\leq 31$",
+"$x \\in \\mathbb{Z}^+ \\quad : \\quad 1 \\leq x \\leq 24$",
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 10000$", 
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$",
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$", 
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$", 
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 10000$",
+"$x \\in \\mathbb{R}^+ \\quad : \\quad 0 \\leq x \\leq 1000$")
+
+ data.frame(
+  Variable = vars_name_bd,
+  Tipo = vars_tipes,
+  Restricciones = vars_restrictions
+) %>% kable(caption = "Descripción variables") %>% kable_paper("hover")
+
+```
+
+## Carga de datos
+
+-   Cargamos los datos que ya fueron limpiados en la primera entrega del informe
+
+```{r }
+BDC <- read_csv("bd_contaminacion_clean.csv")
+```
+
+```{r echo=FALSE}
+#Definiendo algunas variables
+BD_size <- nrow(BDC)
+PM25 <- BDC$PM2.5
+PM10 <- BDC$PM10
+O3 <- BDC$O3
+CO <- BDC$CO
+SO2 <- BDC$SO2
+NO2 <- BDC$NO2
+```
+
+## Análisis Descriptivo
+
+### Descriptores Numéricos
+
+```{r echo=FALSE,warning=FALSE }
+BDC %>% select(PM10,PM2.5,SO2,NO2,O3,CO) %>% 
+  summary() %>%
+   kable(caption="Descriptores estadísticos de cada variable") %>%
+   kable_paper("hover")
+```
+
+-   **PM 10 (Particulas de 2.5 a 10 µm)**
+    -   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 62.75 $\mu g/m^3$ o menores o iguales.
+-   **PM 2.5 (Particulas menores a 2.5 µm)**
+    -   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 19.3 $\mu g/m^3$ o menores o iguales.
+-   **SO2 (Dióxido de azufre)**
+    -   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 62.75 $\mu g/m^3$ o menores o iguales.
+-   **NO2 (Dióxido de nitrógeno)**
+    -   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 25.3$\mu g/m^3$ o menores o iguales.
+-   **O3 (Ozono)**
+    -   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 62.75 $\mu g/m^3$ o menores o iguales.
+-   **CO (Monóxido de carbono)**
+    -   Al menos la mitad de la cantidad de contaminantes son mayores o iguales a 676.8 $\mu g/m^3$ o menores o iguales.
+    
+##### Análisis    
+
+-   A partir de esta información es posible darse cuenta las probabilidades que posiblemente tomen ciertas variables
+
+### Descriptores Gráficos
+
+#### Univariado
+
+```{r echo=FALSE}
+Conf2mas1 <- matrix(c(1:6), nrow=2, ncol = 3, byrow=F)
+layout(Conf2mas1)
+hist(PM10 ,main = "PM10" , col = "blue", xlab = "Cantidad (µg/m^3)" )
+hist(PM25,main = "PM2.5", col = "violet" , xlab = "Cantidad (µg/m^3)" )
+hist(SO2,main = "SO2", col = "red" , xlab = "Cantidad (µg/m^3)" )
+hist(NO2,main = "NO2", col = "green" , xlab = "Cantidad (µg/m^3)" )
+hist(O3,main = "03", col = "orange" , xlab = "Cantidad (µg/m^3)" )
+hist(CO,main = "CO", col = "purple" , xlab = "Cantidad (µg/m^3)" )
+```
+
+-   **PM 10 (Partículas de 2.5 a 10 µm)**
+    -   Encontramos que la cantidad de contaminantes esta comúnmente entre 50 y 100 $\mu g/m^3$
+-   **PM 2.5 (Partículas menores a 2.5 µm)**
+    -   Encontramos que la cantidad de contaminantes esta comúnmente entre 10 y 20 $\mu g/m^3$
+-   **SO2 (Dióxido de azufre)**
+    -   Encontramos que la cantidad de contaminantes esta comúnmente entre 0 y 10 $\mu g/m^3$
+-   **NO2 (Dióxido de nitrógeno)**
+    -   Encontramos que la cantidad de contaminantes esta comúnmente entre 10 y 20 $\mu g/m^3$
+-   **O3 (Ozono)**
+    -   Encontramos que la cantidad de contaminantes esta comúnmente entre 0 y 10 $\mu g/m^3$
+-   **CO (Monóxido de carbono)**
+    -   Encontramos que la cantidad de contaminantes esta comúnmente entre 0 y 500 $\mu g/m^3$
+-   Además, se observa que los contaminantes PM10 y CO presentan escalas mucho mas altas de concentración en comparación de los otros contaminantes atmosféricos.
+
+```{r echo=FALSE}
+layout(Conf2mas1)
+boxplot(PM10, horizontal = TRUE, col="blue", main = "PM10", xlab ="Cantidad (µg/m^3)")
+boxplot(PM25, horizontal = TRUE, col="violet", main = "PM2.5", xlab ="Cantidad (µg/m^3)")
+boxplot(SO2, horizontal = TRUE, col="red", main = "SO2", xlab ="Cantidad (µg/m^3)")
+boxplot(NO2, horizontal = TRUE, col="green", main = "NO2", xlab ="Cantidad (µg/m^3)")
+boxplot(O3, horizontal = TRUE, col="orange", main = "O3", xlab ="Cantidad (µg/m^3)")
+boxplot(CO, horizontal = TRUE, col="purple", main = "CO", xlab ="Cantidad (µg/m^3)")
+```
+
+-   Se puede observar que hay mayor cantidad de datos atípicos del contaminante CO a comparación de los demás contaminantes, recordar que este contaminantes proviene principalmente de vehículos a motor.
+-   Cabe resaltar que se trabajó con los datos atípicos pero se debe considerar que estas cantidades de partículas son captados por sensores que están calibrados.
+
+##### Análisis
+
+-   Guiándonos de los gráficos, los histogramas nos pueden dar una idea de como serían las distribuciones en el caso de las variables (contaminantes) si las tomáramos como variables aleatorias continuas
+
+#### Bivariado
+
+```{r echo=FALSE}
+BDC %>% select(PM10, PM2.5, SO2, CO, NO2, O3) %>% cor() %>% corrplot(method='number')
+```
+
+-   Guiándonos de la gráfica de correlación, tomamos como principales posibles candidatos para tener eventos independientes a las variables con correlación menores a 0.5, las mayores iguales a 0.5, las tomaremos como posibles candidatos para tener eventos dependientes.
+
+## Análisis Probabilístico
+
+### Probabilidad Empírica
+
+#### Elección de variables
+
+-   Escogeremos las variables O3 Y PM 2.5
+-   Escogemos estas variables ya que,ambas variables están presentes en el ambiente urbano y tienen impacto en la calidad del aire y la salud humana.
+-   El PM2.5 es un material muy fino y es capaz de ingresar por el sistema respiratorio, así como también transportar compuestos tóxicos, por lo que se considerada peligroso.
+-   El O3, es un gas que se forma a partir de reacciones químicas, y puede ser perjudicial para la salud humana debido a que en altas concentraciones pueden causar irritación en las diversas zonas, inflamación pulmonar y enfermedades respiratorias, así como también tiene impacto en el medio ambiente.
+
+#### Espacio muestral
+
+-   Ya que las variables seleccionadas son continuas, se usara intervalos y marcas de clase para definir los eventos
+
+-   Para seleccionar el tamaño de los intervalos se usara la regla de Sturgess, donde: $Amplitud = \frac{Rango}{k}$. Donde k se calcula como: $k = 1 + log2(n)$
+
+-   Una vez hallamos el tamaño de los intervalos, obtenemos los intervalos, y luego damos marcas de clase a cada intervalo, que será la suma de los extremos de cada intervalo, dividido 2.
+
+-   También calculamos la cantidad de apariciones del contaminante en cada intervalo
+
+-   La siguiente función se encargara de todo ello
+
+```{r}
+frecTable = function(x, min, max) {
+  kSturges <- 1 + log2(length(x))
+  amplitud <- (max - min) / kSturges
+  intervals <- seq(min(x), max(x) + amplitud, amplitud)
+  x_cut <- cut(x, breaks = intervals, include.lowest = TRUE)
+  levels_ <- levels(x_cut)
+  marca_clase <-
+    sapply(seq(1, length(intervals) - 1, 1), function(i) {
+      intermedio <- round((intervals[i] + intervals[i + 1]) / 2, 0)
+      return(intermedio)
+    })
+  apariciones <- as.vector(table(x_cut))
+  freqs <-
+    data.frame(
+      "Intervalos-i" = levels_,
+      "MarcaDeClase-Mi" = marca_clase,
+      "ProbabilidadAbsoluta" = apariciones
+    )
+  return(freqs)
+}
+```
+
+#### Espacio muestral de eventos definidos a partir de O3
+
+##### Eventos atómicos definidos a partir de O3
+
+-   Sean los eventos atómicos de un espacio muestral **Ω_1** dado por: **"Seleccionar un registro tal que la cantidad de contaminantes O3 registrados este en el intervalo con marca de clase $M_i$"**
+-   **El espacio muestral de estos eventos seria:**
+
+```{r echo=FALSE}
+frecs_O3 <- frecTable(O3, min(O3), max(O3))
+frecs_O3 %>% 
+  kable(caption="Espacio muestral de Ω_1") %>% 
+  kable_paper("hover")
+```
+
+##### Función de probabilidad del espacio muestral **Ω_1**
+
+```{r echo=FALSE}
+probTable = function(freq_table) {
+  intervals <- freq_table[1]
+  marcas <- freq_table[2]
+  freq_rel <- round(freq_table[3]/BD_size,11)
+  frec_abs <- freq_table[3]
+  names(freq_rel) <- c("Probabilidad_Empirica")
+  names(intervals) <- c("Intervalos_i")
+  names(marcas) <- c("MarcasDeClase_Mi")
+  names(frec_abs) <- c("Frecuencias_Absolutas")
+  freqs <-
+    data.frame(
+      intervals,
+      marcas,
+      frec_abs,
+      freq_rel
+    )
+  freqs
+}
+```  
+
+```{r echo=FALSE}
+probs_O3 <- probTable(frecs_O3)
+probs_O3  %>% 
+  kable(caption = "Tabla de probabilidades de datos agrupados O3") %>%
+  kable_paper("hover")
+```
+
+
+#### Espacio muestral de eventos definidos a partir de PM 2.5
+
+##### Eventos atómicos definidos a partir de PM 2.5
+
+-   Sean los eventos atómicos de un espacio muestral **Ω_2** dado por: **Seleccionar un registro tal que la cantidad de contaminantes PM 2.5 registrados este en el intervalo con marca de clase $M_i$**
+-   **El espacio muestral de estos eventos seria:**
+
+```{r echo=FALSE}
+frecs_PM25 <- frecTable(PM25, min(PM25), max(PM25)) 
+frecs_PM25 %>% 
+  kable(caption="Espacio muestral de Ω_2") %>% 
+  kable_paper("hover")
+```
+
+##### Función de probabilidad del espacio muestral **Ω_2**
+
+```{r echo=FALSE}
+probs_PM25 <- probTable(frecs_PM25)
+probs_PM25 %>% 
+  kable(caption = "Función de probabilidad de Ω_2") %>%
+  kable_paper("hover")
+```
+
+#### Comprobación empírica
+
+-   Se debe cumplir que la suma de las probabilidades de los eventos atómicos del espacio muestral sea igual a 1 
+
+#### Comprobación empírica del espacio muestral  **Ω_1**
+
+```{r}
+sum(probs_O3$Probabilidad_Empirica)
+```
+
+#### Comprobación empírica del espacio muestral  **Ω_2**
+
+
+```{r}
+sum(probs_O3$Probabilidad_Empirica)
+```
+
+#### Resultado y ejemplos:
+
+-   **Se pudo encontrar un espacio muestral de los eventos atómicos definidos a partir de las variables propuestas**
+
+-   A modo de ejemplo:
+
+
+    -Si quisiéramos hallar la probabilidad de un evento: "**Seleccionar un registro tal que la cantidad de contaminantes O3 registrados este en el intervalo con marca de clase $M_i = 12$**"
+
+    -   La probabilidad del evento seria $\approx 0.244$
+
+    ```{r echo=FALSE}
+    probs_O3[probs_O3$MarcasDeClase_Mi==12,]$Probabilidad_Empirica
+    ```
+
+    -   Por otro lado, si quisiéramos hallar la probabilidad de un evento: "**Seleccionar un registro tal que la cantidad de contaminantes PM2.5 registrados este en el intervalo con marca de clase $M_i = 24$**"
+
+    -   Y la probabilidad del evento B seria $\approx 0.318$
+
+```{r echo=FALSE}
+probs_PM25[probs_PM25$MarcasDeClase_Mi==10,]$Probabilidad_Empirica
+```
+
+### Probabilidad Condicional - Eventos Independientes
+
+#### Elección de variables
+
+-   Es poco probable que exista dependencia entre eventos definidos por las variables PM2.5 y CO, debido a que no existe relación entre la forma en que se crean ambos contaminantes, ni tampoco guardan alguna relación de inclusión. Además como vimos en análisis descriptivo, existe una correlación de 0.49, lo cual si bien no garantiza nada debido a la naturaleza de los datos, nos da una ligera sospecha.
+
+#### Eventos
+
+-   Sea el evento A:**"Seleccionar una muestra tal que la cantidad de contaminantes de CO supere al limite establecido según el ECA (100 $\mu g/m^3$)."**
+-   Sea el evento B:**"Seleccionar una muestra tal que la cantidad de contaminantes de PM2.5 supere al limite establecido según el ECA (10 $\mu  g/m^3$)."**
+
+```{r echo=FALSE}
+a11 <- (sum(CO > 100 & PM25 > 10))
+a21 <- (sum(CO > 100 & PM25 <= 10))
+a12 <- (sum(CO <= 100 & PM25 > 10))
+a22 <- (sum(CO <= 100 & PM25 <= 10))
+Ta <- a11 + a21
+Tb <- a11 + a12
+Tb_ <- a21 + a22
+Ta_ <- a12 + a22
+```
+
+#### Comprobacion
+
+-   Si A y B son independientes, por probabilidad condicional, se debería cumplir $$P(A\cap B) = P(A)P(B) \\ P(A|B) = \frac{P(A\cap B)}{P(B)} = P(A)$$
+
+-   Entonces primero calculamos P(A), P(B) y P(A)P(B), que respectivamente sería:
+
+```{r echo=FALSE}
+Pa <- Ta/BD_size
+Pb <- Tb/BD_size
+Pa
+Pb
+Pa*Pb
+```
+
+-   Segundo calculamos $P(A\cap B)$ empíricamente:
+
+```{r}
+Panb <- a11/BD_size
+Panb
+```
+
+-   Tercero calculamos $P(A|B)$ empíricamente:
+
+```{r}
+Pa_b = a11/Tb
+Pa_b
+```
+
+-   Y por último Bayes. Tomando en cuenta que ya se cálculo $P(A\cap B)$ (ojo: Se usó $\frac{P(A\cap B)}{P(B)}$ para su cálculo empírico). Entonces, procedemos a hallar: $$P(B|A) = \frac{P(A|B)P(B)}{P(A)} = \frac{P(A|B)P(B)}{P(A|B)P(B)+P(A|B^c)P(B^c)}$$
+-   Para ello primero hallamos $P(A|B^c)$
+
+```{r echo=FALSE}
+Pa_bc <- a21/Tb_
+Pa_bc
+```
+
+-   Y luego definimos:
+
+    -   La probabilidad de seleccionar un registro con contaminante PM2.5 mayor a 10 es $\approx 0.8521$
+    -   La probabilidad de seleccionar un registro con contaminante PM2.5 menor o igual a 10 es por complemento $\approx 0.1479$
+    -   La probabilidad de seleccionar un registro con contaminante CO mayor a 10 si la cantidad de PM2.5 es mayor a 50 es $\approx 0.947$
+    -   La probabilidad de seleccionar un registro con contaminante CO mayor a 10 si la cantidad de PM2.5 es menor o igual 50 es $\approx 0.8531$
+
+-   Por lo que P(A) seria
+
+```{r}
+Pa <- Pa_b*Pb + Pa_bc*(1-Pb) #Pa_bc es P(A|B^c)
+Pa
+```
+
+-   Y P(B\|A) seria:
+
+```{r}
+Pa_b*Pb/Pa
+```
+
+-   Recordemos que P(B) es:
+
+```{r echo=FALSE}
+Pb
+```
+
+#### Conclusión e interpretación
+
+-   Comparando obtenemos que $P(A\cap B)=0.806...$ y $P(A)P(B)=0.795...$, se tiene una diferencia de 0.01. Luego comparamos $P(A|B)=0.947...$ y $P(A)=0.933...$, donde obtuvo una diferencia de 0.01. Por último de Bayes $P(B|A)=0.864...$ y $P(B)=0.852...$ también se obtuvo una diferencia de 0.01.
+
+-   Concluimos que los eventos son independientes, ya que si bien no se obtuvo un numero igual, se obtuvo diferencias bastantes cercanas. Recordemos que los resultados van a variar pues dependen mucho de nuestra data.
+
+-   Se puede concluir que la probabilidad de que se seleccione un registro con una cantidad de contaminantes CO mayor a 100, dado que se seleccionó un registro con una cantidad de contaminantes PM2.5 mayor a 10, es igual de probable de que se seleccione un registro con una cantidad de contaminantes CO mayor a 100
+
+### Probabilidad Condicional - Eventos Dependientes
+
+#### Elección de variables
+
+-   Debido a que los contaminantes PM2.5 están contenidos dentro de los contaminantes PM10, es muy probable que exista dependencia entre estos eventos. 
+-   Además de análisis descriptivo, podemos ver que existe una correlación muy fuerte entre estas dos variables. 
+
+#### Eventos
+
+-   Sea el evento A:**"Seleccionar una muestra tal que la cantidad de contaminantes de PM2.5 supere al limite establecido según el ECA (10 $\mu g/m^3$)."**
+-   Sea el evento B:**"Seleccionar una muestra tal que la cantidad de contaminantes de PM10 supere al limite establecido según el ECA (50 $\mu  g/m^3$)."**
+
+```{r echo=FALSE}
+a11 <- (sum(PM25 > 10 & PM10 > 50))
+a21 <- (sum(PM25 > 10 & PM10 <= 50))
+a12 <- (sum(PM25 <= 10 & PM10 > 50))
+a22 <- (sum(PM25 <= 10 & PM10 <= 50))
+Ta <- a11 + a21
+Tb <- a11 + a12
+Tb_ <- a21 + a22
+Ta_ <- a12 + a22
+```
+
+#### Comprobacion
+
+-   Si A y B son independientes, por probabilidad condicional, se debería cumplir $$P(A\cap B) = P(A)P(B) \\ P(A|B) = \frac{P(A\cap B)}{P(B)} = P(A)$$
+
+-   Entonces primero calculamos P(A), P(B) y P(A)P(B), que respectivamente sería:
+
+```{r echo=FALSE}
+Pa <- Ta/BD_size
+Pb <- Tb/BD_size
+Pa
+Pb
+Pa*Pb
+```
+
+-   Segundo calculamos $P(A\cap B)$ empíricamente:
+
+```{r}
+Panb <- a11/BD_size
+Panb
+```
+
+-   Tercero calculamos $P(A|B)$ empíricamente:
+
+```{r}
+Pa_b = a11/Tb
+Pa_b
+```
+
+-   Y por último Bayes. Tomando en cuenta que ya se cálculo $P(A\cap B)$ (ojo: Se usó $\frac{P(A\cap B)}{P(B)}$ para su cálculo empírico). Entonces, procedemos a hallar: $$P(B|A) = \frac{P(A|B)P(B)}{P(A)} = \frac{P(A|B)P(B)}{P(A|B)P(B)+P(A|B^c)P(B^c)}$$
+-   Para ello primero hallamos $P(A|B^c)$
+
+```{r echo=FALSE}
+Pa_bc <- a21/Tb_
+Pa_bc
+```
+
+-   Y luego definimos:
+
+    -   La probabilidad de seleccionar un registro con contaminante PM10 mayor a 50 es $\approx 0.933$
+    -   La probabilidad de seleccionar un registro con contaminante PM10 menor o igual a 50 es por complemento $\approx 0.0669$
+    -   La probabilidad de seleccionar un registro con contaminante PM2.5 mayor a 10 si la cantidad de PM10 es mayor a 50 es $\approx 0.9373$
+    -   La probabilidad de seleccionar un registro con contaminante PM2.5 mayor a 10 si la cantidad de PM10 es menor o igual 50 es $\approx 0.7065$
+
+-   Por lo que P(A) seria
+
+```{r}
+Pa <- Pa_b*Pb + Pa_bc*(1-Pb)
+Pa
+```
+
+-   Y P(B\|A) seria:
+
+```{r}
+Pa_b*Pb/Pa
+```
+
+-   Recordemos que P(B) es:
+
+```{r}
+Pb
+```
+
+#### Conclusión e interpretación
+
+-   Comparando obtenemos que $P(A\cap B)=0.591...$ y $P(A)P(B)=0.0537...$, se tiene una diferencia de 0.06. Luego comparamos $P(A|B)=0.937...$ y $P(A)=0.852...$, donde obtuvo una diferencia de 0.08. Por último de Bayes $P(B|A)=0.693...$ y $P(B)=0.630...$ se obtuvo una diferencia de 0.06.
+
+-   Concluimos que los eventos si son dependientes, confirmando la hipótesis, ya que para los 3 casos se obtuvo una diferencia bastante significante.
+
+-   Se puede concluir que la probabilidad de que se seleccione un registro con una cantidad de contaminantes PM2.5 mayor a 10, dado que se seleccionó un registro con una cantidad de contaminantes PM10 mayor a 50 ($\approx 0.9373$), no es igual de probable de que se seleccione un registro con una cantidad de contaminantes PM2.5 mayor a 10 ($\approx 0.8521$)
+
+### Variables Discretas
+
+-   Para ambos casos de examinación, crearemos unas variables categóricas extras para poder analizar mas a profundidad los contaminantes que consideramos mas peligrosos, como se mencionó en probabilidad empírica, estas serian PM2.5  y O3
+
+##### Propiedades Generales:
+
+-   Se buscará verificar que se cumplen las siguientes propiedades generales para calcular la esperanza y varianza en variables aleatorias discretas: $$E[X] = \sum_{i=0}^n x_i*P(X=x_i) \\ V[X] = E[(X-E[X])^2] = E[X^2]-E[X]^2$$
+
+```{r}
+esperanza = function(x,p){
+  return(sum(x*p))
+}
+varianza = function(x,p){
+  return(esperanza(x^2,p)-(esperanza(x,p)^2))
+}
+```
+
+#### Distribución Binomial
+
+-   Crearemos una variable extra en nuestra base de datos, que intentará clasificar las cantidades de PM2.5, el cual consideramos el contaminante mas dañino, en 3 diferentes grupos, nivel bajo, que abarcara de 0 a 10 $\mu g/m^3$, nivel medio de 10 a 50 $\mu g/m^3$, y alto para cantidades mayores a 50$\mu g/m^3$.
+
+```{r echo=FALSE}
+clasificar_pm25 <- function(cantidad) {
+  if (cantidad >= 0 && cantidad <= 10) {
+    return("Bajo")
+  } else if (cantidad <= 50) {
+    return("Medio")
+  } 
+  return("Alto")
+}
+BDC_clone <- BDC %>%
+  mutate(nivelPM2.5 = sapply(PM2.5, clasificar_pm25))
+BDC_clone %>% select(PM2.5, nivelPM2.5)
+```
+
+##### Variable Aleatoria
+
+-   Ahora definiremos como éxito cuando se detecta un nivelPM2.5 bajo, por lo que:
+-   **X:# de veces que se registra un nivel de PM2.5 bajo en las 34926 observaciones**
+
+##### Parámetros
+
+-   Dado **X\~Bin(n,p)**; donde p es probabilidad éxito, y n es tamaño de la muestra, calculamos p para nuestra caso
+
+```{r echo=FALSE}
+x<-0:34960
+Pexito <- sum(BDC_clone$nivelPM2.5 == "Bajo")/BD_size
+Pexito
+```
+
+-   Entonces tendremos **X\~Bin(34926, 0.1479127)**
+
+##### Gráfica de función de probabilidad
+
+```{r echo=FALSE}
+probability_function <- dbinom(x, BD_size, Pexito)
+plot(probability_function, ylab="", xlab = "", main = "Dsitribución Binomial")
+```
+
+-   Haciendo un acercamiento, podemos ver la forma esperada para una distribución binomial
+
+```{r echo=FALSE}
+plot(probability_function, xlim= c(4800,5500), ylab="", xlab = "", main = "Dsitribución Binomial")
+```
+
+##### Propiedades Distribucion Binomial:
+
+-   Se buscará verificar que se cumple: $$E[X] = np \\ Var[X] = np(1-p)$$ Primero hallaremos $E[X] = \sum_{i=0}^n x_i*P(X=x_i)$
+
+```{r}
+esperanza(x,probability_function)
+```
+
+-   Por otro lado, n\*p:
+
+```{r}
+BD_size*Pexito
+```
+
+-   Ahora hallaremos $$V[X] = E[X^2]-E[X]^2$$
+
+```{r}
+varianza(x, probability_function)
+```
+
+-   Y según distribución binomial:
+
+```{r}
+BD_size*Pexito*(1-Pexito)
+```
+
+##### Ejemplo
+
+-   Luego de cierto evento se llega a registrar aproximadamente 150 nuevas lecturas de contaminante PM2.5. Se quiere saber la probabilidad de que más del 15% de los contaminantes registrados no sean de niveles bajos de PM2.5.
+
+-   Solución:
+
+    -   Por complemento, se puede decir que piden hallar $P(X\leq 22.5)$, si sabemos que X \~ Bin(p, 150)
+
+    -   Por lo que de las 150 nuevas lecturas de contaminante PM2.5. la probabilidad de que más del 15% de los contaminantes registrados no sean de niveles bajos de PM2.5 es $\approx 0.5394$    
+
+```{r}
+pbinom(22.5, size = 150, prob = Pexito)
+```
+
+##### Resultado
+
+-   **Podemos confirmar que la variable aleatoria propuesta cumplen  con las propiedades de distribución binomial y por lo tanto sigue tal distribución**
+
+#### Distribución Geométrica
+
+-   Crearemos una variable extra en nuestra base de datos, que intentará clasificar las cantidades de O3, el cual consideramos el segundo contaminante mas dañino, en 3 diferentes grupos, nivel bajo, que abarcara de 0 a 30 $\mu g/m^3$, nivel medio de 30 a 50$\mu g/m^3$, y alto para cantidades mayores a 50$\mu g/m^3$.
+
+```{r echo=FALSE}
+clasificar_O3 <- function(cantidad) {
+  if (cantidad >= 0 && cantidad <= 30) {
+    return("Bajo")
+  } else if (cantidad <= 50) {
+    return("Medio")
+  } 
+  return("Alto")
+}
+BDC_clone <- BDC_clone %>%
+  mutate(nivelO3 = sapply(O3, clasificar_O3))
+BDC_clone %>% select(PM2.5, nivelPM2.5)
+```
+
+##### Variable Aleatoria
+
+-   Ahora definiremos como éxito el seleccionar un registro con nivelO3 medio, por lo que:
+-   **X:# de veces que se selecciona un registro hasta seleccionar un registro con nivelO3 medio**
+
+##### Parámetros
+
+-   Dado **X\~Geometrica(p)**; donde p es probabilidad éxito
+
+```{r echo=FALSE}
+x<-0:BD_size
+Pexito <- sum(BDC_clone$nivelO3 == "Medio")/BD_size
+Pexito
+```
+
+-   Entonces tendremos **X\~Geometrica(0.1310199)**
+
+##### Gráfica de función de probabilidad
+
+```{r echo=FALSE}
+probability_function <- dgeom(x, Pexito)
+plot(probability_function, ylab="", xlab = "", main = "Dsitribución Geometrica")
+```
+
+-   Haciendo un acercamiento, podemos ver la forma esperada para una distribución geométrica
+
+```{r echo=FALSE}
+plot(probability_function, xlim= c(0,100), ylab="", xlab = "", main = "Dsitribución Geometrica")
+```
+
+##### Propiedades Distribucion Binomial:
+
+-   Se buscará verificar que se cumple: $$E[X] = \frac{1-p}{p} \\ Var[X]=\frac{1-p}{p^2}$$ Primero hallaremos $E[X] = \sum_{i=0}^n x_i*P(X=x_i)$
+
+```{r}
+esperanza(x,probability_function)
+```
+
+-   Por otro lado, $\frac{1-p}{p}$:
+
+```{r}
+(1-Pexito)/Pexito
+```
+
+-   Ahora hallaremos $$V[X] = E[X^2]-E[X]^2$$
+
+```{r}
+varianza(x, probability_function)
+```
+
+-   Y según distribución binomial:
+
+```{r}
+(1-Pexito)/Pexito^2
+```
+
+##### Ejemplo
+
+-   Luego de cierto día se llega a registrar cierta cantidad de lecturas de contaminante O3. Se quiere saber la probabilidad de tener que leer a lo mucho 20 registros hasta encontrar una cantidad con nivel de O3 medio.
+
+-   Solución:
+
+    -   Se puede decir que piden hallar $P(X\leq 20)$, si sabemos que X \~ Geometrico(p)
+    -   Por lo que la probabilidad de tener que leer a lo mucho 20 registros para encontrar una cantidad con nivel de O3 medio es $\approx 0.947615$
+
+```{r}
+pgeom(20, prob = Pexito)
+```
+
+##### Resultado
+
+-   **Podemos confirmar que la variable aleatoria propuesta cumplen  con las propiedades de distribución geómetrica y por lo tanto sigue tal distribución**
+
+### Variables Continuas
+
+#### **PM10 Y PM2.5**
+
+Analizando la infomación  del Estándar de Calidad del Aire (ECA) la cual es un instrumento de gestión ambiental establecido para poder medir la calidad del aire, definimos gracias a estos estándares escogemos las variables PM10 y PM2.5 que están limitadas a un valor máximo de 100$ug/m^3$ y 50$ug/m^3$, respectivamente.
+
+
+Para su respectivo analzis calculamos la Distribución para ambas variables(Mediana,Media,DS,Varianza).
+
+#### Distribución:
+-   Mediana PM10 $ug/m^3$
+```{r}
+median(BDC$PM10)
+```
+
+-   Media PM10 $ug/m^3$
+```{r}
+mean(BDC$PM10)
+```
+
+-   Desviación estándar^2 PM10 $ug/m^3$
+```{r}
+sd(BDC$PM10)^2
+```
+
+-   Varianza PM10 $ug/m^3$
+```{r}
+var(BDC$PM10)
+```
+
+#### Para PM2.5:
+-   Mediana PM2.5 $ug/m^3$
+```{r}
+median(BDC$PM2.5)
+```
+
+-   Media PM2.5 $ug/m^3$
+```{r}
+mean(BDC$PM2.5)
+```
+
+-   Desviación estándar^2 PM2.5 $ug/m^3$
+```{r}
+sd(BDC$PM2.5)^2
+```
+
+-   Varianza PM2.5 $ug/m^3$
+```{r}
+var(BDC$PM2.5)
+```
+
+Las variables de PM10 Y PM2.5 se asume o se aproxima como una distribución normal debido que no hay una completa simetría entre la media y la mediana, esto se debe por los datos atípicos que son usados en el análisis de la contaminación debido que estos valores captados por los sensores en cada estación.
+
+Para determinar la probabilidad de que cada contaminante sobrepase la del limite establecido por el ECA se procede a realizar una gráfica de densidad para cada variable.
+
+
+```{r echo=FALSE}
+mediap<-mean(BDC$PM10)
+smedia<-sd(BDC$PM10)
+plotDist("norm", mean =mediap, sd = smedia, groups = x >= 100, 
+  type = "h", main="Gráfico de Densidad PM10")
+```
+
+-   Se calcula la probabilidad de que la cantidad de contaminantes de PM10 sobrepase el limite permitido según el ECA 
+```{r}
+(1-pnorm((100),mean(BDC$PM10),sd=sd(BDC$PM10)))
+```
+
+```{r}
+mediap2<-mean(BDC$PM2.5)
+smedia2<-sd(BDC$PM2.5)
+
+plotDist("norm", mean =mediap2, sd = smedia2, groups = x >= 50, 
+  type = "h", main="Gráfico de Densidad PM2.5")
+```
+
+-   Se calcula la probabilidad de que la cantidad de contaminantes de PM2.5$ug/m^3$ sobrepase el limite permitido según el ECA 
+
+```{r}
+(1-pnorm((50),mean(BDC$PM2.5),sd=sd(BDC$PM2.5)))
+```
+
+Como se puede observar la probabilidad de que los contaminantes de PM10$ug/m^3$ Y PM2.5$ug/m^3$ superen los establecidos es considerable,siendo 0.31 y 0.1 respectivamente, asimismo el contaminante PM10 es mas probable que supere la cantidad de 100$ug/m^3$.
+
+##    Conclusiones
+
+1.    Se pudo determinar dos espacios muestrales de eventos relacionados a las variables contaminantes mas peligrosas PM 2.5 Y O3
+
+2.    Se pudo encontrar un par de eventos independientes o dependientes, que abren paso para la posibilidad de que los contaminantes PM 2.5 y O3, no guarden relación, así como también que los contaminantes PM 2.5 y PM 10 si guarden una
+
+3.    Se pudo encontrar un par de variables discretas a partir de ciertos contaminantes que siguen una distribución binomial (PM 2.5), y geométrica (O3), que podrían ayudar en diversas futuras situaciones, asi como también variables continuas que muy probablemente sigan una distribución normal (PM 2.5 y PM 10)
+
+
